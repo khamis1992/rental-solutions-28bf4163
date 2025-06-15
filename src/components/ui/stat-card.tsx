@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
 import { Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface StatCardProps {
   title: string;
@@ -35,6 +35,9 @@ const StatCard = ({
   showSparkline,
   loading = false,
 }: StatCardProps) => {
+  const { language } = useLanguage();
+  const isRTL = language === 'ar';
+
   return (
     <Card 
       className={cn(
@@ -43,6 +46,7 @@ const StatCard = ({
         className
       )}
       onClick={onClick}
+      dir={isRTL ? 'rtl' : 'ltr'}
     >
       <CardContent className="p-6">
         {loading ? (
@@ -52,18 +56,22 @@ const StatCard = ({
             <Skeleton className="h-4 w-3/4" />
           </div>
         ) : (
-          <div className="flex justify-between items-start">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-muted-foreground">{title}</p>
-              <h3 className="text-2xl font-bold mt-2 tracking-tight truncate animate-fade-in">
+          <div className={`flex justify-between items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <p className={`text-sm font-medium text-muted-foreground ${isRTL ? 'text-right' : ''}`}>
+                {title}
+              </p>
+              <h3 className={`text-2xl font-bold mt-2 tracking-tight truncate animate-fade-in ${isRTL ? 'text-right' : ''}`}>
                 {value}
               </h3>
               {description && (
-                <p className="text-sm text-muted-foreground mt-1 truncate">{description}</p>
+                <p className={`text-sm text-muted-foreground mt-1 truncate ${isRTL ? 'text-right' : ''}`}>
+                  {description}
+                </p>
               )}
               
               {trend !== undefined && (
-                <div className="flex items-center mt-2 animate-slide-in">
+                <div className={`flex items-center mt-2 animate-slide-in ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
                   <span className={cn(
                     "text-xs font-medium px-2 py-0.5 rounded-full transition-colors",
                     trend > 0 ? "bg-green-100 text-green-700" : 
@@ -72,7 +80,11 @@ const StatCard = ({
                   )}>
                     {trend > 0 ? '+' : ''}{trend}%
                   </span>
-                  {trendLabel && <span className="text-xs text-muted-foreground ml-2">{trendLabel}</span>}
+                  {trendLabel && (
+                    <span className={`text-xs text-muted-foreground ${isRTL ? 'mr-2' : 'ml-2'}`}>
+                      {trendLabel}
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -85,9 +97,10 @@ const StatCard = ({
             
             {Icon && (
               <div className={cn(
-                "p-3 rounded-full shrink-0 ml-3 transition-transform duration-300 hover:scale-110",
+                "p-3 rounded-full shrink-0 transition-transform duration-300 hover:scale-110",
                 "bg-primary/10",
-                iconColor
+                iconColor,
+                isRTL ? 'mr-3' : 'ml-3'
               )}>
                 <Icon className="h-5 w-5" />
               </div>

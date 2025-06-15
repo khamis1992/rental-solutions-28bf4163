@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatQatarRiyal } from '@/utils/arabic-rtl-utils';
 
 interface DashboardStatsProps {
   stats?: DashboardStatsType;
@@ -25,9 +26,9 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false 
     agreements: [80, 95, 105, 115, 125, 130, 140]
   }), []);
 
-  // Format currency with English digits but Arabic QAR symbol
+  // Format currency with Qatar Riyal formatting
   const formatCurrencyArabic = (amount: number) => {
-    return `${amount.toLocaleString('en-US')} ر.ق`;
+    return formatQatarRiyal(amount);
   };
   
   if (!stats && !loading) return null;

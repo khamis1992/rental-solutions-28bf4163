@@ -80,8 +80,21 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
     return revenue - expenses;
   };
 
-  const chartTitle = title || (language === 'ar' ? "نظرة عامة على إيرادات ذو الحجة" : "Dhul-Hijjah Revenue Overview");
-  const chartDescription = description || (language === 'ar' ? "اتجاهات الإيرادات والمصروفات والأرباح لشهر ذو الحجة" : "Revenue, expenses, and profit trends for Dhul-Hijjah");
+  const getCurrentMonth = () => {
+    const date = new Date();
+    if (language === 'ar') {
+      const arabicGregorianMonths = [
+        'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+        'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+      ];
+      return arabicGregorianMonths[date.getMonth()];
+    }
+    return date.toLocaleDateString('en-US', { month: 'long' });
+  };
+
+  const currentMonth = getCurrentMonth();
+  const chartTitle = title || (language === 'ar' ? `نظرة عامة على إيرادات ${currentMonth}` : `${currentMonth} Revenue Overview`);
+  const chartDescription = description || (language === 'ar' ? `اتجاهات الإيرادات والمصروفات والأرباح لشهر ${currentMonth}` : `Revenue, expenses, and profit trends for ${currentMonth}`);
 
   return (
     <Card className={`card-transition ${fullWidth ? 'col-span-full' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>

@@ -1,0 +1,520 @@
+/* 
+ * Arabic RTL Dashboard Styles
+ * Comprehensive styling for native Arabic (RTL) dashboard experience
+ */
+
+/* Core RTL Foundation */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Cairo', 'Amiri', 'Noto Sans Arabic', 'Segoe UI', sans-serif;
+  font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Arabic Typography Enhancements */
+.arabic-dashboard {
+  font-family: 'Cairo', 'Amiri', 'Noto Sans Arabic', 'Segoe UI', sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+.arabic-title {
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: #1f2937;
+}
+
+.arabic-subtitle {
+  font-weight: 500;
+  line-height: 1.4;
+  color: #6b7280;
+}
+
+.arabic-body {
+  line-height: 1.6;
+  color: #374151;
+}
+
+/* Enhanced RTL Animations */
+@keyframes fadeInRTL {
+  from { 
+    opacity: 0; 
+    transform: translateX(20px);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from { 
+    transform: translateX(100%); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(0); 
+    opacity: 1; 
+  }
+}
+
+@keyframes slideInFromLeft {
+  from { 
+    transform: translateX(-100%); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(0); 
+    opacity: 1; 
+  }
+}
+
+@keyframes scaleInRTL {
+  from {
+    transform: scale(0.95) translateX(10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateX(0);
+    opacity: 1;
+  }
+}
+
+/* RTL-Specific Animation Classes */
+[dir="rtl"] .animate-fade-in-rtl {
+  animation: fadeInRTL 0.6s ease-out;
+}
+
+[dir="rtl"] .animate-slide-in-rtl {
+  animation: slideInFromRight 0.5s ease-out;
+}
+
+[dir="rtl"] .animate-slide-in-reverse-rtl {
+  animation: slideInFromLeft 0.5s ease-out;
+}
+
+[dir="rtl"] .animate-scale-in-rtl {
+  animation: scaleInRTL 0.4s ease-out;
+}
+
+/* Enhanced Card Transitions for RTL */
+[dir="rtl"] .arabic-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: right center;
+  text-align: right;
+  border-radius: 0.75rem;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[dir="rtl"] .arabic-card:hover {
+  transform: translateX(-3px) scale(1.02);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+[dir="rtl"] .arabic-card-interactive {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+[dir="rtl"] .arabic-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* RTL Flex Layouts */
+[dir="rtl"] .rtl-flex {
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .rtl-flex-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+[dir="rtl"] .rtl-flex-center {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: center;
+}
+
+[dir="rtl"] .rtl-flex-between {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: space-between;
+}
+
+[dir="rtl"] .rtl-flex-end {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Enhanced Spacing for RTL */
+[dir="rtl"] .rtl-space-x > * + * {
+  margin-right: 1rem;
+  margin-left: 0;
+}
+
+[dir="rtl"] .rtl-space-x-2 > * + * {
+  margin-right: 0.5rem;
+  margin-left: 0;
+}
+
+[dir="rtl"] .rtl-space-x-3 > * + * {
+  margin-right: 0.75rem;
+  margin-left: 0;
+}
+
+[dir="rtl"] .rtl-space-x-4 > * + * {
+  margin-right: 1rem;
+  margin-left: 0;
+}
+
+[dir="rtl"] .rtl-space-x-6 > * + * {
+  margin-right: 1.5rem;
+  margin-left: 0;
+}
+
+/* Arabic Number Formatting */
+.arabic-numbers {
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+/* Enhanced Button Styles for RTL */
+[dir="rtl"] .rtl-button {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+[dir="rtl"] .rtl-button-icon-left {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+[dir="rtl"] .rtl-button-icon-right {
+  margin-right: 0.5rem;
+  margin-left: 0;
+}
+
+/* Dashboard-Specific RTL Layouts */
+[dir="rtl"] .dashboard-header {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+[dir="rtl"] .dashboard-actions {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+[dir="rtl"] .dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  text-align: right;
+}
+
+[dir="rtl"] .dashboard-grid {
+  display: grid;
+  gap: 1.5rem;
+  text-align: right;
+}
+
+/* Enhanced Status Indicators for RTL */
+[dir="rtl"] .rtl-status {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+[dir="rtl"] .rtl-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  flex-direction: row-reverse;
+}
+
+/* Form Layouts for RTL */
+[dir="rtl"] .rtl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: right;
+}
+
+[dir="rtl"] .rtl-form-row {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 1rem;
+  align-items: center;
+}
+
+[dir="rtl"] .rtl-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: right;
+}
+
+[dir="rtl"] .rtl-form-label {
+  font-weight: 500;
+  color: #374151;
+  text-align: right;
+}
+
+/* Enhanced Table Layouts for RTL */
+[dir="rtl"] .rtl-table {
+  width: 100%;
+  text-align: right;
+  border-collapse: collapse;
+}
+
+[dir="rtl"] .rtl-table th,
+[dir="rtl"] .rtl-table td {
+  text-align: right;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+[dir="rtl"] .rtl-table th {
+  font-weight: 600;
+  color: #374151;
+  background-color: #f9fafb;
+}
+
+/* Navigation Enhancements for RTL */
+[dir="rtl"] .rtl-nav {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 1rem;
+}
+
+[dir="rtl"] .rtl-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .rtl-nav-item:hover {
+  background-color: #f3f4f6;
+}
+
+/* Chart and Data Visualization RTL */
+[dir="rtl"] .rtl-chart-container {
+  direction: ltr; /* Charts typically need LTR for proper rendering */
+  text-align: left;
+}
+
+[dir="rtl"] .rtl-chart-legend {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .rtl-chart-title {
+  direction: rtl;
+  text-align: right;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Modal and Dialog RTL */
+[dir="rtl"] .rtl-modal {
+  text-align: right;
+}
+
+[dir="rtl"] .rtl-modal-header {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+[dir="rtl"] .rtl-modal-footer {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Notification and Alert RTL */
+[dir="rtl"] .rtl-alert {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  text-align: right;
+}
+
+[dir="rtl"] .rtl-notification {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Responsive Design for RTL */
+@media (max-width: 768px) {
+  [dir="rtl"] .dashboard-header {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+  
+  [dir="rtl"] .dashboard-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  [dir="rtl"] .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  [dir="rtl"] .rtl-flex-mobile {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  
+  [dir="rtl"] .rtl-nav {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  [dir="rtl"] .rtl-form-row {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  
+  [dir="rtl"] .rtl-modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Accessibility Enhancements for RTL */
+[dir="rtl"] .sr-only-rtl {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+[dir="rtl"] .rtl-focus:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+[dir="rtl"] .rtl-focus-visible:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Print Styles for RTL */
+@media print {
+  [dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+  }
+  
+  [dir="rtl"] .no-print {
+    display: none;
+  }
+  
+  [dir="rtl"] .print-rtl {
+    direction: rtl;
+    text-align: right;
+  }
+}
+
+/* Dark Mode Support for RTL */
+@media (prefers-color-scheme: dark) {
+  [dir="rtl"] .arabic-card {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+  
+  [dir="rtl"] .arabic-title {
+    color: #f9fafb;
+  }
+  
+  [dir="rtl"] .arabic-subtitle {
+    color: #d1d5db;
+  }
+  
+  [dir="rtl"] .arabic-body {
+    color: #e5e7eb;
+  }
+}
+
+/* Performance Optimizations */
+[dir="rtl"] .rtl-will-change {
+  will-change: transform, opacity;
+}
+
+[dir="rtl"] .rtl-gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Custom Scrollbar for RTL */
+[dir="rtl"] .rtl-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[dir="rtl"] .rtl-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+[dir="rtl"] .rtl-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+[dir="rtl"] .rtl-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+} 

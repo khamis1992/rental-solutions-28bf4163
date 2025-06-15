@@ -1,12 +1,14 @@
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/ui/PageHeader';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { BarChart4, Calendar, Database, Download, Filter, Plus, RefreshCw, Upload } from 'lucide-react';
+import { BarChart4, Calendar, Database, Download, Filter, Plus, RefreshCw, Upload, FileText } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { Card, CardContent } from '@/components/ui/card';
 import { CustomerInfo } from '@/types/customer';
@@ -30,6 +32,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 
 const Agreements = () => {
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
@@ -76,14 +79,16 @@ const Agreements = () => {
       const available = await checkEdgeFunctionAvailability('process-agreement-imports');
       setIsEdgeFunctionAvailable(available);
       if (!available) {
-        toast.error("CSV import feature is unavailable. Please try again later or contact support.", {
+        toast.error(language === 'ar' ? 
+          "ميزة استيراد CSV غير متاحة. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم الفني." :
+          "CSV import feature is unavailable. Please try again later or contact support.", {
           duration: 6000,
         });
       }
     };
     
     checkAvailability();
-  }, []);
+  }, [language]);
   
   // Run payment schedule maintenance job silently on page load
   React.useEffect(() => {
@@ -159,12 +164,16 @@ const Agreements = () => {
   };
 
   return (
-    <PageContainer 
-      title="Rental Agreements" 
-      description="Manage your rental agreements and contracts with customers"
-      className="max-w-full"
-    >
-      <div className="flex flex-col gap-6">
+    <PageContainer className="max-w-full">
+      <PageHeader
+        title="عقود الإيجار"
+        subtitle="إدارة عقود الإيجار والاتفاقيات مع العملاء"
+        icon={<FileText className="w-6 h-6 text-blue-500" />}
+        align={language === 'ar' ? 'right' : 'left'}
+        dir={language === 'ar' ? 'rtl' : 'ltr'}
+      />
+      
+      <div className="flex flex-col gap-6 mt-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         {/* Analytics Section */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Stats Overview */}
@@ -181,7 +190,7 @@ const Agreements = () => {
         {/* Main Content Area with Tabs */}
         <Card>
           <div className="p-4 border-b">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${language === 'ar' ? 'sm:flex-row-reverse' : ''}`}>
               {/* View Mode Selector */}
               <div className="flex items-center gap-2">
                 <AgreementViewSelectors viewMode={viewMode} setViewMode={setViewMode} />
@@ -189,62 +198,73 @@ const Agreements = () => {
             </div>
             
             {/* Search and Action Bar */}
-            <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
+            <div className={`flex flex-col md:flex-row justify-between mt-4 gap-4 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
               <CustomerListFilterClone
                 searchTerm={searchQuery}
                 onSearch={handleSearch}
                 onFilterChange={handleFilterChange}
               />
               
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
                 >
-                  <Filter className="h-4 w-4 mr-2" />
-                  {showFilters ? "Hide Filters" : "Advanced Filters"}
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
+                  <Filter className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                  {showFilters ? 
+                    (language === 'ar' ? 'إخفاء المرشحات' : 'Hide Filters') : 
+                    (language === 'ar' ? 'إظهار المرشحات' : 'Show Filters')
+                  }
                 </Button>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
+                      <Download className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                      {language === 'ar' ? 'تصدير' : 'Export'}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
-                      Import from CSV
+                  <DropdownMenuContent align={language === 'ar' ? 'start' : 'end'}>
+                    <DropdownMenuItem>
+                      <BarChart4 className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                      {language === 'ar' ? 'تصدير إلى Excel' : 'Export to Excel'}
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Download Template</DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Database className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                      {language === 'ar' ? 'تصدير إلى CSV' : 'Export to CSV'}
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
                 <Button 
+                  variant="outline" 
                   size="sm"
-                  onClick={handleAddAgreement}
+                  onClick={() => setIsImportModalOpen(true)}
+                  disabled={!isEdgeFunctionAvailable}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Agreement
+                  <Upload className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                  {language === 'ar' ? 'استيراد' : 'Import'}
+                </Button>
+                
+                <Button size="sm" onClick={handleAddAgreement}>
+                  <Plus className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                  {language === 'ar' ? 'إضافة عقد' : 'Add Agreement'}
                 </Button>
               </div>
             </div>
             
             {/* Active Filters */}
             {activeFilters.length > 0 && (
-              <div className="mt-4">
+              <div className={`mt-4 flex flex-wrap gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                 <ActiveFilters 
-                  activeFilters={activeFilters as [string, string][]}
-                  setSearchParams={setSearchParams}
+                  filters={searchParams || {}} 
+                  onRemoveFilter={(key) => {
+                    const newParams = { ...searchParams };
+                    delete newParams[key];
+                    setSearchParams(newParams);
+                  }}
+                  onClearAll={() => setSearchParams({})}
                 />
               </div>
             )}
@@ -252,70 +272,84 @@ const Agreements = () => {
           
           {/* Filter Panel */}
           {showFilters && (
-            <div className="border-b">
-              <AgreementFilterPanel onFilterChange={handleFilterChange} currentFilters={searchParams} />
+            <div className="border-b p-4">
+              <AgreementFilterPanel 
+                onFilterChange={handleFilterChange}
+                initialFilters={searchParams || {}}
+              />
             </div>
           )}
           
-          {/* Content Area */}
+          {/* Tabs Content */}
           <CardContent className="p-0">
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full sm:w-auto">
-              <TabsList>
-                <TabsTrigger value="agreements">All Agreements</TabsTrigger>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="closed">Closed</TabsTrigger>
-                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-                <TabsTrigger value="history">Import History</TabsTrigger>
-              </TabsList>
-              <AgreementTabPanel
-                value="agreements"
-                viewMode={viewMode}
-                agreements={agreements}
-                isLoading={isLoading}
-                onDeleteAgreement={deleteAgreement}
-                loadingText="Loading agreements..."
-              />
-              <AgreementTabPanel
-                value="active"
-                viewMode={viewMode}
-                agreements={agreements}
-                isLoading={isLoading}
-                onDeleteAgreement={deleteAgreement}
-                loadingText=""
-              />
-              <AgreementTabPanel
-                value="closed"
-                viewMode={viewMode}
-                agreements={agreements}
-                isLoading={isLoading}
-                onDeleteAgreement={deleteAgreement}
-                loadingText=""
-              />
-              <AgreementTabPanel
-                value="cancelled"
-                viewMode={viewMode}
-                agreements={agreements}
-                isLoading={isLoading}
-                onDeleteAgreement={deleteAgreement}
-                loadingText=""
-              />
-              <TabsContent value="history" className="m-0">
-                <div className="p-4">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center">
-                    <Database className="h-5 w-5 mr-2" />
-                    Import History
-                  </h2>
-                  <ImportHistoryList items={[]} isLoading={false} />
-                </div>
-              </TabsContent>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <div className="px-4 pt-4">
+                <TabsList className={`grid grid-cols-4 w-full ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                  <TabsTrigger value="agreements" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <FileText className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                    {language === 'ar' ? 'العقود' : 'Agreements'}
+                  </TabsTrigger>
+                  <TabsTrigger value="active" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <Calendar className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                    {language === 'ar' ? 'نشطة' : 'Active'}
+                  </TabsTrigger>
+                  <TabsTrigger value="closed" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <Database className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                    {language === 'ar' ? 'مغلقة' : 'Closed'}
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <RefreshCw className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                    {language === 'ar' ? 'السجل' : 'History'}
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              
+              <div className="p-4">
+                <TabsContent value="agreements" className="mt-0">
+                  <AgreementTabPanel
+                    agreements={agreements}
+                    isLoading={isLoading}
+                    viewMode={viewMode}
+                    onDeleteAgreement={deleteAgreement}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="active" className="mt-0">
+                  <AgreementTabPanel
+                    agreements={agreements?.filter(a => a.status === 'active') || []}
+                    isLoading={isLoading}
+                    viewMode={viewMode}
+                    onDeleteAgreement={deleteAgreement}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="closed" className="mt-0">
+                  <AgreementTabPanel
+                    agreements={agreements?.filter(a => a.status === 'closed') || []}
+                    isLoading={isLoading}
+                    viewMode={viewMode}
+                    onDeleteAgreement={deleteAgreement}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="history" className="mt-0">
+                  <div className="space-y-4">
+                    <h3 className={`text-lg font-semibold ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                      {language === 'ar' ? 'سجل الاستيراد' : 'Import History'}
+                    </h3>
+                    <ImportHistoryList />
+                  </div>
+                </TabsContent>
+              </div>
             </Tabs>
           </CardContent>
         </Card>
       </div>
       
-      <CSVImportModal 
-        open={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
+      {/* Import Modal */}
+      <CSVImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
         onImportComplete={handleImportComplete}
       />
     </PageContainer>

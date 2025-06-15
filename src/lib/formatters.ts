@@ -1,7 +1,8 @@
-
 /**
  * Utility functions for formatting values for display
  */
+
+import { formatQatarRiyal } from '@/utils/arabic-rtl-utils';
 
 // Format a date as a localized string
 export function formatDate(date: Date | string | number | null | undefined): string {
@@ -20,8 +21,15 @@ export function formatDate(date: Date | string | number | null | undefined): str
   });
 }
 
-// Format a currency value
+// Format a currency value using Qatar Riyal formatting
 export function formatCurrency(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return 'N/A';
+  
+  return formatQatarRiyal(amount);
+}
+
+// Legacy currency formatter (kept for compatibility)
+export function formatCurrencyLegacy(amount: number | null | undefined): string {
   if (amount === null || amount === undefined) return 'N/A';
   
   return new Intl.NumberFormat('en-US', {

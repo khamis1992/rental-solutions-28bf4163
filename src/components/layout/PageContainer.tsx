@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Header from './Header';
@@ -50,7 +49,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
     <div className="min-h-screen flex flex-col bg-background">
       {isMobile ? (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="left" className="p-0 w-[80vw] max-w-[280px]">
+          <SheetContent side="right" className="p-0 w-[80vw] max-w-[280px]">
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </SheetContent>
         </Sheet>
@@ -60,7 +59,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
       
       <div className={cn(
         "flex-1 transition-all duration-300 ease-in-out",
-        isMobile ? "w-full" : "md:pl-64"
+        isMobile ? "w-full" : "md:pr-64"
       )}>
         <Header 
           onToggleSidebar={toggleSidebar} 
@@ -71,7 +70,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
           <Alert variant="warning" className="mx-4 mt-2">
             <WifiOff className="h-4 w-4" />
             <AlertDescription className="flex items-center">
-              You are currently offline. Some features may be unavailable.
+              أنت غير متصل حالياً. قد تكون بعض الميزات غير متاحة.
             </AlertDescription>
           </Alert>
         )}
@@ -82,25 +81,26 @@ const PageContainer: React.FC<PageContainerProps> = ({
             "p-4 md:p-6 animate-fade-in",
             className
           )}
+          dir="rtl"
         >
           {backLink && (
             <Link 
               to={backLink} 
-              className="inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors flex-row-reverse"
             >
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Back
+              <ArrowLeft className="ml-1 h-4 w-4" />
+              رجوع
             </Link>
           )}
           
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:flex-row-reverse">
+            <div className="text-right">
               {title && <h1 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h1>}
               {description && <p className="text-muted-foreground mt-1 text-sm md:text-base">{description}</p>}
-              <p className="text-xs text-muted-foreground mt-1">System Date: {formatDate(systemDate)}</p>
+              <p className="text-xs text-muted-foreground mt-1">تاريخ النظام: {formatDate(systemDate)}</p>
             </div>
             {actions && (
-              <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
+              <div className="flex flex-wrap gap-2 justify-end sm:justify-start">
                 {actions}
               </div>
             )}

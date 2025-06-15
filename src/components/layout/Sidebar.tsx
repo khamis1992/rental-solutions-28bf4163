@@ -4,8 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
-import { useTranslation } from '@/utils/translation-helper';
 import {
   LayoutDashboard,
   Users,
@@ -16,8 +14,6 @@ import {
   AlertTriangle,
   DollarSign,
   Scale,
-  Menu,
-  X,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -38,19 +34,33 @@ type NavLinkProps = {
 };
 
 const NavLink: React.FC<NavLinkProps> = ({ to, icon, label, isActive, badgeCount, onClick }) => {
+  const { language } = useLanguage();
+  
   return (
     <Link
       to={to}
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-3 text-sm transition-all",
+        language === 'ar' ? "flex-row text-right" : "flex-row text-left",
         isActive ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
       )}
       onClick={onClick}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
     >
-      {icon}
-      <span className="truncate">{label}</span>
+      {language === 'ar' && icon}
+      <span 
+        className="truncate"
+        style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+      >
+        {label}
+      </span>
+      {language !== 'ar' && icon}
       {badgeCount !== undefined && badgeCount > 0 && (
-        <div className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+        <div className={cn(
+          "flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground",
+          language === 'ar' ? "ml-auto" : "mr-auto"
+        )}>
           {badgeCount}
         </div>
       )}
@@ -68,23 +78,40 @@ type NavGroupProps = {
 
 const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen = false, onSelect }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const { language } = useLanguage();
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
       <CollapsibleTrigger asChild onClick={onSelect}>
-        <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium cursor-pointer text-gray-200 hover:bg-gray-800">
-          {icon}
-          <span className="truncate">{label}</span>
-          <div className="ml-auto">
+        <div 
+          className={cn(
+            "flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium cursor-pointer text-gray-200 hover:bg-gray-800",
+            language === 'ar' ? "flex-row text-right" : "flex-row text-left"
+          )}
+          dir={language === 'ar' ? 'rtl' : 'ltr'}
+          style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+        >
+          {language === 'ar' && icon}
+          <span 
+            className="truncate"
+            style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+          >
+            {label}
+          </span>
+          {language !== 'ar' && icon}
+          <div className={language === 'ar' ? "ml-auto" : "mr-auto"}>
             {isOpen ? (
               <ChevronDown className="h-4 w-4" />
             ) : (
-              <ChevronRight className="h-4 w-4" />
+              language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
             )}
           </div>
         </div>
       </CollapsibleTrigger>
-      <CollapsibleContent className="pl-10 space-y-1 mt-1">
+      <CollapsibleContent className={cn(
+        "space-y-1 mt-1",
+        language === 'ar' ? "pl-10" : "pr-10"
+      )}>
         {children}
       </CollapsibleContent>
     </Collapsible>
@@ -100,20 +127,32 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
-  const { isRTL } = useLanguage();
-  const { t } = useTranslation();
+  const { t, language } = useLanguage();
   const isMobile = useIsMobile();
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  const hasActiveChild = (paths: string[]) => {
-    return paths.some(path => isActive(path));
-  };
-
   const toggleSidebar = () => {
     setExpanded(!expanded);
+  };
+
+  // Arabic translations for navigation
+  const getNavLabel = (key: string) => {
+    const arabicLabels = {
+      'navigation.dashboard': 'لوحة التحكم',
+      'navigation.customers': 'العملاء',
+      'navigation.agreements': 'العقود',
+      'navigation.vehicles': 'المركبات',
+      'navigation.maintenance': 'الصيانة',
+      'navigation.financials': 'الماليات',
+      'navigation.reports': 'التقارير',
+      'navigation.legal': 'القانونية',
+      'navigation.settings': 'الإعدادات'
+    };
+    
+    return language === 'ar' ? arabicLabels[key] || t(key) : t(key);
   };
 
   // Close sidebar when route changes on mobile
@@ -123,7 +162,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         onClose();
       };
 
-      // Add event listener for route changes
       window.addEventListener('routechange', handleRouteChange);
       
       return () => {
@@ -142,18 +180,26 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "fixed inset-y-0 right-0 z-40 flex flex-col bg-[#111827] border-l border-gray-800 transition-all duration-300 ease-in-out",
+        "fixed inset-y-0 z-40 flex flex-col bg-[#111827] border-gray-800 transition-all duration-300 ease-in-out",
+        language === 'ar' ? "left-0 border-r" : "right-0 border-l",
         expanded ? "w-64" : "w-0 md:w-20",
         expanded ? "" : "md:px-2 md:py-4"
       )}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       <Button
         variant="ghost"
         size="icon"
-        className="hidden md:flex absolute -left-12 top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white"
+        className={cn(
+          "hidden md:flex absolute top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white",
+          language === 'ar' ? "-right-12" : "-left-12"
+        )}
         onClick={toggleSidebar}
       >
-        {expanded ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        {expanded ? 
+          (language === 'ar' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />) : 
+          (language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />)
+        }
       </Button>
 
       <div className={cn(
@@ -161,9 +207,20 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         expanded ? "" : "md:justify-center"
       )}>
         {expanded ? (
-          <div className="flex items-center gap-2" dir="ltr">
+          <div 
+            className={cn(
+              "flex items-center gap-2",
+              language === 'ar' ? "flex-row" : "flex-row-reverse"
+            )}
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
+          >
             <Car className="h-6 w-6 text-white" />
-            <h2 className="text-lg font-semibold text-white">Rental Solutions</h2>
+            <h2 
+              className="text-lg font-semibold text-white"
+              style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+            >
+              حلول التأجير
+            </h2>
           </div>
         ) : (
           <div className="hidden md:block">
@@ -182,7 +239,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/dashboard"
                 icon={<LayoutDashboard className="h-5 w-5 flex-shrink-0" />}
-                label={t('navigation.dashboard')}
+                label={getNavLabel('navigation.dashboard')}
                 isActive={isActive('/dashboard')}
                 onClick={handleNavClick}
               />
@@ -190,7 +247,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/customers"
                 icon={<Users className="h-5 w-5 flex-shrink-0" />}
-                label={t('navigation.customers')}
+                label={getNavLabel('navigation.customers')}
                 isActive={isActive('/customers')}
                 onClick={handleNavClick}
               />
@@ -198,7 +255,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/agreements"
                 icon={<FileText className="h-5 w-5 flex-shrink-0" />}
-                label={t('navigation.agreements')}
+                label={getNavLabel('navigation.agreements')}
                 isActive={isActive('/agreements')}
                 onClick={handleNavClick}
               />
@@ -206,72 +263,87 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/vehicles"
                 icon={<Car className="h-5 w-5 flex-shrink-0" />}
-                label="المركبات"
+                label={getNavLabel('navigation.vehicles')}
                 isActive={isActive('/vehicles')}
                 onClick={handleNavClick}
               />
 
-              <NavLink
-                to="/maintenance"
+              <NavGroup
+                label={getNavLabel('navigation.maintenance')}
                 icon={<Wrench className="h-5 w-5 flex-shrink-0" />}
-                label="الصيانة"
-                isActive={isActive('/maintenance')}
-                onClick={handleNavClick}
-              />
+                onSelect={handleNavClick}
+              >
+                <NavLink
+                  to="/maintenance/schedule"
+                  icon={<AlertTriangle className="h-4 w-4 flex-shrink-0" />}
+                  label={language === 'ar' ? 'جدولة الصيانة' : 'Schedule Maintenance'}
+                  isActive={isActive('/maintenance/schedule')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/maintenance/history"
+                  icon={<BarChart2 className="h-4 w-4 flex-shrink-0" />}
+                  label={language === 'ar' ? 'تاريخ الصيانة' : 'Maintenance History'}
+                  isActive={isActive('/maintenance/history')}
+                  onClick={handleNavClick}
+                />
+              </NavGroup>
 
-              <NavLink
-                to="/fines"
-                icon={<AlertTriangle className="h-5 w-5 flex-shrink-0" />}
-                label="المخالفات المرورية"
-                isActive={isActive('/fines')}
-                onClick={handleNavClick}
-              />
-
-              <NavLink
-                to="/financials"
+              <NavGroup
+                label={getNavLabel('navigation.financials')}
                 icon={<DollarSign className="h-5 w-5 flex-shrink-0" />}
-                label="الإدارة المالية"
-                isActive={isActive('/financials')}
-                onClick={handleNavClick}
-              />
+                onSelect={handleNavClick}
+              >
+                <NavLink
+                  to="/financials/overview"
+                  icon={<BarChart2 className="h-4 w-4 flex-shrink-0" />}
+                  label={language === 'ar' ? 'النظرة العامة' : 'Overview'}
+                  isActive={isActive('/financials/overview')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/financials/transactions"
+                  icon={<DollarSign className="h-4 w-4 flex-shrink-0" />}
+                  label={language === 'ar' ? 'المعاملات' : 'Transactions'}
+                  isActive={isActive('/financials/transactions')}
+                  onClick={handleNavClick}
+                />
+              </NavGroup>
+
+              <NavGroup
+                label={getNavLabel('navigation.reports')}
+                icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
+                onSelect={handleNavClick}
+              >
+                <NavLink
+                  to="/reports/financial"
+                  icon={<DollarSign className="h-4 w-4 flex-shrink-0" />}
+                  label={language === 'ar' ? 'التقارير المالية' : 'Financial Reports'}
+                  isActive={isActive('/reports/financial')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/reports/operational"
+                  icon={<BarChart2 className="h-4 w-4 flex-shrink-0" />}
+                  label={language === 'ar' ? 'التقارير التشغيلية' : 'Operational Reports'}
+                  isActive={isActive('/reports/operational')}
+                  onClick={handleNavClick}
+                />
+              </NavGroup>
 
               <NavLink
                 to="/legal"
                 icon={<Scale className="h-5 w-5 flex-shrink-0" />}
-                label="القانونية"
+                label={getNavLabel('navigation.legal')}
                 isActive={isActive('/legal')}
                 onClick={handleNavClick}
               />
 
               <NavLink
-                to="/reports"
-                icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
-                label="التقارير"
-                isActive={isActive('/reports')}
-                onClick={handleNavClick}
-              />
-
-              <NavLink
-                to="/reports/builder"
-                icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
-                label="منشئ التقارير"
-                isActive={isActive('/reports/builder')}
-                onClick={handleNavClick}
-              />
-              
-              <NavLink
-                to="/documents"
-                icon={<FileText className="h-5 w-5 flex-shrink-0" />}
-                label="المستندات"
-                isActive={isActive('/documents')}
-                onClick={handleNavClick}
-              />
-
-              <NavLink
-                to="/users"
-                icon={<Users className="h-5 w-5 flex-shrink-0" />}
-                label="إدارة المستخدمين"
-                isActive={isActive('/users')}
+                to="/settings"
+                icon={<Wrench className="h-5 w-5 flex-shrink-0" />}
+                label={getNavLabel('navigation.settings')}
+                isActive={isActive('/settings')}
                 onClick={handleNavClick}
               />
             </>
@@ -279,35 +351,55 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         </nav>
       </div>
 
-      <div className={cn(
-        "mt-auto border-t border-gray-800 py-4 px-4",
-        expanded ? "" : "md:px-2 md:flex md:justify-center"
-      )}>
-        {expanded ? (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border border-gray-700">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-gray-700 text-white">{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
+      {expanded && (
+        <div className="border-t border-gray-800 p-4">
+          <div 
+            className={cn(
+              "flex items-center gap-3 mb-3",
+              language === 'ar' ? "flex-row" : "flex-row"
+            )}
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
+          >
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={profile?.avatar_url || ''} />
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {profile?.full_name?.split(' ').map(n => n[0]).join('') || user?.email?.[0].toUpperCase() || '?'}
+              </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-white truncate max-w-[120px]">{profile?.full_name || "مستخدم"}</span>
-              <span className="text-xs text-gray-400 truncate max-w-[120px]">
-                مشرف
-              </span>
+            <div className="flex-1 min-w-0">
+              <p 
+                className="text-sm font-medium text-white truncate"
+                style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+              >
+                {profile?.full_name || user?.email || 'مستخدم'}
+              </p>
+              <p 
+                className="text-xs text-gray-400 truncate"
+                style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+              >
+                {language === 'ar' ? 'مدير النظام' : 'System Admin'}
+              </p>
             </div>
-            <Button variant="ghost" size="icon" onClick={signOut} className="ml-auto text-gray-400 hover:text-white hover:bg-gray-800">
-              <LogOut className="h-4 w-4" />
-            </Button>
           </div>
-        ) : (
-          <div className="hidden md:flex justify-center">
-            <Avatar className="h-9 w-9 border border-gray-700">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-gray-700 text-white">{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
-            </Avatar>
-          </div>
-        )}
-      </div>
+          
+          <Button
+            variant="ghost"
+            onClick={signOut}
+            className={cn(
+              "w-full justify-start text-gray-200 hover:bg-gray-800 hover:text-white",
+              language === 'ar' ? "flex-row" : "flex-row"
+            )}
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
+            style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+          >
+            {language === 'ar' && <LogOut className="h-4 w-4 ml-2" />}
+            <span style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}>
+              {language === 'ar' ? 'تسجيل الخروج' : 'Sign Out'}
+            </span>
+            {language !== 'ar' && <LogOut className="h-4 w-4 mr-2" />}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

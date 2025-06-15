@@ -10,20 +10,18 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
   const [chartType, setChartType] = useState<ChartType>('area');
   const { language } = useLanguage();
   
-  // Get current month name in Arabic - prioritize Dhul-Hijjah for revenue overview
+  // Get current month name in Arabic (Gregorian calendar only)
   const getCurrentMonthInArabic = () => {
     const date = new Date();
-    const month = date.getMonth(); // 0-based month
     
-    // Arabic month names (Hijri calendar references)
-    const arabicMonths = [
+    // Arabic Gregorian month names
+    const arabicGregorianMonths = [
       'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ذو الحجة'
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
     ];
     
-    // For demonstration and revenue overview, prioritize Dhul-Hijjah
     if (language === 'ar') {
-      return 'ذو الحجة'; // Always show Dhul-Hijjah for revenue overview as requested
+      return arabicGregorianMonths[date.getMonth()];
     }
     
     return date.toLocaleDateString('en-US', { month: 'long' });

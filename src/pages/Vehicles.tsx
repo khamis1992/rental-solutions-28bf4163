@@ -291,11 +291,11 @@ const Vehicles = () => {
   return (
     <PageContainer className="max-w-full">
       <PageHeader
-        title={language === 'ar' ? 'المركبات' : 'Vehicles'}
-        subtitle={language === 'ar' ? 'إدارة وتتبع أسطول المركبات' : 'Manage and track your fleet vehicles'}
+        title="المركبات"
+        subtitle="إدارة وتتبع أسطول المركبات"
         icon={<Car className="w-6 h-6 text-blue-500" />}
-        align={language === 'ar' ? 'right' : 'left'}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
+        align="right"
+        dir="rtl"
       />
       <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <VehicleStats />

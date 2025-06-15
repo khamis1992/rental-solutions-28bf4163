@@ -7,11 +7,15 @@ import { CustomerPageTabContent } from '@/components/customers/CustomerPageTabCo
 import { CustomerPageModals } from '@/components/customers/CustomerPageModals';
 import type { CustomerInfo } from '@/types/customer';
 import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/ui/PageHeader';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { CacheSynchronization } from '@/utils/cache-synchronization';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Users } from 'lucide-react';
 
 const Customers = () => {
+  const { language } = useLanguage();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
@@ -61,9 +65,9 @@ const Customers = () => {
     try {
       await CacheSynchronization.invalidateCustomerCaches();
       await refetch();
-      toast.success('Customer data refreshed');
+      toast.success(language === 'ar' ? 'تم تحديث بيانات العملاء' : 'Customer data refreshed');
     } catch (error) {
-      toast.error('Failed to refresh customer data');
+      toast.error(language === 'ar' ? 'فشل في تحديث بيانات العملاء' : 'Failed to refresh customer data');
       console.error('Refresh error:', error);
     } finally {
       setIsRefreshing(false);
@@ -95,11 +99,20 @@ const Customers = () => {
   };
 
   return (
-    <PageContainer 
-      title="Customer Management"
-      description="Manage your customers, view details, and track customer information"
-    >
-      <div className="flex flex-col space-y-6">
+    <PageContainer>
+      <PageHeader
+        title={language === 'ar' ? 'العملاء' : 'Customers'}
+        subtitle={language === 'ar' ? 'إدارة العملاء وعرض التفاصيل وتتبع معلومات العملاء' : 'Manage customers, view details, and track customer information'}
+        icon={<Users className="w-6 h-6 text-blue-500" />}
+        align={language === 'ar' ? 'right' : 'left'}
+        dir={language === 'ar' ? 'rtl' : 'ltr'}
+      />
+      
+      <div 
+        className="flex flex-col space-y-6 mt-6" 
+        dir={language === 'ar' ? 'rtl' : 'ltr'}
+        style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+      >
         <CustomerPageStatsCards 
           customers={transformedCustomers} 
           isLoading={isLoading} 
