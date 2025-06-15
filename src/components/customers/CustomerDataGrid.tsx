@@ -117,33 +117,16 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-center">الإجراءات</TableHead>
-              <TableHead className="text-center">الحالة</TableHead>
-              <TableHead className="text-center">تاريخ الإضافة</TableHead>
-              <TableHead className="text-center">الجوال</TableHead>
               <TableHead className="text-center">اسم العميل</TableHead>
+              <TableHead className="text-center hidden md:table-cell">الجوال</TableHead>
+              <TableHead className="text-center hidden lg:table-cell">تاريخ الإضافة</TableHead>
+              <TableHead className="text-center">الحالة</TableHead>
+              <TableHead className="text-center">الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={`skeleton-${i}`} className="hover:bg-muted/50">
-                <TableCell className="text-center">
-                  <div className="flex justify-center">
-                    <Skeleton className="h-8 w-8 rounded-md" />
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Skeleton className="h-5 w-[100px] mx-auto" />
-                </TableCell>
-                <TableCell className="text-center">
-                  <Skeleton className="h-4 w-[100px] mx-auto" />
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex flex-col items-center gap-1">
-                    <Skeleton className="h-3 w-[120px]" />
-                    <Skeleton className="h-3 w-[160px]" />
-                  </div>
-                </TableCell>
                 <TableCell className="text-center">
                   <div className="flex items-center justify-center gap-3">
                     <div className="flex flex-col items-center gap-1">
@@ -151,6 +134,23 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
                       <Skeleton className="h-3 w-[100px]" />
                     </div>
                     <Skeleton className="h-10 w-10 rounded-full" />
+                  </div>
+                </TableCell>
+                <TableCell className="text-center hidden md:table-cell">
+                  <div className="flex flex-col items-center gap-1">
+                    <Skeleton className="h-3 w-[120px]" />
+                    <Skeleton className="h-3 w-[160px]" />
+                  </div>
+                </TableCell>
+                <TableCell className="text-center hidden lg:table-cell">
+                  <Skeleton className="h-4 w-[100px] mx-auto" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="h-5 w-[100px] mx-auto" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <div className="flex justify-center">
+                    <Skeleton className="h-8 w-8 rounded-md" />
                   </div>
                 </TableCell>
               </TableRow>
@@ -174,19 +174,19 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
     );
   }
 
-  return (
-    <div className="space-y-4" dir="rtl">
-      <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-center">الإجراءات</TableHead>
-              <TableHead className="text-center">الحالة</TableHead>
-              <TableHead className="text-center">تاريخ الإضافة</TableHead>
-              <TableHead className="text-center">الجوال</TableHead>
-              <TableHead className="text-center">اسم العميل</TableHead>
-            </TableRow>
-          </TableHeader>
+      return (
+      <div className="space-y-4" dir="rtl">
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center">اسم العميل</TableHead>
+                <TableHead className="text-center hidden md:table-cell">الجوال</TableHead>
+                <TableHead className="text-center hidden lg:table-cell">تاريخ الإضافة</TableHead>
+                <TableHead className="text-center">الحالة</TableHead>
+                <TableHead className="text-center">الإجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {currentCustomers.map((customer) => (
               <TableRow 
@@ -194,6 +194,44 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
                 className="hover:bg-muted/50 cursor-pointer"
                 onClick={() => onCustomerSelect?.(customer)}
               >
+                <TableCell className="text-center">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="text-center">
+                      <div className="font-medium">{customer.full_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        ID: {customer.id?.substring(0, 8) || 'N/A'}
+                      </div>
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      {customer.full_name?.substring(0, 2).toUpperCase() || 'NA'}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center hidden md:table-cell">
+                  <div className="flex flex-col items-center text-sm gap-1">
+                    <div className="flex items-center justify-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                      <span>{customer.phone_number || 'غير محدد'}</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                      <span className="text-xs text-muted-foreground">{customer.email || 'غير محدد'}</span>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center hidden lg:table-cell">
+                  <div className="flex items-center justify-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <span className="text-sm">
+                      {formatArabicDate(customer.created_at)}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <div className="flex justify-center">
+                    {getStatusBadge(customer.status)}
+                  </div>
+                </TableCell>
                 <TableCell className="text-center">
                   <div className="flex justify-center">
                     <DropdownMenu>
@@ -221,44 +259,6 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex justify-center">
-                    {getStatusBadge(customer.status)}
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <span className="text-sm">
-                      {formatArabicDate(customer.created_at)}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex flex-col items-center text-sm gap-1">
-                    <div className="flex items-center justify-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      <span>{customer.phone_number}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      <span className="text-xs text-muted-foreground">{customer.email}</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="text-center">
-                      <div className="font-medium">{customer.full_name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        ID: {customer.id.substring(0, 8)}
-                      </div>
-                    </div>
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      {customer.full_name.substring(0, 2).toUpperCase()}
-                    </div>
                   </div>
                 </TableCell>
               </TableRow>

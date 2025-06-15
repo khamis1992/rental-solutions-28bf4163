@@ -155,13 +155,13 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         });
       }
       toast({
-        title: "Customer updated",
-        description: "Customer details have been updated successfully.",
+        title: language === 'ar' ? 'تم تحديث العميل' : 'Customer updated',
+        description: language === 'ar' ? 'تم تحديث تفاصيل العميل بنجاح.' : 'Customer details have been updated successfully.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Update failed",
+        title: language === 'ar' ? 'فشل التحديث' : 'Update failed',
         description: error.message,
         variant: "destructive",
       });
@@ -210,9 +210,11 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
   if (isLoading) {
     console.log("CustomerDetail: Rendering loading state");
     return (
-      <div className="flex items-center justify-center p-6">
+      <div className={`flex items-center justify-center p-6 ${language === 'ar' ? 'flex-row-reverse' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <span className="mr-4 text-lg">جاري التحميل...</span>
+        <span className={`text-lg ${language === 'ar' ? 'ml-4' : 'mr-4'}`}>
+          {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+        </span>
       </div>
     );
   }
@@ -221,70 +223,124 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
   if (error || !customer) {
     console.log("CustomerDetail: Rendering error state:", error);
     return (
-      <Card className="w-full">
+      <Card className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <CardContent className="p-6">
-          <p className="text-destructive">{error || "تعذر العثور على بيانات العميل"}</p>
+          <p className={`text-destructive ${language === 'ar' ? 'text-right' : ''}`}>
+            {error || (language === 'ar' ? 'تعذر العثور على بيانات العميل' : 'Customer data not found')}
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   // Count active agreements
-  const activeAgreements = customer.agreements?.filter(
+  const activeAgreements = (customer as any).agreements?.filter(
     (agreement: any) => agreement.status === 'active'
   ).length || 0;
 
   // Get total agreements
-  const totalAgreements = customer.agreements?.length || 0;
+  const totalAgreements = (customer as any).agreements?.length || 0;
+
+  // Mock user role check - you can replace this with actual role logic
+  const getUserRole = () => {
+    // This should come from your auth context or user profile
+    // For now, returning 'admin' as default - replace with actual role logic
+    return 'admin'; // possible values: 'admin', 'manager', 'staff', 'viewer'
+  };
+
+  const userRole = getUserRole();
+
+  // Define tab visibility based on user roles
+  const getVisibleTabs = () => {
+    const allTabs = [
+      {
+        value: 'profile',
+        label: language === 'ar' ? 'الملف الشخصي' : 'Profile',
+        roles: ['admin', 'manager', 'staff', 'viewer'] // Everyone can see profile
+      },
+      {
+        value: 'agreements',
+        label: language === 'ar' ? 'العقود' : 'Agreements',
+        roles: ['admin', 'manager', 'staff'] // Viewers cannot see agreements
+      },
+      {
+        value: 'legal',
+        label: language === 'ar' ? 'الالتزامات القانونية' : 'Legal Obligations',
+        roles: ['admin', 'manager'] // Only admin and managers can see legal
+      },
+      {
+        value: 'fines',
+        label: language === 'ar' ? 'المخالفات المرورية' : 'Traffic Fines',
+        roles: ['admin', 'manager', 'staff'] // Viewers cannot see fines
+      }
+    ];
+
+    return allTabs.filter(tab => tab.roles.includes(userRole));
+  };
+
+  const visibleTabs = getVisibleTabs();
+
+  // Ensure the default active tab is available to the user
+  const defaultTab = visibleTabs.length > 0 ? visibleTabs[0].value : 'profile';
+  
+  // Update activeTab if current tab is not visible to user
+  useEffect(() => {
+    const isActiveTabVisible = visibleTabs.some(tab => tab.value === activeTab);
+    if (!isActiveTabVisible) {
+      setActiveTab(defaultTab);
+    }
+  }, [activeTab, visibleTabs, defaultTab]);
 
   console.log("CustomerDetail: Rendering customer detail view for:", customer.full_name);
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Customer Header Card */}
       <Card className="w-full border rounded-lg overflow-hidden">
         <CardContent className="p-6">
-          <div
-            dir={language === 'ar' ? 'rtl' : 'ltr'}
-            className="flex flex-col md:flex-row-reverse justify-between items-start md:items-center mb-6"
-          >
-            {/* Buttons: always first in DOM, so they appear left in RTL */}
-            <div className="flex gap-2 mb-4 md:mb-0">
+          <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-6 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
+            {/* Buttons */}
+            <div className={`flex gap-2 mb-4 md:mb-0 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
               <Button asChild variant="outline">
                 <Link to={`/customers/edit/${customerId}`}>
-                  <Edit className="ml-2 h-4 w-4" />
+                  <Edit className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
                   {language === 'ar' ? 'تعديل' : 'Edit'}
                 </Link>
               </Button>
               <Button variant="destructive" onClick={handleDelete}>
-                <Trash2 className="ml-2 h-4 w-4" />
+                <Trash2 className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
                 {language === 'ar' ? 'حذف' : 'Delete'}
               </Button>
             </div>
-            {/* Info */}
-            <div className={`flex items-center gap-4 ${language === 'ar' ? 'flex-row' : 'flex-row-reverse'}`}>
+            
+            {/* Customer Info */}
+            <div className={`flex items-center gap-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
               {/* Avatar */}
               <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center text-lg font-bold">
                 {customer.full_name?.charAt(0) || "ع"}
               </div>
-              <div className="text-right">
-                <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row' : 'flex-row-reverse'}`}> 
+              <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}> 
                   <h2 className="text-2xl font-bold">{customer.full_name}</h2>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">نشط</Badge>
+                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                    {language === 'ar' ? 'نشط' : 'Active'}
+                  </Badge>
                 </div>
-                <p className="text-gray-500">عميل منذ {formatDate(customer.created_at)}</p>
-                <div className="mt-2 flex gap-6 flex-row-reverse">
-                  <div className="flex items-center gap-1 flex-row-reverse">
-                    <Mail className="h-4 w-4 text-gray-500 ml-1" />
-                    <span className="text-sm">{customer.email || "غير متوفر"}</span>
+                <p className="text-gray-500">
+                  {language === 'ar' ? `عميل منذ ${formatDate(customer.created_at)}` : `Customer since ${formatDate(customer.created_at)}`}
+                </p>
+                <div className={`mt-2 flex gap-6 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <Mail className={`h-4 w-4 text-gray-500 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                    <span className="text-sm">{customer.email || (language === 'ar' ? 'غير متوفر' : 'Not available')}</span>
                   </div>
-                  <div className="flex items-center gap-1 flex-row-reverse">
-                    <Phone className="h-4 w-4 text-gray-500 ml-1" />
-                    <span className="text-sm ltr:text-left" dir="ltr">{formatQatarPhone(customer.phone_number)}</span>
+                  <div className={`flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <Phone className={`h-4 w-4 text-gray-500 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                    <span className="text-sm" dir="ltr">{formatQatarPhone(customer.phone_number)}</span>
                   </div>
-                  <div className="flex items-center gap-1 flex-row-reverse">
-                    <FileText className="h-4 w-4 text-gray-500 ml-1" />
-                    <span className="text-sm">{customer.nationality || "غير متوفر"}</span>
+                  <div className={`flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <FileText className={`h-4 w-4 text-gray-500 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                    <span className="text-sm">{customer.nationality || (language === 'ar' ? 'غير متوفر' : 'Not available')}</span>
                   </div>
                 </div>
               </div>
@@ -292,17 +348,23 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <div className="bg-gray-50 p-4 rounded-lg text-right">
-              <p className="text-gray-500 mb-1">إجمالي العقود</p>
+            <div className={`bg-gray-50 p-4 rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              <p className="text-gray-500 mb-1">
+                {language === 'ar' ? 'إجمالي العقود' : 'Total Agreements'}
+              </p>
               <p className="text-3xl font-bold">{totalAgreements}</p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg text-right">
-              <p className="text-gray-500 mb-1">العقود النشطة</p>
+            <div className={`bg-gray-50 p-4 rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              <p className="text-gray-500 mb-1">
+                {language === 'ar' ? 'العقود النشطة' : 'Active Agreements'}
+              </p>
               <p className="text-3xl font-bold">{activeAgreements}</p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg text-right">
-              <p className="text-gray-500 mb-1">آخر تحديث</p>
-              <p className="text-3xl font-bold">{formatDate(customer.updated_at || customer.created_at)}</p>
+            <div className={`bg-gray-50 p-4 rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              <p className="text-gray-500 mb-1">
+                {language === 'ar' ? 'آخر تحديث' : 'Last Updated'}
+              </p>
+              <p className="text-sm font-medium">{formatDate(customer.updated_at || customer.created_at)}</p>
             </div>
           </div>
         </CardContent>
@@ -310,44 +372,64 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
       
       {/* Tabs for different sections */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <TabsList className="grid grid-cols-4 w-full mb-4">
-          {language === 'ar' ? (
-            <>
-              <TabsTrigger value="profile">{t('customers.profileTab')}</TabsTrigger>
-              <TabsTrigger value="agreements">{t('customers.agreementsTab')}</TabsTrigger>
-              <TabsTrigger value="legal">{t('customers.legalObligationsTab')}</TabsTrigger>
-              <TabsTrigger value="fines">{t('customers.trafficFinesTab')}</TabsTrigger>
-            </>
-          ) : (
-            <>
-              <TabsTrigger value="fines">{t('customers.trafficFinesTab')}</TabsTrigger>
-              <TabsTrigger value="legal">{t('customers.legalObligationsTab')}</TabsTrigger>
-              <TabsTrigger value="agreements">{t('customers.agreementsTab')}</TabsTrigger>
-              <TabsTrigger value="profile">{t('customers.profileTab')}</TabsTrigger>
-            </>
-          )}
+        <TabsList 
+          className={`w-full mb-4 ${
+            visibleTabs.length === 4 ? 'grid-cols-4' : 
+            visibleTabs.length === 3 ? 'grid-cols-3' : 
+            visibleTabs.length === 2 ? 'grid-cols-2' : 'grid-cols-1'
+          } grid`}
+          style={{ 
+            direction: language === 'ar' ? 'rtl' : 'ltr',
+            textAlign: language === 'ar' ? 'right' : 'left'
+          }}
+        >
+          {visibleTabs.map((tab) => (
+            <TabsTrigger 
+              key={tab.value} 
+              value={tab.value}
+              className={`
+                relative transition-all duration-200 ease-in-out
+                data-[state=active]:bg-white 
+                data-[state=active]:text-blue-600 
+                data-[state=active]:shadow-sm
+                data-[state=active]:border-b-2 
+                data-[state=active]:border-blue-600
+                hover:bg-gray-50 
+                hover:text-gray-900
+                ${language === 'ar' ? 'text-right' : 'text-left'}
+              `}
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
         
         <TabsContent value="profile" className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${language === 'ar' ? 'text-right' : ''}`}>
           {/* Contact Information Card */}
           <Card className="w-full">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                 <Phone className="w-5 h-5" />
-                معلومات التواصل
+                {language === 'ar' ? 'معلومات التواصل' : 'Contact Information'}
               </h3>
               <div className="space-y-4">
                 <div>
-                  <p className="text-gray-500 mb-1">البريد الإلكتروني</p>
-                  <p className="font-medium">{customer.email || 'غير متوفر'}</p>
+                  <p className="text-gray-500 mb-1">
+                    {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+                  </p>
+                  <p className="font-medium">{customer.email || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 mb-1">رقم الهاتف</p>
-                  <p className="font-medium text-sm ltr:text-left" dir="ltr">{formatQatarPhone(customer.phone_number)}</p>
+                  <p className="text-gray-500 mb-1">
+                    {language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
+                  </p>
+                  <p className="font-medium text-sm" dir="ltr">{formatQatarPhone(customer.phone_number)}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 mb-1">العنوان</p>
-                  <p className="font-medium">{customer.address || 'غير متوفر'}</p>
+                  <p className="text-gray-500 mb-1">
+                    {language === 'ar' ? 'العنوان' : 'Address'}
+                  </p>
+                  <p className="font-medium">{customer.address || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
                 </div>
               </div>
             </CardContent>
@@ -356,25 +438,33 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           {/* Customer Details Card */}
           <Card className="w-full">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                 <FileText className="w-5 h-5" />
-                تفاصيل العميل
+                {language === 'ar' ? 'تفاصيل العميل' : 'Customer Details'}
               </h3>
               
               <div className="space-y-4">
                 <div>
-                  <p className="text-gray-500 mb-1">الحالة</p>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">نشط</Badge>
+                  <p className="text-gray-500 mb-1">
+                    {language === 'ar' ? 'الحالة' : 'Status'}
+                  </p>
+                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                    {language === 'ar' ? 'نشط' : 'Active'}
+                  </Badge>
                 </div>
                 
                 <div>
-                  <p className="text-gray-500 mb-1">رخصة القيادة</p>
-                  <p className="font-medium">{customer.driver_license || 'غير متوفر'}</p>
+                  <p className="text-gray-500 mb-1">
+                    {language === 'ar' ? 'رخصة القيادة' : 'Driver License'}
+                  </p>
+                  <p className="font-medium">{(customer as any).driver_license || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
                 </div>
                 
                 <div>
-                  <p className="text-gray-500 mb-1">آخر تحديث</p>
-                  <p className="font-medium flex items-center gap-1">
+                  <p className="text-gray-500 mb-1">
+                    {language === 'ar' ? 'آخر تحديث' : 'Last Updated'}
+                  </p>
+                  <p className={`font-medium flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                     <Clock className="h-4 w-4" />
                     {formatDate(customer.updated_at || customer.created_at)}
                   </p>
@@ -386,24 +476,28 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           {/* Additional Notes with Edit Functionality */}
           <Card className="w-full col-span-2">
             <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">ملاحظات إضافية</h3>
+              <div className={`flex justify-between items-center mb-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                <h3 className="text-lg font-semibold">
+                  {language === 'ar' ? 'ملاحظات إضافية' : 'Additional Notes'}
+                </h3>
                 {!editingNotes ? (
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => setEditingNotes(true)}
                   >
-                    <Edit className="h-4 w-4 mr-1" /> تعديل الملاحظات
+                    <Edit className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                    {language === 'ar' ? 'تعديل الملاحظات' : 'Edit Notes'}
                   </Button>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className={`flex gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={handleCancelEditNotes}
                     >
-                      <X className="h-4 w-4 mr-1" /> إلغاء
+                      <X className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                      {language === 'ar' ? 'إلغاء' : 'Cancel'}
                     </Button>
                     <Button 
                       variant="default" 
@@ -411,7 +505,8 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                       onClick={handleSaveNotes}
                       disabled={updateMutation.isPending}
                     >
-                      <Save className="h-4 w-4 mr-1" /> حفظ
+                      <Save className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                      {language === 'ar' ? 'حفظ' : 'Save'}
                     </Button>
                   </div>
                 )}
@@ -419,19 +514,20 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
               
               {!editingNotes ? (
                 <p className="text-gray-500 italic">
-                  {customer.notes || 'لا توجد ملاحظات إضافية'}
+                  {(customer as any).notes || (language === 'ar' ? 'لا توجد ملاحظات إضافية' : 'No additional notes')}
                 </p>
               ) : (
                 <FormField
-                  label="ملاحظات العميل"
+                  label={language === 'ar' ? 'ملاحظات العميل' : 'Customer Notes'}
                   htmlFor="notes"
                 >
                   <Textarea 
                     id="notes"
-                    placeholder="أدخل ملاحظات حول العميل..."
+                    placeholder={language === 'ar' ? 'أدخل ملاحظات حول العميل...' : 'Enter notes about the customer...'}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-[100px]"
+                    className={`min-h-[100px] ${language === 'ar' ? 'text-right' : 'text-left'}`}
+                    dir={language === 'ar' ? 'rtl' : 'ltr'}
                   />
                 </FormField>
               )}
@@ -440,55 +536,69 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         </TabsContent>
         
         <TabsContent value="agreements">
-          {customer.agreements && customer.agreements.length > 0 ? (
-            <div className="bg-white rounded-md shadow">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      رقم العقد
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      تاريخ البدء
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      تاريخ الانتهاء
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      الحالة
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {customer.agreements.map((agreement: any) => (
-                    <tr key={agreement.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{agreement.agreement_number}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{formatDate(agreement.start_date)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{formatDate(agreement.end_date)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge className={
-                          agreement.status === 'active' ? 'bg-green-100 text-green-800' : 
-                          agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-gray-100 text-gray-800'
-                        }>
-                          {agreement.status === 'active' ? 'نشط' : agreement.status === 'pending' ? 'قيد الانتظار' : 'غير معروف'}
-                        </Badge>
-                      </td>
+          {(customer as any).agreements && (customer as any).agreements.length > 0 ? (
+            <div className="bg-white rounded-md shadow overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                        {language === 'ar' ? 'رقم العقد' : 'Agreement Number'}
+                      </th>
+                      <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                        {language === 'ar' ? 'تاريخ البدء' : 'Start Date'}
+                      </th>
+                      <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                        {language === 'ar' ? 'تاريخ الانتهاء' : 'End Date'}
+                      </th>
+                      <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                        {language === 'ar' ? 'الحالة' : 'Status'}
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {(customer as any).agreements.map((agreement: any) => (
+                      <tr key={agreement.id}>
+                        <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                          <div className="text-sm font-medium text-gray-900">{agreement.agreement_number}</div>
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                          <div className="text-sm text-gray-500">{formatDate(agreement.start_date)}</div>
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                          <div className="text-sm text-gray-500">{formatDate(agreement.end_date)}</div>
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                          <Badge className={
+                            agreement.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' : 
+                            agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
+                            'bg-gray-100 text-gray-800 border-gray-200'
+                          }>
+                            {language === 'ar' ? (
+                              agreement.status === 'active' ? 'نشط' : 
+                              agreement.status === 'pending' ? 'قيد الانتظار' : 
+                              agreement.status === 'completed' ? 'مكتمل' :
+                              agreement.status === 'cancelled' ? 'ملغي' : 'غير معروف'
+                            ) : (
+                              agreement.status === 'active' ? 'Active' : 
+                              agreement.status === 'pending' ? 'Pending' : 
+                              agreement.status === 'completed' ? 'Completed' :
+                              agreement.status === 'cancelled' ? 'Cancelled' : 'Unknown'
+                            )}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
-            <Card className="w-full">
+            <Card className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
               <CardContent className="p-6 text-center">
-                <p className="text-gray-500">لا توجد عقود لهذا العميل.</p>
+                <p className={`text-gray-500 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'لا توجد عقود لهذا العميل.' : 'No agreements found for this customer.'}
+                </p>
               </CardContent>
             </Card>
           )}

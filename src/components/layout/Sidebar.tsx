@@ -309,14 +309,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                 isActive={isActive('/legal')}
                 onClick={handleNavClick}
               />
-
-              <NavLink
-                to="/settings"
-                icon={<Wrench className="h-5 w-5 flex-shrink-0" />}
-                label={getNavLabel('navigation.settings')}
-                isActive={isActive('/settings')}
-                onClick={handleNavClick}
-              />
             </>
           )}
         </nav>
