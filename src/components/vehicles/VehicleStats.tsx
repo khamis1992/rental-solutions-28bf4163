@@ -18,25 +18,23 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, description, icon, color, loading, url }: StatCardProps) => {
-  const { language } = useLanguage();
-  
   const content = (
-    <Card className="hover:shadow-md transition-shadow" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <CardHeader className={`flex items-center justify-between pb-2 ${language === 'ar' ? 'flex-row-reverse' : 'flex-row'}`}>
-        <CardTitle className={`text-sm font-medium text-muted-foreground ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-          {title}
-        </CardTitle>
+    <Card className="hover:shadow-md transition-shadow" dir="rtl">
+      <CardHeader className="flex items-center justify-between pb-2 flex-row-reverse">
         <div className={`p-2 rounded-full ${color}`}>
           {icon}
         </div>
+        <CardTitle className="text-sm font-medium text-muted-foreground text-right">
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
           <Skeleton className="h-7 w-1/2" />
         ) : (
-          <div className={`text-2xl font-bold ${language === 'ar' ? 'text-right' : 'text-left'}`}>{value}</div>
+          <div className="text-2xl font-bold text-right">{value}</div>
         )}
-        <p className={`text-xs text-muted-foreground mt-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+        <p className="text-xs text-muted-foreground mt-1 text-right">
           {description}
         </p>
       </CardContent>
@@ -51,7 +49,6 @@ const StatCard = ({ title, value, description, icon, color, loading, url }: Stat
 };
 
 export function VehicleStats() {
-  const { language } = useLanguage();
   const { data: stats, isLoading } = useQuery({
     queryKey: ['vehicleStats'],
     queryFn: async () => {
@@ -98,11 +95,11 @@ export function VehicleStats() {
   const utilization = stats ? Math.round((stats.rented / (stats.total || 1)) * 100) : 0;
   
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5" dir="rtl">
       <StatCard
-        title={language === 'ar' ? "إجمالي الأسطول" : "Total Fleet"}
+        title="إجمالي الأسطول"
         value={stats?.total || 0}
-        description={language === 'ar' ? "العدد الإجمالي للمركبات" : "Total number of vehicles"}
+        description="العدد الإجمالي للمركبات"
         icon={<Truck className="h-4 w-4 text-slate-600" />}
         color="bg-slate-100"
         loading={isLoading}
@@ -110,9 +107,9 @@ export function VehicleStats() {
       />
       
       <StatCard
-        title={language === 'ar' ? "متاحة" : "Available"}
+        title="متاحة"
         value={stats?.available || 0}
-        description={language === 'ar' ? "جاهزة للإيجار" : "Ready for rental"}
+        description="جاهزة للإيجار"
         icon={<Car className="h-4 w-4 text-emerald-600" />}
         color="bg-emerald-100"
         loading={isLoading}
@@ -120,9 +117,9 @@ export function VehicleStats() {
       />
       
       <StatCard
-        title={language === 'ar' ? "مؤجرة" : "Rented"}
+        title="مؤجرة"
         value={stats?.rented || 0}
-        description={language === 'ar' ? "حالياً مع العملاء" : "Currently with customers"}
+        description="حالياً مع العملاء"
         icon={<CircleDollarSign className="h-4 w-4 text-blue-600" />}
         color="bg-blue-100"
         loading={isLoading}
@@ -130,9 +127,9 @@ export function VehicleStats() {
       />
       
       <StatCard
-        title={language === 'ar' ? "قيد الصيانة" : "In Maintenance"}
+        title="قيد الصيانة"
         value={stats?.maintenance || 0}
-        description={language === 'ar' ? "تحت الإصلاح أو الخدمة" : "Under repair or service"}
+        description="تحت الإصلاح أو الخدمة"
         icon={<Construction className="h-4 w-4 text-amber-600" />}
         color="bg-amber-100"
         loading={isLoading}
@@ -140,9 +137,9 @@ export function VehicleStats() {
       />
       
       <StatCard
-        title={language === 'ar' ? "معدل استخدام الأسطول" : "Fleet Utilization"}
+        title="معدل استخدام الأسطول"
         value={`${utilization}%`}
-        description={language === 'ar' ? "نسبة المركبات المؤجرة" : "Percentage of rented vehicles"}
+        description="نسبة المركبات المؤجرة"
         icon={<ShieldAlert className="h-4 w-4 text-purple-600" />}
         color="bg-purple-100"
         loading={isLoading}

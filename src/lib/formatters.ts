@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for formatting values for display
  */
@@ -20,16 +19,26 @@ export function formatDate(date: Date | string | number | null | undefined): str
   });
 }
 
-// Format a currency value
-export function formatCurrency(amount: number | null | undefined): string {
+// Format a currency value - now supports Arabic format (500 QAR)
+export function formatCurrency(amount: number | null | undefined, isArabic: boolean = true): string {
   if (amount === null || amount === undefined) return 'N/A';
   
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'QAR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
+  if (isArabic) {
+    // Arabic format: "500 QAR" (number space currency)
+    const formattedNumber = new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+    return `${formattedNumber} QAR`;
+  } else {
+    // Original format for English
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'QAR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  }
 }
 
 // Format a number with commas

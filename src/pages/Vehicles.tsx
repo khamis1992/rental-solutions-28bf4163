@@ -290,191 +290,197 @@ const Vehicles = () => {
 
   return (
     <PageContainer className="max-w-full">
-      <PageHeader
-        title={language === 'ar' ? 'المركبات' : 'Vehicles'}
-        subtitle={language === 'ar' ? 'إدارة وتتبع أسطول المركبات' : 'Manage and track your fleet vehicles'}
-        icon={<Car className="w-6 h-6 text-blue-500" />}
-        align={language === 'ar' ? 'right' : 'left'}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
-      />
-      <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <VehicleStats />
-        
-        <Card className="overflow-hidden">
-          <div className="p-4 border-b">
-            <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${language === 'ar' ? 'sm:flex-row-reverse' : ''}`}>
-              <Tabs 
-                defaultValue={activeTab} 
-                value={activeTab} 
-                onValueChange={handleTabChange}
-                className="w-full sm:w-auto"
-              >
-                <TabsList>
-                  <TabsTrigger value="all">{language === 'ar' ? 'الكل' : 'All'}</TabsTrigger>
-                  <TabsTrigger value="available">{language === 'ar' ? 'متاحة' : 'Available'}</TabsTrigger>
-                  <TabsTrigger value="rented">{language === 'ar' ? 'مؤجرة' : 'Rented'}</TabsTrigger>
-                  <TabsTrigger value="maintenance">{language === 'ar' ? 'صيانة' : 'Maintenance'}</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              
-              <div className={`flex items-center ${language === 'ar' ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
-                <Button 
-                  variant={viewMode === 'grid' ? 'default' : 'outline'} 
-                  size="icon"
-                  onClick={() => setViewMode('grid')}
-                  title={language === 'ar' ? 'عرض شبكي' : 'Grid View'}
+      <div dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <PageHeader
+          title='المركبات'
+          subtitle='إدارة وتتبع أسطول المركبات'
+          icon={<Car className="w-6 h-6 text-blue-500" />}
+          align="right"
+          dir="rtl"
+        />
+        <div className="space-y-6">
+          <VehicleStats />
+          
+          <Card className="overflow-hidden">
+            <div className="p-4 border-b">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:flex-row-reverse">
+                <Tabs 
+                  defaultValue={activeTab} 
+                  value={activeTab} 
+                  onValueChange={handleTabChange}
+                  className="w-full sm:w-auto"
+                  dir="rtl"
                 >
-                  <Grid3x3 size={18} />
-                </Button>
-                <Button 
-                  variant={viewMode === 'table' ? 'default' : 'outline'} 
-                  size="icon"
-                  onClick={() => setViewMode('table')}
-                  title={language === 'ar' ? 'عرض جدولي' : 'Table View'}
-                >
-                  <TableProperties size={18} />
-                </Button>
+                  <TabsList className="flex justify-end">
+                    <TabsTrigger value="all" className="text-right">الكل</TabsTrigger>
+                    <TabsTrigger value="available" className="text-right">متاحة</TabsTrigger>
+                    <TabsTrigger value="rented" className="text-right">مؤجرة</TabsTrigger>
+                    <TabsTrigger value="maintenance" className="text-right">صيانة</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                
+                <div className="flex items-center space-x-reverse space-x-2">
+                  <Button 
+                    variant={viewMode === 'grid' ? 'default' : 'outline'} 
+                    size="icon"
+                    onClick={() => setViewMode('grid')}
+                    title="عرض شبكي"
+                  >
+                    <Grid3x3 size={18} />
+                  </Button>
+                  <Button 
+                    variant={viewMode === 'table' ? 'default' : 'outline'} 
+                    size="icon"
+                    onClick={() => setViewMode('table')}
+                    title="عرض جدولي"
+                  >
+                    <TableProperties size={18} />
+                  </Button>
+                </div>
               </div>
+              
+              <div className="flex flex-col md:flex-row justify-between mt-4 gap-4 md:flex-row-reverse">
+                <div className="flex-1 max-w-md">
+                  <VehicleSearch
+                    searchQuery={searchQuery}
+                    setSearchQuery={handleSearchChange}
+                  />
+                </div>
+                
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <Button 
+                    size="sm" 
+                    onClick={handleAddVehicle}
+                    className="flex items-center justify-end"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    إضافة مركبة
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/maintenance/add')}
+                    className="flex items-center justify-end"
+                  >
+                    <Wrench className="h-4 w-4 mr-2" />
+                    إضافة صيانة
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/vehicles/status-update')}
+                    className="flex items-center justify-end"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    تحديث الحالة
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
+                    {showFilters ? 'إخفاء المرشحات' : 'إظهار المرشحات'}
+                  </Button>
+                </div>
+              </div>
+              
+              {activeFilters.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2 flex-row-reverse">
+                  {activeFilters.map(([key, value]) => (
+                    <Badge
+                      key={key}
+                      variant="secondary"
+                      className="flex items-center gap-1 flex-row-reverse"
+                    >
+                      {key === 'searchTerm' ? 'البحث' : key}: {value}
+                      <button
+                        onClick={() => {
+                          const updatedFilters = { ...filters };
+                          delete updatedFilters[key as keyof VehicleFilterParams];
+                          setFilters(updatedFilters);
+                        }}
+                        className="rounded-full hover:bg-accent p-1 mr-1"
+                      >
+                        <span className="sr-only">إزالة</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M1 1L11 11M1 11L11 1" stroke="currentColor" strokeWidth="2" />
+                        </svg>
+                      </button>
+                    </Badge>
+                  ))}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      const cleanFilters: VehicleFilterParams = {};
+                      if (filters.statuses) cleanFilters.statuses = filters.statuses;
+                      if (searchQuery) cleanFilters.searchTerm = searchQuery;
+                      setFilters(cleanFilters);
+                    }}
+                  >
+                    مسح المرشحات
+                  </Button>
+                </div>
+              )}
             </div>
             
-            <div className={`flex flex-col md:flex-row justify-between mt-4 gap-4 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
-              <div className="flex-1 max-w-md">
-                <VehicleSearch
-                  searchQuery={searchQuery}
-                  setSearchQuery={handleSearchChange}
+            {showFilters && (
+              <div className="border-b p-4">
+                <VehicleFilters 
+                  onFilterChange={handleFilterChange} 
+                  initialValues={{
+                    status: filters.statuses?.[0] || 'all',
+                    make: filters.make || 'all',
+                    location: filters.location || 'all',
+                    year: filters.year?.toString() || 'all',
+                    category: filters.vehicle_type_id || 'all',
+                    search: filters.searchTerm || ''
+                  }}
                 />
               </div>
+            )}
+            
+            <CardContent className="p-4">
+              {viewMode === 'grid' ? (
+                <VehicleGrid 
+                  vehicles={vehicles}
+                  isLoading={loading}
+                  onVehicleClick={handleSelectVehicle}
+                />
+              ) : (
+                <VehicleTable 
+                  vehicles={vehicles}
+                  isLoading={loading}
+                  onRowClick={handleSelectVehicle}
+                />
+              )}
               
-              <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  {showFilters ? 
-                    (language === 'ar' ? 'إخفاء المرشحات' : 'Hide Filters') : 
-                    (language === 'ar' ? 'إظهار المرشحات' : 'Show Filters')
-                  }
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/vehicles/status-update')}
-                >
-                  <RefreshCw className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                  {language === 'ar' ? 'تحديث الحالة' : 'Status Update'}
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/maintenance/add')}
-                >
-                  <Wrench className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                  {language === 'ar' ? 'إضافة صيانة' : 'Add Maintenance'}
-                </Button>
-                
-                <Button size="sm" onClick={handleAddVehicle}>
-                  <Plus className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                  {language === 'ar' ? 'إضافة مركبة' : 'Add Vehicle'}
-                </Button>
-              </div>
-            </div>
-            
-            {activeFilters.length > 0 && (
-              <div className={`mt-4 flex flex-wrap gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                {activeFilters.map(([key, value]) => (
-                  <Badge
-                    key={key}
-                    variant="secondary"
-                    className={`flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}
-                  >
-                    {key === 'searchTerm' ? (language === 'ar' ? 'البحث' : 'Search') : key}: {value}
-                    <button
-                      onClick={() => {
-                        const updatedFilters = { ...filters };
-                        delete updatedFilters[key as keyof VehicleFilterParams];
-                        setFilters(updatedFilters);
-                      }}
-                      className={`rounded-full hover:bg-accent p-1 ${language === 'ar' ? 'mr-1' : 'ml-1'}`}
-                    >
-                      <span className="sr-only">{language === 'ar' ? 'إزالة' : 'Remove'}</span>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M1 1L11 11M1 11L11 1" stroke="currentColor" strokeWidth="2" />
-                      </svg>
-                    </button>
-                  </Badge>
-                ))}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    const cleanFilters: VehicleFilterParams = {};
-                    if (filters.statuses) cleanFilters.statuses = filters.statuses;
-                    if (searchQuery) cleanFilters.searchTerm = searchQuery;
-                    setFilters(cleanFilters);
-                  }}
-                >
-                  {language === 'ar' ? 'مسح المرشحات' : 'Clear Filters'}
-                </Button>
-              </div>
-            )}
-          </div>
-          
-          {showFilters && (
-            <div className="border-b p-4">
-              <VehicleFilters 
-                onFilterChange={handleFilterChange} 
-                initialValues={{
-                  status: filters.statuses?.[0] || 'all',
-                  make: filters.make || 'all',
-                  location: filters.location || 'all',
-                  year: filters.year?.toString() || 'all',
-                  category: filters.vehicle_type_id || 'all',
-                  search: filters.searchTerm || ''
-                }}
+              {(error || serviceError) && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm mt-4 text-right" dir="rtl">
+                  <p className="font-medium">
+                    خطأ في تحميل المركبات
+                  </p>
+                  <p>
+                    {(error || serviceError)?.message || 'خطأ غير معروف'}
+                  </p>
+                </div>
+              )}
+              
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={Math.ceil(totalItems / itemsPerPage)}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+                className="mt-4"
               />
-            </div>
-          )}
-          
-          <CardContent className="p-4">
-            {viewMode === 'grid' ? (
-              <VehicleGrid 
-                vehicles={vehicles}
-                isLoading={loading}
-                onVehicleClick={handleSelectVehicle}
-              />
-            ) : (
-              <VehicleTable 
-                vehicles={vehicles}
-                isLoading={loading}
-                onRowClick={handleSelectVehicle}
-              />
-            )}
-            
-            {(error || serviceError) && (
-              <div className={`p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm mt-4 ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                <p className="font-medium">
-                  {language === 'ar' ? 'خطأ في تحميل المركبات' : 'Error Loading Vehicles'}
-                </p>
-                <p>
-                  {(error || serviceError)?.message || (language === 'ar' ? 'خطأ غير معروف' : 'Unknown error')}
-                </p>
-              </div>
-            )}
-            
-            <PaginationControls
-              currentPage={currentPage}
-              totalPages={Math.ceil(totalItems / itemsPerPage)}
-              totalItems={totalItems}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={setItemsPerPage}
-              className="mt-4"
-            />
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </PageContainer>
   );
