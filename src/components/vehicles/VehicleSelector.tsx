@@ -33,13 +33,22 @@ const VehicleSelector = ({
 
   // Enhanced search function
   const performEnhancedSearch = async (searchTerm: string) => {
+    if (!searchTerm.trim() || searchTerm.length < 2) {
+      setEnhancedResults([]);
+      return;
+    }
+
     setIsSearching(true);
     try {
-      // Use search method from vehicle service
-      const result = await vehicleService.searchVehicles(searchTerm);
+      // Use smart search from vehicle service
+      const result = await vehicleService.smartSearch(searchTerm, {
+        minConfidence: 25, // Lower threshold for better UX
+        maxResults: 20
+      });
 
       if (result.success) {
-        setEnhancedResults(result.data);
+        const searchResults = result.data.map(({ matchScore, matchDetails, ...vehicle }) => vehicle);
+        setEnhancedResults(searchResults);
       } else {
         console.error('Enhanced search failed:', result.error);
         setEnhancedResults([]);

@@ -61,11 +61,14 @@ const Vehicles = () => {
     if (!searchTerm?.trim()) return [];
     
     try {
-      // Use the search method from VehicleService
-      const result = await vehicleService.searchVehicles(searchTerm);
+      // Use the smart search from VehicleService
+      const result = await vehicleService.smartSearch(searchTerm, {
+        minConfidence: 30,
+        maxResults: 50
+      });
       
       if (result.success) {
-        return result.data;
+        return result.data.map(({ matchScore, matchDetails, ...vehicle }) => vehicle);
       } else {
         console.error('Enhanced search failed:', result.error);
         return [];

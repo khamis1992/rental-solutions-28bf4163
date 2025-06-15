@@ -14,7 +14,7 @@ import { User, FileText, CheckCircle } from "lucide-react";
 interface CustomerOnboardingWizardProps {
   open: boolean;
   onClose: () => void;
-  onComplete: (customerData: any, agreementData?: any) => void;
+  onComplete: (formData: any) => void;
 }
 
 export function CustomerOnboardingWizard({
@@ -33,8 +33,7 @@ export function CustomerOnboardingWizard({
     notes: '',
     status: 'active',
     documents_verified: false,
-    terms_accepted: false,
-    create_agreement: false
+    terms_accepted: false
   });
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -138,13 +137,7 @@ export function CustomerOnboardingWizard({
         phone: formData.phone.replace(/^\+974/, '').trim()
       };
       
-      // If create_agreement is checked, pass a flag to indicate this
-      if (formData.create_agreement) {
-        // Pass an empty agreement object to signal that agreement creation is requested
-        onComplete(submissionData, { create_agreement: true });
-      } else {
-        onComplete(submissionData);
-      }
+      onComplete(submissionData);
     } catch (error) {
       toast.error("فشل في معالجة بيانات العميل");
       console.error(error);
@@ -333,22 +326,6 @@ export function CustomerOnboardingWizard({
             </Label>
           </div>
         </div>
-
-        <div className="border rounded-md p-4 bg-blue-50">
-          <div className="flex items-top space-x-2 flex-row-reverse">
-            <Checkbox 
-              id="create_agreement" 
-              checked={formData.create_agreement}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, create_agreement: checked as boolean }))}
-            />
-            <Label htmlFor="create_agreement" className="text-sm font-medium text-right">
-              إنشاء اتفاقية إيجار للعميل مباشرة
-            </Label>
-          </div>
-          <p className="text-xs text-muted-foreground text-right mt-2">
-            يمكنك إنشاء اتفاقية إيجار للعميل في نفس العملية. سيتم توجيهك لصفحة إنشاء الاتفاقية بعد إنشاء العميل.
-          </p>
-        </div>
       </div>
     </div>
   );
@@ -432,8 +409,7 @@ export function CustomerOnboardingWizard({
               disabled={!formData.documents_verified || !formData.terms_accepted || isProcessing}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isProcessing ? 'جاري المعالجة...' : 
-               formData.create_agreement ? 'إنشاء العميل والمتابعة للاتفاقية' : 'إنشاء العميل'}
+              {isProcessing ? 'جاري المعالجة...' : 'إكمال إضافة العميل'}
             </Button>
           )}
         </DialogFooter>

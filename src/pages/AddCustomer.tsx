@@ -3,33 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { CustomerOnboardingWizard } from '@/components/customers/CustomerOnboardingWizard';
 import { useCustomers } from '@/hooks/use-customers';
-import { useAgreements } from '@/hooks/use-agreements';
+import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 
 const AddCustomer = () => {
   const navigate = useNavigate();
   const { createCustomer } = useCustomers();
-  const { createAgreement } = useAgreements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(true);
 
-  const handleSubmit = async (customerData: any, agreementData?: any) => {
+  const handleSubmit = async (data: Customer) => {
     setIsSubmitting(true);
     try {
-      // Create customer first
-      const newCustomer = await createCustomer.mutateAsync(customerData);
-      toast.success('تم إنشاء العميل بنجاح');
-      
-      // If create_agreement flag is set, redirect to agreement creation page
-      if (agreementData && agreementData.create_agreement) {
-        toast.info('سيتم توجيهك لصفحة إنشاء اتفاقية جديدة');
-        navigate(`/agreements/add?customer_id=${newCustomer.id}`);
-      } else {
-        navigate('/customers');
-      }
+      await createCustomer.mutateAsync(data);
+      toast('تم إضافة العميل بنجاح');
+      navigate('/customers');
     } catch (error) {
       console.error('Error creating customer:', error);
-      toast.error('فشل في إنشاء العميل');
+      toast('فشل في إنشاء العميل', {
+        description: error instanceof Error ? error.message : 'حدث خطأ غير معروف'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -43,7 +36,7 @@ const AddCustomer = () => {
   return (
     <PageContainer
       title="إضافة عميل جديد"
-      description="إضافة عميل جديد إلى النظام مع إمكانية إنشاء اتفاقية مباشرة."
+      description="إنشاء سجل عميل جديد في النظام."
       backLink="/customers"
     >
       <CustomerOnboardingWizard
