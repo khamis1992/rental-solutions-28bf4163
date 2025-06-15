@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/database.types';
+import { Database } from '@/types/database';
 import { 
   ExtendedVehicle, 
   VehicleInsert, 
@@ -11,11 +11,10 @@ import {
 import { isValidVehicleStatus } from '@/lib/validation/vehicle-status';
 import { enhancedVehicleSearch, enhancedLicensePlateMatch } from '@/utils/searchUtils';
 
-// Use fallback values if environment variables are not set
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vqdlsidkucrownbfuouq.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y';
-
-const supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey);
+const supabaseClient = createClient<Database>(
+  import.meta.env.VITE_SUPABASE_URL!,
+  import.meta.env.VITE_SUPABASE_ANON_KEY!
+);
 
 // Helper function to safely convert status strings to VehicleStatus
 const safeMapToVehicleStatus = (status: string): VehicleStatus => {

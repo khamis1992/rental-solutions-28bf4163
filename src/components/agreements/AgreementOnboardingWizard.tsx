@@ -406,7 +406,7 @@ export function AgreementOnboardingWizard({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl md:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md md:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-right" dir="rtl">إنشاء اتفاقية جديدة</DialogTitle>
           <DialogDescription className="text-right" dir="rtl">
