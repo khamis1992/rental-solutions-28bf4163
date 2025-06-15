@@ -70,6 +70,12 @@ const MaintenanceDashboard = () => {
       value: accidentCount || 0,
       icon: AlertOctagon,
       color: 'text-red-500'
+    },
+    {
+      title: 'مجدولة',
+      value: statusCounts.scheduled,
+      icon: Wrench,
+      color: 'text-blue-500'
     }
   ];
 
@@ -92,8 +98,8 @@ const MaintenanceDashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between flex-row-reverse">
               <div className="text-right">
-                <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
-                <p className="text-2xl font-bold">{card.value}</p>
+                <p className="text-sm font-medium text-muted-foreground text-right">{card.title}</p>
+                <p className="text-2xl font-bold text-right">{card.value}</p>
               </div>
               <card.icon className={`h-6 w-6 ${card.color}`} />
             </div>

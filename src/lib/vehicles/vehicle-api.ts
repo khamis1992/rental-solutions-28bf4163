@@ -11,10 +11,16 @@ import {
 import { isValidVehicleStatus } from '@/lib/validation/vehicle-status';
 import { enhancedVehicleSearch, enhancedLicensePlateMatch } from '@/utils/searchUtils';
 
-const supabaseClient = createClient<Database>(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
-);
+// Default fallback values (these will be used if environment variables are not found)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vqdlsidkucrownbfuouq.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y';
+
+// Check that we have the values we need, but use fallbacks instead of throwing an error
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.warn('Supabase environment variables not found in vehicle-api, using default values');
+}
+
+const supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Helper function to safely convert status strings to VehicleStatus
 const safeMapToVehicleStatus = (status: string): VehicleStatus => {

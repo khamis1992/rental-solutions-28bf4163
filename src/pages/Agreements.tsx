@@ -1,7 +1,6 @@
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/ui/PageHeader';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
@@ -32,7 +31,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 
 const Agreements = () => {
-  const { language } = useLanguage();
   const navigate = useNavigate();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
@@ -79,16 +77,14 @@ const Agreements = () => {
       const available = await checkEdgeFunctionAvailability('process-agreement-imports');
       setIsEdgeFunctionAvailable(available);
       if (!available) {
-        toast.error(language === 'ar' ? 
-          "ميزة استيراد CSV غير متاحة. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم الفني." :
-          "CSV import feature is unavailable. Please try again later or contact support.", {
+        toast.error("خدمة استيراد ملفات CSV غير متاحة. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم الفني.", {
           duration: 6000,
         });
       }
     };
     
     checkAvailability();
-  }, [language]);
+  }, []);
   
   // Run payment schedule maintenance job silently on page load
   React.useEffect(() => {
@@ -164,16 +160,19 @@ const Agreements = () => {
   };
 
   return (
-    <PageContainer className="max-w-full">
+    <PageContainer 
+      className="max-w-full"
+      dir="rtl"
+    >
       <PageHeader
         title="عقود الإيجار"
-        subtitle="إدارة عقود الإيجار والاتفاقيات مع العملاء"
+        subtitle="إدارة عقود وتعاهدات الإيجار مع العملاء"
         icon={<FileText className="w-6 h-6 text-blue-500" />}
-        align={language === 'ar' ? 'right' : 'left'}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
+        align="right"
+        dir="rtl"
       />
       
-      <div className="flex flex-col gap-6 mt-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="flex flex-col gap-6" dir="rtl">
         {/* Analytics Section */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Stats Overview */}
@@ -188,9 +187,9 @@ const Agreements = () => {
         </div>
         
         {/* Main Content Area with Tabs */}
-        <Card>
+        <Card dir="rtl">
           <div className="p-4 border-b">
-            <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${language === 'ar' ? 'sm:flex-row-reverse' : ''}`}>
+            <div className="flex flex-col sm:flex-row-reverse justify-between items-start sm:items-center gap-4">
               {/* View Mode Selector */}
               <div className="flex items-center gap-2">
                 <AgreementViewSelectors viewMode={viewMode} setViewMode={setViewMode} />
@@ -198,73 +197,65 @@ const Agreements = () => {
             </div>
             
             {/* Search and Action Bar */}
-            <div className={`flex flex-col md:flex-row justify-between mt-4 gap-4 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
+            <div className="flex flex-col md:flex-row-reverse justify-between mt-4 gap-4">
               <CustomerListFilterClone
                 searchTerm={searchQuery}
                 onSearch={handleSearch}
                 onFilterChange={handleFilterChange}
               />
               
-              <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className="flex items-center gap-2 flex-row-reverse">
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
+                  className="flex-row-reverse"
                 >
-                  <Filter className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                  {showFilters ? 
-                    (language === 'ar' ? 'إخفاء المرشحات' : 'Hide Filters') : 
-                    (language === 'ar' ? 'إظهار المرشحات' : 'Show Filters')
-                  }
+                  <Filter className="h-4 w-4 ml-2" />
+                  {showFilters ? "إخفاء المرشحات" : "مرشحات متقدمة"}
                 </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Download className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                      {language === 'ar' ? 'تصدير' : 'Export'}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align={language === 'ar' ? 'start' : 'end'}>
-                    <DropdownMenuItem>
-                      <BarChart4 className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                      {language === 'ar' ? 'تصدير إلى Excel' : 'Export to Excel'}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Database className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                      {language === 'ar' ? 'تصدير إلى CSV' : 'Export to CSV'}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
                 
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => setIsImportModalOpen(true)}
-                  disabled={!isEdgeFunctionAvailable}
+                  className="flex-row-reverse"
                 >
-                  <Upload className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                  {language === 'ar' ? 'استيراد' : 'Import'}
+                  <Download className="h-4 w-4 ml-2" />
+                  تصدير
                 </Button>
                 
-                <Button size="sm" onClick={handleAddAgreement}>
-                  <Plus className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                  {language === 'ar' ? 'إضافة عقد' : 'Add Agreement'}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex-row-reverse">
+                      <Upload className="h-4 w-4 ml-2" />
+                      استيراد
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="text-right">
+                    <DropdownMenuItem onClick={() => setIsImportModalOpen(true)} className="text-right">
+                      استيراد من ملف CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-right">تحميل النموذج</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <Button 
+                  size="sm"
+                  onClick={handleAddAgreement}
+                  className="flex-row-reverse"
+                >
+                  <Plus className="h-4 w-4 ml-2" />
+                  عقد جديد
                 </Button>
               </div>
             </div>
             
             {/* Active Filters */}
             {activeFilters.length > 0 && (
-              <div className={`mt-4 flex flex-wrap gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className="mt-4">
                 <ActiveFilters 
-                  filters={searchParams || {}} 
-                  onRemoveFilter={(key) => {
-                    const newParams = { ...searchParams };
-                    delete newParams[key];
-                    setSearchParams(newParams);
-                  }}
-                  onClearAll={() => setSearchParams({})}
+                  activeFilters={activeFilters as [string, string][]}
+                  setSearchParams={setSearchParams}
                 />
               </div>
             )}
@@ -272,84 +263,70 @@ const Agreements = () => {
           
           {/* Filter Panel */}
           {showFilters && (
-            <div className="border-b p-4">
-              <AgreementFilterPanel 
-                onFilterChange={handleFilterChange}
-                initialFilters={searchParams || {}}
-              />
+            <div className="border-b">
+              <AgreementFilterPanel onFilterChange={handleFilterChange} currentFilters={searchParams} />
             </div>
           )}
           
-          {/* Tabs Content */}
+          {/* Content Area */}
           <CardContent className="p-0">
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <div className="px-4 pt-4">
-                <TabsList className={`grid grid-cols-4 w-full ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                  <TabsTrigger value="agreements" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <FileText className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                    {language === 'ar' ? 'العقود' : 'Agreements'}
-                  </TabsTrigger>
-                  <TabsTrigger value="active" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <Calendar className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                    {language === 'ar' ? 'نشطة' : 'Active'}
-                  </TabsTrigger>
-                  <TabsTrigger value="closed" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <Database className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                    {language === 'ar' ? 'مغلقة' : 'Closed'}
-                  </TabsTrigger>
-                  <TabsTrigger value="history" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <RefreshCw className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                    {language === 'ar' ? 'السجل' : 'History'}
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-              
-              <div className="p-4">
-                <TabsContent value="agreements" className="mt-0">
-                  <AgreementTabPanel
-                    agreements={agreements}
-                    isLoading={isLoading}
-                    viewMode={viewMode}
-                    onDeleteAgreement={deleteAgreement}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="active" className="mt-0">
-                  <AgreementTabPanel
-                    agreements={agreements?.filter(a => a.status === 'active') || []}
-                    isLoading={isLoading}
-                    viewMode={viewMode}
-                    onDeleteAgreement={deleteAgreement}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="closed" className="mt-0">
-                  <AgreementTabPanel
-                    agreements={agreements?.filter(a => a.status === 'closed') || []}
-                    isLoading={isLoading}
-                    viewMode={viewMode}
-                    onDeleteAgreement={deleteAgreement}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="history" className="mt-0">
-                  <div className="space-y-4">
-                    <h3 className={`text-lg font-semibold ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                      {language === 'ar' ? 'سجل الاستيراد' : 'Import History'}
-                    </h3>
-                    <ImportHistoryList />
-                  </div>
-                </TabsContent>
-              </div>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full sm:w-auto" dir="rtl">
+              <TabsList className="justify-start">
+                <TabsTrigger value="agreements" className="text-right">جميع العقود</TabsTrigger>
+                <TabsTrigger value="active" className="text-right">نشطة</TabsTrigger>
+                <TabsTrigger value="closed" className="text-right">مغلقة</TabsTrigger>
+                <TabsTrigger value="cancelled" className="text-right">ملغاة</TabsTrigger>
+                <TabsTrigger value="history" className="text-right">سجل الاستيراد</TabsTrigger>
+              </TabsList>
+              <AgreementTabPanel
+                value="agreements"
+                viewMode={viewMode}
+                agreements={agreements}
+                isLoading={isLoading}
+                onDeleteAgreement={deleteAgreement}
+                loadingText="جاري تحميل العقود..."
+              />
+              <AgreementTabPanel
+                value="active"
+                viewMode={viewMode}
+                agreements={agreements}
+                isLoading={isLoading}
+                onDeleteAgreement={deleteAgreement}
+                loadingText=""
+              />
+              <AgreementTabPanel
+                value="closed"
+                viewMode={viewMode}
+                agreements={agreements}
+                isLoading={isLoading}
+                onDeleteAgreement={deleteAgreement}
+                loadingText=""
+              />
+              <AgreementTabPanel
+                value="cancelled"
+                viewMode={viewMode}
+                agreements={agreements}
+                isLoading={isLoading}
+                onDeleteAgreement={deleteAgreement}
+                loadingText=""
+              />
+              <TabsContent value="history" className="m-0">
+                <div className="p-4" dir="rtl">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center text-right justify-end">
+                    <Database className="h-5 w-5 ml-2" />
+                    سجل الاستيراد
+                  </h2>
+                  <ImportHistoryList items={[]} isLoading={false} />
+                </div>
+              </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
       </div>
       
-      {/* Import Modal */}
-      <CSVImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
+      <CSVImportModal 
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
         onImportComplete={handleImportComplete}
       />
     </PageContainer>

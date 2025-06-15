@@ -62,6 +62,7 @@ const EditAgreement = lazy(() => import("./pages/EditAgreement"));
 
 // Maintenance Management
 const Maintenance = lazy(() => import("./pages/Maintenance"));
+const MaintenanceHistory = lazy(() => import("./pages/MaintenanceHistory"));
 const AddMaintenance = lazy(() => import("./pages/AddMaintenance"));
 const EditMaintenance = lazy(() => import("./pages/EditMaintenance"));
 const MaintenanceDetailPage = lazy(() => import("./pages/MaintenanceDetailPage"));
@@ -188,6 +189,7 @@ function App() {
                                   <Route path="/maintenance/job/:vehicleId" element={withErrorBoundary(MaintenanceJobCard)} />
                                   <Route path="/maintenance/:id" element={withErrorBoundary(MaintenanceDetailPage)} />
                                   <Route path="/maintenance/edit/:id" element={withErrorBoundary(EditMaintenance)} />
+                                  <Route path="/maintenance/history" element={withErrorBoundary(MaintenanceHistory)} />
                                   
                                   {/* Legal Management */}
                                   <Route path="/legal" element={withErrorBoundary(Legal)} />

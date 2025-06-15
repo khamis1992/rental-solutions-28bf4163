@@ -101,17 +101,17 @@ const Customers = () => {
   return (
     <PageContainer>
       <PageHeader
-        title={language === 'ar' ? 'العملاء' : 'Customers'}
-        subtitle={language === 'ar' ? 'إدارة العملاء وعرض التفاصيل وتتبع معلومات العملاء' : 'Manage customers, view details, and track customer information'}
+        title="العملاء"
+        subtitle="إدارة العملاء وعرض التفاصيل وتتبع معلومات العملاء"
         icon={<Users className="w-6 h-6 text-blue-500" />}
-        align={language === 'ar' ? 'right' : 'left'}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
+        align="right"
+        dir="rtl"
       />
       
       <div 
         className="flex flex-col space-y-6 mt-6" 
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
-        style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+        dir="rtl"
+        style={{ textAlign: 'right', direction: 'rtl' }}
       >
         <CustomerPageStatsCards 
           customers={transformedCustomers} 

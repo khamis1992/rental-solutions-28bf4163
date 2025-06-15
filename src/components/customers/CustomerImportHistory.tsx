@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -63,35 +62,35 @@ export const CustomerImportHistory: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'completed':
-        return <Badge variant="default">Completed</Badge>;
+        return <Badge variant="default">مكتمل</Badge>;
       case 'processing':
-        return <Badge variant="secondary">Processing</Badge>;
+        return <Badge variant="secondary">قيد المعالجة</Badge>;
       case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
+        return <Badge variant="destructive">فشل</Badge>;
       case 'pending':
       default:
-        return <Badge variant="outline">Pending</Badge>;
+        return <Badge variant="outline">قيد الانتظار</Badge>;
     }
   };
   
   // Loading skeleton
   if (isLoading) {
     return (
-      <Card>
+      <Card dir="rtl">
         <CardHeader>
-          <CardTitle>Import History</CardTitle>
-          <CardDescription>Recent customer data imports</CardDescription>
+          <CardTitle>سجل الاستيراد</CardTitle>
+          <CardDescription>أحدث عمليات استيراد بيانات العملاء</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>File Name</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Records</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>اسم الملف</TableHead>
+                  <TableHead>التاريخ</TableHead>
+                  <TableHead>عدد السجلات</TableHead>
+                  <TableHead>الحالة</TableHead>
+                  <TableHead className="text-right">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -115,17 +114,17 @@ export const CustomerImportHistory: React.FC = () => {
   // Empty state
   if (!imports || imports.length === 0) {
     return (
-      <Card>
+      <Card dir="rtl">
         <CardHeader>
-          <CardTitle>Import History</CardTitle>
-          <CardDescription>Recent customer data imports</CardDescription>
+          <CardTitle>سجل الاستيراد</CardTitle>
+          <CardDescription>أحدث عمليات استيراد بيانات العملاء</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <FileDown className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-medium text-lg">No import history</h3>
+            <h3 className="font-medium text-lg">لا يوجد سجل استيراد</h3>
             <p className="text-muted-foreground mb-4">
-              You haven't imported any customer data yet.
+              لم تقم باستيراد أي بيانات عملاء بعد.
             </p>
           </div>
         </CardContent>
@@ -134,20 +133,20 @@ export const CustomerImportHistory: React.FC = () => {
   }
 
   return (
-    <Card>
+    <Card dir="rtl">
       <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Import History</CardTitle>
-          <CardDescription>Recent customer data imports</CardDescription>
+        <div className="text-right">
+          <CardTitle>سجل الاستيراد</CardTitle>
+          <CardDescription>أحدث عمليات استيراد بيانات العملاء</CardDescription>
         </div>
         <Button 
           variant="outline" 
           size="sm" 
-          className="flex items-center gap-1" 
+          className="flex flex-row-reverse items-center gap-1" 
           onClick={fetchImportHistory}
         >
           <RefreshCw className="h-4 w-4" />
-          Refresh
+          تحديث
         </Button>
       </CardHeader>
       <CardContent>
@@ -155,11 +154,11 @@ export const CustomerImportHistory: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>File Name</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Records</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>اسم الملف</TableHead>
+                <TableHead>التاريخ</TableHead>
+                <TableHead>عدد السجلات</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -170,8 +169,8 @@ export const CustomerImportHistory: React.FC = () => {
                       <span>{importRecord.original_file_name || importRecord.file_name}</span>
                       {importRecord.error_count > 0 && (
                         <div className="flex items-center text-xs text-red-600 mt-1">
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          {importRecord.error_count} errors
+                          <AlertCircle className="h-3 w-3 ml-1" />
+                          {importRecord.error_count} أخطاء
                         </div>
                       )}
                     </div>
@@ -179,14 +178,14 @@ export const CustomerImportHistory: React.FC = () => {
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <CalendarDays className="h-3 w-3 text-muted-foreground" />
-                      <span>{formatDistanceToNow(new Date(importRecord.created_at), { addSuffix: true })}</span>
+                      <span>{formatDistanceToNow(new Date(importRecord.created_at), { addSuffix: true, locale: undefined })}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span>{importRecord.processed_count}/{importRecord.row_count}</span>
                       <span className="text-xs text-muted-foreground">
-                        {Math.round((importRecord.processed_count / Math.max(1, importRecord.row_count)) * 100)}% complete
+                        {Math.round((importRecord.processed_count / Math.max(1, importRecord.row_count)) * 100)}% مكتمل
                       </span>
                     </div>
                   </TableCell>
@@ -196,7 +195,7 @@ export const CustomerImportHistory: React.FC = () => {
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon">
                       <Download className="h-4 w-4" />
-                      <span className="sr-only">Download</span>
+                      <span className="sr-only">تنزيل</span>
                     </Button>
                   </TableCell>
                 </TableRow>

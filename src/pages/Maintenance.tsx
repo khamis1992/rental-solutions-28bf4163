@@ -11,7 +11,6 @@ import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Wrench } from 'lucide-react';
 import { MaintenanceSchedulingWizard } from '@/components/maintenance/MaintenanceSchedulingWizard';
 
@@ -36,8 +35,6 @@ const Maintenance = () => {
   // Get vehicles that are in maintenance
   const { loading: isLoadingVehicles, getAllVehicles } = useVehicleService();
   const [vehicles, setVehicles] = useState<any[]>([]);
-
-  const { language } = useLanguage();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | undefined>(undefined);
@@ -66,14 +63,14 @@ const Maintenance = () => {
         setFilteredRecords(records);
       } catch (error) {
         console.error('Error fetching maintenance records:', error);
-        toast.error(language === 'ar' ? 'فشل في تحميل سجلات الصيانة' : 'Failed to load maintenance records');
+        toast.error('فشل في تحميل سجلات الصيانة');
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchRecords();
-  }, [getAllRecords, language]);
+  }, [getAllRecords]);
 
   // Apply filters to maintenance records
   useEffect(() => {
@@ -141,18 +138,14 @@ const Maintenance = () => {
   };
 
   const handleDeleteMaintenance = async (id: string) => {
-    const confirmMessage = language === 'ar' ? 
-      'هل أنت متأكد من حذف سجل الصيانة هذا؟' : 
-      'Are you sure you want to delete this maintenance record?';
-    
-    if (window.confirm(confirmMessage)) {
+    if (window.confirm('هل أنت متأكد من حذف سجل الصيانة هذا؟')) {
       try {
         await deleteMaintenanceRecord(id);
         setMaintenanceRecords(prev => prev.filter(record => record.id !== id));
-        toast.success(language === 'ar' ? 'تم حذف سجل الصيانة بنجاح' : 'Maintenance record deleted successfully');
+        toast.success('تم حذف سجل الصيانة بنجاح');
       } catch (error) {
         console.error('Error deleting maintenance record:', error);
-        toast.error(language === 'ar' ? 'فشل في حذف سجل الصيانة' : 'Failed to delete maintenance record');
+        toast.error('فشل في حذف سجل الصيانة');
       }
     }
   };
@@ -167,19 +160,24 @@ const Maintenance = () => {
   };
 
   return (
-    <PageContainer systemDate={new Date()}>
+    <PageContainer 
+      title="صيانة المركبات"
+      description="تتبع وإدارة جميع أنشطة صيانة المركبات"
+      systemDate={new Date()}
+      dir="rtl"
+    >
       <PageHeader
-        title={language === 'ar' ? 'صيانة المركبات' : 'Vehicle Maintenance'}
-        subtitle={language === 'ar' ? 'تتبع وإدارة جميع أنشطة صيانة المركبات' : 'Track and manage all your vehicle maintenance activities'}
+        title="صيانة المركبات"
+        subtitle="تتبع وإدارة جميع أنشطة صيانة المركبات"
         icon={<Wrench className="w-6 h-6 text-blue-500" />}
-        align={language === 'ar' ? 'right' : 'left'}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
+        align="right"
+        dir="rtl"
       />
-      <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="flex flex-col md:flex-row-reverse justify-between items-start md:items-center mb-6 gap-4" dir="rtl">
         <div className="flex-1" /> {/* Empty div to maintain spacing */}
-        <Button onClick={handleAddMaintenance}>
-          <Plus className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-          {language === 'ar' ? 'إضافة صيانة' : 'Add Maintenance'}
+        <Button onClick={handleAddMaintenance} className="flex-row-reverse">
+          <Plus className="h-4 w-4 ml-2" />
+          إضافة صيانة
         </Button>
       </div>
 
@@ -190,7 +188,7 @@ const Maintenance = () => {
         vehicleOptions={vehicleOptions}
       />
 
-      <Card className="p-4">
+      <Card className="p-4" dir="rtl">
         <VehicleMaintenanceCards 
           vehicles={vehicles || []}
           isLoading={isLoadingVehicles}

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -38,37 +37,37 @@ export const CustomerStatusBadge: React.FC<CustomerStatusBadgeProps> = ({
         return {
           variant: 'success' as const,
           icon: CheckCircle,
-          text: 'Active'
+          text: 'نشط'
         };
       case 'inactive':
         return {
           variant: 'outline' as const,
           icon: XCircle,
-          text: 'Inactive'
+          text: 'غير نشط'
         };
       case 'pending_review':
         return {
           variant: 'warning' as const,
           icon: AlertTriangle,
-          text: 'Pending Review'
+          text: 'قيد المراجعة'
         };
       case 'pending_payment':
         return {
           variant: 'secondary' as const,
           icon: Clock,
-          text: 'Pending Payment'
+          text: 'في انتظار الدفع'
         };
       case 'blacklisted':
         return {
           variant: 'destructive' as const,
           icon: XCircle,
-          text: 'Blacklisted'
+          text: 'محظور'
         };
       default:
         return {
           variant: 'default' as const,
           icon: HelpCircle,
-          text: status || 'Unknown'
+          text: status || 'غير معروف'
         };
     }
   };

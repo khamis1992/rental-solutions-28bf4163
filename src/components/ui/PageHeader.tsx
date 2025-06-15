@@ -40,24 +40,17 @@ const PageHeader = ({
       )}
       dir={dir}
     >
-      <div className={cn("flex items-center", flexDirection)}>
-        {icon && (
-          <div className={cn(
-            "p-2 rounded-md bg-primary/10 text-primary",
-            dir === 'rtl' ? 'ml-3' : 'mr-3'
-          )}>
-            {icon}
-          </div>
-        )}
-        <div className={alignmentClasses[align]}>
+      <div className={alignmentClasses[align]}>
+        <div className={cn("flex items-center gap-3", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row', dir === 'rtl' ? 'justify-end' : 'justify-start')}>
+          {icon}
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          {subtitle && (
-            <p className="text-muted-foreground mt-1">{subtitle}</p>
-          )}
-          {description && (
-            <p className="text-muted-foreground mt-1">{description}</p>
-          )}
         </div>
+        {subtitle && (
+          <p className={cn("text-muted-foreground mt-1", alignmentClasses[align])}>{subtitle}</p>
+        )}
+        {description && (
+          <p className={cn("text-muted-foreground mt-1", alignmentClasses[align])}>{description}</p>
+        )}
       </div>
       
       {actions && (

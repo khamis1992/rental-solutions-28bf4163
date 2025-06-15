@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,103 +23,108 @@ export function AgreementStats({ className }: AgreementStatsProps) {
     revenueTrend: 8, // percentage increase
   };
 
+  // Format currency for Arabic display (amount before currency)
+  const formatCurrencyArabic = (amount: number) => {
+    return `${amount.toLocaleString()} QAR`;
+  };
+
   return (
-    <Card className={cn("", className)}>
+    <Card className={cn("", className)} dir="rtl">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-md font-medium">Agreement Statistics</CardTitle>
-          <Badge variant="outline" className="px-2 py-1 text-xs">
-            Last 30 days
+        <div className="flex flex-row-reverse justify-between items-center">
+          <CardTitle className="text-md font-medium text-right">إحصائيات العقود</CardTitle>
+          <Badge variant="outline" className="px-2 py-1 text-xs text-right">
+            آخر 30 يوماً
           </Badge>
         </div>
-        <CardDescription>Overview of your rental agreements</CardDescription>
+        <CardDescription className="text-right">نظرة عامة على عقود الإيجار الخاصة بك</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent dir="rtl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Agreements */}
           <div className="bg-muted/50 rounded-lg p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Total Agreements</p>
-                <p className="text-2xl font-semibold">{stats.totalAgreements}</p>
+            <div className="flex flex-row-reverse justify-between items-start">
+              <div className="space-y-1 text-right">
+                <p className="text-xs text-muted-foreground text-right">إجمالي العقود</p>
+                <p className="text-2xl font-semibold text-right">{stats.totalAgreements}</p>
               </div>
               <div className="bg-primary/10 rounded-full p-2">
                 <FileText className="h-5 w-5 text-primary" />
               </div>
             </div>
-            <div className="flex items-center mt-4">
+            <div className="flex items-center justify-end mt-4">
               {stats.totalTrend > 0 ? (
-                <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                  <TrendingUp className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 flex-row-reverse">
+                  <TrendingUp className="h-3 w-3 ml-1" />
                   +{stats.totalTrend}%
                 </Badge>
               ) : (
-                <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
-                  <TrendingDown className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20 flex-row-reverse">
+                  <TrendingDown className="h-3 w-3 ml-1" />
                   {stats.totalTrend}%
                 </Badge>
               )}
-              <span className="text-xs text-muted-foreground ml-2">from last month</span>
+              <span className="text-xs text-muted-foreground mr-2">من الشهر الماضي</span>
             </div>
           </div>
 
           {/* Active Agreements */}
           <div className="bg-muted/50 rounded-lg p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Active Agreements</p>
-                <p className="text-2xl font-semibold">{stats.activeAgreements}</p>
+            <div className="flex flex-row-reverse justify-between items-start">
+              <div className="space-y-1 text-right">
+                <p className="text-xs text-muted-foreground text-right">العقود النشطة</p>
+                <p className="text-2xl font-semibold text-right">{stats.activeAgreements}</p>
               </div>
               <div className="bg-green-500/10 rounded-full p-2">
                 <Activity className="h-5 w-5 text-green-500" />
               </div>
             </div>
-            <div className="flex items-center mt-4">
-              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                <TrendingUp className="h-3 w-3 mr-1" />
+            <div className="flex items-center justify-end mt-4">
+              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 flex-row-reverse">
+                <TrendingUp className="h-3 w-3 ml-1" />
                 +{stats.activeTrend}%
               </Badge>
-              <span className="text-xs text-muted-foreground ml-2">from last month</span>
+              <span className="text-xs text-muted-foreground mr-2">من الشهر الماضي</span>
             </div>
           </div>
 
           {/* Pending Agreements */}
           <div className="bg-muted/50 rounded-lg p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Pending Agreements</p>
-                <p className="text-2xl font-semibold">{stats.pendingAgreements}</p>
+            <div className="flex flex-row-reverse justify-between items-start">
+              <div className="space-y-1 text-right">
+                <p className="text-xs text-muted-foreground text-right">العقود المعلقة</p>
+                <p className="text-2xl font-semibold text-right">{stats.pendingAgreements}</p>
               </div>
               <div className="bg-amber-500/10 rounded-full p-2">
                 <Clock className="h-5 w-5 text-amber-500" />
               </div>
             </div>
-            <div className="flex items-center mt-4">
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                <TrendingDown className="h-3 w-3 mr-1" />
+            <div className="flex items-center justify-end mt-4">
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 flex-row-reverse">
+                <TrendingDown className="h-3 w-3 ml-1" />
                 {stats.pendingTrend}%
               </Badge>
-              <span className="text-xs text-muted-foreground ml-2">from last month</span>
+              <span className="text-xs text-muted-foreground mr-2">من الشهر الماضي</span>
             </div>
           </div>
 
           {/* Monthly Revenue */}
           <div className="bg-muted/50 rounded-lg p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Monthly Revenue</p>
-                <p className="text-2xl font-semibold">{formatCurrency(stats.monthlyRevenue)}</p>
+            <div className="flex flex-row-reverse justify-between items-start">
+              <div className="space-y-1 text-right">
+                <p className="text-xs text-muted-foreground text-right">الإيرادات الشهرية</p>
+                <p className="text-2xl font-semibold text-right">{formatCurrencyArabic(stats.monthlyRevenue)}</p>
               </div>
               <div className="bg-blue-500/10 rounded-full p-2">
                 <DollarSign className="h-5 w-5 text-blue-500" />
               </div>
             </div>
-            <div className="flex items-center mt-4">
-              <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                <TrendingUp className="h-3 w-3 mr-1" />
+            <div className="flex items-center justify-end mt-4">
+              <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 flex-row-reverse">
+                <TrendingUp className="h-3 w-3 ml-1" />
                 +{stats.revenueTrend}%
               </Badge>
-              <span className="text-xs text-muted-foreground ml-2">from last month</span>
+              <span className="text-xs text-muted-foreground mr-2">من الشهر الماضي</span>
             </div>
           </div>
         </div>

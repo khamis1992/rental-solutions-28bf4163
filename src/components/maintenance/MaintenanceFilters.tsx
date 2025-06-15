@@ -5,7 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Filter, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface MaintenanceFiltersProps {
   onFilterChange: (filters: MaintenanceFilterOptions) => void;
@@ -32,8 +31,6 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
     maintenanceType: ''
   });
 
-  const { language } = useLanguage();
-
   const handleInputChange = (key: keyof MaintenanceFilterOptions, value: any) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
@@ -54,36 +51,37 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
   };
 
   const maintenanceTypes = [
-    { value: 'oil_change', label: language === 'ar' ? 'تغيير الزيت' : 'Oil Change' },
-    { value: 'tire_replacement', label: language === 'ar' ? 'استبدال الإطارات' : 'Tire Replacement' },
-    { value: 'brake_service', label: language === 'ar' ? 'خدمة الفرامل' : 'Brake Service' },
-    { value: 'regular_inspection', label: language === 'ar' ? 'فحص دوري' : 'Regular Inspection' },
-    { value: 'engine_repair', label: language === 'ar' ? 'إصلاح المحرك' : 'Engine Repair' },
-    { value: 'air_conditioning', label: language === 'ar' ? 'تكييف الهواء' : 'Air Conditioning' },
-    { value: 'transmission', label: language === 'ar' ? 'ناقل الحركة' : 'Transmission' },
-    { value: 'battery_replacement', label: language === 'ar' ? 'استبدال البطارية' : 'Battery Replacement' },
-    { value: 'electrical_repair', label: language === 'ar' ? 'إصلاح كهربائي' : 'Electrical Repair' }
+    { value: 'oil_change', label: 'تغيير الزيت' },
+    { value: 'tire_replacement', label: 'استبدال الإطارات' },
+    { value: 'brake_service', label: 'خدمة الفرامل' },
+    { value: 'regular_inspection', label: 'فحص دوري' },
+    { value: 'engine_repair', label: 'إصلاح المحرك' },
+    { value: 'air_conditioning', label: 'تكييف الهواء' },
+    { value: 'transmission', label: 'ناقل الحركة' },
+    { value: 'battery_replacement', label: 'استبدال البطارية' },
+    { value: 'electrical_repair', label: 'إصلاح كهربائي' }
   ];
 
   const statusOptions = [
-    { value: 'all', label: language === 'ar' ? 'جميع الحالات' : 'All Statuses' },
-    { value: 'scheduled', label: language === 'ar' ? 'مجدولة' : 'Scheduled' },
-    { value: 'in_progress', label: language === 'ar' ? 'قيد التنفيذ' : 'In Progress' },
-    { value: 'completed', label: language === 'ar' ? 'مكتملة' : 'Completed' },
-    { value: 'cancelled', label: language === 'ar' ? 'ملغاة' : 'Cancelled' }
+    { value: 'all', label: 'جميع الحالات' },
+    { value: 'scheduled', label: 'مجدولة' },
+    { value: 'in_progress', label: 'قيد التنفيذ' },
+    { value: 'completed', label: 'مكتملة' },
+    { value: 'cancelled', label: 'ملغاة' }
   ];
 
   return (
-    <div className="mb-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div className={`flex items-center gap-2 mb-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+    <div className="mb-6" dir="rtl">
+      <div className="flex items-center gap-2 mb-2 flex-row-reverse">
         <div className="relative flex-1">
           <Input
-            placeholder={language === 'ar' ? 'البحث في سجلات الصيانة...' : 'Search maintenance records...'}
+            placeholder="البحث في سجلات الصيانة..."
             value={filters?.searchTerm || ''}
             onChange={(e) => handleInputChange('searchTerm', e.target.value)}
-            className={`${language === 'ar' ? 'pr-10 text-right' : 'pl-10'}`}
+            className="pr-10 text-right"
+            dir="rtl"
           />
-          <Search className={`absolute top-2.5 h-4 w-4 text-muted-foreground ${language === 'ar' ? 'right-3' : 'left-3'}`} />
+          <Search className="absolute top-2.5 h-4 w-4 text-muted-foreground right-3" />
         </div>
         <Button 
           variant="outline" 
@@ -101,11 +99,11 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
       </div>
 
       {isExpanded && (
-        <Card className="p-4 mt-2">
+        <Card className="p-4 mt-2" dir="rtl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className={`text-sm font-medium mb-1 block ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'الحالة' : 'Status'}
+              <label className="text-sm font-medium mb-1 block text-right">
+                الحالة
               </label>
               <Select
                 value={filters.status}
@@ -113,12 +111,12 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
                   handleInputChange('status', value === 'all' ? '' : value)
                 }
               >
-                <SelectTrigger dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                  <SelectValue placeholder={language === 'ar' ? 'تصفية حسب الحالة' : 'Filter by status'} />
+                <SelectTrigger dir="rtl" className="text-right">
+                  <SelectValue placeholder="تصفية حسب الحالة" />
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map(status => (
-                    <SelectItem key={status.value} value={status.value}>
+                    <SelectItem key={status.value} value={status.value} className="text-right">
                       {status.label}
                     </SelectItem>
                   ))}
@@ -127,8 +125,8 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
             </div>
             
             <div>
-              <label className={`text-sm font-medium mb-1 block ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'المركبة' : 'Vehicle'}
+              <label className="text-sm font-medium mb-1 block text-right">
+                المركبة
               </label>
               <Select
                 value={filters.vehicle}
@@ -136,13 +134,13 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
                   handleInputChange('vehicle', value === 'all' ? '' : value)
                 }
               >
-                <SelectTrigger dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                  <SelectValue placeholder={language === 'ar' ? 'اختيار المركبة' : 'Select vehicle'} />
+                <SelectTrigger dir="rtl" className="text-right">
+                  <SelectValue placeholder="اختيار المركبة" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{language === 'ar' ? 'جميع المركبات' : 'All Vehicles'}</SelectItem>
+                  <SelectItem value="all" className="text-right">جميع المركبات</SelectItem>
                   {vehicleOptions.map(vehicle => (
-                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                    <SelectItem key={vehicle.id} value={vehicle.id} className="text-right">
                       {vehicle.label}
                     </SelectItem>
                   ))}
@@ -151,8 +149,8 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
             </div>
             
             <div>
-              <label className={`text-sm font-medium mb-1 block ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'نوع الصيانة' : 'Maintenance Type'}
+              <label className="text-sm font-medium mb-1 block text-right">
+                نوع الصيانة
               </label>
               <Select
                 value={filters.maintenanceType}
@@ -160,13 +158,13 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
                   handleInputChange('maintenanceType', value === 'all' ? '' : value)
                 }
               >
-                <SelectTrigger dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                  <SelectValue placeholder={language === 'ar' ? 'اختيار النوع' : 'Select type'} />
+                <SelectTrigger dir="rtl" className="text-right">
+                  <SelectValue placeholder="اختيار النوع" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{language === 'ar' ? 'جميع الأنواع' : 'All Types'}</SelectItem>
+                  <SelectItem value="all" className="text-right">جميع الأنواع</SelectItem>
                   {maintenanceTypes.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
+                    <SelectItem key={type.value} value={type.value} className="text-right">
                       {type.label}
                     </SelectItem>
                   ))}
@@ -175,24 +173,24 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
             </div>
 
             <div>
-              <label className={`text-sm font-medium mb-1 block ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'من تاريخ' : 'From Date'}
+              <label className="text-sm font-medium mb-1 block text-right">
+                من تاريخ
               </label>
               <DatePicker
                 date={filters.dateFrom ? (filters.dateFrom instanceof Date ? filters.dateFrom : new Date(filters.dateFrom)) : undefined}
                 setDate={(date) => handleInputChange('dateFrom', date)}
-                placeholder={language === 'ar' ? 'من تاريخ' : 'From date'}
+                placeholder="من تاريخ"
               />
             </div>
 
             <div>
-              <label className={`text-sm font-medium mb-1 block ${language === 'ar' ? 'text-right' : ''}`}>
-                {language === 'ar' ? 'إلى تاريخ' : 'To Date'}
+              <label className="text-sm font-medium mb-1 block text-right">
+                إلى تاريخ
               </label>
               <DatePicker
                 date={filters.dateTo ? (filters.dateTo instanceof Date ? filters.dateTo : new Date(filters.dateTo)) : undefined}
                 setDate={(date) => handleInputChange('dateTo', date)}
-                placeholder={language === 'ar' ? 'إلى تاريخ' : 'To date'}
+                placeholder="إلى تاريخ"
               />
             </div>
           </div>

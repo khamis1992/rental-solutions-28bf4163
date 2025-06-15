@@ -32,13 +32,7 @@ export const CustomerPageToolbar: React.FC<CustomerPageToolbarProps> = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row-reverse justify-between gap-4" dir="rtl">
-      <CustomerListFilter 
-        onSearch={(query) => setFilters({ ...filters, search: query })} 
-        searchTerm={filters.search || ''}
-        onFilterChange={(filter) => setFilters({ ...filters, ...filter })}
-      />
-      
+    <div className="flex flex-col sm:flex-row justify-between gap-4" dir="rtl">
       <div className="flex flex-wrap gap-2 flex-row-reverse">
         <Button 
           variant="outline" 
@@ -72,6 +66,12 @@ export const CustomerPageToolbar: React.FC<CustomerPageToolbarProps> = ({
           {t('customer.add')}
         </Button>
       </div>
+      
+      <CustomerListFilter 
+        onSearch={(query) => setFilters({ ...filters, search: query })} 
+        searchTerm={filters.search || ''}
+        onFilterChange={(filter) => setFilters({ ...filters, ...filter })}
+      />
     </div>
   );
 };

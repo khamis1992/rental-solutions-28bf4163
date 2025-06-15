@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -15,6 +14,7 @@ import {
 import { useCustomerService } from '@/hooks/services/useCustomerService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Customer } from '@/lib/validation-schemas/customer';
+import { CustomerStatus } from '@/types/customer.types';
 
 interface CustomerListProps {
   searchParams: {
@@ -35,8 +35,10 @@ export function CustomerList({ searchParams }: CustomerListProps) {
     error,
     deleteCustomer
   } = useCustomerService({
-    status: searchParams.status !== 'all' ? searchParams.status : undefined,
-    search: searchParams.query || undefined // Use 'search' instead of 'searchTerm'
+    filters: {
+      status: searchParams.status !== 'all' ? searchParams.status as CustomerStatus : undefined,
+      search: searchParams.query || undefined
+    }
   });
 
   const getStatusBadge = (status: string) => {
@@ -83,28 +85,62 @@ export function CustomerList({ searchParams }: CustomerListProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right">الإجراءات</TableHead>
+              <TableHead>الحالة</TableHead>
+              <TableHead>تاريخ الإضافة</TableHead>
+              <TableHead>الجوال</TableHead>
+              <TableHead className="text-right">اسم العميل</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
-                  <TableCell><Skeleton className="h-6 w-[200px]" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-[150px]" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-[120px]" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-[100px]" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-[50px]" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-[100px]" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-[120px]" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-[150px]" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-[200px]" /></TableCell>
                 </TableRow>
               ))
             ) : currentCustomers.length ? (
               currentCustomers.map((customer) => (
                 <TableRow key={customer.id} className="hover:bg-muted/50">
-                  <TableCell className="font-medium">
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">فتح القائمة</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-[160px] text-right">
+                        <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to={`/customers/${customer.id}`}>عرض التفاصيل</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/customers/edit/${customer.id}`}>تعديل العميل</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => {
+                            if (window.confirm(`هل أنت متأكد من حذف ${customer.full_name}؟`)) {
+                              deleteCustomer(customer.id!);
+                            }
+                          }}
+                        >
+                          حذف العميل
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(customer.status)}</TableCell>
+                  <TableCell>{customer.created_at ? new Date(customer.created_at).toLocaleDateString('ar-SA') : 'غير متوفر'}</TableCell>
+                  <TableCell>{customer.phone_number || customer.phone || 'غير متوفر'}</TableCell>
+                  <TableCell className="font-medium text-right">
                     <Link 
                       to={`/customers/${customer.id}`}
                       className="text-primary hover:underline"
@@ -112,48 +148,14 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                       {customer.full_name}
                     </Link>
                   </TableCell>
-                  <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone_number || customer.phone || 'N/A'}</TableCell>
-                  <TableCell>{getStatusBadge(customer.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-[160px]">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link to={`/customers/${customer.id}`}>View details</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/customers/edit/${customer.id}`}>Edit customer</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
-                              deleteCustomer(customer.id);
-                            }
-                          }}
-                        >
-                          Delete customer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
-                  No customers found. {searchParams?.query || searchParams?.status !== 'all' 
-                    ? 'Try adjusting your filters.' 
-                    : 'Add your first customer using the button above.'}
+                  لا يوجد عملاء. {searchParams?.query || searchParams?.status !== 'all' 
+                    ? 'جرّب تعديل الفلاتر.' 
+                    : 'أضف أول عميل باستخدام الزر أعلاه.'}
                 </TableCell>
               </TableRow>
             )}
