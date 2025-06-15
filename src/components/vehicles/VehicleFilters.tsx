@@ -59,18 +59,19 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   };
   
   return (
-    <div className={cn("rounded-lg", className)} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className={cn("rounded-lg", className)} dir="rtl">
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="relative md:col-span-2">
-          <div className={`absolute inset-y-0 flex items-center pl-3 pointer-events-none ${language === 'ar' ? 'right-0 pr-3' : 'left-0 pl-3'}`}>
+          <div className="absolute inset-y-0 flex items-center right-0 pr-3 pointer-events-none">
             <Search className="h-4 w-4 text-muted-foreground" />
           </div>
           <Input
             type="search"
-            placeholder={language === 'ar' ? 'البحث برقم الهيكل...' : 'Search by VIN...'}
-            className={language === 'ar' ? 'pr-10 text-right' : 'pl-10'}
+            placeholder="البحث برقم الهيكل..."
+            className="pr-10 text-right"
             value={filters?.search || ''}
             onChange={handleSearchChange}
+            dir="rtl"
           />
         </div>
         
@@ -78,20 +79,21 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           <Select 
             value={filters.status} 
             onValueChange={(value) => handleFilterChange('status', value)}
+            dir="rtl"
           >
-            <SelectTrigger id="status-filter">
-              <SelectValue placeholder={language === 'ar' ? 'جميع الحالات' : 'All Statuses'} />
+            <SelectTrigger id="status-filter" className="text-right">
+              <SelectValue placeholder="جميع الحالات" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{language === 'ar' ? 'جميع الحالات' : 'All Statuses'}</SelectItem>
-              <SelectItem value="available">{language === 'ar' ? 'متاحة' : 'Available'}</SelectItem>
-              <SelectItem value="rented">{language === 'ar' ? 'مؤجرة' : 'Rented'}</SelectItem>
-              <SelectItem value="reserved">{language === 'ar' ? 'محجوزة' : 'Reserved'}</SelectItem>
-              <SelectItem value="maintenance">{language === 'ar' ? 'قيد الصيانة' : 'Maintenance'}</SelectItem>
-              <SelectItem value="police_station">{language === 'ar' ? 'في المركز' : 'Police Station'}</SelectItem>
-              <SelectItem value="accident">{language === 'ar' ? 'حادث' : 'Accident'}</SelectItem>
-              <SelectItem value="stolen">{language === 'ar' ? 'مسروقة' : 'Stolen'}</SelectItem>
-              <SelectItem value="retired">{language === 'ar' ? 'متقاعدة' : 'Retired'}</SelectItem>
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              <SelectItem value="available">متاحة</SelectItem>
+              <SelectItem value="rented">مؤجرة</SelectItem>
+              <SelectItem value="reserved">محجوزة</SelectItem>
+              <SelectItem value="maintenance">قيد الصيانة</SelectItem>
+              <SelectItem value="police_station">في المركز</SelectItem>
+              <SelectItem value="accident">حادث</SelectItem>
+              <SelectItem value="stolen">مسروقة</SelectItem>
+              <SelectItem value="retired">متقاعدة</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -100,12 +102,13 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           <Select 
             value={filters.make} 
             onValueChange={(value) => handleFilterChange('make', value)}
+            dir="rtl"
           >
-            <SelectTrigger id="make-filter">
-              <SelectValue placeholder={language === 'ar' ? 'جميع الماركات' : 'All Makes'} />
+            <SelectTrigger id="make-filter" className="text-right">
+              <SelectValue placeholder="جميع الماركات" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{language === 'ar' ? 'جميع الماركات' : 'All Makes'}</SelectItem>
+              <SelectItem value="all">جميع الماركات</SelectItem>
               <SelectItem value="Toyota">تويوتا</SelectItem>
               <SelectItem value="Honda">هوندا</SelectItem>
               <SelectItem value="Nissan">نيسان</SelectItem>
@@ -125,19 +128,20 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           <Select 
             value={filters.location} 
             onValueChange={(value) => handleFilterChange('location', value)}
+            dir="rtl"
           >
-            <SelectTrigger id="location-filter">
-              <SelectValue placeholder={language === 'ar' ? 'جميع المواقع' : 'All Locations'} />
+            <SelectTrigger id="location-filter" className="text-right">
+              <SelectValue placeholder="جميع المواقع" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{language === 'ar' ? 'جميع المواقع' : 'All Locations'}</SelectItem>
-              <SelectItem value="Main Garage">{language === 'ar' ? 'المرآب الرئيسي' : 'Main Garage'}</SelectItem>
-              <SelectItem value="Downtown">{language === 'ar' ? 'وسط المدينة' : 'Downtown'}</SelectItem>
-              <SelectItem value="Airport">{language === 'ar' ? 'المطار' : 'Airport'}</SelectItem>
-              <SelectItem value="North Branch">{language === 'ar' ? 'الفرع الشمالي' : 'North Branch'}</SelectItem>
-              <SelectItem value="South Branch">{language === 'ar' ? 'الفرع الجنوبي' : 'South Branch'}</SelectItem>
-              <SelectItem value="East Branch">{language === 'ar' ? 'الفرع الشرقي' : 'East Branch'}</SelectItem>
-              <SelectItem value="West Branch">{language === 'ar' ? 'الفرع الغربي' : 'West Branch'}</SelectItem>
+              <SelectItem value="all">جميع المواقع</SelectItem>
+              <SelectItem value="Main Garage">المرآب الرئيسي</SelectItem>
+              <SelectItem value="Downtown">وسط المدينة</SelectItem>
+              <SelectItem value="Airport">المطار</SelectItem>
+              <SelectItem value="North Branch">الفرع الشمالي</SelectItem>
+              <SelectItem value="South Branch">الفرع الجنوبي</SelectItem>
+              <SelectItem value="East Branch">الفرع الشرقي</SelectItem>
+              <SelectItem value="West Branch">الفرع الغربي</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -146,12 +150,13 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           <Select 
             value={filters.year} 
             onValueChange={(value) => handleFilterChange('year', value)}
+            dir="rtl"
           >
-            <SelectTrigger id="year-filter">
-              <SelectValue placeholder={language === 'ar' ? 'جميع السنوات' : 'All Years'} />
+            <SelectTrigger id="year-filter" className="text-right">
+              <SelectValue placeholder="جميع السنوات" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{language === 'ar' ? 'جميع السنوات' : 'All Years'}</SelectItem>
+              <SelectItem value="all">جميع السنوات</SelectItem>
               <SelectItem value="2024">2024</SelectItem>
               <SelectItem value="2023">2023</SelectItem>
               <SelectItem value="2022">2022</SelectItem>
