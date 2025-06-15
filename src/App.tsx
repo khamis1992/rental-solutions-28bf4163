@@ -66,6 +66,8 @@ const AddMaintenance = lazy(() => import("./pages/AddMaintenance"));
 const EditMaintenance = lazy(() => import("./pages/EditMaintenance"));
 const MaintenanceDetailPage = lazy(() => import("./pages/MaintenanceDetailPage"));
 const MaintenanceJobCard = lazy(() => import("./pages/MaintenanceJobCard"));
+const MaintenanceSchedule = lazy(() => import("./pages/MaintenanceSchedule"));
+const MaintenanceHistory = lazy(() => import("./pages/MaintenanceHistory"));
 
 // Legal Management
 const Legal = lazy(() => import("./pages/Legal"));
@@ -188,6 +190,8 @@ function App() {
                                   <Route path="/maintenance/job/:vehicleId" element={withErrorBoundary(MaintenanceJobCard)} />
                                   <Route path="/maintenance/:id" element={withErrorBoundary(MaintenanceDetailPage)} />
                                   <Route path="/maintenance/edit/:id" element={withErrorBoundary(EditMaintenance)} />
+                                  <Route path="/maintenance/schedule" element={withErrorBoundary(MaintenanceSchedule)} />
+                                  <Route path="/maintenance/history" element={withErrorBoundary(MaintenanceHistory)} />
                                   
                                   {/* Legal Management */}
                                   <Route path="/legal" element={withErrorBoundary(Legal)} />
