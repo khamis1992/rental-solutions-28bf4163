@@ -1,33 +1,34 @@
-import * as Sentry from '@sentry/react';
+// Fallback Sentry implementation for when Sentry is not available
+const createSentryFallback = () => ({
+  init: () => {},
+  addBreadcrumb: (breadcrumb: any) => {
+    if (import.meta.env.MODE === 'development') {
+      console.log('📊 Breadcrumb:', breadcrumb);
+    }
+  },
+  captureException: (error: Error, options?: any) => {
+    console.error('🚨 Error:', error, options);
+  },
+  captureMessage: (message: string, options?: any) => {
+    console.warn('⚠️ Warning:', message, options);
+  },
+  setContext: (key: string, context: any) => {
+    if (import.meta.env.MODE === 'development') {
+      console.log(`🔧 Context [${key}]:`, context);
+    }
+  },
+  BrowserTracing: class {
+    constructor(options?: any) {}
+  },
+  reactRouterV6Instrumentation: () => {}
+});
 
-// Initialize Sentry (you'll need to add your DSN to environment variables)
+// Use fallback implementation
+const sentryClient = createSentryFallback();
+
+// Initialize monitoring (uses console logging instead of Sentry)
 export const initializeMonitoring = () => {
-  if (import.meta.env.VITE_SENTRY_DSN) {
-    Sentry.init({
-      dsn: import.meta.env.VITE_SENTRY_DSN,
-      environment: import.meta.env.MODE,
-      tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
-      integrations: [
-        new Sentry.BrowserTracing({
-          // Performance monitoring for route changes
-          routingInstrumentation: Sentry.reactRouterV6Instrumentation(
-            React.useEffect,
-            // @ts-ignore
-            window.location,
-            // @ts-ignore
-            window.history
-          ),
-        }),
-      ],
-      beforeSend(event) {
-        // Filter out development errors
-        if (import.meta.env.MODE === 'development') {
-          console.log('Sentry Event:', event);
-        }
-        return event;
-      },
-    });
-  }
+  console.log('🔧 Monitoring initialized with fallback implementation');
   
   // Mobile-specific setup
   if (typeof window !== 'undefined') {
@@ -35,7 +36,7 @@ export const initializeMonitoring = () => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isTouch = 'ontouchstart' in window;
     
-    Sentry.setContext('device', {
+    sentryClient.setContext('device', {
       isMobile,
       isTouch,
       userAgent: navigator.userAgent,
@@ -67,14 +68,14 @@ export class PerformanceMonitor {
   // Track page load times with mobile-specific metrics
   trackPageLoad(pageName: string) {
     const startTime = performance.now();
-    const isMobile = window.innerWidth < 768;
+    const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
     
     return () => {
       const loadTime = performance.now() - startTime;
       this.metrics.set(`page_load_${pageName}`, loadTime);
       
       // Mobile-specific tracking
-      if (isMobile) {
+      if (isMobile && typeof window !== 'undefined') {
         this.mobileMetrics.set(`mobile_page_load_${pageName}`, {
           loadTime,
           viewport: {
@@ -90,20 +91,20 @@ export class PerformanceMonitor {
         console.log(`📱 ${isMobile ? 'Mobile' : 'Desktop'} Page Load - ${pageName}:`, `${loadTime.toFixed(2)}ms`);
         
         // Track with Sentry
-        Sentry.addBreadcrumb({
+        sentryClient.addBreadcrumb({
           category: 'performance',
           message: `Page loaded: ${pageName}`,
           level: 'info',
           data: { 
             loadTime: loadTime.toFixed(2),
             device: isMobile ? 'mobile' : 'desktop',
-            viewport: `${window.innerWidth}x${window.innerHeight}`
+            viewport: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'unknown'
           }
         });
         
         // Track slow pages (> 3 seconds)
         if (loadTime > 3000) {
-          Sentry.captureMessage(`Slow page load: ${pageName}`, {
+          sentryClient.captureMessage(`Slow page load: ${pageName}`, {
             level: 'warning',
             extra: {
               loadTime,
@@ -119,7 +120,7 @@ export class PerformanceMonitor {
   // Track API call performance with mobile context
   trackApiCall(endpoint: string, method: string = 'GET') {
     const startTime = performance.now();
-    const isMobile = window.innerWidth < 768;
+    const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
     
     return (success: boolean, statusCode?: number, responseSize?: number) => {
       const duration = performance.now() - startTime;
@@ -136,7 +137,7 @@ export class PerformanceMonitor {
         });
         
         // Track with Sentry
-        Sentry.addBreadcrumb({
+        sentryClient.addBreadcrumb({
           category: 'api',
           message: `${method} ${endpoint}`,
           level: success ? 'info' : 'error',
@@ -151,7 +152,7 @@ export class PerformanceMonitor {
         
         // Track slow API calls (> 2 seconds)
         if (duration > 2000) {
-          Sentry.captureMessage(`Slow API call: ${method} ${endpoint}`, {
+          sentryClient.captureMessage(`Slow API call: ${method} ${endpoint}`, {
             level: 'warning',
             extra: {
               duration,
@@ -167,7 +168,7 @@ export class PerformanceMonitor {
 
   // Track touch interactions (mobile-specific)
   trackTouchInteraction(element: string, action: string) {
-    if ('ontouchstart' in window) {
+    if (typeof window !== 'undefined' && 'ontouchstart' in window) {
       const touchMetric = {
         element,
         action,
@@ -183,7 +184,7 @@ export class PerformanceMonitor {
       if (import.meta.env.VITE_PERFORMANCE_MONITORING === 'true') {
         console.log(`👆 Touch Interaction:`, touchMetric);
         
-        Sentry.addBreadcrumb({
+        sentryClient.addBreadcrumb({
           category: 'touch',
           message: `Touch ${action} on ${element}`,
           level: 'info',
@@ -203,18 +204,18 @@ export class PerformanceMonitor {
 
   // Track user actions with mobile context
   trackUserAction(action: string, details?: any) {
-    const isMobile = window.innerWidth < 768;
+    const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
     const enrichedDetails = {
       ...details,
       device: isMobile ? 'mobile' : 'desktop',
-      viewport: `${window.innerWidth}x${window.innerHeight}`,
+      viewport: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'unknown',
       timestamp: new Date().toISOString()
     };
     
     if (import.meta.env.VITE_PERFORMANCE_MONITORING === 'true') {
       console.log(`👤 User Action: ${action}`, enrichedDetails);
       
-      Sentry.addBreadcrumb({
+      sentryClient.addBreadcrumb({
         category: 'user',
         message: action,
         level: 'info',
@@ -225,6 +226,16 @@ export class PerformanceMonitor {
 
   // Mobile performance insights
   getMobileInsights() {
+    if (typeof window === 'undefined') {
+      return {
+        deviceType: 'server',
+        viewport: { width: 0, height: 0 },
+        touchSupport: false,
+        connectionType: 'unknown',
+        metrics: {}
+      };
+    }
+
     const insights = {
       deviceType: window.innerWidth < 768 ? 'mobile' : 'desktop',
       viewport: {
@@ -242,18 +253,18 @@ export class PerformanceMonitor {
 
 // Enhanced error logging with mobile context
 export const logError = (error: Error, context?: any) => {
-  const isMobile = window.innerWidth < 768;
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
   const enhancedContext = {
     ...context,
     device: isMobile ? 'mobile' : 'desktop',
-    viewport: `${window.innerWidth}x${window.innerHeight}`,
-    userAgent: navigator.userAgent,
+    viewport: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'unknown',
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     timestamp: new Date().toISOString()
   };
   
   console.error('🚨 Application Error:', error, enhancedContext);
   
-  Sentry.captureException(error, {
+  sentryClient.captureException(error, {
     tags: {
       component: context?.component,
       action: context?.action,
@@ -265,16 +276,16 @@ export const logError = (error: Error, context?: any) => {
 
 // Warning logging with mobile context
 export const logWarning = (message: string, context?: any) => {
-  const isMobile = window.innerWidth < 768;
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
   const enhancedContext = {
     ...context,
     device: isMobile ? 'mobile' : 'desktop',
-    viewport: `${window.innerWidth}x${window.innerHeight}`
+    viewport: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'unknown'
   };
   
   console.warn('⚠️ Application Warning:', message, enhancedContext);
   
-  Sentry.captureMessage(message, {
+  sentryClient.captureMessage(message, {
     level: 'warning',
     extra: enhancedContext
   });
@@ -283,7 +294,7 @@ export const logWarning = (message: string, context?: any) => {
 // Performance hook for React components with mobile awareness
 export const usePerformanceTracking = (componentName: string) => {
   const monitor = PerformanceMonitor.getInstance();
-  const isMobile = window.innerWidth < 768;
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
   
   const trackAction = (actionName: string, details?: any) => {
     const enhancedDetails = {
