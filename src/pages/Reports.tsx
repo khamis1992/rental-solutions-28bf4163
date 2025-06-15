@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,6 +30,7 @@ import { FileText, Calendar, AlertCircle } from 'lucide-react';
 const Reports = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedTab, setSelectedTab] = useState('fleet');
   const { reportData } = useFleetReport();
   const { transactions } = useFinancials();
@@ -52,6 +53,13 @@ const Reports = () => {
     
     fetchMaintenance();
   }, []);
+  
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setSelectedTab(tabParam);
+    }
+  }, [searchParams]);
   
   useEffect(() => {
     if (trafficFines) {

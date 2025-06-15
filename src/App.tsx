@@ -203,6 +203,8 @@ function App() {
                                   <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
                                   <Route path="/financials" element={withErrorBoundary(Financials)} />
                                   <Route path="/reports" element={withErrorBoundary(Reports)} />
+                                  <Route path="/reports/financial" element={<Navigate to="/reports?tab=financial" replace />} />
+                                  <Route path="/reports/operational" element={<Navigate to="/reports?tab=fleet" replace />} />
                                   <Route path="/reports/scheduled" element={withErrorBoundary(ScheduledReports)} />
                                   <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
                                   <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />
