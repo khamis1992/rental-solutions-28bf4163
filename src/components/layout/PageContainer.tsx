@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, WifiOff } from 'lucide-react';
+import { ArrowLeft, ArrowRight, WifiOff } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -19,6 +18,7 @@ interface PageContainerProps {
   backLink?: string;
   actions?: React.ReactNode;
   systemDate?: Date;
+  dir?: 'ltr' | 'rtl';
 }
 
 const PageContainer: React.FC<PageContainerProps> = ({ 
@@ -28,11 +28,13 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description,
   backLink,
   actions,
-  systemDate = new Date() 
+  systemDate = new Date(),
+  dir = 'ltr'
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { isOnline } = useNetworkStatus();
+  const isRTL = dir === 'rtl';
   
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   
@@ -47,10 +49,10 @@ const PageContainer: React.FC<PageContainerProps> = ({
   }, [title, description]);
   
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background" dir={dir}>
       {isMobile ? (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="left" className="p-0 w-[80vw] max-w-[280px]">
+          <SheetContent side={isRTL ? "right" : "left"} className="p-0 w-[80vw] max-w-[280px]">
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </SheetContent>
         </Sheet>
@@ -60,7 +62,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
       
       <div className={cn(
         "flex-1 transition-all duration-300 ease-in-out",
-        isMobile ? "w-full" : "md:pl-64"
+        isMobile ? "w-full" : isRTL ? "md:pr-64" : "md:pl-64"
       )}>
         <Header 
           onToggleSidebar={toggleSidebar} 
@@ -70,8 +72,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
         {!isOnline && (
           <Alert variant="warning" className="mx-4 mt-2">
             <WifiOff className="h-4 w-4" />
-            <AlertDescription className="flex items-center">
-              You are currently offline. Some features may be unavailable.
+            <AlertDescription className={cn("flex items-center", isRTL && "text-right")}>
+              {isRTL ? "أنت غير متصل بالإنترنت حالياً. قد تكون بعض الميزات غير متاحة." : "You are currently offline. Some features may be unavailable."}
             </AlertDescription>
           </Alert>
         )}
@@ -82,25 +84,46 @@ const PageContainer: React.FC<PageContainerProps> = ({
             "p-4 md:p-6 animate-fade-in",
             className
           )}
+          dir={dir}
         >
           {backLink && (
             <Link 
               to={backLink} 
-              className="inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className={cn(
+                "inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors",
+                isRTL && "flex-row-reverse"
+              )}
             >
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Back
+              {isRTL ? (
+                <>
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                  رجوع
+                </>
+              ) : (
+                <>
+                  <ArrowLeft className="mr-1 h-4 w-4" />
+                  Back
+                </>
+              )}
             </Link>
           )}
           
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div>
-              {title && <h1 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h1>}
-              {description && <p className="text-muted-foreground mt-1 text-sm md:text-base">{description}</p>}
-              <p className="text-xs text-muted-foreground mt-1">System Date: {formatDate(systemDate)}</p>
+          <div className={cn(
+            "mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0",
+            isRTL && "sm:flex-row-reverse"
+          )}>
+            <div className={isRTL ? "text-right" : ""}>
+              {title && <h1 className={cn("text-xl md:text-2xl font-bold tracking-tight", isRTL && "text-right")}>{title}</h1>}
+              {description && <p className={cn("text-muted-foreground mt-1 text-sm md:text-base", isRTL && "text-right")}>{description}</p>}
+              <p className={cn("text-xs text-muted-foreground mt-1", isRTL && "text-right")}>
+                {isRTL ? `تاريخ النظام: ${formatDate(systemDate)}` : `System Date: ${formatDate(systemDate)}`}
+              </p>
             </div>
             {actions && (
-              <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
+              <div className={cn(
+                "flex flex-wrap gap-2 justify-start sm:justify-end",
+                isRTL && "flex-row-reverse sm:justify-start"
+              )}>
                 {actions}
               </div>
             )}

@@ -76,7 +76,7 @@ const Agreements = () => {
       const available = await checkEdgeFunctionAvailability('process-agreement-imports');
       setIsEdgeFunctionAvailable(available);
       if (!available) {
-        toast.error("CSV import feature is unavailable. Please try again later or contact support.", {
+        toast.error("خدمة استيراد ملفات CSV غير متاحة. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم الفني.", {
           duration: 6000,
         });
       }
@@ -160,11 +160,12 @@ const Agreements = () => {
 
   return (
     <PageContainer 
-      title="Rental Agreements" 
-      description="Manage your rental agreements and contracts with customers"
+      title="عقود الإيجار" 
+      description="إدارة عقود وتعاهدات الإيجار مع العملاء"
       className="max-w-full"
+      dir="rtl"
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6" dir="rtl">
         {/* Analytics Section */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Stats Overview */}
@@ -179,9 +180,9 @@ const Agreements = () => {
         </div>
         
         {/* Main Content Area with Tabs */}
-        <Card>
+        <Card dir="rtl">
           <div className="p-4 border-b">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row-reverse justify-between items-start sm:items-center gap-4">
               {/* View Mode Selector */}
               <div className="flex items-center gap-2">
                 <AgreementViewSelectors viewMode={viewMode} setViewMode={setViewMode} />
@@ -189,52 +190,55 @@ const Agreements = () => {
             </div>
             
             {/* Search and Action Bar */}
-            <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
+            <div className="flex flex-col md:flex-row-reverse justify-between mt-4 gap-4">
               <CustomerListFilterClone
                 searchTerm={searchQuery}
                 onSearch={handleSearch}
                 onFilterChange={handleFilterChange}
               />
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-row-reverse">
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
+                  className="flex-row-reverse"
                 >
-                  <Filter className="h-4 w-4 mr-2" />
-                  {showFilters ? "Hide Filters" : "Advanced Filters"}
+                  <Filter className="h-4 w-4 ml-2" />
+                  {showFilters ? "إخفاء المرشحات" : "مرشحات متقدمة"}
                 </Button>
                 
                 <Button 
                   variant="outline" 
                   size="sm"
+                  className="flex-row-reverse"
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
+                  <Download className="h-4 w-4 ml-2" />
+                  تصدير
                 </Button>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
+                    <Button variant="outline" size="sm" className="flex-row-reverse">
+                      <Upload className="h-4 w-4 ml-2" />
+                      استيراد
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
-                      Import from CSV
+                  <DropdownMenuContent align="start" className="text-right">
+                    <DropdownMenuItem onClick={() => setIsImportModalOpen(true)} className="text-right">
+                      استيراد من ملف CSV
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Download Template</DropdownMenuItem>
+                    <DropdownMenuItem className="text-right">تحميل النموذج</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
                 <Button 
                   size="sm"
                   onClick={handleAddAgreement}
+                  className="flex-row-reverse"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Agreement
+                  <Plus className="h-4 w-4 ml-2" />
+                  عقد جديد
                 </Button>
               </div>
             </div>
@@ -259,13 +263,13 @@ const Agreements = () => {
           
           {/* Content Area */}
           <CardContent className="p-0">
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full sm:w-auto">
-              <TabsList>
-                <TabsTrigger value="agreements">All Agreements</TabsTrigger>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="closed">Closed</TabsTrigger>
-                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-                <TabsTrigger value="history">Import History</TabsTrigger>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full sm:w-auto" dir="rtl">
+              <TabsList className="justify-start">
+                <TabsTrigger value="agreements" className="text-right">جميع العقود</TabsTrigger>
+                <TabsTrigger value="active" className="text-right">نشطة</TabsTrigger>
+                <TabsTrigger value="closed" className="text-right">مغلقة</TabsTrigger>
+                <TabsTrigger value="cancelled" className="text-right">ملغاة</TabsTrigger>
+                <TabsTrigger value="history" className="text-right">سجل الاستيراد</TabsTrigger>
               </TabsList>
               <AgreementTabPanel
                 value="agreements"
@@ -273,7 +277,7 @@ const Agreements = () => {
                 agreements={agreements}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
-                loadingText="Loading agreements..."
+                loadingText="جاري تحميل العقود..."
               />
               <AgreementTabPanel
                 value="active"
@@ -300,10 +304,10 @@ const Agreements = () => {
                 loadingText=""
               />
               <TabsContent value="history" className="m-0">
-                <div className="p-4">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center">
-                    <Database className="h-5 w-5 mr-2" />
-                    Import History
+                <div className="p-4" dir="rtl">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center text-right justify-end">
+                    <Database className="h-5 w-5 ml-2" />
+                    سجل الاستيراد
                   </h2>
                   <ImportHistoryList items={[]} isLoading={false} />
                 </div>
