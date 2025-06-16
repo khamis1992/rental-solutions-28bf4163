@@ -36,12 +36,12 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
         )}
       </div>
 
-      {/* RS Rental Solutions branding on the right side */}
+      {/* Rental Solutions text first, then RS icon */}
       <div className="flex items-center gap-2" dir="ltr">
+        <div className="hidden md:block font-medium text-lg">Rental Solutions</div>
         <div className="h-10 w-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-semibold text-xl hidden md:flex">
           RS
         </div>
-        <div className="hidden md:block font-medium text-lg">Rental Solutions</div>
       </div>
     </header>
   );
