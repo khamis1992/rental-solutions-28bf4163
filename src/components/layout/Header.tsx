@@ -36,12 +36,15 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
         )}
       </div>
 
-      {/* Rental Solutions branding moved to the right */}
-      <div className="flex items-center" dir="ltr">
+      {/* Rental Solutions branding moved to the right with icon before text */}
+      <div className="flex items-center gap-2" dir="ltr">
+        <div className="h-10 w-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-semibold text-xl hidden md:flex">
+          KA
+        </div>
         <div className="h-10 w-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-semibold text-xl hidden md:flex">
           RS
         </div>
-        <div className="hidden md:block ml-2 font-medium text-lg">Rental Solutions</div>
+        <div className="hidden md:block font-medium text-lg">Rental Solutions</div>
       </div>
     </header>
   );
