@@ -32,11 +32,14 @@ const AILegalLetterGenerator = () => {
   const { language } = useLanguage();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
-  const [letterType, setLetterType] = useState<'contract_cancellation' | 'payment_reminder' | 'traffic_fine_notice'>('contract_cancellation');
+  const [letterType, setLetterType] = useState<'contract_cancellation' | 'payment_reminder' | 'traffic_fine_notice' | 'installment_reschedule_request'>('installment_reschedule_request');
   const [reason, setReason] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLetter, setGeneratedLetter] = useState<GeneratedLetter | null>(null);
   const [letterHistory, setLetterHistory] = useState<GeneratedLetter[]>([]);
+
+  // Helper to determine if reason is required
+  const isReasonRequired = letterType === 'installment_reschedule_request';
 
   useEffect(() => {
     loadCustomers();
@@ -73,6 +76,11 @@ const AILegalLetterGenerator = () => {
       return;
     }
 
+    if (isReasonRequired && !reason.trim()) {
+      toast.error('يرجى إدخال أسباب طلب إعادة الجدولة');
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const request: LegalLetterRequest = {
@@ -99,7 +107,8 @@ const AILegalLetterGenerator = () => {
     const reasons = {
       contract_cancellation: 'إلغاء العقد',
       payment_reminder: 'تذكير بالسداد',
-      traffic_fine_notice: 'إشعار مخالفات مرورية'
+      traffic_fine_notice: 'إشعار مخالفات مرورية',
+      installment_reschedule_request: 'طلب إعادة جدولة الأقساط'
     };
     return reasons[type as keyof typeof reasons] || '';
   };
@@ -114,6 +123,17 @@ const AILegalLetterGenerator = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // Print helper
+  const printLetter = (letter: GeneratedLetter) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/><title>${letter.title}</title><style>body{font-family: 'Tahoma', sans-serif; white-space:pre-wrap; direction:rtl; text-align:right;}</style></head><body>${letter.content.replace(/\n/g, '<br/>')}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   };
 
   return (
@@ -165,6 +185,12 @@ const AILegalLetterGenerator = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="installment_reschedule_request">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      طلب إعادة جدولة أقساط
+                    </div>
+                  </SelectItem>
                   <SelectItem value="contract_cancellation">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
@@ -189,11 +215,11 @@ const AILegalLetterGenerator = () => {
 
             <div>
               <Label className="text-right block mb-2">السبب (اختياري)</Label>
-              <Input
+              <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="اتركه فارغاً للاستخدام التلقائي للذكاء الاصطناعي"
-                className="text-right"
+                placeholder={isReasonRequired ? 'يرجى ذكر جميع الأسباب مفصّلة...' : 'اتركه فارغاً للاستخدام التلقائي للذكاء الاصطناعي'}
+                className="text-right min-h-[90px]"
               />
             </div>
 
@@ -271,6 +297,7 @@ const AILegalLetterGenerator = () => {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => printLetter(generatedLetter)}
                     className="gap-1"
                   >
                     <FileText className="h-4 w-4" />
