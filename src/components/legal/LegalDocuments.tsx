@@ -40,18 +40,18 @@ const LegalDocuments = () => {
             <CardHeader>
               <CardTitle className="text-right">الوثائق القانونية</CardTitle>
               <CardDescription className="text-right">
-                إدارة القوالب القانونية والسياسات والنماذج
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DocumentList 
-                showUploadButton={true}
-                showSearch={true}
-                showFilters={false}
-                entityType={DocumentEntityType.LEGAL_CASE}
-              />
-            </CardContent>
-          </Card>
+            إدارة القوالب القانونية والسياسات والنماذج
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DocumentList 
+            showUploadButton={true}
+            showSearch={true}
+            showFilters={false}
+            entityType={DocumentEntityType.LEGAL_CASE}
+          />
+        </CardContent>
+      </Card>
         </TabsContent>
       </Tabs>
     </div>

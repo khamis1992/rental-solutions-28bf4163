@@ -26,7 +26,8 @@ import {
   Car,
   Calendar,
   CreditCard,
-  Printer
+  Printer,
+  Brain
 } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
@@ -39,6 +40,7 @@ import {
   UnpaidAgreement,
   UnpaidTrafficFine
 } from '@/services/LegalManagementService';
+import AILegalLetterGenerator from './AILegalLetterGenerator';
 
 const LegalManagementDashboard = () => {
   // State management
@@ -587,6 +589,8 @@ const LegalManagementDashboard = () => {
         </div>
       </div>
 
+
+
       {/* Dashboard Statistics */}
       {dashboardStats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -770,6 +774,23 @@ const LegalManagementDashboard = () => {
 
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-4">
+          <Tabs defaultValue="ai-generator" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="ai-generator" className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                مولد الخطابات بالذكاء الاصطناعي
+              </TabsTrigger>
+              <TabsTrigger value="traditional-templates" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                القوالب التقليدية
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="ai-generator" className="mt-6">
+              <AILegalLetterGenerator />
+            </TabsContent>
+            
+            <TabsContent value="traditional-templates" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>إدارة القوالب القانونية</CardTitle>
@@ -815,6 +836,8 @@ const LegalManagementDashboard = () => {
               </div>
             </CardContent>
           </Card>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
 
