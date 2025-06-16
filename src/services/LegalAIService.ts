@@ -11,7 +11,7 @@ export interface CustomerContext {
 }
 
 export interface LegalLetterRequest {
-  type: 'contract_cancellation' | 'payment_reminder' | 'traffic_fine_notice';
+  type: 'contract_cancellation' | 'payment_reminder' | 'traffic_fine_notice' | 'installment_reschedule_request';
   customerId: string;
   contractId?: string;
   reason: string;
@@ -80,8 +80,13 @@ export class LegalAIService {
   }
 
   private generateLetterContent(request: LegalLetterRequest, context: CustomerContext): string {
-    if (request.type === 'contract_cancellation' && request.language === 'ar') {
-      return this.generateCancellationLetterAr(request, context);
+    if (request.language === 'ar') {
+      if (request.type === 'contract_cancellation') {
+        return this.generateCancellationLetterAr(request, context);
+      }
+      if (request.type === 'installment_reschedule_request') {
+        return this.generateInstallmentRescheduleLetterAr(request, context);
+      }
     }
     return 'Letter content generated';
   }
@@ -114,6 +119,57 @@ ${this.generateReasons(context)}
 التاريخ: ${new Date().toLocaleDateString('ar-QA')}`;
   }
 
+  private generateInstallmentRescheduleLetterAr(request: LegalLetterRequest, context: CustomerContext): string {
+    const today = new Date().toLocaleDateString('ar-QA');
+
+    // Determine recipient based on keywords or fallback
+    const recipient = this.detectRecipient(request.reason);
+
+    // Format reasons into bullet list
+    const rawReasons = (request.reason || '').split(/\n|،|,/).map(r => r.trim()).filter(r => r.length > 0);
+    const reasonsBullets = rawReasons.length > 0
+      ? rawReasons.map(r => `• ${r}`).join('\n')
+      : '• لم يتم ذكر أسباب محددة';
+
+    return `التاريخ: ${today}
+
+نحن العراف لتأجير السيارات ذ.م.م، سجل تجاري رقم 146832
+
+بسم الله الرحمن الرحيم
+
+إلى: ${recipient}
+
+الموضوع: طلب إعادة جدولة الأقساط
+
+سيدي/سيدتي المحترمـ/ـة،
+
+بالإشارة إلى عقد التمويل المبرم فيما بيننا، نرجو منكم التكرم بالموافقة على إعادة جدولة الأقساط المستحقة وذلك للأسباب التالية:
+${reasonsBullets}
+
+نرجو التفضل بدراسة طلبنا واتخاذ ما يلزم، وقد فوضنا السيد/ أسامة أحمد البشرى عبد المنعم (رقم شخصي 29273601820) لمتابعة واستكمال الإجراءات اللازمة لدى إدارتكم الموقرة.
+
+وتفضلوا بقبول فائق الاحترام والتقدير.
+
+العراف لتأجير السيارات ذ.م.م`;
+  }
+
+  /**
+   * Detect financing company to address based on keywords contained in the reason or any supplied text.
+   * Defaults to generic مخاطبة if nothing is detected.
+   */
+  private detectRecipient(text: string | undefined): string {
+    if (!text) return 'من يهمه الأمر';
+    const lower = text.toLowerCase();
+
+    if (/(\bmg\b|mg[0-9]*)/.test(lower)) return 'الأولى للتمويل';
+    if (/changan|شانجان|changan/.test(lower)) return 'العطية للسيارات';
+    if (/bestune|بيستون/.test(lower)) return 'الريادة للسيارات';
+    if (/dongfeng|دونجفنج/.test(lower)) return 'الطالب للسيارات';
+    if (/\bgac\b|جي\s*اي\s*سي/.test(lower)) return 'دماسكو';
+
+    return 'من يهمه الأمر';
+  }
+
   private generateReasons(context: CustomerContext): string {
     const reasons = [];
     if (context.pendingAmount > 0) {
@@ -127,7 +183,17 @@ ${this.generateReasons(context)}
 
   private generateTitle(request: LegalLetterRequest, context: CustomerContext): string {
     if (request.language === 'ar') {
-      return `إشعار ${request.type === 'contract_cancellation' ? 'إلغاء عقد' : 'قانوني'} - ${context.name}`;
+      switch (request.type) {
+        case 'contract_cancellation':
+          return `إشعار إلغاء عقد - ${context.name}`;
+        case 'installment_reschedule_request':
+          return `خطاب طلب إعادة جدولة أقساط - ${context.name}`;
+        case 'payment_reminder':
+          return `تذكير سداد - ${context.name}`;
+        case 'traffic_fine_notice':
+        default:
+          return `إشعار قانوني - ${context.name}`;
+      }
     }
     return `Legal Notice - ${context.name}`;
   }
