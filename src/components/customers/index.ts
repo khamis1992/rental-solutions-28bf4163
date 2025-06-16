@@ -1,3 +1,4 @@
+
 export * from './CustomerDataGrid';
 export * from './CustomerDetail';
 export * from './CustomerDetailsSidebar';
@@ -20,3 +21,5 @@ export * from './ImportHistoryList';
 export * from './CustomerCard';
 export * from './CustomerDetails';
 export * from './CustomerOnboardingWizard';
+export * from './CustomerGridView';
+export * from './CustomerViewToggle';
