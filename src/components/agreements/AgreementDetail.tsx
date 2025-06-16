@@ -248,26 +248,8 @@ export function AgreementDetail({
     <div className="space-y-6" dir="rtl">
       {/* Header with Agreement Info and Debug Toggle */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        {/* Diagnostic buttons moved to far left */}
-        <div className="flex gap-2 order-2 lg:order-1">
-          <PaymentSyncButton 
-            agreementId={agreement.id} 
-            variant="fix"
-            className="text-xs"
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowDebugPanel(!showDebugPanel)}
-            className="text-xs"
-          >
-            <Bug className="h-4 w-4 ml-1" />
-            {showDebugPanel ? 'إخفاء' : 'إظهار'} التشخيص
-          </Button>
-        </div>
-        
         {/* Title area moved to far right */}
-        <div className="space-y-2 text-right order-1 lg:order-2">
+        <div className="space-y-2 text-right order-1 lg:order-1">
           <div className="flex items-center gap-3 flex-row-reverse">
             <h1 className="text-2xl font-bold">تفاصيل العقد</h1>
             <Badge variant="outline" className="px-3 py-1">
@@ -283,6 +265,24 @@ export function AgreementDetail({
           <p className="text-muted-foreground text-right">
             إدارة معلومات العقد والمدفوعات والوثائق ذات الصلة
           </p>
+        </div>
+        
+        {/* Diagnostic buttons moved to far left */}
+        <div className="flex gap-2 order-2 lg:order-2">
+          <PaymentSyncButton 
+            agreementId={agreement.id} 
+            variant="fix"
+            className="text-xs"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            className="text-xs"
+          >
+            <Bug className="h-4 w-4 ml-1" />
+            {showDebugPanel ? 'إخفاء' : 'إظهار'} التشخيص
+          </Button>
         </div>
       </div>
 
