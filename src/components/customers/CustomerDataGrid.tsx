@@ -61,19 +61,11 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
     setCurrentPage(page);
   };
 
-  // Arabic date formatting function
+  // Always use Gregorian (ميلادي) format
   const formatArabicDate = (dateString: string) => {
     if (!dateString) return 'غير محدد';
-    
     const date = new Date(dateString);
-    const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      calendar: 'gregory' // ميلادي format
-    };
-    
-    return date.toLocaleDateString('ar-SA', options);
+    return date.toLocaleDateString('en-GB');
   };
 
   const getStatusBadge = (status: string) => {
