@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -204,6 +203,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         )}
       </div>
 
+      
       <div className={cn(
         "flex-1 overflow-auto py-4 px-4",
         expanded ? "" : "md:px-2"
