@@ -13,9 +13,13 @@ import { toast } from 'sonner';
 import { CacheSynchronization } from '@/utils/cache-synchronization';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Users } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import { responsivePadding, responsiveSpacing } from '@/utils/responsive-utils';
 
 const Customers = () => {
   const { language } = useLanguage();
+  const isMobile = useIsMobile();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
@@ -99,47 +103,68 @@ const Customers = () => {
   };
 
   return (
-    <PageContainer>
-      <PageHeader
-        title="العملاء"
-        subtitle="إدارة العملاء وعرض التفاصيل وتتبع معلومات العملاء"
-        icon={<Users className="w-6 h-6 text-blue-500" />}
-        align="right"
-        dir="rtl"
-      />
+    <PageContainer className={cn(
+      "max-w-7xl mx-auto",
+      responsivePadding.page
+    )}>
+      <div className="mb-4 sm:mb-6">
+        <PageHeader
+          title="العملاء"
+          subtitle="إدارة العملاء وعرض التفاصيل وتتبع معلومات العملاء"
+          icon={<Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />}
+          align="right"
+          dir="rtl"
+        />
+      </div>
       
       <div 
-        className="flex flex-col space-y-6 mt-6" 
+        className={cn(
+          "flex flex-col",
+          responsiveSpacing.stack
+        )}
         dir="rtl"
         style={{ textAlign: 'right', direction: 'rtl' }}
       >
-        <CustomerPageStatsCards 
-          customers={transformedCustomers} 
-          isLoading={isLoading} 
-        />
-        
-        <CustomerPageToolbar
-          filters={{ ...filters, search: filters?.search || '' }}
-          setFilters={setFilters}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          onImportClick={() => setIsImportModalOpen(true)}
-          isEdgeFunctionAvailable={isEdgeFunctionAvailable}
-        />
-        
-        <CustomerPageTabContent
-          selectedTab={selectedTab}
-          onTabChange={handleTabChange}
-          customers={transformedCustomers}
-          isLoading={isLoading}
-          onCustomerSelect={handleCustomerSelect}
-        />
-        
-        <div className="mt-8">
-          <CustomerImportHistory />
+        {/* Stats Cards - Mobile optimized grid */}
+        <div className="w-full">
+          <CustomerPageStatsCards 
+            customers={transformedCustomers} 
+            isLoading={isLoading} 
+          />
         </div>
+        
+        {/* Toolbar - Mobile responsive */}
+        <div className="w-full">
+          <CustomerPageToolbar
+            filters={{ ...filters, search: filters?.search || '' }}
+            setFilters={setFilters}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+            onImportClick={() => setIsImportModalOpen(true)}
+            isEdgeFunctionAvailable={isEdgeFunctionAvailable}
+          />
+        </div>
+        
+        {/* Tab Content - Mobile optimized */}
+        <div className="w-full">
+          <CustomerPageTabContent
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+            customers={transformedCustomers}
+            isLoading={isLoading}
+            onCustomerSelect={handleCustomerSelect}
+          />
+        </div>
+        
+        {/* Import History - Hidden on mobile for cleaner UI */}
+        {!isMobile && (
+          <div className="mt-6 sm:mt-8">
+            <CustomerImportHistory />
+          </div>
+        )}
       </div>
       
+      {/* Modals - Mobile optimized */}
       <CustomerPageModals
         isImportModalOpen={isImportModalOpen}
         onImportModalChange={setIsImportModalOpen}

@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Car, Grid3x3, Plus, RefreshCw, TableProperties, Wrench } from 'lucide-react';
+import { Car, Grid3x3, Plus, RefreshCw, TableProperties, Wrench, Filter } from 'lucide-react';
 import { VehicleStats } from '@/components/vehicles/VehicleStats';
 import { VehicleSearch } from '@/components/vehicles/VehicleSearch';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,15 @@ import PageHeader from '@/components/ui/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { vehicleService } from '@/services/VehicleService';
 import { enhancedVehicleSearch } from '@/utils/searchUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import { responsivePadding, responsiveSpacing, responsiveFlex } from '@/utils/responsive-utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -36,18 +45,19 @@ const VALID_STATUSES: VehicleStatus[] = [
 const Vehicles = () => {
   const { t } = useTranslation();
   const { language } = useLanguage();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<VehicleFilterParams>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'table');
   const [activeTab, setActiveTab] = useState<string>('all');
   const [error, setError] = useState<Error | null>(null);
   
-  // Pagination state
+  // Pagination state - Smaller page size for mobile
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(isMobile ? 6 : 10);
   const [totalItems, setTotalItems] = useState(0);
   
   // Use the vehicle service hook
@@ -289,21 +299,30 @@ const Vehicles = () => {
       value !== '');
 
   return (
-    <PageContainer className="max-w-full">
+    <PageContainer className={cn(
+      "max-w-7xl mx-auto",
+      responsivePadding.page
+    )}>
       <div dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <PageHeader
-          title='المركبات'
-          subtitle='إدارة وتتبع أسطول المركبات'
-          icon={<Car className="w-6 h-6 text-blue-500" />}
-          align="right"
-          dir="rtl"
-        />
-        <div className="space-y-6">
+        <div className="mb-4 sm:mb-6">
+          <PageHeader
+            title='المركبات'
+            subtitle='إدارة وتتبع أسطول المركبات'
+            icon={<Car className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />}
+            align="right"
+            dir="rtl"
+          />
+        </div>
+        
+        <div className={responsiveSpacing.stack}>
           <VehicleStats />
           
           <Card className="overflow-hidden">
-            <div className="p-4 border-b">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:flex-row-reverse">
+            <div className="p-3 sm:p-4 border-b">
+              <div className={cn(
+                "flex flex-col gap-4",
+                "sm:flex-row sm:justify-between sm:items-center sm:flex-row-reverse"
+              )}>
                 <Tabs 
                   defaultValue={activeTab} 
                   value={activeTab} 
@@ -311,89 +330,127 @@ const Vehicles = () => {
                   className="w-full sm:w-auto"
                   dir="rtl"
                 >
-                  <TabsList className="flex justify-end">
-                    <TabsTrigger value="all" className="text-right">الكل</TabsTrigger>
-                    <TabsTrigger value="available" className="text-right">متاحة</TabsTrigger>
-                    <TabsTrigger value="rented" className="text-right">مؤجرة</TabsTrigger>
-                    <TabsTrigger value="maintenance" className="text-right">صيانة</TabsTrigger>
+                  <TabsList className={cn(
+                    "flex justify-end w-full sm:w-auto",
+                    "overflow-x-auto"
+                  )}>
+                    <TabsTrigger value="all" className="text-xs sm:text-sm">الكل</TabsTrigger>
+                    <TabsTrigger value="available" className="text-xs sm:text-sm">متاحة</TabsTrigger>
+                    <TabsTrigger value="rented" className="text-xs sm:text-sm">مؤجرة</TabsTrigger>
+                    <TabsTrigger value="maintenance" className="text-xs sm:text-sm">صيانة</TabsTrigger>
                   </TabsList>
                 </Tabs>
                 
-                <div className="flex items-center space-x-reverse space-x-2">
-                  <Button 
-                    variant={viewMode === 'grid' ? 'default' : 'outline'} 
-                    size="icon"
-                    onClick={() => setViewMode('grid')}
-                    title="عرض شبكي"
-                  >
-                    <Grid3x3 size={18} />
-                  </Button>
-                  <Button 
-                    variant={viewMode === 'table' ? 'default' : 'outline'} 
-                    size="icon"
-                    onClick={() => setViewMode('table')}
-                    title="عرض جدولي"
-                  >
-                    <TableProperties size={18} />
-                  </Button>
+                <div className="flex items-center justify-between sm:justify-start space-x-reverse space-x-2">
+                  <div className="flex items-center space-x-reverse space-x-2">
+                    <Button 
+                      variant={viewMode === 'grid' ? 'default' : 'outline'} 
+                      size="icon"
+                      onClick={() => setViewMode('grid')}
+                      title="عرض شبكي"
+                      className="h-8 w-8 sm:h-9 sm:w-9"
+                    >
+                      <Grid3x3 className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant={viewMode === 'table' ? 'default' : 'outline'} 
+                      size="icon"
+                      onClick={() => setViewMode('table')}
+                      title="عرض جدولي"
+                      className="h-8 w-8 sm:h-9 sm:w-9"
+                    >
+                      <TableProperties className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Mobile action menu */}
+                  {isMobile ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Plus className="h-4 w-4" />
+                          <span className="mr-2">خيارات</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={handleAddVehicle}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          إضافة مركبة
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/maintenance/add')}>
+                          <Wrench className="h-4 w-4 mr-2" />
+                          إضافة صيانة
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/vehicles/status-update')}>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          تحديث الحالة
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-row-reverse">
+                      <Button 
+                        size="sm" 
+                        onClick={handleAddVehicle}
+                        className="flex items-center justify-end"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        إضافة مركبة
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/maintenance/add')}
+                        className="flex items-center justify-end"
+                      >
+                        <Wrench className="h-4 w-4 mr-2" />
+                        إضافة صيانة
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/vehicles/status-update')}
+                        className="flex items-center justify-end"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        تحديث الحالة
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
               
-              <div className="flex flex-col md:flex-row justify-between mt-4 gap-4 md:flex-row-reverse">
-                <div className="flex-1 max-w-md">
+              <div className={cn(
+                "flex flex-col mt-4 gap-3",
+                "sm:flex-row sm:justify-between sm:flex-row-reverse"
+              )}>
+                <div className="flex-1 max-w-full sm:max-w-md">
                   <VehicleSearch
                     searchQuery={searchQuery}
                     setSearchQuery={handleSearchChange}
                   />
                 </div>
                 
-                <div className="flex items-center gap-2 flex-row-reverse">
-                  <Button 
-                    size="sm" 
-                    onClick={handleAddVehicle}
-                    className="flex items-center justify-end"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    إضافة مركبة
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/maintenance/add')}
-                    className="flex items-center justify-end"
-                  >
-                    <Wrench className="h-4 w-4 mr-2" />
-                    إضافة صيانة
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/vehicles/status-update')}
-                    className="flex items-center justify-end"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    تحديث الحالة
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowFilters(!showFilters)}
-                  >
-                    {showFilters ? 'إخفاء المرشحات' : 'إظهار المرشحات'}
-                  </Button>
-                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="w-full sm:w-auto"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  {showFilters ? 'إخفاء المرشحات' : 'إظهار المرشحات'}
+                </Button>
               </div>
               
               {activeFilters.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2 flex-row-reverse">
+                <div className="mt-3 flex flex-wrap gap-2 flex-row-reverse">
                   {activeFilters.map(([key, value]) => (
                     <Badge
                       key={key}
                       variant="secondary"
-                      className="flex items-center gap-1 flex-row-reverse"
+                      className="flex items-center gap-1 flex-row-reverse text-xs"
                     >
                       {key === 'searchTerm' ? 'البحث' : key}: {value}
                       <button
@@ -405,7 +462,7 @@ const Vehicles = () => {
                         className="rounded-full hover:bg-accent p-1 mr-1"
                       >
                         <span className="sr-only">إزالة</span>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
                           <path d="M1 1L11 11M1 11L11 1" stroke="currentColor" strokeWidth="2" />
                         </svg>
                       </button>
@@ -420,6 +477,7 @@ const Vehicles = () => {
                       if (searchQuery) cleanFilters.searchTerm = searchQuery;
                       setFilters(cleanFilters);
                     }}
+                    className="text-xs h-7 px-2"
                   >
                     مسح المرشحات
                   </Button>
@@ -428,7 +486,7 @@ const Vehicles = () => {
             </div>
             
             {showFilters && (
-              <div className="border-b p-4">
+              <div className="border-b p-3 sm:p-4">
                 <VehicleFilters 
                   onFilterChange={handleFilterChange} 
                   initialValues={{
@@ -443,7 +501,7 @@ const Vehicles = () => {
               </div>
             )}
             
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               {viewMode === 'grid' ? (
                 <VehicleGrid 
                   vehicles={vehicles}
@@ -451,15 +509,19 @@ const Vehicles = () => {
                   onVehicleClick={handleSelectVehicle}
                 />
               ) : (
-                <VehicleTable 
-                  vehicles={vehicles}
-                  isLoading={loading}
-                  onRowClick={handleSelectVehicle}
-                />
+                <div className="overflow-x-auto -mx-3 sm:mx-0">
+                  <div className="min-w-[600px] px-3 sm:px-0">
+                    <VehicleTable 
+                      vehicles={vehicles}
+                      isLoading={loading}
+                      onRowClick={handleSelectVehicle}
+                    />
+                  </div>
+                </div>
               )}
               
               {(error || serviceError) && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm mt-4 text-right" dir="rtl">
+                <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-xs sm:text-sm mt-4 text-right" dir="rtl">
                   <p className="font-medium">
                     خطأ في تحميل المركبات
                   </p>

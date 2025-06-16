@@ -7,7 +7,7 @@ import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { BarChart4, Calendar, Database, Download, Filter, Plus, RefreshCw, Upload, FileText } from 'lucide-react';
+import { BarChart4, Calendar, Database, Download, Filter, Plus, RefreshCw, Upload, FileText, MoreVertical } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { Card, CardContent } from '@/components/ui/card';
 import { CustomerInfo } from '@/types/customer';
@@ -29,16 +29,20 @@ import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPan
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import { responsivePadding, responsiveSpacing } from '@/utils/responsive-utils';
 
 const Agreements = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(() => urlSearchParams.get('searchTerm') || '');
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('agreements');
-  const [viewMode, setViewMode] = useState('card' as 'card' | 'table' | 'compact');
+  const [viewMode, setViewMode] = useState<'card' | 'table' | 'compact'>(isMobile ? 'card' : 'table');
   
   // Use the agreement service hook
   const {
@@ -161,98 +165,144 @@ const Agreements = () => {
 
   return (
     <PageContainer 
-      className="max-w-full"
+      className={cn(
+        "max-w-7xl mx-auto",
+        responsivePadding.page
+      )}
       dir="rtl"
     >
-      <PageHeader
-        title="عقود الإيجار"
-        subtitle="إدارة عقود وتعاهدات الإيجار مع العملاء"
-        icon={<FileText className="w-6 h-6 text-blue-500" />}
-        align="right"
-        dir="rtl"
-      />
+      <div className="mb-4 sm:mb-6">
+        <PageHeader
+          title="عقود الإيجار"
+          subtitle="إدارة عقود وتعاهدات الإيجار مع العملاء"
+          icon={<FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />}
+          align="right"
+          dir="rtl"
+        />
+      </div>
       
-      <div className="flex flex-col gap-6" dir="rtl">
-        {/* Analytics Section */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className={cn("flex flex-col", responsiveSpacing.stack)} dir="rtl">
+        {/* Analytics Section - Mobile optimized */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Stats Overview */}
-          <div className="xl:col-span-2">
+          <div className="lg:col-span-2">
             <AgreementStats className="h-full" />
           </div>
           
-          {/* Analytics Preview */}
-          <div className="xl:col-span-1">
-            <AgreementAnalytics />
-          </div>
+          {/* Analytics Preview - Hidden on mobile for cleaner UI */}
+          {!isMobile && (
+            <div className="lg:col-span-1">
+              <AgreementAnalytics />
+            </div>
+          )}
         </div>
         
         {/* Main Content Area with Tabs */}
-        <Card dir="rtl">
-          <div className="p-4 border-b">
-            <div className="flex flex-col sm:flex-row-reverse justify-between items-start sm:items-center gap-4">
+        <Card dir="rtl" className="overflow-hidden">
+          <div className="p-3 sm:p-4 border-b">
+            <div className={cn(
+              "flex flex-col gap-4",
+              "sm:flex-row-reverse sm:justify-between sm:items-center"
+            )}>
               {/* View Mode Selector */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 justify-end">
                 <AgreementViewSelectors viewMode={viewMode} setViewMode={setViewMode} />
               </div>
+              
+              {/* Mobile Actions Menu */}
+              {isMobile && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <MoreVertical className="h-4 w-4" />
+                      <span className="mr-2">خيارات</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={handleAddAgreement}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      عقد جديد
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      استيراد من CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Download className="h-4 w-4 mr-2" />
+                      تصدير
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
             
-            {/* Search and Action Bar */}
-            <div className="flex flex-col md:flex-row-reverse justify-between mt-4 gap-4">
-              <CustomerListFilterClone
-                searchTerm={searchQuery}
-                onSearch={handleSearch}
-                onFilterChange={handleFilterChange}
-              />
+            {/* Search and Action Bar - Mobile responsive */}
+            <div className={cn(
+              "flex flex-col mt-4 gap-3",
+              "md:flex-row-reverse md:justify-between"
+            )}>
+              <div className="flex-1 max-w-full md:max-w-md">
+                <CustomerListFilterClone
+                  searchTerm={searchQuery}
+                  onSearch={handleSearch}
+                  onFilterChange={handleFilterChange}
+                />
+              </div>
               
               <div className="flex items-center gap-2 flex-row-reverse">
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="flex-row-reverse"
+                  className="flex-row-reverse w-full sm:w-auto"
                 >
                   <Filter className="h-4 w-4 ml-2" />
                   {showFilters ? "إخفاء المرشحات" : "مرشحات متقدمة"}
                 </Button>
                 
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex-row-reverse"
-                >
-                  <Download className="h-4 w-4 ml-2" />
-                  تصدير
-                </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex-row-reverse">
-                      <Upload className="h-4 w-4 ml-2" />
-                      استيراد
+                {/* Desktop Actions */}
+                {!isMobile && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex-row-reverse"
+                    >
+                      <Download className="h-4 w-4 ml-2" />
+                      تصدير
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="text-right">
-                    <DropdownMenuItem onClick={() => setIsImportModalOpen(true)} className="text-right">
-                      استيراد من ملف CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-right">تحميل النموذج</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <Button 
-                  size="sm"
-                  onClick={handleAddAgreement}
-                  className="flex-row-reverse"
-                >
-                  <Plus className="h-4 w-4 ml-2" />
-                  عقد جديد
-                </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex-row-reverse">
+                          <Upload className="h-4 w-4 ml-2" />
+                          استيراد
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="text-right">
+                        <DropdownMenuItem onClick={() => setIsImportModalOpen(true)} className="text-right">
+                          استيراد من ملف CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-right">تحميل النموذج</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    
+                    <Button 
+                      size="sm"
+                      onClick={handleAddAgreement}
+                      className="flex-row-reverse"
+                    >
+                      <Plus className="h-4 w-4 ml-2" />
+                      عقد جديد
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
             
-            {/* Active Filters */}
+            {/* Active Filters - Mobile optimized */}
             {activeFilters.length > 0 && (
-              <div className="mt-4">
+              <div className="mt-3">
                 <ActiveFilters 
                   activeFilters={activeFilters as [string, string][]}
                   setSearchParams={setSearchParams}
@@ -263,62 +313,67 @@ const Agreements = () => {
           
           {/* Filter Panel */}
           {showFilters && (
-            <div className="border-b">
+            <div className="border-b p-3 sm:p-4">
               <AgreementFilterPanel onFilterChange={handleFilterChange} currentFilters={searchParams} />
             </div>
           )}
           
-          {/* Content Area */}
+          {/* Content Area - Mobile optimized tabs */}
           <CardContent className="p-0">
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full sm:w-auto" dir="rtl">
-              <TabsList className="justify-start">
-                <TabsTrigger value="agreements" className="text-right">جميع العقود</TabsTrigger>
-                <TabsTrigger value="active" className="text-right">نشطة</TabsTrigger>
-                <TabsTrigger value="closed" className="text-right">مغلقة</TabsTrigger>
-                <TabsTrigger value="cancelled" className="text-right">ملغاة</TabsTrigger>
-                <TabsTrigger value="history" className="text-right">سجل الاستيراد</TabsTrigger>
-              </TabsList>
-              <AgreementTabPanel
-                value="agreements"
-                viewMode={viewMode}
-                agreements={agreements}
-                isLoading={isLoading}
-                onDeleteAgreement={deleteAgreement}
-                loadingText="جاري تحميل العقود..."
-              />
-              <AgreementTabPanel
-                value="active"
-                viewMode={viewMode}
-                agreements={agreements}
-                isLoading={isLoading}
-                onDeleteAgreement={deleteAgreement}
-                loadingText=""
-              />
-              <AgreementTabPanel
-                value="closed"
-                viewMode={viewMode}
-                agreements={agreements}
-                isLoading={isLoading}
-                onDeleteAgreement={deleteAgreement}
-                loadingText=""
-              />
-              <AgreementTabPanel
-                value="cancelled"
-                viewMode={viewMode}
-                agreements={agreements}
-                isLoading={isLoading}
-                onDeleteAgreement={deleteAgreement}
-                loadingText=""
-              />
-              <TabsContent value="history" className="m-0">
-                <div className="p-4" dir="rtl">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center text-right justify-end">
-                    <Database className="h-5 w-5 ml-2" />
-                    سجل الاستيراد
-                  </h2>
-                  <ImportHistoryList items={[]} isLoading={false} />
-                </div>
-              </TabsContent>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full" dir="rtl">
+              <div className="border-b overflow-x-auto">
+                <TabsList className="justify-start inline-flex w-full sm:w-auto">
+                  <TabsTrigger value="agreements" className="text-xs sm:text-sm whitespace-nowrap">جميع العقود</TabsTrigger>
+                  <TabsTrigger value="active" className="text-xs sm:text-sm whitespace-nowrap">نشطة</TabsTrigger>
+                  <TabsTrigger value="closed" className="text-xs sm:text-sm whitespace-nowrap">مغلقة</TabsTrigger>
+                  <TabsTrigger value="cancelled" className="text-xs sm:text-sm whitespace-nowrap">ملغاة</TabsTrigger>
+                  <TabsTrigger value="history" className="text-xs sm:text-sm whitespace-nowrap">سجل الاستيراد</TabsTrigger>
+                </TabsList>
+              </div>
+              
+              <div className="p-3 sm:p-4">
+                <AgreementTabPanel
+                  value="agreements"
+                  viewMode={viewMode}
+                  agreements={agreements}
+                  isLoading={isLoading}
+                  onDeleteAgreement={deleteAgreement}
+                  loadingText="جاري تحميل العقود..."
+                />
+                <AgreementTabPanel
+                  value="active"
+                  viewMode={viewMode}
+                  agreements={agreements}
+                  isLoading={isLoading}
+                  onDeleteAgreement={deleteAgreement}
+                  loadingText=""
+                />
+                <AgreementTabPanel
+                  value="closed"
+                  viewMode={viewMode}
+                  agreements={agreements}
+                  isLoading={isLoading}
+                  onDeleteAgreement={deleteAgreement}
+                  loadingText=""
+                />
+                <AgreementTabPanel
+                  value="cancelled"
+                  viewMode={viewMode}
+                  agreements={agreements}
+                  isLoading={isLoading}
+                  onDeleteAgreement={deleteAgreement}
+                  loadingText=""
+                />
+                <TabsContent value="history" className="m-0">
+                  <div dir="rtl">
+                    <h2 className="text-base sm:text-lg font-semibold mb-4 flex items-center text-right justify-end">
+                      <Database className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />
+                      سجل الاستيراد
+                    </h2>
+                    <ImportHistoryList items={[]} isLoading={false} />
+                  </div>
+                </TabsContent>
+              </div>
             </Tabs>
           </CardContent>
         </Card>
