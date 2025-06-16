@@ -115,17 +115,19 @@ export function DocumentsCard({
         {/* Traffic Fines */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-right flex-row-reverse">
+            <CardTitle className="flex items-center gap-2 justify-end text-right flex-row-reverse">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
               المخالفات المرورية
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <AgreementTrafficFines 
-              agreementId={agreement.id}
-              startDate={startDate}
-              endDate={endDate}
-            />
+          <CardContent className="text-right">
+            <div style={{ textAlign: 'right', direction: 'rtl' }}>
+              <AgreementTrafficFines 
+                agreementId={agreement.id}
+                startDate={startDate}
+                endDate={endDate}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

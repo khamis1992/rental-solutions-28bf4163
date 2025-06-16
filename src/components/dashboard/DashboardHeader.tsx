@@ -63,13 +63,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </div>
           <div className="text-right">
             <h2 
-              className="text-2xl font-bold tracking-tight text-right"
+              className="text-2xl font-bold tracking-tight"
               style={{ textAlign: 'right', direction: 'rtl' }}
             >
               تفاصيل العقد
             </h2>
             <p 
-              className="text-muted-foreground mt-1 text-right"
+              className="text-muted-foreground mt-1"
               style={{ textAlign: 'right', direction: 'rtl' }}
             >
               عرض وإدارة تفاصيل عقد الإيجار
