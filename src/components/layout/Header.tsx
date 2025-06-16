@@ -36,11 +36,8 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
         )}
       </div>
 
-      {/* Rental Solutions branding moved to the right with icon before text */}
+      {/* Rental Solutions branding with RS icon first, then text */}
       <div className="flex items-center gap-2" dir="ltr">
-        <div className="h-10 w-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-semibold text-xl hidden md:flex">
-          KA
-        </div>
         <div className="h-10 w-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-semibold text-xl hidden md:flex">
           RS
         </div>
