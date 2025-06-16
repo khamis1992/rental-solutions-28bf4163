@@ -187,12 +187,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             className="flex items-center gap-3 w-full justify-start"
             dir="ltr"
           >
-            <h2 className="text-lg font-semibold text-white text-left">
-              Rental Solutions
-            </h2>
             <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg text-white font-bold text-sm">
               RS
             </div>
+            <h2 className="text-lg font-semibold text-white text-left">
+              Rental Solutions
+            </h2>
           </div>
         ) : (
           <div className="hidden md:block">
@@ -203,7 +203,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         )}
       </div>
 
-      
       <div className={cn(
         "flex-1 overflow-auto py-4 px-4",
         expanded ? "" : "md:px-2"

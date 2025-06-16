@@ -791,51 +791,51 @@ const LegalManagementDashboard = () => {
             </TabsContent>
             
             <TabsContent value="traditional-templates" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>إدارة القوالب القانونية</CardTitle>
-              <CardDescription>إنشاء وإدارة قوالب الوثائق القانونية</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {legalTemplates.map((template) => (
-                  <Card key={template.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-lg">{template.name}</CardTitle>
-                          <Badge variant="outline" className="mt-1">
-                            {template.type === 'demand_letter' && 'خطاب مطالبة'}
-                            {template.type === 'court_notice' && 'إشعار محكمة'}
-                            {template.type === 'settlement_offer' && 'عرض تسوية'}
-                            {template.type === 'payment_reminder' && 'تذكير دفع'}
-                            {template.type === 'legal_notice' && 'إنذار قانوني'}
-                          </Badge>
-                        </div>
-                        <Badge variant={template.is_active ? 'default' : 'secondary'}>
-                          {template.is_active ? 'نشط' : 'غير نشط'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        المتغيرات: {template.variables.join(', ')}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          <Eye className="w-4 h-4 mr-1" />
-                          عرض
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          تعديل
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>إدارة القوالب القانونية</CardTitle>
+                  <CardDescription>إنشاء وإدارة قوالب الوثائق القانونية</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {legalTemplates.map((template) => (
+                      <Card key={template.id}>
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle className="text-lg">{template.name}</CardTitle>
+                              <Badge variant="outline" className="mt-1">
+                                {template.type === 'demand_letter' && 'خطاب مطالبة'}
+                                {template.type === 'court_notice' && 'إشعار محكمة'}
+                                {template.type === 'settlement_offer' && 'عرض تسوية'}
+                                {template.type === 'payment_reminder' && 'تذكير دفع'}
+                                {template.type === 'legal_notice' && 'إنذار قانوني'}
+                              </Badge>
+                            </div>
+                            <Badge variant={template.is_active ? 'default' : 'secondary'}>
+                              {template.is_active ? 'نشط' : 'غير نشط'}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            المتغيرات: {template.variables.join(', ')}
+                          </p>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline">
+                              <Eye className="w-4 h-4 mr-1" />
+                              عرض
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              تعديل
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </TabsContent>

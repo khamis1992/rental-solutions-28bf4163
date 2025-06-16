@@ -540,41 +540,41 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           {(customer as any).agreements && (customer as any).agreements.length > 0 ? (
             <div className="bg-white rounded-md shadow overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
               <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
                       <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
                         {language === 'ar' ? 'رقم العقد' : 'Agreement Number'}
-                    </th>
+                      </th>
                       <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
                         {language === 'ar' ? 'تاريخ البدء' : 'Start Date'}
-                    </th>
+                      </th>
                       <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
                         {language === 'ar' ? 'تاريخ الانتهاء' : 'End Date'}
-                    </th>
+                      </th>
                       <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
                         {language === 'ar' ? 'الحالة' : 'Status'}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
                     {(customer as any).agreements.map((agreement: any) => (
-                    <tr key={agreement.id}>
+                      <tr key={agreement.id}>
                         <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <div className="text-sm font-medium text-gray-900">{agreement.agreement_number}</div>
-                      </td>
+                          <div className="text-sm font-medium text-gray-900">{agreement.agreement_number}</div>
+                        </td>
                         <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <div className="text-sm text-gray-500">{formatDate(agreement.start_date)}</div>
-                      </td>
+                          <div className="text-sm text-gray-500">{formatDate(agreement.start_date)}</div>
+                        </td>
                         <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <div className="text-sm text-gray-500">{formatDate(agreement.end_date)}</div>
-                      </td>
+                          <div className="text-sm text-gray-500">{formatDate(agreement.end_date)}</div>
+                        </td>
                         <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <Badge className={
+                          <Badge className={
                             agreement.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' : 
                             agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
                             'bg-gray-100 text-gray-800 border-gray-200'
-                        }>
+                          }>
                             {language === 'ar' ? (
                               agreement.status === 'active' ? 'نشط' : 
                               agreement.status === 'pending' ? 'قيد الانتظار' : 
@@ -586,12 +586,12 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                               agreement.status === 'completed' ? 'Completed' :
                               agreement.status === 'cancelled' ? 'Cancelled' : 'Unknown'
                             )}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           ) : (

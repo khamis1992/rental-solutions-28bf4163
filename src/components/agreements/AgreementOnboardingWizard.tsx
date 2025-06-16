@@ -32,19 +32,19 @@ export function AgreementOnboardingWizard({
   const [currentStep, setCurrentStep] = useState(1);
   const [showAddCustomerDialog, setShowAddCustomerDialog] = useState(false);
   const [vehicles, setVehicles] = useState([]);
-
+  
   const [formData, setFormData] = useState({
-        agreement_number: '',
-        agreement_type: 'short_term',
-        status: 'draft',
-        customer_id: '',
-        vehicle_id: '',
+    agreement_number: '',
+    agreement_type: 'short_term',
+    status: 'draft',
+    customer_id: '',
+    vehicle_id: '',
     start_date: new Date().toISOString().split('T')[0],
     end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        total_amount: 0,
-        deposit_amount: 0,
-        rent_amount: 0,
-        daily_late_fee: 120,
+    total_amount: 0,
+    deposit_amount: 0,
+    rent_amount: 0,
+    daily_late_fee: 120,
     payment_day: 1,
     notes: ''
   });
@@ -347,17 +347,17 @@ export function AgreementOnboardingWizard({
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onClose}>
+      <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+          <DialogHeader>
             <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'} dir={language === 'ar' ? 'rtl' : 'ltr'}>
               {language === 'ar' ? 'إنشاء اتفاقية جديدة' : 'Create New Agreement'}
             </DialogTitle>
             <DialogDescription className={language === 'ar' ? 'text-right' : 'text-left'} dir={language === 'ar' ? 'rtl' : 'ltr'}>
               {language === 'ar' ? `الخطوة ${currentStep} من 3` : `Step ${currentStep} of 3`}
-          </DialogDescription>
-        </DialogHeader>
-        
+            </DialogDescription>
+          </DialogHeader>
+          
           {/* Step Indicator */}
           <div className={`flex items-center justify-center mb-6 ${language === 'ar' ? 'flex-row-reverse' : 'flex-row'}`}>
             {[1, 2, 3].map((step) => (
@@ -382,8 +382,8 @@ export function AgreementOnboardingWizard({
           
           <div className="py-4">
             {renderStepContent()}
-        </div>
-        
+          </div>
+          
           <DialogFooter className={`gap-2 sm:gap-0 ${language === 'ar' ? 'flex-row-reverse' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
             <Button variant="outline" onClick={onClose} disabled={isProcessing}>
               {language === 'ar' ? 'إلغاء' : 'Cancel'}
@@ -398,22 +398,22 @@ export function AgreementOnboardingWizard({
             {currentStep < 3 ? (
               <Button onClick={handleNext} disabled={isProcessing}>
                 {language === 'ar' ? 'التالي' : 'Next'}
-          </Button>
+              </Button>
             ) : (
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isProcessing}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isProcessing}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
                 {isProcessing 
                   ? (language === 'ar' ? 'جاري المعالجة...' : 'Processing...') 
                   : (language === 'ar' ? 'إنشاء اتفاقية' : 'Create Agreement')
                 }
-          </Button>
+              </Button>
             )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Customer Dialog */}
       <AddCustomerDialog
