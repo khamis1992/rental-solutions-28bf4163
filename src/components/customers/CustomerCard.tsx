@@ -55,16 +55,18 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
     >
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-4 space-x-reverse">
-            <Avatar className="h-12 w-12 border-2 border-primary/10">
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                {getInitials(customer.full_name || 'غير معروف')}
-              </AvatarFallback>
-            </Avatar>
+          <div className="flex items-center space-x-3 space-x-reverse">
             <div className="space-y-1">
-              <h3 className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors">
-                {customer.full_name || 'غير معروف'}
-              </h3>
+              <div className="flex items-center gap-3">
+                <h3 className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors">
+                  {customer.full_name || 'غير معروف'}
+                </h3>
+                <Avatar className="h-10 w-10 border-2 border-primary/10">
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                    {getInitials(customer.full_name || 'غير معروف')}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
               <CustomerStatusBadge status={customer.status} size="sm" />
             </div>
           </div>
