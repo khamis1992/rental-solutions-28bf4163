@@ -187,12 +187,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             className="flex items-center gap-3 w-full justify-start"
             dir="ltr"
           >
-            <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg text-white font-bold text-sm">
-              RS
-            </div>
             <h2 className="text-lg font-semibold text-white text-left">
               Rental Solutions
             </h2>
+            <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg text-white font-bold text-sm">
+              RS
+            </div>
           </div>
         ) : (
           <div className="hidden md:block">
