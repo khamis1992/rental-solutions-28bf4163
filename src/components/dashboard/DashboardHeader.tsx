@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -22,47 +23,56 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   
   return (
     <div 
-      className={`flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`} 
+      className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6" 
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
-      <div className={`flex items-center gap-3 ${language === 'ar' ? 'flex-row-reverse justify-end md:justify-start' : ''}`}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          className={`${createRTLButtonClasses()} ${language === 'ar' ? 'flex-row-reverse' : ''}`}
-        >
-          <RefreshCw className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'} ${isRefreshing ? 'animate-spin' : ''}`} />
-          تحديث
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate('/system-settings')}
-          className={`${createRTLButtonClasses()} ${language === 'ar' ? 'flex-row-reverse' : ''}`}
-        >
-          <Settings className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-          الإعدادات
-        </Button>
+      {/* Left side - Action buttons and system date */}
+      <div className={`flex flex-col gap-2 ${language === 'ar' ? 'order-2 md:order-1' : 'order-1'}`}>
+        <div className={`flex items-center gap-3 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className={`${createRTLButtonClasses()} ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+          >
+            <RefreshCw className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'} ${isRefreshing ? 'animate-spin' : ''}`} />
+            تحديث
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/system-settings')}
+            className={`${createRTLButtonClasses()} ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+          >
+            <Settings className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+            الإعدادات
+          </Button>
+        </div>
+        {/* System date stays in current position */}
+        <p className="text-sm text-muted-foreground">
+          System Date: {currentDate}
+        </p>
       </div>
-      <div className={`${language === 'ar' ? 'text-right w-full md:w-auto' : 'text-left'}`}>
-        <div className={`flex items-center ${language === 'ar' ? 'justify-end md:justify-start' : ''}`}>
+
+      {/* Right side - Arabic title and description */}
+      <div className={`${language === 'ar' ? 'order-1 md:order-2 w-full md:w-auto' : 'order-2'}`}>
+        <div className={`flex items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
           <div className={`p-2 rounded-md bg-primary/10 text-primary ${language === 'ar' ? 'ml-3' : 'mr-3'}`}>
             <LayoutDashboard className="h-5 w-5" />
           </div>
-          <div className={`${language === 'ar' ? 'text-right' : 'text-left'}`}>
+          <div className="text-right">
             <h2 
-              className={`text-2xl font-bold tracking-tight ${language === 'ar' ? 'text-right arabic-title' : ''}`}
-              style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+              className="text-2xl font-bold tracking-tight text-right"
+              style={{ textAlign: 'right', direction: 'rtl' }}
             >
-              لوحة التحكم
+              تفاصيل العقد
             </h2>
             <p 
-              className={`text-muted-foreground mt-1 ${language === 'ar' ? 'text-right arabic-subtitle' : ''}`}
-              style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
+              className="text-muted-foreground mt-1 text-right"
+              style={{ textAlign: 'right', direction: 'rtl' }}
             >
-              نظرة شاملة على عمليات التأجير • {currentDate}
+              عرض وإدارة تفاصيل عقد الإيجار
             </p>
           </div>
         </div>
