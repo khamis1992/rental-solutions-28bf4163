@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { useMaintenance } from '@/hooks/use-maintenance';
+import { ExtendedVehicle } from '@/types/vehicle';
 import PageHeader from '@/components/ui/PageHeader';
 import { 
   Calendar as CalendarIcon, 
@@ -30,13 +31,7 @@ import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
-interface Vehicle {
-  id: string;
-  make: string;
-  model: string;
-  license_plate: string;
-  status: string;
-}
+// Using ExtendedVehicle from types/vehicle.ts instead of local interface
 
 interface MaintenanceScheduleItem {
   id: string;
@@ -62,7 +57,7 @@ const MaintenanceSchedule = () => {
   const { getAllVehicles } = useVehicleService();
   const { getAllRecords, createMaintenanceRecord } = useMaintenance();
   
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<ExtendedVehicle[]>([]);
   const [scheduleItems, setScheduleItems] = useState<MaintenanceScheduleItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<MaintenanceScheduleItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,10 +91,11 @@ const MaintenanceSchedule = () => {
         setVehicles(vehicleData);
         
         // Transform maintenance records to schedule items
+        console.log('Raw maintenance data:', maintenanceData);
         const scheduleData = maintenanceData
-          .filter((record: any) => record.status !== 'completed')
           .map((record: any) => {
-            const vehicle = vehicleData.find((v: Vehicle) => v.id === record.vehicle_id);
+            const vehicle = vehicleData.find((v: any) => v.id === record.vehicle_id);
+            console.log('Processing record:', record, 'Vehicle:', vehicle);
             return {
               id: record.id,
               vehicle_id: record.vehicle_id,
@@ -116,6 +112,8 @@ const MaintenanceSchedule = () => {
               notes: record.notes || ''
             };
           });
+          // Temporarily show all records to debug
+          // .filter((item: any) => item.status !== 'completed');
         
         setScheduleItems(scheduleData);
         setFilteredItems(scheduleData);
@@ -128,7 +126,7 @@ const MaintenanceSchedule = () => {
     };
     
     fetchData();
-  }, [getAllVehicles, getAllRecords, language]);
+  }, [language]);
 
   // Apply filters
   useEffect(() => {
@@ -169,7 +167,9 @@ const MaintenanceSchedule = () => {
         notes: formData.notes
       };
       
-      await createMaintenanceRecord(newRecord as any);
+      console.log('Creating maintenance record:', newRecord);
+      const result = await createMaintenanceRecord(newRecord as any);
+      console.log('Create result:', result);
       
       toast.success(language === 'ar' ? 'تم إضافة جدولة الصيانة بنجاح' : 'Maintenance schedule added successfully');
       setShowAddForm(false);
@@ -186,8 +186,47 @@ const MaintenanceSchedule = () => {
         notes: ''
       });
       
-      // Refresh data
-      window.location.reload();
+      // Refresh data by calling fetchData directly instead of reloading the page
+      const fetchUpdatedData = async () => {
+        try {
+          const [vehicleData, maintenanceData] = await Promise.all([
+            getAllVehicles(),
+            getAllRecords()
+          ]);
+          
+          setVehicles(vehicleData);
+          
+          // Transform maintenance records to schedule items
+          const scheduleData = maintenanceData
+            .map((record: any) => {
+              const vehicle = vehicleData.find((v: any) => v.id === record.vehicle_id);
+              return {
+                id: record.id,
+                vehicle_id: record.vehicle_id,
+                vehicle_make: vehicle?.make || '',
+                vehicle_model: vehicle?.model || '',
+                license_plate: vehicle?.license_plate || '',
+                maintenance_type: record.service_type || record.maintenance_type || '',
+                scheduled_date: record.scheduled_date || record.date_scheduled || '',
+                description: record.description || '',
+                status: (record.status as StatusType) || 'pending',
+                priority: (record.priority as PriorityType) || 'medium',
+                estimated_cost: record.cost || 0,
+                service_provider: record.service_provider || '',
+                notes: record.notes || ''
+              };
+            });
+            // Temporarily show all records to debug
+            // .filter((item: any) => item.status !== 'completed');
+          
+          setScheduleItems(scheduleData);
+          setFilteredItems(scheduleData);
+        } catch (error) {
+          console.error('Error refreshing data:', error);
+        }
+      };
+      
+      await fetchUpdatedData();
     } catch (error) {
       console.error('Error adding maintenance schedule:', error);
       toast.error(language === 'ar' ? 'فشل في إضافة جدولة الصيانة' : 'Failed to add maintenance schedule');
@@ -335,7 +374,7 @@ const MaintenanceSchedule = () => {
                     <SelectValue placeholder={language === 'ar' ? 'اختر المركبة' : 'Select Vehicle'} />
                   </SelectTrigger>
                   <SelectContent align={language === 'ar' ? 'start' : 'end'}>
-                    {vehicles.map((vehicle) => (
+                    {(vehicles as any[]).map((vehicle) => (
                       <SelectItem key={vehicle.id} value={vehicle.id}>
                         {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
                       </SelectItem>

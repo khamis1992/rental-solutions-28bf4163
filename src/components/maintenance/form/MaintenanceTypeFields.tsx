@@ -16,7 +16,7 @@ export const MaintenanceTypeFields: React.FC<MaintenanceTypeFieldsProps> = ({
 }) => {
   // Safely filter categories
   const filteredCategories = typeGuards.isArray(categories) 
-    ? categories.filter(cat => cat?.is_active !== false)
+    ? categories.filter((cat: any) => cat?.is_active !== false)
     : [];
 
   // Arabic translations for maintenance types
@@ -72,16 +72,17 @@ export const MaintenanceTypeFields: React.FC<MaintenanceTypeFieldsProps> = ({
             </FormLabel>
             <FormControl>
               <Select
-                onValueChange={(value) =>
-                  field.onChange(value === 'none' ? '' : value)
-                }
-                value={field.value}
+                onValueChange={(value) => field.onChange(value)}
+                value={field.value || 'none'}
                 dir="rtl"
               >
                 <SelectTrigger className="text-right">
                   <SelectValue placeholder="اختر النوع" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none" className="text-right">
+                    اختر النوع
+                  </SelectItem>
                   {Object.values(MaintenanceType).map((type) => (
                     <SelectItem key={type} value={type} className="text-right">
                       {getMaintenanceTypeLabel(type)}
@@ -105,16 +106,17 @@ export const MaintenanceTypeFields: React.FC<MaintenanceTypeFieldsProps> = ({
             </FormLabel>
             <FormControl>
               <Select
-                onValueChange={(value) =>
-                  field.onChange(value === 'none' ? '' : value)
-                }
-                value={field.value}
+                onValueChange={(value) => field.onChange(value)}
+                value={field.value || 'none'}
                 dir="rtl"
               >
                 <SelectTrigger className="text-right">
                   <SelectValue placeholder="اختر الحالة" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none" className="text-right">
+                    اختر الحالة
+                  </SelectItem>
                   {Object.values(MaintenanceStatus).map((status) => (
                     <SelectItem key={status} value={status} className="text-right">
                       {getMaintenanceStatusLabel(status)}
@@ -138,10 +140,8 @@ export const MaintenanceTypeFields: React.FC<MaintenanceTypeFieldsProps> = ({
             </FormLabel>
             <FormControl>
               <Select
-                onValueChange={(value) =>
-                  field.onChange(value === 'none' ? '' : value)
-                }
-                value={field.value}
+                onValueChange={(value) => field.onChange(value)}
+                value={field.value || 'none'}
                 dir="rtl"
               >
                 <SelectTrigger className="text-right">
@@ -151,7 +151,7 @@ export const MaintenanceTypeFields: React.FC<MaintenanceTypeFieldsProps> = ({
                   <SelectItem value="none" className="text-right">
                     بلا
                   </SelectItem>
-                  {filteredCategories.map(cat => (
+                  {filteredCategories.map((cat: any) => (
                     <SelectItem key={cat.id} value={cat.id} className="text-right">
                       {cat.name}
                     </SelectItem>

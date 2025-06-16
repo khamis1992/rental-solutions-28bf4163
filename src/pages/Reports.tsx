@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,7 +30,20 @@ import { FileText, Calendar, AlertCircle } from 'lucide-react';
 const Reports = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedTab, setSelectedTab] = useState('fleet');
+  
+  // Set the initial tab based on the URL path
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/reports/financial') {
+      setSelectedTab('financial');
+    } else if (path === '/reports/operational') {
+      setSelectedTab('fleet'); // Operational reports can map to fleet or another tab
+    } else {
+      setSelectedTab('fleet');
+    }
+  }, [location.pathname]);
   const { reportData } = useFleetReport();
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
@@ -38,7 +51,7 @@ const Reports = () => {
   const { trafficFines } = useTrafficFines();
   const vehiclesHook = useVehicles();
   const { data: vehicles = [] } = vehiclesHook.useList();
-  const [maintenanceData, setMaintenanceData] = useState([]);
+  const [maintenanceData, setMaintenanceData] = useState<any[]>([]);
   
   useEffect(() => {
     const fetchMaintenance = async () => {

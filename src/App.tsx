@@ -63,6 +63,7 @@ const EditAgreement = lazy(() => import("./pages/EditAgreement"));
 // Maintenance Management
 const Maintenance = lazy(() => import("./pages/Maintenance"));
 const MaintenanceHistory = lazy(() => import("./pages/MaintenanceHistory"));
+const MaintenanceSchedule = lazy(() => import("./pages/MaintenanceSchedule"));
 const AddMaintenance = lazy(() => import("./pages/AddMaintenance"));
 const EditMaintenance = lazy(() => import("./pages/EditMaintenance"));
 const MaintenanceDetailPage = lazy(() => import("./pages/MaintenanceDetailPage"));
@@ -81,6 +82,11 @@ const LegalActivityPage = lazy(() => import("./pages/LegalActivityPage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const TrafficFines = lazy(() => import("./pages/TrafficFines"));
 const Financials = lazy(() => import("./pages/Financials"));
+const FinancialOverview = lazy(() => import("./pages/FinancialOverview"));
+const FinancialTransactionsPage = lazy(() => import("./pages/FinancialTransactionsPage"));
+const FinancialInstallments = lazy(() => import("./pages/FinancialInstallments"));
+const InstallmentAnalytics = lazy(() => import("./pages/InstallmentAnalytics"));
+const CollectionReports = lazy(() => import("./pages/CollectionReports"));
 const Reports = lazy(() => import("./pages/Reports"));
 const ScheduledReports = lazy(() => import("./pages/ScheduledReports"));
 const ReportBuilder = lazy(() => import("./pages/ReportBuilder"));
@@ -190,6 +196,7 @@ function App() {
                                   <Route path="/maintenance/:id" element={withErrorBoundary(MaintenanceDetailPage)} />
                                   <Route path="/maintenance/edit/:id" element={withErrorBoundary(EditMaintenance)} />
                                   <Route path="/maintenance/history" element={withErrorBoundary(MaintenanceHistory)} />
+                                  <Route path="/maintenance/schedule" element={withErrorBoundary(MaintenanceSchedule)} />
                                   
                                   {/* Legal Management */}
                                   <Route path="/legal" element={withErrorBoundary(Legal)} />
@@ -204,7 +211,14 @@ function App() {
                                   <Route path="/activity" element={withErrorBoundary(ActivityPage)} />
                                   <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
                                   <Route path="/financials" element={withErrorBoundary(Financials)} />
+                                  <Route path="/financials/overview" element={withErrorBoundary(FinancialOverview)} />
+                                  <Route path="/financials/transactions" element={withErrorBoundary(FinancialTransactionsPage)} />
+                                  <Route path="/financials/installments" element={withErrorBoundary(FinancialInstallments)} />
+                                  <Route path="/financials/analytics" element={withErrorBoundary(InstallmentAnalytics)} />
+                                  <Route path="/financials/collection-reports" element={withErrorBoundary(CollectionReports)} />
                                   <Route path="/reports" element={withErrorBoundary(Reports)} />
+                                  <Route path="/reports/financial" element={withErrorBoundary(Reports)} />
+                                  <Route path="/reports/operational" element={withErrorBoundary(Reports)} />
                                   <Route path="/reports/scheduled" element={withErrorBoundary(ScheduledReports)} />
                                   <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
                                   <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />

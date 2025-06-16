@@ -168,6 +168,63 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     }
   });
 
+  // Calculate derived values before early returns
+  const activeAgreements = customer ? (customer as any).agreements?.filter(
+    (agreement: any) => agreement.status === 'active'
+  ).length || 0 : 0;
+
+  const totalAgreements = customer ? (customer as any).agreements?.length || 0 : 0;
+
+  // Mock user role check - you can replace this with actual role logic
+  const getUserRole = () => {
+    // This should come from your auth context or user profile
+    // For now, returning 'admin' as default - replace with actual role logic
+    return 'admin'; // possible values: 'admin', 'manager', 'staff', 'viewer'
+  };
+
+  const userRole = getUserRole();
+
+  // Define tab visibility based on user roles
+  const getVisibleTabs = () => {
+    const allTabs = [
+      {
+        value: 'profile',
+        label: language === 'ar' ? 'الملف الشخصي' : 'Profile',
+        roles: ['admin', 'manager', 'staff', 'viewer'] // Everyone can see profile
+      },
+      {
+        value: 'agreements',
+        label: language === 'ar' ? 'العقود' : 'Agreements',
+        roles: ['admin', 'manager', 'staff'] // Viewers cannot see agreements
+      },
+      {
+        value: 'legal',
+        label: language === 'ar' ? 'الالتزامات القانونية' : 'Legal Obligations',
+        roles: ['admin', 'manager'] // Only admin and managers can see legal
+      },
+      {
+        value: 'fines',
+        label: language === 'ar' ? 'المخالفات المرورية' : 'Traffic Fines',
+        roles: ['admin', 'manager', 'staff'] // Viewers cannot see fines
+      }
+    ];
+
+    return allTabs.filter(tab => tab.roles.includes(userRole));
+  };
+
+  const visibleTabs = getVisibleTabs();
+
+  // Ensure the default active tab is available to the user
+  const defaultTab = visibleTabs.length > 0 ? visibleTabs[0].value : 'profile';
+  
+  // Update activeTab if current tab is not visible to user - MOVED BEFORE EARLY RETURNS
+  useEffect(() => {
+    const isActiveTabVisible = visibleTabs.some(tab => tab.value === activeTab);
+    if (!isActiveTabVisible) {
+      setActiveTab(defaultTab);
+    }
+  }, [activeTab, visibleTabs, defaultTab]);
+
   const handleUpdateCustomer = async (data: any) => {
     if (!customerId) return;
     updateMutation.mutate({ id: customerId, data });
@@ -233,65 +290,9 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     );
   }
 
-  // Count active agreements
-  const activeAgreements = (customer as any).agreements?.filter(
-    (agreement: any) => agreement.status === 'active'
-  ).length || 0;
 
-  // Get total agreements
-  const totalAgreements = (customer as any).agreements?.length || 0;
 
-  // Mock user role check - you can replace this with actual role logic
-  const getUserRole = () => {
-    // This should come from your auth context or user profile
-    // For now, returning 'admin' as default - replace with actual role logic
-    return 'admin'; // possible values: 'admin', 'manager', 'staff', 'viewer'
-  };
-
-  const userRole = getUserRole();
-
-  // Define tab visibility based on user roles
-  const getVisibleTabs = () => {
-    const allTabs = [
-      {
-        value: 'profile',
-        label: language === 'ar' ? 'الملف الشخصي' : 'Profile',
-        roles: ['admin', 'manager', 'staff', 'viewer'] // Everyone can see profile
-      },
-      {
-        value: 'agreements',
-        label: language === 'ar' ? 'العقود' : 'Agreements',
-        roles: ['admin', 'manager', 'staff'] // Viewers cannot see agreements
-      },
-      {
-        value: 'legal',
-        label: language === 'ar' ? 'الالتزامات القانونية' : 'Legal Obligations',
-        roles: ['admin', 'manager'] // Only admin and managers can see legal
-      },
-      {
-        value: 'fines',
-        label: language === 'ar' ? 'المخالفات المرورية' : 'Traffic Fines',
-        roles: ['admin', 'manager', 'staff'] // Viewers cannot see fines
-      }
-    ];
-
-    return allTabs.filter(tab => tab.roles.includes(userRole));
-  };
-
-  const visibleTabs = getVisibleTabs();
-
-  // Ensure the default active tab is available to the user
-  const defaultTab = visibleTabs.length > 0 ? visibleTabs[0].value : 'profile';
-  
-  // Update activeTab if current tab is not visible to user
-  useEffect(() => {
-    const isActiveTabVisible = visibleTabs.some(tab => tab.value === activeTab);
-    if (!isActiveTabVisible) {
-      setActiveTab(defaultTab);
-    }
-  }, [activeTab, visibleTabs, defaultTab]);
-
-  console.log("CustomerDetail: Rendering customer detail view for:", customer.full_name);
+  console.log("CustomerDetail: Rendering customer detail view for:", customer?.full_name || 'unknown customer');
   
   return (
     <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>

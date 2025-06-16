@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getSystemServicesStatus } from './service-availability';
 import { registerPaymentEventHandlers } from '@/events/payment-handlers';
+import { installmentBackgroundService } from '@/services/InstallmentBackgroundService';
+import { cacheService } from '@/services/CacheService';
 
 interface SystemStatus {
   agreementImport?: boolean;
@@ -60,6 +62,25 @@ export const initializeApp = async () => {
     // Set up database tables
     await setupInvoiceTemplatesTable();
 
+    // Initialize cache service
+    console.log("Initializing cache service...");
+    // Cache service is already initialized, just log the startup
+    console.log("Cache service initialized successfully");
+
+    // Start background services
+    console.log("Starting background services...");
+    try {
+      // Start scheduled tasks for installment processing
+      installmentBackgroundService.startScheduledTasks();
+      console.log("Background services started successfully");
+    } catch (error) {
+      console.error("Failed to start background services:", error);
+      toast.error("Background services failed to start. Some automated features may not work.", {
+        duration: 5000,
+        id: "background-services-error",
+      });
+    }
+
     // Check environment configuration
     const configIssues = checkEnvironmentConfig();
     if (configIssues.length > 0) {
@@ -77,6 +98,10 @@ export const initializeApp = async () => {
 
         // Log overall system status
         console.log("System services status:", systemStatus);
+        
+        // Log cache statistics
+        const cacheStats = cacheService.getStats();
+        console.log("Cache service stats:", cacheStats);
       } catch (error) {
         console.error("Failed to check system services:", error);
         toast.error("System service check failed. Some features may be limited.", {

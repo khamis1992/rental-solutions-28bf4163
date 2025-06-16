@@ -16,7 +16,10 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
-  Car
+  Car,
+  FileSpreadsheet,
+  TrendingUp,
+  Receipt
 } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -277,6 +280,27 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                   icon={<DollarSign className="h-4 w-4 flex-shrink-0" />}
                   label="المعاملات"
                   isActive={isActive('/financials/transactions')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/financials/installments"
+                  icon={<FileSpreadsheet className="h-4 w-4 flex-shrink-0" />}
+                  label="الاقساط"
+                  isActive={isActive('/financials/installments')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/financials/analytics"
+                  icon={<TrendingUp className="h-4 w-4 flex-shrink-0" />}
+                  label="تحليلات الأقساط"
+                  isActive={isActive('/financials/analytics')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/financials/collection-reports"
+                  icon={<Receipt className="h-4 w-4 flex-shrink-0" />}
+                  label="تقارير التحصيل"
+                  isActive={isActive('/financials/collection-reports')}
                   onClick={handleNavClick}
                 />
               </NavGroup>

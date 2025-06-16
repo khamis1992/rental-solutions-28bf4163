@@ -1,13 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { CarInstallmentContract, CarInstallmentPayment, PaymentStatusType } from '@/types/car-installment';
 import { BaseService } from './base/BaseService';
+import { Result } from '@/types/response.types';
 import { 
-  Result, 
-  ServiceError, 
   createServiceError, 
   createNotFoundError,
   ErrorContext
 } from '@/types/error.types';
+import { cacheService } from './CacheService';
 
 export interface CarInstallmentFilters {
   customerId?: string;
@@ -64,6 +64,12 @@ export class CarInstallmentService extends BaseService {
 
   async getContractById(id: string): Promise<Result<CarInstallmentContract>> {
     return this.safeExecute(async () => {
+      // Try to get from cache first
+      const cached = cacheService.getContractDetails(id);
+      if (cached) {
+        return cached;
+      }
+
       const { data, error } = await supabase
         .from('car_installment_contracts')
         .select('*')
@@ -78,8 +84,11 @@ export class CarInstallmentService extends BaseService {
       }
 
       if (!data) {
-        throw createNotFoundError('Contract', id);
+        throw createNotFoundError('Contract not found', { id });
       }
+
+      // Cache the result
+      cacheService.setContractDetails(id, data);
 
       return data;
     }, 'Failed to fetch contract');
@@ -121,8 +130,11 @@ export class CarInstallmentService extends BaseService {
       }
 
       if (!data) {
-        throw createNotFoundError('Contract', id);
+        throw createNotFoundError('Contract not found', { id });
       }
+
+      // Invalidate related caches
+      cacheService.invalidateContractCache(id);
 
       return data;
     }, 'Failed to update contract');
@@ -148,11 +160,17 @@ export class CarInstallmentService extends BaseService {
 
   async getPaymentsByContract(contractId: string): Promise<Result<CarInstallmentPayment[]>> {
     return this.safeExecute(async () => {
+      // Try to get from cache first
+      const cached = cacheService.getContractPayments(contractId);
+      if (cached) {
+        return cached;
+      }
+
       const { data, error } = await supabase
         .from('car_installment_payments')
         .select('*')
         .eq('contract_id', contractId)
-        .order('due_date', { ascending: true });
+        .order('payment_date', { ascending: true });
 
       if (error) {
         throw this.createServiceError(
@@ -161,7 +179,12 @@ export class CarInstallmentService extends BaseService {
         );
       }
 
-      return data as CarInstallmentPayment[];
+      const payments = data as CarInstallmentPayment[];
+      
+      // Cache the result
+      cacheService.setContractPayments(contractId, payments);
+
+      return payments;
     }, 'Failed to fetch payments');
   }
 
@@ -201,7 +224,12 @@ export class CarInstallmentService extends BaseService {
       }
 
       if (!data) {
-        throw createNotFoundError('Payment', id);
+        throw createNotFoundError('Payment not found', { id });
+      }
+
+      // Invalidate related caches
+      if (data.contract_id) {
+        cacheService.invalidateContractCache(data.contract_id);
       }
 
       return data;
@@ -224,6 +252,75 @@ export class CarInstallmentService extends BaseService {
 
       return true;
     }, 'Failed to delete payment');
+  }
+
+  async recalculateContractSummary(contractId: string): Promise<Result<CarInstallmentContract>> {
+    return this.safeExecute(async () => {
+      // Get all payments for this contract
+      const { data: payments, error: paymentsError } = await supabase
+        .from('car_installment_payments')
+        .select('amount, paid_amount, status')
+        .eq('contract_id', contractId);
+
+      if (paymentsError) {
+        throw this.createServiceError(
+          'Failed to fetch payments for recalculation',
+          'recalculateContractSummary'
+        );
+      }
+
+      // Get current contract
+      const { data: contract, error: contractError } = await supabase
+        .from('car_installment_contracts')
+        .select('*')
+        .eq('id', contractId)
+        .single();
+
+      if (contractError || !contract) {
+        throw this.createServiceError(
+          'Failed to fetch contract for recalculation',
+          'recalculateContractSummary'
+        );
+      }
+
+      // Calculate totals
+      const totalPaid = payments?.reduce((sum, payment) => {
+        return sum + (payment.paid_amount || 0);
+      }, 0) || 0;
+
+      const overduePayments = payments?.filter(payment => 
+        payment.status === 'overdue'
+      ).length || 0;
+
+      const paidInstallments = payments?.filter(payment => 
+        payment.status === 'paid'
+      ).length || 0;
+
+      // Update contract with recalculated values
+      const updatedData = {
+        amount_paid: totalPaid,
+        amount_pending: contract.total_contract_value - totalPaid,
+        remaining_installments: contract.total_installments - paidInstallments,
+        overdue_payments: overduePayments,
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: updatedContract, error: updateError } = await supabase
+        .from('car_installment_contracts')
+        .update(updatedData)
+        .eq('id', contractId)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw this.createServiceError(
+          'Failed to update contract summary',
+          'recalculateContractSummary'
+        );
+      }
+
+      return updatedContract;
+    }, 'Failed to recalculate contract summary');
   }
 }
 

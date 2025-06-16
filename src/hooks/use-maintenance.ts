@@ -84,7 +84,7 @@ export function useMaintenance() {
   const createMaintenanceRecord = async (record: MaintenanceRecord) => {
     setLoading(true);
     try {
-      const result = await maintenanceService.createMaintenance(record as any);
+      const result = await maintenanceService.createMaintenanceRecord(record as any);
       if (!result.success) throw result.error;
       await queryClient.invalidateQueries({ queryKey: ['maintenance'] });
       toast.success('Maintenance record created successfully');
@@ -103,7 +103,7 @@ export function useMaintenance() {
   const updateMaintenanceRecord = async (maintenanceId: string, updates: Partial<MaintenanceRecord>) => {
     setLoading(true);
     try {
-      const result = await maintenanceService.updateMaintenance(maintenanceId, updates as any);
+      const result = await maintenanceService.updateMaintenanceRecord(maintenanceId, updates as any);
       if (!result.success) throw result.error;
       await queryClient.invalidateQueries({ queryKey: ['maintenance'] });
       toast.success('Maintenance record updated successfully');

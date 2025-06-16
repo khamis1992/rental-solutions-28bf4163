@@ -13,13 +13,7 @@ import { formatDate, formatCurrency } from '@/lib/formatters';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import { Loader2 } from 'lucide-react';
-
-interface Vehicle {
-  id: string;
-  make: string;
-  model: string;
-  license_plate: string;
-}
+import { ExtendedVehicle } from '@/types/vehicle';
 
 const MaintenanceHistory = () => {
   const { language } = useLanguage();
@@ -28,14 +22,14 @@ const MaintenanceHistory = () => {
   
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<MaintenanceRecord[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<ExtendedVehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [vehicleFilter, setVehicleFilter] = useState('');
-  const [maintenanceTypeFilter, setMaintenanceTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [vehicleFilter, setVehicleFilter] = useState('all');
+  const [maintenanceTypeFilter, setMaintenanceTypeFilter] = useState('all');
 
   // Fetch data on component mount
   useEffect(() => {
@@ -77,17 +71,17 @@ const MaintenanceHistory = () => {
     }
 
     // Status filter
-    if (statusFilter) {
+    if (statusFilter && statusFilter !== 'all') {
       filtered = filtered.filter(record => record.status === statusFilter);
     }
 
     // Vehicle filter
-    if (vehicleFilter) {
+    if (vehicleFilter && vehicleFilter !== 'all') {
       filtered = filtered.filter(record => record.vehicle_id === vehicleFilter);
     }
 
     // Maintenance type filter
-    if (maintenanceTypeFilter) {
+    if (maintenanceTypeFilter && maintenanceTypeFilter !== 'all') {
       filtered = filtered.filter(record => 
         record.maintenance_type === maintenanceTypeFilter || 
         record.service_type === maintenanceTypeFilter
@@ -153,16 +147,16 @@ const MaintenanceHistory = () => {
   };
 
   const getVehicleDisplayName = (vehicleId: string) => {
-    const vehicle = vehicles.find((v: Vehicle) => v.id === vehicleId);
+    const vehicle = vehicles.find((v) => (v as any).id === vehicleId);
     if (!vehicle) return vehicleId;
-    return `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`;
+    return `${vehicle.make} ${vehicle.model} (${vehicle.license_plate || 'N/A'})`;
   };
 
   const clearFilters = () => {
     setSearchTerm('');
-    setStatusFilter('');
-    setVehicleFilter('');
-    setMaintenanceTypeFilter('');
+    setStatusFilter('all');
+    setVehicleFilter('all');
+    setMaintenanceTypeFilter('all');
   };
 
   const statusOptions = [
@@ -235,7 +229,7 @@ const MaintenanceHistory = () => {
                 <SelectValue placeholder={language === 'ar' ? 'تصفية بالحالة' : 'Filter by Status'} />
               </SelectTrigger>
               <SelectContent align={language === 'ar' ? 'start' : 'end'}>
-                <SelectItem value="">{language === 'ar' ? 'كل الحالات' : 'All Statuses'}</SelectItem>
+                <SelectItem value="all">{language === 'ar' ? 'كل الحالات' : 'All Statuses'}</SelectItem>
                 {statusOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -250,10 +244,10 @@ const MaintenanceHistory = () => {
                 <SelectValue placeholder={language === 'ar' ? 'تصفية بالمركبة' : 'Filter by Vehicle'} />
               </SelectTrigger>
               <SelectContent align={language === 'ar' ? 'start' : 'end'}>
-                <SelectItem value="">{language === 'ar' ? 'كل المركبات' : 'All Vehicles'}</SelectItem>
+                <SelectItem value="all">{language === 'ar' ? 'كل المركبات' : 'All Vehicles'}</SelectItem>
                 {vehicles.map(vehicle => (
-                  <SelectItem key={vehicle.id} value={vehicle.id}>
-                    {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
+                  <SelectItem key={(vehicle as any).id} value={(vehicle as any).id}>
+                    {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate || 'N/A'})`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -265,7 +259,7 @@ const MaintenanceHistory = () => {
                 <SelectValue placeholder={language === 'ar' ? 'تصفية بنوع الصيانة' : 'Filter by Type'} />
               </SelectTrigger>
               <SelectContent align={language === 'ar' ? 'start' : 'end'}>
-                <SelectItem value="">{language === 'ar' ? 'كل الأنواع' : 'All Types'}</SelectItem>
+                <SelectItem value="all">{language === 'ar' ? 'كل الأنواع' : 'All Types'}</SelectItem>
                 {maintenanceTypeOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -368,10 +362,7 @@ const MaintenanceHistory = () => {
                         </span>
                       </div>
                       <p>
-                        {language === 'ar' 
-                          ? `${formatCurrency(record.cost)} ر.ق` 
-                          : `${formatCurrency(record.cost)} QAR`
-                        }
+                        {formatCurrency(record.cost, language === 'ar')}
                       </p>
                     </div>
                   )}
