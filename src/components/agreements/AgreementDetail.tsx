@@ -201,7 +201,7 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the type issue by making this function properly async
+  // Fix the type issue by making this function properly async and handle the case when onGenerateDocument is undefined
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
       await onGenerateDocument();
@@ -263,7 +263,7 @@ export function AgreementDetail({
             </Badge>
           </div>
           <p className="text-muted-foreground text-right">
-            إدارة معلومات العقد والمدفوعات والوثائق ذات الصلة
+            عرض وإدارة تفاصيل عقد الإيجار
           </p>
         </div>
         
