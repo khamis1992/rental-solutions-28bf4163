@@ -1,8 +1,8 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Agreement } from '@/types/agreement';
-import { AgreementActionButtons } from '../../details/AgreementActionButtons';
 import { AgreementTrafficFines } from '../../AgreementTrafficFines';
 import LegalCaseCard from '../../LegalCaseCard';
 import { FileText, AlertTriangle, Scale, Download, Award } from 'lucide-react';
@@ -94,13 +94,17 @@ export function DocumentsCard({
               </Button>
             </div>
             
-            {/* Standard Action Buttons */}
+            {/* Only Edit and Delete buttons remain */}
             <div className="pt-4 border-t">
               <h4 className="font-medium mb-3 text-right">خيارات الوثائق الأخرى</h4>
-              <AgreementActionButtons
-                onEdit={onEdit}
-                onDelete={onDelete}
-              />
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={onEdit}>
+                  تعديل العقد
+                </Button>
+                <Button variant="destructive" onClick={onDelete}>
+                  حذف العقد
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
