@@ -51,14 +51,14 @@ const MaintenanceHistory = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchData();
   }, [getAllRecords, getAllVehicles, language]);
 
   // Apply filters
   useEffect(() => {
     let filtered = [...maintenanceRecords];
-    
+
     // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
@@ -214,15 +214,15 @@ const MaintenanceHistory = () => {
             {/* Search Input */}
             <div className="relative">
               <Search className={`absolute top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 ${language === 'ar' ? 'right-3' : 'left-3'}`} />
-            <Input
+              <Input
                 placeholder={language === 'ar' ? 'البحث في السجلات...' : 'Search records...'}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className={language === 'ar' ? 'pr-10 text-right' : 'pl-10'}
-              dir={language === 'ar' ? 'rtl' : 'ltr'}
-            />
-          </div>
-          
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
+              />
+            </div>
+
             {/* Status Filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className={language === 'ar' ? 'text-right' : ''}>
@@ -239,35 +239,35 @@ const MaintenanceHistory = () => {
             </Select>
 
             {/* Vehicle Filter */}
-          <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+            <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
               <SelectTrigger className={language === 'ar' ? 'text-right' : ''}>
                 <SelectValue placeholder={language === 'ar' ? 'تصفية بالمركبة' : 'Filter by Vehicle'} />
-            </SelectTrigger>
-            <SelectContent align={language === 'ar' ? 'start' : 'end'}>
+              </SelectTrigger>
+              <SelectContent align={language === 'ar' ? 'start' : 'end'}>
                 <SelectItem value="all">{language === 'ar' ? 'كل المركبات' : 'All Vehicles'}</SelectItem>
                 {vehicles.map(vehicle => (
                   <SelectItem key={(vehicle as any).id} value={(vehicle as any).id}>
                     {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate || 'N/A'})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {/* Maintenance Type Filter */}
             <Select value={maintenanceTypeFilter} onValueChange={setMaintenanceTypeFilter}>
               <SelectTrigger className={language === 'ar' ? 'text-right' : ''}>
                 <SelectValue placeholder={language === 'ar' ? 'تصفية بنوع الصيانة' : 'Filter by Type'} />
-            </SelectTrigger>
-            <SelectContent align={language === 'ar' ? 'start' : 'end'}>
+              </SelectTrigger>
+              <SelectContent align={language === 'ar' ? 'start' : 'end'}>
                 <SelectItem value="all">{language === 'ar' ? 'كل الأنواع' : 'All Types'}</SelectItem>
                 {maintenanceTypeOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Clear Filters Button */}
           <div className={`mt-4 ${language === 'ar' ? 'text-right' : ''}`}>
@@ -296,7 +296,7 @@ const MaintenanceHistory = () => {
               <div className={`text-center text-muted-foreground ${language === 'ar' ? 'text-right' : ''}`}>
                 <Wrench className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                 <p>{language === 'ar' ? 'لا توجد سجلات صيانة متطابقة مع المعايير المحددة.' : 'No maintenance records match the specified criteria.'}</p>
-            </div>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -316,7 +316,7 @@ const MaintenanceHistory = () => {
                   </div>
                 </div>
                 {getStatusBadge(record.status || 'unknown')}
-                    </div>
+              </div>
               <CardContent className="p-4">
                 <div className={`grid grid-cols-1 md:grid-cols-4 gap-4 text-sm ${language === 'ar' ? 'text-right' : ''}`}>
                   <div>

@@ -1,58 +1,45 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { legalAIService, LegalLetterRequest, GeneratedLetter } from '@/services/LegalAIService';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bot, FileText, Download, DollarSign, Car, Brain, MessageCircle, Send, Sparkles, User, Loader2 } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
-import { useCustomers } from '@/hooks/use-customers';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { legalAIService, GeneratedLetter, LegalLetterRequest } from '@/services/LegalAIService';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+import { 
+  Brain, 
+  FileText, 
+  Download, 
+  Eye,
+  History,
+  Bot,
+  DollarSign,
+  Car
+} from 'lucide-react';
 
 interface Customer {
   id: string;
   full_name: string;
   email: string;
-  phone_number: string;
-}
-
-interface ChatMessage {
-  id: string;
-  type: 'ai' | 'user';
-  content: string;
-  timestamp: Date;
-  isQuestion?: boolean;
-  questionId?: string;
-}
-
-interface ConversationContext {
-  recipient?: string;
-  subject?: string;
-  vehicleNumber?: string;
-  vehicleInfo?: any;
-  needsAuthorization?: boolean;
-  letterType?: string;
-  additionalInfo?: Record<string, any>;
+  phone: string;
 }
 
 const AILegalLetterGenerator = () => {
   const { language } = useLanguage();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
-  const [conversationMode, setConversationMode] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [userInput, setUserInput] = useState('');
-  const [context, setContext] = useState<ConversationContext>({});
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [letterType, setLetterType] = useState<'contract_cancellation' | 'payment_reminder' | 'traffic_fine_notice' | 'installment_reschedule_request'>('installment_reschedule_request');
+  const [reason, setReason] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLetter, setGeneratedLetter] = useState<GeneratedLetter | null>(null);
   const [letterHistory, setLetterHistory] = useState<GeneratedLetter[]>([]);
-  const [currentQuestionId, setCurrentQuestionId] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  const { customers: customersFromHook } = useCustomers();
+
+  // Helper to determine if reason is required
+  const isReasonRequired = letterType === 'installment_reschedule_request';
 
   useEffect(() => {
     loadCustomers();
@@ -62,16 +49,15 @@ const AILegalLetterGenerator = () => {
   const loadCustomers = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, phone_number')
-        .eq('role', 'customer')
+        .from('customers')
+        .select('id, full_name, email, phone')
         .order('full_name');
 
       if (error) throw error;
       setCustomers(data || []);
     } catch (error) {
       console.error('Error loading customers:', error);
-      alert('خطأ في تحميل العملاء');
+      toast.error('خطأ في تحميل العملاء');
     }
   };
 
@@ -84,354 +70,85 @@ const AILegalLetterGenerator = () => {
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const generateLetter = async () => {
+    if (!selectedCustomer) {
+      toast.error('يرجى اختيار عميل');
+      return;
+    }
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isReasonRequired && !reason.trim()) {
+      toast.error('يرجى إدخال أسباب طلب إعادة الجدولة');
+      return;
+    }
 
-  const addMessage = (type: 'ai' | 'user', content: string, isQuestion = false, questionId = '') => {
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type,
-      content,
-      timestamp: new Date(),
-      isQuestion,
-      questionId
-    };
-    setMessages(prev => [...prev, newMessage]);
-    return newMessage.id;
-  };
-
-  const startConversation = () => {
-    setConversationMode(true);
-    setMessages([]);
-    setContext({});
-    setGeneratedLetter(null);
-    
-    addMessage('ai', `مرحباً! أنا محامي الشركة الذكي 🤖
-
-سأساعدك في كتابة خطاب قانوني احترافي. 
-
-لنبدأ بالسؤال الأول:
-
-**🎯 إلى من ستوجه هذا الخطاب؟**
-
-أمثلة:
-• مركز شرطة أم صلال
-• شركة الأولى للتمويل  
-• المرور العام
-• البلدية
-• أي جهة أخرى...`, true, 'recipient');
-    
-    setCurrentQuestionId('recipient');
-  };
-
-  const processUserResponse = async (response: string) => {
-    setIsProcessing(true);
-    
+    setIsGenerating(true);
     try {
-      // Add user message
-      addMessage('user', response);
-      
-      // Update context based on current question
-      const updatedContext = { ...context };
-      
-      switch (currentQuestionId) {
-        case 'recipient':
-          updatedContext.recipient = response;
-          await askNextQuestion(updatedContext, 'subject');
-          break;
-          
-        case 'subject':
-          updatedContext.subject = response;
-          await askNextQuestion(updatedContext, 'vehicle_or_details');
-          break;
-          
-        case 'vehicle_or_details':
-          if (response.match(/\d+/)) {
-            // If response contains numbers, treat as vehicle number
-            updatedContext.vehicleNumber = response;
-            // Try to fetch vehicle info
-            const vehicleInfo = await fetchVehicleInfo(response);
-            if (vehicleInfo) {
-              updatedContext.vehicleInfo = vehicleInfo;
-              addMessage('ai', `✅ تم العثور على المركبة في النظام:
-
-🚗 **معلومات المركبة:**
-• نوع المركبة: ${vehicleInfo.make} ${vehicleInfo.model}
-• رقم اللوحة: ${vehicleInfo.license_plate}
-• سنة الصنع: ${vehicleInfo.year}
-• اللون: ${vehicleInfo.color}
-
-سيتم استخدام هذه المعلومات في الخطاب.`);
-            } else {
-              addMessage('ai', `⚠️ لم يتم العثور على المركبة في النظام.
-سيتم استخدام الرقم المدخل (${response}) في الخطاب.`);
-            }
-            await askNextQuestion(updatedContext, 'authorization');
-          } else {
-            updatedContext.additionalInfo = { ...updatedContext.additionalInfo, details: response };
-            await askNextQuestion(updatedContext, 'authorization');
-          }
-          break;
-          
-        case 'authorization':
-          updatedContext.needsAuthorization = response.toLowerCase().includes('نعم') || response.toLowerCase().includes('يحتاج');
-          await askNextQuestion(updatedContext, 'final_confirmation');
-          break;
-          
-        case 'final_confirmation':
-          if (response.toLowerCase().includes('نعم') || response.toLowerCase().includes('موافق')) {
-            await generateLetter(updatedContext);
-          } else {
-            await askNextQuestion(updatedContext, 'additional_info');
-          }
-          break;
-          
-        case 'additional_info':
-          updatedContext.additionalInfo = { 
-            ...updatedContext.additionalInfo, 
-            additionalDetails: response 
-          };
-          await generateLetter(updatedContext);
-          break;
-      }
-      
-      setContext(updatedContext);
-      
-    } catch (error) {
-      console.error('Error processing response:', error);
-      addMessage('ai', `عذراً، حدث خطأ في معالجة ردك. يرجى المحاولة مرة أخرى.`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const askNextQuestion = async (currentContext: ConversationContext, nextQuestionType: string) => {
-    let questionContent = '';
-    let questionId = '';
-
-    switch (nextQuestionType) {
-      case 'subject':
-        questionContent = `**📝 ما هو موضوع الخطاب؟**
-
-أمثلة:
-• طلب استلام مركبة
-• إشعار بالدفع
-• طلب إعادة جدولة
-• شكوى رسمية
-• اكتب الموضوع المطلوب...`;
-        questionId = 'subject';
-        break;
-        
-      case 'vehicle_or_details':
-        if (currentContext.subject?.toLowerCase().includes('مركبة') || 
-            currentContext.subject?.toLowerCase().includes('سيارة') ||
-            currentContext.subject?.toLowerCase().includes('استلام') ||
-            currentContext.subject?.toLowerCase().includes('حجز')) {
-          questionContent = `**🚗 ما هو رقم المركبة؟**
-
-يمكنك إدخال:
-• رقم اللوحة (مثل: 123456)
-• رقم الشاسيه
-• أي رقم تعريفي للمركبة
-
-سيقوم النظام بالبحث عن معلومات المركبة تلقائياً:`;
-        } else {
-          questionContent = `**📋 هل توجد تفاصيل إضافية مهمة؟**
-
-مثل:
-• تاريخ محدد
-• مبالغ مالية
-• أرقام مرجعية
-• أي معلومات أخرى
-
-اكتب التفاصيل أو "لا" إذا لم توجد:`;
-        }
-        questionId = 'vehicle_or_details';
-        break;
-        
-      case 'authorization':
-        questionContent = `**🔐 هل يحتاج الخطاب لتفويض؟**
-
-• **نعم** - سيتم إضافة تفويض أسامة أحمد البشرى
-• **لا** - خطاب بدون تفويض
-
-(معظم الخطابات الرسمية تحتاج تفويض)`;
-        questionId = 'authorization';
-        break;
-        
-      case 'final_confirmation':
-        const summary = `**✅ ملخص الخطاب:**
-
-📍 **المرسل إليه:** ${currentContext.recipient}
-📝 **الموضوع:** ${currentContext.subject}
-${currentContext.vehicleNumber ? `🚗 **رقم المركبة:** ${currentContext.vehicleNumber}` : ''}
-🔐 **التفويض:** ${currentContext.needsAuthorization ? 'نعم - أسامة أحمد البشرى' : 'لا'}
-
-**هل المعلومات صحيحة وتريد إنشاء الخطاب؟**
-اكتب "نعم" للمتابعة أو "تعديل" لإضافة معلومات`;
-        questionContent = summary;
-        questionId = 'final_confirmation';
-        break;
-        
-      case 'additional_info':
-        questionContent = `**📝 ما التعديل أو المعلومات الإضافية المطلوبة؟**
-
-اكتب ما تريد إضافته أو تعديله في الخطاب.`;
-        questionId = 'additional_info';
-        break;
-    }
-
-    if (questionContent) {
-      addMessage('ai', questionContent, true, questionId);
-      setCurrentQuestionId(questionId);
-    }
-  };
-
-  const generateLetter = async (finalContext: ConversationContext) => {
-    setIsProcessing(true);
-    
-    try {
-      addMessage('ai', `🤖 **جاري إنشاء الخطاب...**
-
-يتم الآن إنشاء خطاب احترافي باستخدام DeepSeek مع جميع المعلومات المطلوبة.
-
-⏳ يرجى الانتظار...`);
-
-      // Build comprehensive prompt
-      let vehicleDetails = '';
-      if (finalContext.vehicleInfo) {
-        vehicleDetails = `
-معلومات المركبة من النظام:
-- نوع المركبة: ${finalContext.vehicleInfo.make} ${finalContext.vehicleInfo.model}
-- رقم اللوحة: ${finalContext.vehicleInfo.license_plate}
-- سنة الصنع: ${finalContext.vehicleInfo.year}
-- اللون: ${finalContext.vehicleInfo.color}`;
-      } else if (finalContext.vehicleNumber) {
-        vehicleDetails = `- رقم المركبة: ${finalContext.vehicleNumber}`;
-      }
-
-      // Prepare the letter request
-      const letterRequest: LegalLetterRequest = {
-        type: finalContext.subject || 'خطاب رسمي',
-        reason: `خطاب موجه إلى ${finalContext.recipient} بخصوص ${finalContext.subject}`,
-        language: language,
-        customPrompt: `
-هذا طلب لإنشاء خطاب رسمي بناءً على محادثة تفاعلية:
-
-معلومات الخطاب:
-- المرسل إليه: ${finalContext.recipient}
-- الموضوع: ${finalContext.subject}
-${vehicleDetails}
-${finalContext.additionalInfo?.details ? `- تفاصيل إضافية: ${finalContext.additionalInfo.details}` : ''}
-${finalContext.additionalInfo?.additionalDetails ? `- طلبات تعديل: ${finalContext.additionalInfo.additionalDetails}` : ''}
-
-التفويض: ${finalContext.needsAuthorization ? 'يجب تضمين تفويض أسامة أحمد البشرى' : 'لا يحتاج تفويض'}
-
-يرجى إنشاء خطاب رسمي احترافي مناسب للسياق المحدد مع مراعاة طبيعة الجهة المرسل إليها.
-
-إذا كان الخطاب موجه للشرطة أو جهة حكومية، استخدم أسلوباً رسمياً ومهذباً.
-إذا كان موجه لشركة، استخدم أسلوباً تجارياً احترافياً.`
+      const request: LegalLetterRequest = {
+        type: letterType,
+        customerId: selectedCustomer,
+        reason: reason || getDefaultReason(letterType),
+        language: 'ar'
       };
 
-      const result = await legalAIService.generateLegalLetter(letterRequest);
-      
-      setGeneratedLetter(result);
-      
+      const letter = await legalAIService.generateLegalLetter(request);
+      setGeneratedLetter(letter);
       await loadLetterHistory();
       
-      addMessage('ai', `✅ **تم إنشاء الخطاب بنجاح!**
-
-يمكنك الآن مراجعة الخطاب أدناه وتحميله أو نسخه.
-
-🔄 إذا كنت تريد تعديل شيء، يمكنك بدء محادثة جديدة.`);
-      
+      toast.success('تم إنشاء الخطاب بنجاح');
     } catch (error) {
       console.error('Error generating letter:', error);
-      addMessage('ai', `❌ عذراً، حدث خطأ في إنشاء الخطاب. يرجى المحاولة مرة أخرى أو استخدام النموذج التقليدي.`);
+      toast.error('خطأ في إنشاء الخطاب');
     } finally {
-      setIsProcessing(false);
+      setIsGenerating(false);
     }
   };
 
-  const handleSendMessage = () => {
-    if (!userInput.trim() || isProcessing) return;
-    
-    const response = userInput.trim();
-    setUserInput('');
-    processUserResponse(response);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const fetchVehicleInfo = async (vehicleNumber: string) => {
-    try {
-      const { data: vehicle, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .or(`license_plate.ilike.%${vehicleNumber}%, chassis_number.ilike.%${vehicleNumber}%`)
-        .single();
-
-      if (error) {
-        console.log('Vehicle not found in database');
-        return null;
-      }
-
-      return vehicle;
-    } catch (error) {
-      console.error('Error fetching vehicle:', error);
-      return null;
-    }
+  const getDefaultReason = (type: string): string => {
+    const reasons = {
+      contract_cancellation: 'إلغاء العقد',
+      payment_reminder: 'تذكير بالسداد',
+      traffic_fine_notice: 'إشعار مخالفات مرورية',
+      installment_reschedule_request: 'طلب إعادة جدولة الأقساط'
+    };
+    return reasons[type as keyof typeof reasons] || '';
   };
 
   const downloadLetter = (letter: GeneratedLetter) => {
     const blob = new Blob([letter.content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${letter.title}.txt`;
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${letter.title}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // Print helper
+  const printLetter = (letter: GeneratedLetter) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/><title>${letter.title}</title><style>body{font-family: 'Tahoma', sans-serif; white-space:pre-wrap; direction:rtl; text-align:right;}</style></head><body>${letter.content.replace(/\n/g, '<br/>')}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   };
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-reverse space-x-3">
-            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-            <div>
-              <h3 className="text-sm font-medium text-green-800">
-                                  🤖 DeepSeek متصل ومُفعل
-              </h3>
-              <p className="text-xs text-green-600">
-                DeepSeek • خبير قانوني قطري • مدرب على قوانين دولة قطر
-              </p>
-            </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-right">
+            <Brain className="h-6 w-6 text-blue-500" />
+            مولد الخطابات القانونية بالذكاء الاصطناعي
+          </CardTitle>
+          <div className="text-sm text-muted-foreground text-right">
+            استخدم الذكاء الاصطناعي لإنشاء خطابات قانونية رسمية مدربة على القانون القطري
           </div>
-          <div className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-            OpenAI متصل
-          </div>
-        </div>
-      </div>
-
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          مولد الخطابات القانونية بالذكاء الاصطناعي
-        </h2>
-        <p className="text-gray-600">
-          إنشاء خطابات قانونية مخصصة باستخدام الذكاء الاصطناعي والقوانين القطرية
-        </p>
-      </div>
+        </CardHeader>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -442,122 +159,110 @@ ${finalContext.additionalInfo?.additionalDetails ? `- طلبات تعديل: ${f
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!conversationMode ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="border-green-200 hover:border-green-400 transition-colors cursor-pointer" 
-                      onClick={startConversation}>
-                  <CardContent className="p-4 text-center">
-                    <MessageCircle className="h-12 w-12 text-green-600 mx-auto mb-3" />
-                    <h3 className="font-bold text-green-800 mb-2">🤖 المحادثة التفاعلية</h3>
-                    <p className="text-sm text-green-600">
-                      النظام الذكي الجديد - يطرح أسئلة مخصصة لفهم احتياجاتك
-                    </p>
-                    <Button className="mt-3 w-full bg-green-600 hover:bg-green-700">
-                      ابدأ المحادثة التفاعلية
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-blue-200">
-                  <CardContent className="p-4 text-center">
-                    <FileText className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-                    <h3 className="font-bold text-blue-800 mb-2">📝 النموذج التقليدي</h3>
-                    <p className="text-sm text-blue-600">
-                      النظام السابق - املأ الحقول وأنشئ الخطاب مباشرة
-                    </p>
-                    <Button variant="outline" className="mt-3 w-full" disabled>
-                      قريباً - متوفر أسفل الصفحة
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Chat messages */}
-                <div className="h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
-                  <div className="space-y-4">
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${message.type === 'user' ? 'justify-start' : 'justify-end'}`}
-                      >
-                        <div
-                          className={`max-w-[80%] p-3 rounded-lg ${
-                            message.type === 'user'
-                              ? 'bg-blue-500 text-white'
-                              : message.isQuestion
-                              ? 'bg-green-100 border border-green-300'
-                              : 'bg-white border'
-                          }`}
-                        >
-                          <div className="flex items-start gap-2">
-                            {message.type === 'user' ? (
-                              <User className="h-4 w-4 mt-1 flex-shrink-0" />
-                            ) : (
-                              <Bot className="h-4 w-4 mt-1 flex-shrink-0 text-green-600" />
-                            )}
-                            <div className="text-sm whitespace-pre-wrap">
-                              {message.content}
-                            </div>
-                          </div>
-                          <div className="text-xs opacity-70 mt-1">
-                            {message.timestamp.toLocaleTimeString('ar-QA')}
-                          </div>
-                        </div>
+            <div>
+              <Label className="text-right block mb-2">اختيار العميل</Label>
+              <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                <SelectTrigger className="text-right">
+                  <SelectValue placeholder="اختر عميلاً..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      <div className="text-right">
+                        <div className="font-medium">{customer.full_name}</div>
+                        <div className="text-sm text-muted-foreground">{customer.phone}</div>
                       </div>
-                    ))}
-                    {isProcessing && (
-                      <div className="flex justify-end">
-                        <div className="bg-white border p-3 rounded-lg max-w-[80%]">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                            <span className="text-sm">جاري المعالجة...</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div ref={messagesEndRef} />
-                </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                {/* Input area */}
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleSendMessage}
-                    disabled={!userInput.trim() || isProcessing}
-                    className="px-4"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="اكتب ردك هنا..."
-                    disabled={isProcessing}
-                    className="text-right"
-                  />
-                </div>
+            <div>
+              <Label className="text-right block mb-2">نوع الخطاب</Label>
+              <Select value={letterType} onValueChange={setLetterType as any}>
+                <SelectTrigger className="text-right">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="installment_reschedule_request">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      طلب إعادة جدولة أقساط
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="contract_cancellation">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      إلغاء عقد
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="payment_reminder">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      تذكير بالسداد
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="traffic_fine_notice">
+                    <div className="flex items-center gap-2">
+                      <Car className="h-4 w-4" />
+                      إشعار مخالفات مرورية
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                {/* Reset button */}
-                <div className="flex justify-center">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setConversationMode(false)}
-                    className="text-sm"
-                  >
-                    🔄 بدء محادثة جديدة
-                  </Button>
+            <div>
+              <Label className="text-right block mb-2">السبب (اختياري)</Label>
+              <Textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder={isReasonRequired ? 'يرجى ذكر جميع الأسباب مفصّلة...' : 'اتركه فارغاً للاستخدام التلقائي للذكاء الاصطناعي'}
+                className="text-right min-h-[90px]"
+              />
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg border-r-4 border-blue-500">
+              <div className="flex items-start gap-2">
+                <Brain className="h-5 w-5 text-blue-500 mt-1" />
+                <div className="text-sm text-right">
+                  <p className="font-medium text-blue-900 mb-1">الذكاء الاصطناعي سيقوم بـ:</p>
+                  <ul className="text-blue-800 space-y-1">
+                    <li>• تجميع بيانات العميل من النظام</li>
+                    <li>• حساب المبالغ المستحقة والأقساط المتأخرة</li>
+                    <li>• جلب معلومات المخالفات المرورية</li>
+                    <li>• تطبيق القانون القطري المناسب</li>
+                    <li>• إنشاء خطاب رسمي بالصيغة الصحيحة</li>
+                  </ul>
                 </div>
               </div>
-            )}
+            </div>
+
+            <Button 
+              onClick={generateLetter} 
+              disabled={isGenerating || !selectedCustomer}
+              className="w-full gap-2"
+            >
+              {isGenerating ? (
+                <>
+                  <Brain className="h-4 w-4 animate-pulse" />
+                  جاري الإنشاء بالذكاء الاصطناعي...
+                </>
+              ) : (
+                <>
+                  <Brain className="h-4 w-4" />
+                  إنشاء الخطاب بالذكاء الاصطناعي
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-right">
-              <Bot className="h-5 w-5 text-purple-500" />
+              <Eye className="h-5 w-5 text-purple-500" />
               معاينة الخطاب المُولد
             </CardTitle>
           </CardHeader>
@@ -592,6 +297,7 @@ ${finalContext.additionalInfo?.additionalDetails ? `- طلبات تعديل: ${f
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => printLetter(generatedLetter)}
                     className="gap-1"
                   >
                     <FileText className="h-4 w-4" />
@@ -613,7 +319,7 @@ ${finalContext.additionalInfo?.additionalDetails ? `- طلبات تعديل: ${f
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-right">
-              <Bot className="h-5 w-5 text-amber-500" />
+              <History className="h-5 w-5 text-amber-500" />
               سجل الخطابات المُولدة
             </CardTitle>
           </CardHeader>
