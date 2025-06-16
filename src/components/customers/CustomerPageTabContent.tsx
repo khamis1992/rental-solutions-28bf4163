@@ -38,20 +38,20 @@ export const CustomerPageTabContent: React.FC<CustomerPageTabContentProps> = ({
         <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
           <div className="flex items-center justify-between mb-6">
             <TabsList className="grid w-auto grid-cols-5 bg-gray-100">
-              <TabsTrigger value="all" className="flex items-center gap-2">
-                الكل ({getTabCount('all')})
-              </TabsTrigger>
-              <TabsTrigger value="active" className="flex items-center gap-2">
-                نشط ({getTabCount('active')})
-              </TabsTrigger>
-              <TabsTrigger value="inactive" className="flex items-center gap-2">
-                غير نشط ({getTabCount('inactive')})
+              <TabsTrigger value="blacklisted" className="flex items-center gap-2">
+                محظور ({getTabCount('blacklisted')})
               </TabsTrigger>
               <TabsTrigger value="pending_review" className="flex items-center gap-2">
                 قيد المراجعة ({getTabCount('pending_review')})
               </TabsTrigger>
-              <TabsTrigger value="blacklisted" className="flex items-center gap-2">
-                محظور ({getTabCount('blacklisted')})
+              <TabsTrigger value="inactive" className="flex items-center gap-2">
+                غير نشط ({getTabCount('inactive')})
+              </TabsTrigger>
+              <TabsTrigger value="active" className="flex items-center gap-2">
+                نشط ({getTabCount('active')})
+              </TabsTrigger>
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                الكل ({getTabCount('all')})
               </TabsTrigger>
             </TabsList>
             
