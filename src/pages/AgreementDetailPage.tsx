@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -213,24 +214,9 @@ const AgreementDetailPage = () => {
       description="عرض وإدارة تفاصيل عقد الإيجار" 
       backLink="/agreements" 
     >
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center space-x-2">
-          <h2 className="text-3xl font-bold tracking-tight">
-            عقد رقم {agreement.agreement_number}
-          </h2>
-          <Badge variant={getStatusBadgeVariant(agreement.status)}>
-            {agreement.status.toUpperCase() === 'ACTIVE' && 'نشط'}
-            {agreement.status.toUpperCase() === 'PENDING' && 'معلق'}
-            {agreement.status.toUpperCase() === 'CLOSED' && 'مغلق'}
-            {agreement.status.toUpperCase() === 'CANCELLED' && 'ملغى'}
-            {agreement.status.toUpperCase() === 'EXPIRED' && 'منتهي'}
-            {agreement.status.toUpperCase() === 'DRAFT' && 'مسودة'}
-            {!['ACTIVE','PENDING','CLOSED','CANCELLED','EXPIRED','DRAFT'].includes(agreement.status.toUpperCase()) && agreement.status}
-          </Badge>
-        </div>
-        
-        {/* All action buttons moved to far left */}
-        <div className="flex items-center gap-2">
+      <div className="flex justify-between items-center mb-4" dir="rtl">
+        {/* All action buttons moved to far right */}
+        <div className="flex items-center gap-2 flex-row-reverse">
           <HoverCard openDelay={300} closeDelay={200}>
             <HoverCardTrigger asChild>
               <Button 
@@ -294,6 +280,22 @@ const AgreementDetailPage = () => {
               </p>
             </HoverCardContent>
           </HoverCard>
+        </div>
+        
+        {/* Title and badges moved to far left */}
+        <div className="flex items-center space-x-2 flex-row-reverse">
+          <h2 className="text-3xl font-bold tracking-tight">
+            عقد رقم {agreement.agreement_number}
+          </h2>
+          <Badge variant={getStatusBadgeVariant(agreement.status)}>
+            {agreement.status.toUpperCase() === 'ACTIVE' && 'نشط'}
+            {agreement.status.toUpperCase() === 'PENDING' && 'معلق'}
+            {agreement.status.toUpperCase() === 'CLOSED' && 'مغلق'}
+            {agreement.status.toUpperCase() === 'CANCELLED' && 'ملغى'}
+            {agreement.status.toUpperCase() === 'EXPIRED' && 'منتهي'}
+            {agreement.status.toUpperCase() === 'DRAFT' && 'مسودة'}
+            {!['ACTIVE','PENDING','CLOSED','CANCELLED','EXPIRED','DRAFT'].includes(agreement.status.toUpperCase()) && agreement.status}
+          </Badge>
         </div>
       </div>
 
