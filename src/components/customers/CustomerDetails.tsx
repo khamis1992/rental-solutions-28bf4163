@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ interface CustomerDetailsProps {
 export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customer }) => {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'غير متوفر';
-    return new Date(dateString).toLocaleDateString('en-GB');
+    return new Date(dateString).toLocaleDateString('ar-SA');
   };
 
   const detailItems = [
