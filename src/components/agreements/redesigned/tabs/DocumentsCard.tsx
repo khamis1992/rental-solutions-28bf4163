@@ -134,15 +134,17 @@ export function DocumentsCard({
       <div className="lg:col-span-1">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-right flex-row-reverse">
+            <CardTitle className="flex items-center gap-2 justify-end text-right flex-row-reverse">
               <Scale className="h-5 w-5 text-purple-500" />
               القضايا القانونية
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <LegalCaseCard 
-              agreementId={agreement.id}
-            />
+          <CardContent className="text-right">
+            <div style={{ textAlign: 'right', direction: 'rtl' }}>
+              <LegalCaseCard 
+                agreementId={agreement.id}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
