@@ -9,6 +9,11 @@ import { LoadingFallback } from "./components/ui/loading-fallback";
 import { ErrorBoundary } from "./components/ui/error-boundary";
 import { getRetryConfig } from "./lib/api/retry-utils";
 
+// PWA Components
+import { InstallPrompt } from "./components/pwa/InstallPrompt";
+import { OfflineIndicator } from "./components/pwa/OfflineIndicator";
+import { UpdatePrompt } from "./components/pwa/UpdatePrompt";
+
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
@@ -130,6 +135,11 @@ function App() {
               <SettingsProvider>
                 <NotificationProvider>
                   <TooltipProvider>
+                    {/* PWA Components */}
+                    <OfflineIndicator />
+                    <InstallPrompt />
+                    <UpdatePrompt />
+                    
                     <Toaster />
                     <Sonner />
                     <ErrorBoundary>
