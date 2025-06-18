@@ -2,7 +2,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface OfflineAction {
   id: string;
-  type: 'payment' | 'agreement' | 'maintenance' | 'vehicle-status' | 'customer';
+  type: 'payment' | 'agreement' | 'maintenance' | 'vehicle-status' | 'customer' | 
+        'traffic-fine' | 'legal-case' | 'document' | 'inspection' | 'installment' |
+        'schedule' | 'report' | 'activity';
   action: 'create' | 'update' | 'delete';
   data: any;
   timestamp: number;
@@ -153,6 +155,30 @@ export class BackgroundSyncService {
       case 'customer':
         await this.syncCustomer(action);
         break;
+      case 'traffic-fine':
+        await this.syncTrafficFine(action);
+        break;
+      case 'legal-case':
+        await this.syncLegalCase(action);
+        break;
+      case 'document':
+        await this.syncDocument(action);
+        break;
+      case 'inspection':
+        await this.syncInspection(action);
+        break;
+      case 'installment':
+        await this.syncInstallment(action);
+        break;
+      case 'schedule':
+        await this.syncSchedule(action);
+        break;
+      case 'report':
+        await this.syncReport(action);
+        break;
+      case 'activity':
+        await this.syncActivity(action);
+        break;
       default:
         throw new Error(`Unknown action type: ${action.type}`);
     }
@@ -160,16 +186,25 @@ export class BackgroundSyncService {
 
   // Sync payment action
   private async syncPayment(action: OfflineAction): Promise<void> {
+    const table = action.data.isUnified ? 'unified_payments' : 'payments';
+    
     if (action.action === 'create') {
       const { error } = await supabase
-        .from('payments')
+        .from(table)
         .insert(action.data);
       
       if (error) throw error;
     } else if (action.action === 'update') {
       const { error } = await supabase
-        .from('payments')
+        .from(table)
         .update(action.data)
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
+    } else if (action.action === 'delete') {
+      const { error } = await supabase
+        .from(table)
+        .delete()
         .eq('id', action.data.id);
       
       if (error) throw error;
@@ -191,6 +226,13 @@ export class BackgroundSyncService {
         .eq('id', action.data.id);
       
       if (error) throw error;
+    } else if (action.action === 'delete') {
+      const { error } = await supabase
+        .from('leases')
+        .delete()
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
     }
   }
 
@@ -209,6 +251,13 @@ export class BackgroundSyncService {
         .eq('id', action.data.id);
       
       if (error) throw error;
+    } else if (action.action === 'delete') {
+      const { error } = await supabase
+        .from('maintenance')
+        .delete()
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
     }
   }
 
@@ -217,7 +266,11 @@ export class BackgroundSyncService {
     if (action.action === 'update') {
       const { error } = await supabase
         .from('vehicles')
-        .update({ status: action.data.status })
+        .update({ 
+          status: action.data.status,
+          location: action.data.location,
+          last_updated: action.data.last_updated 
+        })
         .eq('id', action.data.id);
       
       if (error) throw error;
@@ -237,6 +290,143 @@ export class BackgroundSyncService {
         .from('profiles')
         .update(action.data)
         .eq('id', action.data.id);
+      
+      if (error) throw error;
+    } else if (action.action === 'delete') {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
+    }
+  }
+
+  // Sync traffic fine action
+  private async syncTrafficFine(action: OfflineAction): Promise<void> {
+    if (action.action === 'create') {
+      const { error } = await supabase
+        .from('traffic_fines')
+        .insert(action.data);
+      
+      if (error) throw error;
+    } else if (action.action === 'update') {
+      const { error } = await supabase
+        .from('traffic_fines')
+        .update(action.data)
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
+    }
+  }
+
+  // Sync legal case action
+  private async syncLegalCase(action: OfflineAction): Promise<void> {
+    if (action.action === 'create') {
+      const { error } = await supabase
+        .from('legal_cases')
+        .insert(action.data);
+      
+      if (error) throw error;
+    } else if (action.action === 'update') {
+      const { error } = await supabase
+        .from('legal_cases')
+        .update(action.data)
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
+    }
+  }
+
+  // Sync document action
+  private async syncDocument(action: OfflineAction): Promise<void> {
+    if (action.action === 'create') {
+      const { error } = await supabase
+        .from('documents')
+        .insert(action.data);
+      
+      if (error) throw error;
+    } else if (action.action === 'update') {
+      const { error } = await supabase
+        .from('documents')
+        .update(action.data)
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
+    } else if (action.action === 'delete') {
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
+    }
+  }
+
+  // Sync vehicle inspection
+  private async syncInspection(action: OfflineAction): Promise<void> {
+    if (action.action === 'create') {
+      const { error } = await supabase
+        .from('vehicle_inspections')
+        .insert(action.data);
+      
+      if (error) throw error;
+    }
+  }
+
+  // Sync installment
+  private async syncInstallment(action: OfflineAction): Promise<void> {
+    if (action.action === 'create') {
+      const { error } = await supabase
+        .from('car_installment_payments')
+        .insert(action.data);
+      
+      if (error) throw error;
+    } else if (action.action === 'update') {
+      const { error } = await supabase
+        .from('car_installment_payments')
+        .update(action.data)
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
+    }
+  }
+
+  // Sync payment schedule
+  private async syncSchedule(action: OfflineAction): Promise<void> {
+    if (action.action === 'create') {
+      const { error } = await supabase
+        .from('payment_schedules')
+        .insert(action.data);
+      
+      if (error) throw error;
+    } else if (action.action === 'update') {
+      const { error } = await supabase
+        .from('payment_schedules')
+        .update(action.data)
+        .eq('id', action.data.id);
+      
+      if (error) throw error;
+    }
+  }
+
+  // Sync report
+  private async syncReport(action: OfflineAction): Promise<void> {
+    if (action.action === 'create') {
+      const { error } = await supabase
+        .from('reports')
+        .insert(action.data);
+      
+      if (error) throw error;
+    }
+  }
+
+  // Sync activity log
+  private async syncActivity(action: OfflineAction): Promise<void> {
+    if (action.action === 'create') {
+      const { error } = await supabase
+        .from('activity_logs')
+        .insert(action.data);
       
       if (error) throw error;
     }
@@ -269,16 +459,29 @@ export class BackgroundSyncService {
   }
 
   // Get queue status
-  getQueueStatus(): { count: number; items: OfflineAction[] } {
+  getQueueStatus(): { count: number; items: OfflineAction[]; byType: Record<string, number> } {
+    const byType: Record<string, number> = {};
+    
+    this.offlineQueue.forEach(action => {
+      byType[action.type] = (byType[action.type] || 0) + 1;
+    });
+    
     return {
       count: this.offlineQueue.length,
-      items: [...this.offlineQueue]
+      items: [...this.offlineQueue],
+      byType
     };
   }
 
   // Clear queue
   clearQueue(): void {
     this.offlineQueue = [];
+    this.saveQueue();
+  }
+
+  // Clear specific items
+  clearByType(type: OfflineAction['type']): void {
+    this.offlineQueue = this.offlineQueue.filter(action => action.type !== type);
     this.saveQueue();
   }
 
@@ -294,6 +497,26 @@ export class BackgroundSyncService {
     });
     
     await this.syncQueue();
+  }
+
+  // Export queue data
+  exportQueue(): string {
+    return JSON.stringify(this.offlineQueue, null, 2);
+  }
+
+  // Import queue data
+  importQueue(data: string): boolean {
+    try {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        this.offlineQueue = parsed;
+        this.saveQueue();
+        return true;
+      }
+    } catch (error) {
+      console.error('Error importing queue:', error);
+    }
+    return false;
   }
 }
 

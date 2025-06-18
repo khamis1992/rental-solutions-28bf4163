@@ -217,7 +217,9 @@ export const usePWA = () => {
 
   // Add to offline queue
   const addToOfflineQueue = useCallback(async (
-    type: 'payment' | 'agreement' | 'maintenance' | 'vehicle-status' | 'customer',
+    type: 'payment' | 'agreement' | 'maintenance' | 'vehicle-status' | 'customer' | 
+          'traffic-fine' | 'legal-case' | 'document' | 'inspection' | 'installment' |
+          'schedule' | 'report' | 'activity',
     action: 'create' | 'update' | 'delete',
     data: any
   ) => {

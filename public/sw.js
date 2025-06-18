@@ -1,7 +1,7 @@
 // Service Worker Version
-const SW_VERSION = '2.0.0';
+const SW_VERSION = '2.1.0';
 const CACHE_PREFIX = 'alaraf-rental';
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v2.1';
 
 // Cache Names
 const CACHE_NAMES = {
@@ -9,7 +9,8 @@ const CACHE_NAMES = {
   DYNAMIC: `${CACHE_PREFIX}-dynamic-${CACHE_VERSION}`,
   API: `${CACHE_PREFIX}-api-${CACHE_VERSION}`,
   IMAGES: `${CACHE_PREFIX}-images-${CACHE_VERSION}`,
-  DOCUMENTS: `${CACHE_PREFIX}-documents-${CACHE_VERSION}`
+  DOCUMENTS: `${CACHE_PREFIX}-documents-${CACHE_VERSION}`,
+  FONTS: `${CACHE_PREFIX}-fonts-${CACHE_VERSION}`
 };
 
 // Assets to cache on install
@@ -24,7 +25,28 @@ const STATIC_ASSETS = [
   '/Amiri-Bold.ttf',
   '/Amiri-Regular.js', 
   '/Amiri-Bold.js',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/vfs_fonts.js'
+];
+
+// All application routes to pre-cache
+const APP_ROUTES = [
+  '/',
+  '/dashboard',
+  '/vehicles',
+  '/customers',
+  '/agreements',
+  '/payments',
+  '/maintenance',
+  '/legal',
+  '/traffic-fines',
+  '/financials',
+  '/reports',
+  '/settings',
+  '/user-settings',
+  '/documents',
+  '/activity',
+  '/field-ops'
 ];
 
 // API endpoints to cache
@@ -33,21 +55,50 @@ const API_CACHE_ROUTES = [
   '/api/vehicles', 
   '/api/agreements',
   '/api/payments',
-  '/api/customers'
+  '/api/customers',
+  '/api/maintenance',
+  '/api/traffic-fines',
+  '/api/legal-cases',
+  '/api/documents',
+  '/api/user/preferences',
+  '/api/user/settings',
+  '/rest/v1/profiles',
+  '/rest/v1/vehicles',
+  '/rest/v1/leases',
+  '/rest/v1/payments',
+  '/rest/v1/maintenance',
+  '/rest/v1/traffic_fines',
+  '/rest/v1/legal_cases',
+  '/rest/v1/unified_payments',
+  '/rest/v1/payment_schedules',
+  '/rest/v1/car_installment_contracts',
+  '/rest/v1/car_installment_payments',
+  '/rest/v1/vehicle_inspections'
 ];
 
 // Network timeout for API calls
 const NETWORK_TIMEOUT = 5000;
+
+// Maximum cache size in MB
+const MAX_CACHE_SIZE = 100;
 
 // Install Event - Cache static assets
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker version:', SW_VERSION);
   
   event.waitUntil(
-    caches.open(CACHE_NAMES.STATIC).then((cache) => {
-      console.log('[SW] Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => {
+    Promise.all([
+      // Cache static assets
+      caches.open(CACHE_NAMES.STATIC).then((cache) => {
+        console.log('[SW] Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
+      }),
+      // Pre-cache app routes
+      caches.open(CACHE_NAMES.DYNAMIC).then((cache) => {
+        console.log('[SW] Pre-caching app routes');
+        return cache.addAll(APP_ROUTES.map(route => new Request(route, { mode: 'no-cors' })));
+      })
+    ]).then(() => {
       // Skip waiting to activate immediately
       self.skipWaiting();
     })
@@ -91,9 +142,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle API requests with network-first strategy
-  if (url.pathname.startsWith('/api/') || url.pathname.includes('/rest/v1/')) {
+  // Handle Supabase API requests
+  if (url.pathname.includes('/rest/v1/') || url.pathname.includes('/auth/v1/')) {
     event.respondWith(networkFirstStrategy(request, CACHE_NAMES.API));
+    return;
+  }
+
+  // Handle API requests with network-first strategy
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkFirstStrategy(request, CACHE_NAMES.API));
+    return;
+  }
+
+  // Handle font requests
+  if (/\.(ttf|woff|woff2|eot)$/i.test(url.pathname) || url.pathname.includes('fonts')) {
+    event.respondWith(cacheFirstStrategy(request, CACHE_NAMES.FONTS));
     return;
   }
 
@@ -115,11 +178,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Handle app navigation routes
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirstStrategy(request, CACHE_NAMES.DYNAMIC));
+    return;
+  }
+
   // Default strategy: Network first with dynamic cache
   event.respondWith(networkFirstStrategy(request, CACHE_NAMES.DYNAMIC));
 });
 
-// Cache-first strategy
+// Cache-first strategy with background update
 async function cacheFirstStrategy(request, cacheName) {
   try {
     const cachedResponse = await caches.match(request);
@@ -179,7 +248,7 @@ async function networkFirstStrategy(request, cacheName) {
     }
     
     // Return error response for API requests
-    if (request.url.includes('/api/')) {
+    if (request.url.includes('/api/') || request.url.includes('/rest/v1/')) {
       return new Response(
         JSON.stringify({ 
           error: 'Offline',
@@ -219,6 +288,14 @@ self.addEventListener('sync', async (event) => {
     event.waitUntil(syncAgreements());
   } else if (event.tag === 'sync-maintenance') {
     event.waitUntil(syncMaintenance());
+  } else if (event.tag === 'sync-traffic-fines') {
+    event.waitUntil(syncTrafficFines());
+  } else if (event.tag === 'sync-legal-cases') {
+    event.waitUntil(syncLegalCases());
+  } else if (event.tag === 'sync-documents') {
+    event.waitUntil(syncDocuments());
+  } else if (event.tag === 'sync-inspections') {
+    event.waitUntil(syncInspections());
   }
 });
 
@@ -229,7 +306,7 @@ async function syncPayments() {
     const requests = await cache.keys();
     
     for (const request of requests) {
-      if (request.url.includes('/api/payments')) {
+      if (request.url.includes('/api/payments') || request.url.includes('/unified_payments')) {
         const cachedResponse = await cache.match(request);
         const data = await cachedResponse.json();
         
@@ -256,7 +333,7 @@ async function syncAgreements() {
     const requests = await cache.keys();
     
     for (const request of requests) {
-      if (request.url.includes('/api/agreements')) {
+      if (request.url.includes('/api/agreements') || request.url.includes('/leases')) {
         const cachedResponse = await cache.match(request);
         const data = await cachedResponse.json();
         
@@ -283,7 +360,7 @@ async function syncMaintenance() {
     const requests = await cache.keys();
     
     for (const request of requests) {
-      if (request.url.includes('/api/maintenance')) {
+      if (request.url.includes('/api/maintenance') || request.url.includes('/maintenance')) {
         const cachedResponse = await cache.match(request);
         const data = await cachedResponse.json();
         
@@ -300,6 +377,114 @@ async function syncMaintenance() {
     }
   } catch (error) {
     console.error('[SW] Maintenance sync failed:', error);
+  }
+}
+
+// Sync traffic fines
+async function syncTrafficFines() {
+  try {
+    const cache = await caches.open('offline-data');
+    const requests = await cache.keys();
+    
+    for (const request of requests) {
+      if (request.url.includes('/traffic_fines')) {
+        const cachedResponse = await cache.match(request);
+        const data = await cachedResponse.json();
+        
+        const response = await fetch(request, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          await cache.delete(request);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Traffic fines sync failed:', error);
+  }
+}
+
+// Sync legal cases
+async function syncLegalCases() {
+  try {
+    const cache = await caches.open('offline-data');
+    const requests = await cache.keys();
+    
+    for (const request of requests) {
+      if (request.url.includes('/legal_cases')) {
+        const cachedResponse = await cache.match(request);
+        const data = await cachedResponse.json();
+        
+        const response = await fetch(request, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          await cache.delete(request);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Legal cases sync failed:', error);
+  }
+}
+
+// Sync documents
+async function syncDocuments() {
+  try {
+    const cache = await caches.open('offline-data');
+    const requests = await cache.keys();
+    
+    for (const request of requests) {
+      if (request.url.includes('/documents')) {
+        const cachedResponse = await cache.match(request);
+        const data = await cachedResponse.json();
+        
+        const response = await fetch(request, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          await cache.delete(request);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Documents sync failed:', error);
+  }
+}
+
+// Sync vehicle inspections
+async function syncInspections() {
+  try {
+    const cache = await caches.open('offline-data');
+    const requests = await cache.keys();
+    
+    for (const request of requests) {
+      if (request.url.includes('/vehicle_inspections')) {
+        const cachedResponse = await cache.match(request);
+        const data = await cachedResponse.json();
+        
+        const response = await fetch(request, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          await cache.delete(request);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Inspections sync failed:', error);
   }
 }
 
@@ -330,7 +515,9 @@ self.addEventListener('push', (event) => {
     data: data.data || {},
     actions: data.actions || [],
     tag: data.tag || 'general',
-    requireInteraction: data.requireInteraction || false
+    requireInteraction: data.requireInteraction || false,
+    renotify: true,
+    silent: false
   };
 
   event.waitUntil(
@@ -362,6 +549,34 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// Notification action handling
+self.addEventListener('notificationclick', (event) => {
+  const action = event.action;
+  
+  if (action === 'view') {
+    // Handle view action
+    clients.openWindow(event.notification.data.url);
+  } else if (action === 'remind-later') {
+    // Schedule a reminder for later
+    setTimeout(() => {
+      self.registration.showNotification(event.notification.title, {
+        ...event.notification,
+        tag: event.notification.tag + '-reminder'
+      });
+    }, 60 * 60 * 1000); // 1 hour later
+  } else if (action === 'snooze') {
+    // Snooze for 30 minutes
+    setTimeout(() => {
+      self.registration.showNotification(event.notification.title, {
+        ...event.notification,
+        tag: event.notification.tag + '-snoozed'
+      });
+    }, 30 * 60 * 1000);
+  }
+  
+  event.notification.close();
+});
+
 // Message handling for client communication
 self.addEventListener('message', (event) => {
   console.log('[SW] Message received:', event.data);
@@ -384,13 +599,42 @@ self.addEventListener('message', (event) => {
         );
       })
     );
+  } else if (event.data.type === 'CACHE_SIZE') {
+    event.waitUntil(
+      calculateCacheSize().then(size => {
+        event.ports[0].postMessage({ size });
+      })
+    );
   }
 });
+
+// Calculate cache size
+async function calculateCacheSize() {
+  let totalSize = 0;
+  const cacheNames = await caches.keys();
+  
+  for (const cacheName of cacheNames) {
+    const cache = await caches.open(cacheName);
+    const requests = await cache.keys();
+    
+    for (const request of requests) {
+      const response = await cache.match(request);
+      if (response) {
+        const blob = await response.blob();
+        totalSize += blob.size;
+      }
+    }
+  }
+  
+  return totalSize;
+}
 
 // Periodic Background Sync (if supported)
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'update-data') {
     event.waitUntil(updateCachedData());
+  } else if (event.tag === 'cleanup-cache') {
+    event.waitUntil(cleanupOldCache());
   }
 });
 
@@ -412,4 +656,61 @@ async function updateCachedData() {
   } catch (error) {
     console.error('[SW] Periodic data update failed:', error);
   }
+}
+
+// Clean up old cache entries
+async function cleanupOldCache() {
+  try {
+    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+    const cacheNames = await caches.keys();
+    
+    for (const cacheName of cacheNames) {
+      const cache = await caches.open(cacheName);
+      const requests = await cache.keys();
+      
+      for (const request of requests) {
+        const response = await cache.match(request);
+        if (response) {
+          const dateHeader = response.headers.get('date');
+          if (dateHeader) {
+            const responseDate = new Date(dateHeader);
+            if (Date.now() - responseDate.getTime() > maxAge) {
+              await cache.delete(request);
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Cache cleanup failed:', error);
+  }
+}
+
+// Handle share target
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  if (url.pathname === '/share' && event.request.method === 'POST') {
+    event.respondWith(handleShare(event.request));
+  }
+});
+
+async function handleShare(request) {
+  const formData = await request.formData();
+  const title = formData.get('title');
+  const text = formData.get('text');
+  const url = formData.get('url');
+  const file = formData.get('file');
+  
+  // Store shared data for processing
+  const cache = await caches.open('shared-data');
+  await cache.put('/shared-item', new Response(JSON.stringify({
+    title,
+    text,
+    url,
+    hasFile: !!file
+  })));
+  
+  // Redirect to appropriate page
+  return Response.redirect('/documents?shared=true', 303);
 }

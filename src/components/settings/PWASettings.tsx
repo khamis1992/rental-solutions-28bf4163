@@ -280,3 +280,6 @@ export const PWASettings: React.FC = () => {
     </div>
   );
 };
+
+// Add default export
+export default PWASettings;
