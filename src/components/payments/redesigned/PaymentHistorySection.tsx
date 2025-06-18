@@ -336,7 +336,9 @@ export function PaymentHistorySection({
                             {payment.status === 'paid' ? 'مدفوع' : 
                              payment.status === 'pending' ? 'معلق' : 
                              payment.status === 'overdue' ? 'متأخر' : 
-                             payment.status === 'completed' ? 'مكتمل' : payment.status}
+                             payment.status === 'completed' ? 'مكتمل' : 
+                             payment.status === 'partially_paid' ? 'مدفوع جزئياً' :
+                             payment.status === 'cancelled' ? 'ملغي' : 'غير محدد'}
                           </Badge>
                           <Badge variant="outline" className="text-xs">
                             {payment.payment_method === 'cash' ? 'نقدي' :

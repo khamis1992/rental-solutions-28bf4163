@@ -42,14 +42,14 @@ interface MaintenanceScheduleItem {
   maintenance_type: string;
   scheduled_date: string;
   description: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'overdue';
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   priority: 'low' | 'medium' | 'high';
   estimated_cost: number;
   service_provider?: string;
   notes?: string;
 }
 
-type StatusType = 'pending' | 'in_progress' | 'completed' | 'overdue';
+type StatusType = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 type PriorityType = 'low' | 'medium' | 'high';
 
 const MaintenanceSchedule = () => {
@@ -162,7 +162,7 @@ const MaintenanceSchedule = () => {
         service_type: formData.maintenance_type,
         scheduled_date: formData.scheduled_date.toISOString(),
         description: formData.description,
-        status: 'pending',
+        status: 'scheduled', // Use 'scheduled' instead of 'pending' which is not valid
         cost: formData.estimated_cost,
         notes: formData.notes
       };
@@ -235,8 +235,8 @@ const MaintenanceSchedule = () => {
 
   const getStatusBadge = (status: StatusType) => {
     const statusConfig: Record<StatusType, { label: string; variant: 'secondary' | 'default' | 'destructive'; icon: React.ReactNode }> = {
-      pending: { 
-        label: language === 'ar' ? 'في الانتظار' : 'Pending', 
+      scheduled: { 
+        label: language === 'ar' ? 'مجدول' : 'Scheduled', 
         variant: 'secondary',
         icon: <Clock className="w-3 h-3" />
       },
@@ -250,8 +250,8 @@ const MaintenanceSchedule = () => {
         variant: 'default',
         icon: <CheckCircle className="w-3 h-3" />
       },
-      overdue: { 
-        label: language === 'ar' ? 'متأخر' : 'Overdue', 
+      cancelled: { 
+        label: language === 'ar' ? 'ملغي' : 'Cancelled', 
         variant: 'destructive',
         icon: <XCircle className="w-3 h-3" />
       }
@@ -325,9 +325,10 @@ const MaintenanceSchedule = () => {
             </SelectTrigger>
             <SelectContent align={language === 'ar' ? 'start' : 'end'}>
               <SelectItem value="all">{language === 'ar' ? 'جميع الحالات' : 'All Status'}</SelectItem>
-              <SelectItem value="pending">{language === 'ar' ? 'في الانتظار' : 'Pending'}</SelectItem>
+              <SelectItem value="scheduled">{language === 'ar' ? 'مجدول' : 'Scheduled'}</SelectItem>
               <SelectItem value="in_progress">{language === 'ar' ? 'قيد التنفيذ' : 'In Progress'}</SelectItem>
-              <SelectItem value="overdue">{language === 'ar' ? 'متأخر' : 'Overdue'}</SelectItem>
+              <SelectItem value="completed">{language === 'ar' ? 'مكتمل' : 'Completed'}</SelectItem>
+              <SelectItem value="cancelled">{language === 'ar' ? 'ملغي' : 'Cancelled'}</SelectItem>
             </SelectContent>
           </Select>
           

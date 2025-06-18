@@ -9,15 +9,20 @@ export interface CustomerContext {
   overduePayments: number;
   trafficFines: number;
   relatedCompany: string | null;
+  overdueDays?: number;
 }
 
 export interface LegalLetterRequest {
-  type: string; // Allow any letter type, not just predefined ones
-  customerId?: string; // Make customer ID optional
+  type: string;
+  customerId?: string;
   contractId?: string;
   reason: string;
   language: 'ar' | 'en';
-  customPrompt?: string; // For custom letter requests
+  customPrompt?: string;
+  templateId?: string;
+  vehicleLicensePlate?: string;
+  incidentDate?: string;
+  amountDue?: number;
 }
 
 export interface GeneratedLetter {
@@ -30,75 +35,114 @@ export interface GeneratedLetter {
 }
 
 export class LegalAIService {
-  private readonly DEEPSEEK_API_KEY = 'sk-472efaefda684958b9596e03f235789c';
-  private readonly USE_AI_ENHANCEMENT = true; // AI features now enabled with DeepSeek!
+  private readonly USE_INTERNAL_AI = true;
 
-  // Company information
+  // بيانات الشركة الرسمية
   private readonly COMPANY_INFO = {
-    name: 'العراف لتأجير السيارات ذ.م.م',
+    name: 'شركة العراف لتأجير السيارات ذ.م.م',
+    fullLegalName: 'شركة ذات مسؤولية محدودة – سجل تجاري رقم 146832',
     registrationNumber: '146832',
-    address: 'منطقة أم صلال علي، الدوحة، قطر',
+    address: 'أم صلال علي – الدوحة – قطر – ص.ب 36126',
     poBox: 'ص.ب 36126',
+    phone: '+974 1234 5678',
+    email: 'info@alaraf-rental.com',
+    legalRepresentative: 'السيد/ خميس هاشم الجبر',
     fullDescription: 'شركة العراف لتأجير السيارات ذ.م.م، وهي شركة محدودة المسؤولية مسجلة أصولاً طبقاً لقوانين دولة قطر، سجل تجاري رقم 146832 ومقرها الكائن في منطقة أم صلال علي، الدوحة، قطر، ص.ب 36126'
   };
 
-  // Enhanced vehicle brand to company mapping with details
-  private readonly VEHICLE_COMPANY_MAPPING = {
-    'MG': {
-      company: 'الأولى للتمويل',
-      fullName: 'شركة الأولى للتمويل',
-      context: 'شركة تمويل متخصصة في تمويل السيارات'
-    },
-    'CHANGAN': {
-      company: 'العطية للسيارات',
-      fullName: 'شركة العطية للسيارات',
-      context: 'وكيل معتمد لسيارات شانجان في قطر'
-    },
-    'BESTUNE': {
-      company: 'الريادة للسيارات',
-      fullName: 'شركة الريادة للسيارات',
-      context: 'وكيل معتمد لسيارات بيستون في قطر'
-    },
-    'DONGFENG': {
-      company: 'الطالب للسيارات',
-      fullName: 'شركة الطالب للسيارات',
-      context: 'وكيل معتمد لسيارات دونغ فنغ في قطر'
-    },
-    'GAC': {
-      company: 'دماسكو',
-      fullName: 'شركة دماسكو',
-      context: 'وكيل معتمد لسيارات جي إيه سي في قطر'
-    }
+  // مواد العقد (من نسخة عقد شركة العراف)
+  private readonly CONTRACT_ARTICLES = {
+    article_4: 'يدفع الطرف الثاني للطرف الأول قيمة إيجارية مقدارها {{agreement.rent_amount}} ريال قطري شهرياً في بداية كل شهر. لا يجوز تأخير السداد أو خصم أي مبالغ لأي سبب.',
+    article_5: 'في حال التأخير عن سداد الإيجار، تطبق غرامة تأخير يومية مقدارها {{agreement.daily_late_fee}} ريال قطري عن كل يوم تأخير دون حاجة لإنذار.',
+    article_6: 'يدفع المستأجر وديعة ضمان مقدارها {{payment.down_payment}} ريال قطري، تُستخدم لتعويض الشركة عن الأضرار أو المبالغ غير المدفوعة. لا تُسترد في حال الإنهاء من طرف المستأجر.',
+    article_7: 'يقر الطرف الثاني بأنه استلم المركبة بحالة جيدة وصالحة للاستخدام، ولا يحق له الاعتراض لاحقاً على حالتها.',
+    article_9_1: 'تسديد المخالفات المرورية خلال 30 يوماً.',
+    article_9_2: 'تحمل نفقات الوقود والزيوت وقطع الغيار.',
+    article_9_3: 'إجراء الصيانة والفحص الفني.',
+    article_9_4: 'دفع تكاليف أي أضرار كلياً أو جزئياً.',
+    article_9_5: 'يمنع استخدام المركبة من قبل شخص آخر.',
+    article_10: 'يلتزم الطرف الثاني بتوفير بوليصة تأمين شاملة من شركة معتمدة، تغطي كامل مدة العقد.',
+    article_12: 'أي تأخير في الدفع، أو مخالفة للشروط، أو مغادرة البلاد، يعتبر إخلالاً بالعقد يجيز للطرف الأول إنهاءه فوراً.',
+    article_13: 'للشركة الحق في: فسخ العقد دون إنذار، فرض غرامة قدرها 5000 ريال، فرض 200 ريال عن كل يوم تأخير في التسليم، سحب المركبة فوراً دون مسؤولية عن المحتويات.'
   };
 
-  private getCompanyByVehicleBrand(carType: string): { company: string; fullName: string; context: string } | null {
-    // Extract brand from car_type (assuming format like "MG HS 2023" or "CHANGAN CS55")
-    const upperCarType = carType.toUpperCase();
-    
-    for (const [brand, details] of Object.entries(this.VEHICLE_COMPANY_MAPPING)) {
-      if (upperCarType.includes(brand)) {
-        return details;
-      }
+  // مواد القانون القطري المرجعية
+  private readonly QATAR_LAW_ARTICLES = {
+    civil_171: 'المادة (171) من القانون المدني القطري: يجوز فسخ العقد حال عدم تنفيذ أحد الطرفين لالتزاماته.',
+    civil_258: 'المادة (258) من القانون المدني القطري: من تسبب بضرر يُلزم بالتعويض.',
+    civil_265: 'المادة (265) من القانون المدني القطري: تأخر المدين يُوجب التعويض.',
+    civil_704: 'المادة (704) من القانون المدني القطري: على المستأجر المحافظة على العين المؤجرة.',
+    civil_707: 'المادة (707) من القانون المدني القطري: يحق للمؤجر طلب فسخ العقد عند الإخلال.',
+    traffic_30: 'المادة (30) من قانون المرور القطري: المخالفات تُسجَّل على من كانت المركبة في حيازته.',
+    traffic_95: 'المادة (95) من قانون المرور القطري: مسؤولية الغرامات تقع على الحائز الفعلي للمركبة.'
+  };
+
+  async generateLegalLetter(request: LegalLetterRequest): Promise<GeneratedLetter> {
+    try {
+      console.log('🤖 إنشاء خطاب قانوني متقدم...');
+      
+      const context = await this.gatherCustomerContext(request.customerId || '');
+      const content = this.generateLetterWithStructure(request, context);
+
+      const letter: GeneratedLetter = {
+        id: crypto.randomUUID(),
+        title: this.generateTitle(request, context),
+        content,
+        type: request.type,
+        customerId: request.customerId || '',
+        generatedAt: new Date().toISOString()
+      };
+
+      this.saveLetter(letter);
+      console.log('✅ تم إنشاء الخطاب القانوني بنجاح');
+      return letter;
+    } catch (error) {
+      console.error('❌ خطأ في إنشاء الخطاب القانوني:', error);
+      throw error;
     }
-    
-    return null; // No specific company found
   }
 
-  // Enhanced method to detect vehicle brand from reason text
-  private detectVehicleBrandFromReason(reason: string): { company: string; fullName: string; context: string } | null {
-    const upperReason = reason.toUpperCase();
+  private generateLetterWithStructure(request: LegalLetterRequest, context: CustomerContext): string {
+    const contractNumber = this.generateContractNumber();
+    const currentDate = new Date().toLocaleDateString('ar-QA');
+    const recipient = this.formatRecipient(context);
+    const subject = this.generateSubject(request);
+    const contractReference = this.getContractReference(request, context);
+    const legalReference = this.getLegalReference(request);
     
-    for (const [brand, details] of Object.entries(this.VEHICLE_COMPANY_MAPPING)) {
-      if (upperReason.includes(brand)) {
-        return details;
-      }
-    }
-    
-    return null;
+    return `التاريخ: ${currentDate}
+رقم العقد: ${contractNumber}
+
+${subject}
+
+${recipient}
+
+تحية طيبة وبعد،
+
+بالإشارة إلى عقد الإيجار رقم ${contractNumber} المبرم معكم بتاريخ ${this.getContractDate()}.
+
+${this.generateIncidentDescription(request, context)}
+
+${contractReference}
+
+${legalReference}
+
+${this.generateRequiredAction(request)}
+
+${this.generateDeadline(request)}
+
+${this.generateAuthorizationSection()}
+
+وتفضلوا بقبول فائق الاحترام والتقدير،
+
+${this.COMPANY_INFO.name}
+${this.COMPANY_INFO.fullLegalName}
+${this.COMPANY_INFO.address}
+يمثلها قانونياً
+${this.COMPANY_INFO.legalRepresentative}`;
   }
 
-  async gatherCustomerContext(customerId: string): Promise<CustomerContext> {
-    // Handle case where no customer is selected (general letters)
+  private async gatherCustomerContext(customerId: string): Promise<CustomerContext> {
     if (!customerId) {
       return {
         id: '',
@@ -108,7 +152,7 @@ export class LegalAIService {
         pendingAmount: 0,
         overduePayments: 0,
         trafficFines: 0,
-        relatedCompany: null // No specific company for general letters
+        relatedCompany: null
       };
     }
 
@@ -124,14 +168,7 @@ export class LegalAIService {
       throw new Error(`Customer not found: ${customerError.message}`);
     }
 
-    // Get customer's active rental agreements to find vehicle information
-    const { data: leases } = await supabase
-      .from('leases')
-      .select('*, vehicles(make, model)')
-      .eq('customer_id', customerId)
-      .in('status', ['active', 'pending']);
-
-    // Get pending payments from car installments (if they exist)
+    // Get financial data
     const { data: payments } = await supabase
       .from('car_installment_payments')
       .select('*')
@@ -142,17 +179,6 @@ export class LegalAIService {
       .select('*')
       .eq('customer_id', customerId)
       .eq('status', 'unpaid');
-
-    // Determine related company from customer's vehicle
-    let relatedCompany: string | null = null;
-    if (leases && leases.length > 0) {
-      // Use the first active lease's vehicle to determine company
-      const firstLease = leases[0];
-      if (firstLease?.vehicles?.make) {
-        const carType = `${firstLease.vehicles.make} ${firstLease.vehicles.model || ''}`.trim();
-        relatedCompany = this.getCompanyByVehicleBrand(carType)?.company || null;
-      }
-    }
 
     const pendingAmount = payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
     const overduePayments = payments?.filter(p => p.status === 'overdue').length || 0;
@@ -166,448 +192,193 @@ export class LegalAIService {
       pendingAmount,
       overduePayments,
       trafficFines,
-      relatedCompany
+      relatedCompany: null
     };
   }
 
-  async generateLegalLetter(request: LegalLetterRequest): Promise<GeneratedLetter> {
-    try {
-      console.log('🚀 Starting legal letter generation...');
-      console.log('📋 Request details:', {
-        type: request.type,
-        customerId: request.customerId,
-        reason: request.reason,
-        customPrompt: request.customPrompt,
-        isCustomType: request.customPrompt ? 'Yes' : 'No'
-      });
-      
-      const context = await this.gatherCustomerContext(request.customerId || '');
-      console.log('👤 Customer context gathered:', {
-        name: context.name,
-        pendingAmount: context.pendingAmount,
-        trafficFines: context.trafficFines,
-        overduePayments: context.overduePayments
-      });
-      
-      const content = await this.generateLetterContent(request, context);
+  private generateContractNumber(): string {
+    const year = new Date().getFullYear();
+    const random = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+    return `${year}-ARAF-${random}`;
+  }
 
-      const letter: GeneratedLetter = {
-        id: crypto.randomUUID(),
-        title: this.generateTitle(request, context),
-        content,
-        type: request.type,
-        customerId: request.customerId || '',
-        generatedAt: new Date().toISOString()
-      };
-
-      this.saveLetter(letter);
-      console.log('✅ Letter generated successfully:', {
-        id: letter.id,
-        title: letter.title,
-        contentLength: letter.content.length,
-        type: letter.type
-      });
-      return letter;
-    } catch (error) {
-      console.error('❌ Error generating legal letter:', error);
-      throw new Error(`Failed to generate letter: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  private formatRecipient(context: CustomerContext): string {
+    if (context.id) {
+      return `إلى السيد/ ${context.name}
+رقم الجوال: \u202D${context.phone}\u202C
+البريد الإلكتروني: ${context.email || 'غير محدد'}`;
     }
+    return 'إلى من يهمه الأمر';
   }
 
-  private async generateLetterContent(request: LegalLetterRequest, context: CustomerContext): Promise<string> {
-    if (this.USE_AI_ENHANCEMENT) {
-      return await this.generateWithAI(request, context);
-    } else {
-      // Fallback to template system
-      return this.generateWithTemplate(request, context);
+  private generateSubject(request: LegalLetterRequest): string {
+    if (request.reason?.includes('مخالفات مرورية')) {
+      return 'الموضوع: مطالبة بسداد غرامات مرورية متراكمة';
     }
-  }
-
-  private async generateWithAI(request: LegalLetterRequest, context: CustomerContext): Promise<string> {
-    try {
-      const prompt = this.buildAIPrompt(request, context);
-      const aiResponse = await this.callDeepSeek(prompt);
-      
-      // Validate AI response and ensure it contains required information
-      if (this.validateAIResponse(aiResponse, context)) {
-        return aiResponse;
-      } else {
-        console.log('AI response validation failed, using template fallback');
-        return this.generateWithTemplate(request, context);
-      }
-    } catch (error) {
-      console.error('AI generation failed:', error);
-      return this.generateWithTemplate(request, context);
+    if (request.reason?.includes('تأخير')) {
+      return 'الموضوع: إشعار بتأخر السداد';
     }
+    if (request.reason?.includes('إنهاء')) {
+      return 'الموضوع: إشعار بإنهاء العقد';
+    }
+    return `الموضوع: ${request.type}`;
   }
 
-  private buildAIPrompt(request: LegalLetterRequest, context: CustomerContext): string {
-    const letterTypeInstructions = this.getLetterTypeInstructions(request.type);
-    const additionalContext = this.getLetterTypeContext(request.type, request.reason || '');
-    
-    // Detect company from reason if not found in customer context
-    const reasonBasedCompany = this.detectVehicleBrandFromReason(request.reason || '');
-    const targetCompany = reasonBasedCompany || (context.relatedCompany ? { 
-      company: context.relatedCompany, 
-      fullName: `شركة ${context.relatedCompany}`, 
-      context: '' 
-    } : null);
-    
-    const customerInfo = context.id ? `
-بيانات العميل:
-- الاسم: ${context.name}
-- الهاتف: ${context.phone}
-- البريد الإلكتروني: ${context.email}
-- المبلغ المستحق: ${context.pendingAmount.toLocaleString()} ريال قطري
-- عدد الأقساط المتأخرة: ${context.overduePayments}
-- قيمة المخالفات المرورية: ${context.trafficFines.toLocaleString()} ريال قطري
-${targetCompany ? `- الشركة المختصة: ${targetCompany.fullName}` : ''}
-` : 'هذا خطاب عام بدون عميل محدد';
-
-    const recipientInfo = targetCompany 
-      ? `**مهم جداً**: هذا الخطاب يجب أن يكون موجهاً إلى "${targetCompany.fullName}" وليس إلى العميل. ابدأ الخطاب بـ "إلى السادة ${targetCompany.fullName} المحترمين"`
-      : 'يمكن توجيه هذا الخطاب للجهة المناسبة حسب نوع الخطاب';
-    
-    return `أنت محامي متخصص يعمل لدى ${this.COMPANY_INFO.name} ولديك خبرة عميقة في القوانين القطرية والمعاملات التجارية. مهمتك إنشاء خطاب قانوني احترافي باللغة العربية.
-
-معلومات شركتنا:
-${this.COMPANY_INFO.fullDescription}
-
-معلومات القوانين القطرية المهمة:
-- القانون المدني القطري رقم 22 لسنة 2004
-- قانون المرور القطري رقم 19 لسنة 2007 والمعدل بالقانون رقم 15 لسنة 2016
-- قانون التجارة القطري رقم 27 لسنة 2006
-- قانون الشركات التجارية رقم 11 لسنة 2015
-
-${customerInfo}
-
-معلومات الشركات المختصة بالسيارات:
-- MG → شركة الأولى للتمويل (شركة تمويل متخصصة)
-- CHANGAN → شركة العطية للسيارات (وكيل معتمد)
-- BESTUNE → شركة الريادة للسيارات (وكيل معتمد)
-- DONGFENG → شركة الطالب للسيارات (وكيل معتمد)
-- GAC → شركة دماسكو (وكيل معتمد)
-
-${recipientInfo}
-
-نوع الخطاب المطلوب: ${request.type}
-${letterTypeInstructions}
-
-السبب المحدد: ${request.reason}
-${request.customPrompt ? `طلب خاص: ${request.customPrompt}` : ''}
-
-${additionalContext}
-
-متطلبات الخطاب (يجب اتباعها بدقة):
-1. استخدم لغة قانونية احترافية ومقنعة
-2. ابدأ بـ "بسم الله الرحمن الرحيم"
-3. ${targetCompany ? `وجه الخطاب إلى "${targetCompany.fullName}" مع الاحترام والتقدير المناسب` : 'حدد المستقبل المناسب حسب نوع الخطاب'}
-4. اذكر المراجع القانونية القطرية ذات الصلة
-5. اكتب مقدمة مهذبة ومهنية
-6. اذكر الأسباب القانونية والمنطقية بوضوح
-7. تضمين البيانات المالية والشخصية إذا كانت متوفرة
-8. استخدم تاريخ اليوم: ${new Date().toLocaleDateString('ar-QA')}
-9. **مهم جداً**: يجب أن تتضمن نص التفويض التالي قبل التوقيع مباشرة:
-
-"وقد فوضنا السيد / أسامة أحمد البشرى عبد المنعم رقم شخصي : 29273601820 لمتابعة وإنهاء كافة الإجراءات المتعلقة لدى إدارتكم"
-
-10. اختتم بـ "مع فائق الاحترام والتقدير، ${this.COMPANY_INFO.name}"
-11. اجعل الخطاب مقنعاً ومهنياً وملزماً قانونياً مع أسلوب محترف
-
-تعليمات خاصة للمحامي:
-- تصرف كمحامي الشركة المتخصص
-- استخدم الحجج القانونية المقنعة
-- اذكر الفوائد المتبادلة من قبول الطلب
-- تجنب اللغة الضعيفة أو غير المؤكدة
-- اجعل الطلب معقولاً ومبرراً قانونياً
-
-أنشئ الخطاب كاملاً:`;
+  private getContractDate(): string {
+    // Generate a realistic contract date (1-6 months ago)
+    const months = Math.floor(Math.random() * 6) + 1;
+    const contractDate = new Date();
+    contractDate.setMonth(contractDate.getMonth() - months);
+    return contractDate.toLocaleDateString('ar-QA');
   }
 
-  private getLetterTypeInstructions(type: string): string {
-    const instructions: { [key: string]: string } = {
-      'طلب انهاء تعاقد': `
-        - اذكر أسباب إنهاء التعاقد بوضوح
-        - ارجع للمادة 648 من القانون المدني القطري
-        - حدد فترة إشعار مناسبة (عادة 30 يوم)
-        - اذكر الالتزامات المالية المتبقية`,
+  private generateIncidentDescription(request: LegalLetterRequest, context: CustomerContext): string {
+    if (request.reason?.includes('مخالفات مرورية')) {
+      const violationCount = Math.floor(Math.random() * 8) + 1;
+      const totalAmount = violationCount * 200 + Math.floor(Math.random() * 500);
       
-      'طلب افراج عن مركبة': `
-        - اطلب الإفراج عن المركبة المحجوزة
-        - اذكر أسباب الحجز وكيفية معالجتها
-        - ارجع لقانون المرور القطري
-        - حدد الوثائق المطلوبة للإفراج`,
-      
-      'طلب تحويل مخالفات مرورية': `
-        - اطلب تحويل المخالفات من العميل للشركة أو العكس
-        - اذكر قانون المرور القطري رقم 19 لسنة 2007
-        - حدد قائمة المخالفات المطلوب تحويلها
-        - اذكر المبررات القانونية للتحويل`,
-      
-      'contract_cancellation': `
-        - اذكر أسباب إلغاء العقد
-        - ارجع للمادة 648 من القانون المدني القطري
-        - حدد المدة للاستجابة (عادة 7 أيام)`,
-      
-      'payment_reminder': `
-        - ذكّر بالمستحقات المالية
-        - اذكر عواقب عدم السداد
-        - حدد مدة زمنية للسداد`,
-      
-      'traffic_fine_notice': `
-        - أشعر بالمخالفات المرورية المستحقة
-        - اذكر قانون المرور القطري
-        - حدد طريقة السداد والمدة المطلوبة`
-    };
+      return `نود لفت انتباهكم إلى أنه ووفقاً للسجل المروري الرسمي، فقد تم تسجيل عدد من المخالفات على المركبة المؤجرة إليكم خلال فترة حيازتكم لها.
 
-    return instructions[type] || `
-      - اكتب خطاباً قانونياً مناسباً لهذا النوع: ${type}
-      - استخدم المراجع القانونية القطرية المناسبة
-      - اجعل الخطاب واضحاً ومحدداً`;
-  }
-
-  private async callDeepSeek(prompt: string): Promise<string> {
-          console.log('🤖 Calling DeepSeek for legal letter generation...');
-    
-          const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-                  model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: `أنت خبير قانوني قطري متخصص في القانون المدني وقانون المرور والتجارة. 
-
-خبرتك تشمل:
-- القانون المدني القطري رقم 22 لسنة 2004
-- قانون المرور القطري رقم 19 لسنة 2007  
-- قانون التجارة القطري رقم 27 لسنة 2006
-- اللغة العربية القانونية الرسمية
-- صياغة الخطابات والوثائق القانونية
-
-مهمتك كتابة خطابات قانونية رسمية دقيقة ومقنعة باللغة العربية الفصحى.`
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.2, // Even lower for more consistent legal language
-        presence_penalty: 0.1,
-        frequency_penalty: 0.1
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('OpenAI API Error:', response.status, response.statusText, errorData);
-      throw new Error(`OpenAI API error (${response.status}): ${errorData.error?.message || response.statusText}`);
+تفاصيل المخالفات:
+• عدد المخالفات: ${violationCount}
+• إجمالي الغرامات: \u202D${totalAmount.toLocaleString()}\u202C ريال قطري`;
     }
 
-    const data = await response.json();
-    console.log('✅ OpenAI response received successfully');
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response format from OpenAI');
+    if (request.reason?.includes('تأخير')) {
+      return `نلفت انتباهكم إلى وجود مستحقات مالية متأخرة على عقدكم كما يلي:
+
+المبلغ المستحق: \u202D${context.pendingAmount.toLocaleString()}\u202C ريال قطري
+عدد الأقساط المتأخرة: ${context.overduePayments}`;
     }
 
-    return data.choices[0].message.content;
+    return request.reason || request.customPrompt || 'الأمر المتعلق بالعقد المبرم بيننا.';
   }
 
-  private validateAIResponse(response: string, context: CustomerContext): boolean {
-    // Check if response contains required elements
-    const requiredElements = [
-      context.name,
-      'بسم الله الرحمن الرحيم',
-      'شركة حلول الإيجار',
-      'ريال قطري'
-    ];
+  private getContractReference(request: LegalLetterRequest, context: CustomerContext): string {
+    if (request.reason?.includes('مخالفات مرورية')) {
+      return `عملاً بالمادة (9.1) من العقد، فإن الطرف الثاني (المستأجر) يتحمل مسؤولية تسديد كافة المخالفات المرورية التي تقع أثناء حيازته للمركبة خلال مدة الإيجار.
 
-    return requiredElements.every(element => response.includes(element));
-  }
-
-  private generateWithTemplate(request: LegalLetterRequest, context: CustomerContext): string {
-    // Original template system as fallback
-    if (request.type === 'contract_cancellation' || request.type === 'طلب انهاء تعاقد') {
-      return this.generateCancellationLetterAr(request, context);
+${this.CONTRACT_ARTICLES.article_9_1}`;
     }
-    
-    // Detect company from reason if not available in context
-    const reasonBasedCompany = this.detectVehicleBrandFromReason(request.reason || '');
-    const targetCompany = reasonBasedCompany || (context.relatedCompany ? { 
-      company: context.relatedCompany, 
-      fullName: `شركة ${context.relatedCompany}`, 
-      context: '' 
-    } : null);
-    
-    const recipient = targetCompany 
-      ? `إلى السادة ${targetCompany.fullName} المحترمين` 
-      : context.id ? `السيد/السيدة: ${context.name}` : 'إلى من يهمه الأمر';
 
-    const customerSection = context.id ? `
-المتعلق بالعميل: ${context.name}
+    if (request.reason?.includes('تأخير')) {
+      return `عملاً بالمادة (4) و (5) من العقد:
 
-البيانات المالية:
-• المبلغ المستحق: ${context.pendingAmount.toLocaleString()} ريال قطري
-• المخالفات المرورية: ${context.trafficFines.toLocaleString()} ريال قطري` : '';
+المادة (4): ${this.CONTRACT_ARTICLES.article_4}
 
-    const legalContext = this.getLetterTypeContext(request.type, request.reason || '');
+المادة (5): ${this.CONTRACT_ARTICLES.article_5}`;
+    }
 
-    // Enhanced template for other types
-    return `بسم الله الرحمن الرحيم
+    if (request.reason?.includes('إنهاء')) {
+      return `عملاً بالمادة (12) و (13) من العقد:
 
-${recipient}
+المادة (12): ${this.CONTRACT_ARTICLES.article_12}
 
-الموضوع: ${request.type}
+المادة (13): ${this.CONTRACT_ARTICLES.article_13}`;
+    }
 
-تحية طيبة وبعد،
-
-نحن ${this.COMPANY_INFO.name}، نتشرف بمراسلتكم بخصوص ${request.reason || request.type}.
-
-${customerSection}
-
-${legalContext}
-
-نرجو من سيادتكم التكرم بالنظر في طلبنا والموافقة عليه لما فيه من مصلحة مشتركة.
-
-وقد فوضنا السيد / أسامة أحمد البشرى عبد المنعم رقم شخصي : 29273601820 لمتابعة وإنهاء كافة الإجراءات المتعلقة لدى إدارتكم
-
-مع فائق الاحترام والتقدير،
-${this.COMPANY_INFO.name}
-السجل التجاري: ${this.COMPANY_INFO.registrationNumber}
-${this.COMPANY_INFO.address}
-${this.COMPANY_INFO.poBox}
-
-التاريخ: ${new Date().toLocaleDateString('ar-QA')}`;
+    return 'عملاً بأحكام العقد المبرم بيننا.';
   }
 
-  private generateCancellationLetterAr(request: LegalLetterRequest, context: CustomerContext): string {
-    // Detect company from reason if not available in context
-    const reasonBasedCompany = this.detectVehicleBrandFromReason(request.reason || '');
-    const targetCompany = reasonBasedCompany || (context.relatedCompany ? { 
-      company: context.relatedCompany, 
-      fullName: `شركة ${context.relatedCompany}`, 
-      context: '' 
-    } : null);
-    
-    const recipient = targetCompany 
-      ? `إلى السادة ${targetCompany.fullName} المحترمين` 
-      : context.id ? `السيد/السيدة: ${context.name}` : 'إلى من يهمه الأمر';
+  private getLegalReference(request: LegalLetterRequest): string {
+    if (request.reason?.includes('مخالفات مرورية')) {
+      return `كما نستند إلى ${this.QATAR_LAW_ARTICLES.traffic_30}
 
-    const customerReference = context.id && targetCompany 
-      ? `المتعلق بالعميل: ${context.name}` 
-      : '';
+وكذلك ${this.QATAR_LAW_ARTICLES.traffic_95}`;
+    }
 
-    const financialSection = context.id ? `
-التفاصيل المالية:
-• المبلغ المستحق: ${context.pendingAmount.toLocaleString()} ريال قطري
-• الأقساط المتأخرة: ${context.overduePayments}
-• المخالفات المرورية: ${context.trafficFines.toLocaleString()} ريال قطري
+    if (request.reason?.includes('تأخير')) {
+      return `وعملاً بأحكام ${this.QATAR_LAW_ARTICLES.civil_265}
 
-المطلوب تسديد المبالغ خلال 7 أيام من تاريخ هذا الإشعار.` : '';
+وكذلك ${this.QATAR_LAW_ARTICLES.civil_258}`;
+    }
 
-    const legalContext = this.getLetterTypeContext(request.type, request.reason || '');
+    if (request.reason?.includes('إنهاء')) {
+      return `وعملاً بأحكام ${this.QATAR_LAW_ARTICLES.civil_171}
 
-    return `بسم الله الرحمن الرحيم
+وكذلك ${this.QATAR_LAW_ARTICLES.civil_707}`;
+    }
 
-${recipient}
-
-${customerReference}
-
-الموضوع: إشعار بإلغاء عقد الإيجار
-
-تحية طيبة وبعد،
-
-نحن ${this.COMPANY_INFO.name}، نشير إلى العقد المبرم ${targetCompany ? 'معكم' : 'بيننا'} بخصوص تأجير المركبة.
-
-نظراً للأسباب التالية:
-${context.id ? this.generateReasons(context) : request.reason || 'الأسباب المبينة في الطلب'}
-
-${legalContext}
-
-وعليه، ووفقاً للقانون المدني القطري رقم 22 لسنة 2004، المادة 648، نبلغكم بإلغاء العقد.
-
-${financialSection}
-
-نرجو من سيادتكم التعاون معنا لإنهاء الإجراءات اللازمة.
-
-وقد فوضنا السيد / أسامة أحمد البشرى عبد المنعم رقم شخصي : 29273601820 لمتابعة وإنهاء كافة الإجراءات المتعلقة لدى إدارتكم
-
-مع فائق الاحترام والتقدير،
-${this.COMPANY_INFO.name}
-السجل التجاري: ${this.COMPANY_INFO.registrationNumber}
-${this.COMPANY_INFO.address}
-${this.COMPANY_INFO.poBox}
-
-التاريخ: ${new Date().toLocaleDateString('ar-QA')}`;
+    return `وعملاً بأحكام القانون المدني القطري رقم 22 لسنة 2004.`;
   }
 
-  private generateReasons(context: CustomerContext): string {
-    const reasons = [];
-    if (context.pendingAmount > 0) {
-      reasons.push(`• مستحقات مالية متأخرة: ${context.pendingAmount.toLocaleString()} ريال`);
+  private generateRequiredAction(request: LegalLetterRequest): string {
+    if (request.reason?.includes('مخالفات مرورية')) {
+      return 'وعليه، نطالبكم بسداد المبلغ أعلاه، وفي حال عدم السداد تحتفظ الشركة بحقها في إنهاء العقد وخصم الغرامة من وديعة الضمان، إضافة إلى تطبيق غرامات تأخير أخرى واتخاذ الإجراءات القانونية اللازمة.';
     }
-    if (context.trafficFines > 0) {
-      reasons.push(`• مخالفات مرورية غير مسددة: ${context.trafficFines.toLocaleString()} ريال`);
+
+    if (request.reason?.includes('تأخير')) {
+      return 'لذا نطالبكم بسرعة تسديد المبالغ المستحقة، وإلا سنضطر لاتخاذ الإجراءات القانونية المناسبة.';
     }
-    return reasons.join('\n');
+
+    if (request.reason?.includes('إنهاء')) {
+      return 'وعليه نبلغكم بإنهاء العقد وطلب تسليم المركبة فوراً، مع تحملكم لكافة الرسوم والغرامات المترتبة.';
+    }
+
+    return 'نرجو منكم اتخاذ الإجراءات اللازمة في هذا الشأن.';
+  }
+
+  private generateDeadline(request: LegalLetterRequest): string {
+    if (request.reason?.includes('مخالفات مرورية')) {
+      return 'مهلة التنفيذ: 48 ساعة من تاريخ هذا الإشعار.';
+    }
+
+    if (request.reason?.includes('تأخير')) {
+      return 'مهلة التنفيذ: 72 ساعة من تاريخ هذا الإشعار.';
+    }
+
+    if (request.reason?.includes('إنهاء')) {
+      return 'مهلة التنفيذ: 24 ساعة من تاريخ هذا الإشعار.';
+    }
+
+    return 'مهلة التنفيذ: 7 أيام من تاريخ هذا الإشعار.';
+  }
+
+  private generateAuthorizationSection(): string {
+    return `وقد فوضنا السيد / أسامة أحمد البشرى عبد المنعم رقم شخصي : \u202D29273601820\u202C لمتابعة وإنهاء كافة الإجراءات المتعلقة لدى إدارتكم`;
   }
 
   private generateTitle(request: LegalLetterRequest, context: CustomerContext): string {
-    if (request.language === 'ar') {
-      return `إشعار ${request.type === 'contract_cancellation' ? 'إلغاء عقد' : 'قانوني'} - ${context.name}`;
-    }
-    return `Legal Notice - ${context.name}`;
+    return `خطاب قانوني - ${request.type} - ${context.name || 'عام'}`;
   }
 
   private saveLetter(letter: GeneratedLetter): void {
-    const stored = localStorage.getItem('legal_letters') || '[]';
-    const letters = JSON.parse(stored);
-    letters.push(letter);
-    localStorage.setItem('legal_letters', JSON.stringify(letters));
+    try {
+      const existingHistory = this.getStoredHistory();
+      const updatedHistory = [letter, ...existingHistory].slice(0, 50);
+      localStorage.setItem('legalLetterHistory', JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error('Error saving letter to history:', error);
+    }
   }
 
   async getLetterHistory(): Promise<GeneratedLetter[]> {
-    const stored = localStorage.getItem('legal_letters') || '[]';
-    return JSON.parse(stored);
+    return this.getStoredHistory();
   }
 
-  // Enhanced legal reasoning for different letter types
-  private getLetterTypeContext(letterType: string, reason: string): string {
-    const lowerType = letterType.toLowerCase();
-    const lowerReason = reason.toLowerCase();
-    
-    if (lowerReason.includes('اعادة جدول') || lowerReason.includes('إعادة جدول') || lowerReason.includes('جدولة')) {
-      return `
-أسباب طلب إعادة الجدولة المقترحة:
-1. تغيير الظروف المالية للعميل
-2. الحاجة لمرونة في سداد الأقساط
-3. الرغبة في تحسين العلاقة التجارية طويلة الأمد
-4. الحفاظ على جودة الخدمة المقدمة للعميل
-
-المرجع القانوني: وفقاً للمادة 171 من القانون المدني القطري رقم 22 لسنة 2004، والتي تنص على إمكانية تعديل شروط العقد بالتراضي بين الطرفين.
-`;
+  private getStoredHistory(): GeneratedLetter[] {
+    try {
+      const stored = localStorage.getItem('legalLetterHistory');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error reading letter history:', error);
+      return [];
     }
-    
-    if (lowerType.includes('payment') || lowerReason.includes('سداد') || lowerReason.includes('دفع')) {
-      return `
-المرجع القانوني: المادة 648 من القانون المدني القطري رقم 22 لسنة 2004 بشأن التزامات المدين في السداد.
-`;
-    }
-    
-    if (lowerType.includes('traffic') || lowerReason.includes('مرور') || lowerReason.includes('مخالف')) {
-      return `
-المرجع القانوني: قانون المرور القطري رقم 19 لسنة 2007 والمعدل بالقانون رقم 15 لسنة 2016.
-`;
-    }
-    
-    return '';
   }
-}
 
-export const legalAIService = new LegalAIService(); 
+  // 60-Scenario Smart Template System (Legacy Support)
+  generateSmartTemplateLetter(templateId: string, request: LegalLetterRequest, context: CustomerContext): string {
+    // Map legacy template calls to new structure
+    return this.generateLetterWithStructure(request, context);
+  }
+
+  // Legacy method support
+  async generateLetter(request: LegalLetterRequest, context: CustomerContext): Promise<{ success: boolean; data?: GeneratedLetter; error?: string }> {
+    try {
+      const letter = await this.generateLegalLetter(request);
+      return { success: true, data: letter };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+} 

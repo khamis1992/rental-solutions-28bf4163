@@ -206,7 +206,7 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4" />
-                    <span>{customer.phone_number}</span>
+                    <span className="phone-number-ltr" dir="ltr">{customer.phone_number}</span>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => copyToClipboard(customer.phone_number || '')}>
                     <span className="sr-only">Copy phone</span>

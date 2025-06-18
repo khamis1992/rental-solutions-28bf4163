@@ -7,6 +7,7 @@ import { QuickActions } from '@/components/dashboard/QuickActions';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
 import { CacheManager } from '@/lib/cache-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -28,22 +29,33 @@ const Dashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({});
   const { language } = useLanguage();
+  const queryClient = useQueryClient();
   
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     
-    // Clear cache when refreshing
-    CacheManager.clear();
-    
-    // Use a timeout to prevent rapid refreshes
-    setTimeout(() => {
-      window.location.reload();
+    try {
+      // Clear cache when refreshing
+      CacheManager.clear();
+      
+      // Invalidate and refetch dashboard queries instead of full page reload
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      
       toast({
         title: "تم تحديث لوحة التحكم",
         description: "تم تحديث جميع البيانات بأحدث المعلومات."
       });
-    }, 600);
-  }, []);
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+      toast({
+        title: "خطأ في التحديث",
+        description: "حدث خطأ أثناء تحديث البيانات. يرجى المحاولة مرة أخرى.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [queryClient]);
   
   const toggleSection = useCallback((section: string) => {
     setCollapsedSections(prev => ({ 

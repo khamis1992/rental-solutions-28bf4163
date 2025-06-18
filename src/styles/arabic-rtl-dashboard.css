@@ -193,6 +193,96 @@
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
+/* Phone Number Specific Styling - Force LTR direction */
+.phone-number-ltr, 
+[dir="ltr"] .phone-number,
+span[dir="ltr"] {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: embed !important;
+  display: inline-block !important;
+  font-family: 'Inter', 'Segoe UI', monospace !important;
+}
+
+/* Force phone numbers to display correctly in RTL context */
+[dir="rtl"] .phone-number-ltr,
+[dir="rtl"] span[dir="ltr"] {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: override !important;
+  display: inline-block !important;
+}
+
+/* Input fields with phone numbers */
+input[dir="ltr"], 
+.input-ltr {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: override !important;
+}
+
+/* Specific override for phone number spans within RTL containers */
+[dir="rtl"] span[dir="ltr"]:contains("+974"),
+[dir="rtl"] .phone-display {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+  writing-mode: horizontal-tb !important;
+}
+
+/* Force LTR for phone number input fields */
+.phone-number-ltr,
+input.phone-number-ltr {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+  writing-mode: horizontal-tb !important;
+  font-family: 'Inter', 'Segoe UI', monospace !important;
+  text-rendering: optimizeSpeed !important;
+}
+
+/* Override any RTL styles for phone inputs */
+[dir="rtl"] .phone-number-ltr,
+[dir="rtl"] input.phone-number-ltr {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+  writing-mode: horizontal-tb !important;
+}
+
+/* Ensure + symbol displays on the far left */
+.phone-number-ltr::placeholder {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Additional force for inputs with phone numbers */
+input[value*="+974"], 
+input[placeholder*="+974"],
+.phone-input {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+}
+
+/* General selector for any text containing +974 */
+*[data-phone], 
+*:contains("+974") {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+}
+
+/* Force all elements with phone-related content */
+.phone-display,
+.phone-number,
+.customer-phone {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+  font-family: 'Inter', 'Segoe UI', monospace !important;
+}
+
 /* Enhanced Button Styles for RTL */
 [dir="rtl"] .rtl-button {
   display: flex;
@@ -517,4 +607,33 @@
 
 [dir="rtl"] .rtl-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Enhanced phone number handling in generated content */
+.phone-content-display {
+  position: relative;
+  /* Use JavaScript to handle phone number detection */
+}
+
+/* JavaScript will add this class to phone number lines */
+.phone-content-display .phone-line {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+  display: inline-block !important;
+  width: 100%;
+}
+
+/* Regex pattern for phone numbers in content */
+.phone-content-display::before {
+  content: "";
+  /* This will be handled by JavaScript post-processing */
+}
+
+/* More specific phone number styling */
+.phone-content-display [data-phone-number] {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: bidi-override !important;
+  font-family: 'Inter', 'Segoe UI', monospace !important;
 } 

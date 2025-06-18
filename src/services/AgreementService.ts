@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { asLeaseId } from '@/utils/database-type-helpers';
@@ -268,6 +267,38 @@ export class AgreementService extends BaseService {
       }
 
       console.log('Agreement created successfully:', data);
+      
+      // إنشاء جدولة المدفوعات التلقائية للاتفاقية الجديدة
+      if (data && data.id && agreementData.rent_amount && agreementData.rent_amount > 0) {
+        console.log('Creating automatic payment schedule for new agreement:', data.id);
+        
+        try {
+          // استيراد خدمة المدفوعات بشكل ديناميكي لتجنب المراجع الدائرية
+          const { agreementPaymentService } = await import('./AgreementPaymentService');
+          
+          const paymentScheduleResult = await agreementPaymentService.createPaymentScheduleForAgreement({
+            ...data,
+            start_date: data.start_date,
+            end_date: data.end_date,
+            rent_amount: data.rent_amount,
+            payment_frequency: agreementData.payment_frequency || 'monthly',
+            payment_day: agreementData.payment_day || data.rent_due_day || 1,
+            deposit_amount: data.deposit_amount || 0
+          });
+
+          if (paymentScheduleResult.success) {
+            console.log(`تم إنشاء ${paymentScheduleResult.scheduleCount} جدولة دفعات و ${paymentScheduleResult.paymentCount} دفعة للاتفاقية ${data.id}`);
+          } else {
+            console.warn('فشل في إنشاء جدولة المدفوعات التلقائية:', paymentScheduleResult.error);
+            // لا نرمي خطأ هنا لأن الاتفاقية تم إنشاؤها بنجاح
+            // يمكن إنشاء الجدولة لاحقاً
+          }
+        } catch (paymentError) {
+          console.warn('خطأ في إنشاء جدولة المدفوعات التلقائية:', paymentError);
+          // لا نرمي خطأ هنا لأن الاتفاقية تم إنشاؤها بنجاح
+        }
+      }
+      
       return data;
     }, 'Failed to create agreement');
   }

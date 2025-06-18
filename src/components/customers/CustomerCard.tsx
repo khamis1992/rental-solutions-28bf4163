@@ -115,7 +115,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
             
             <div className="flex items-center space-x-2 space-x-reverse text-sm text-gray-600">
               <Phone className="h-4 w-4 text-primary/60" />
-              <span>{customer.phone || customer.phone_number || 'غير متوفر'}</span>
+              <span className="phone-number-ltr" dir="ltr">{customer.phone || customer.phone_number || 'غير متوفر'}</span>
             </div>
           </div>
 

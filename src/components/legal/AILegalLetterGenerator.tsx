@@ -1,729 +1,875 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { legalAIService, LegalLetterRequest, GeneratedLetter } from '@/services/LegalAIService';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bot, FileText, Download, DollarSign, Car, Brain, MessageCircle, Send, Sparkles, User, Loader2 } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+  Brain, 
+  FileText, 
+  Send, 
+  Download, 
+  Eye, 
+  CheckCircle, 
+  AlertTriangle,
+  Car,
+  Calendar,
+  DollarSign,
+  User,
+  Phone,
+  MapPin,
+  Clock,
+  Shield,
+  AlertCircle
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { LegalAIService, LegalLetterRequest } from '@/services/LegalAIService';
 import { useCustomers } from '@/hooks/use-customers';
 
-interface Customer {
+interface CustomerData {
   id: string;
-  full_name: string;
-  email: string;
-  phone_number: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  nationality?: string;
 }
 
-interface ChatMessage {
-  id: string;
-  type: 'ai' | 'user';
-  content: string;
-  timestamp: Date;
-  isQuestion?: boolean;
-  questionId?: string;
-}
-
-interface ConversationContext {
-  recipient?: string;
-  subject?: string;
-  vehicleNumber?: string;
-  vehicleInfo?: any;
-  needsAuthorization?: boolean;
-  letterType?: string;
-  additionalInfo?: Record<string, any>;
+interface FormData {
+  customer_id: string;
+  vehicle_license_plate: string;
+  amount_due: string;
+  incident_date: string;
+  additional_notes: string;
+  overdue_days: string;
+  damage_cost: string;
+  policy_reference: string;
+  contract_clause_reference: string;
 }
 
 const AILegalLetterGenerator = () => {
-  const { language } = useLanguage();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<string>('');
-  const [conversationMode, setConversationMode] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [userInput, setUserInput] = useState('');
-  const [context, setContext] = useState<ConversationContext>({});
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [generatedLetter, setGeneratedLetter] = useState<GeneratedLetter | null>(null);
-  const [letterHistory, setLetterHistory] = useState<GeneratedLetter[]>([]);
-  const [currentQuestionId, setCurrentQuestionId] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // State management
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
+  const [generatedLetter, setGeneratedLetter] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   
-  const { customers: customersFromHook } = useCustomers();
+  // Form data
+  const [formData, setFormData] = useState<FormData>({
+    customer_id: '',
+    vehicle_license_plate: '',
+    amount_due: '',
+    incident_date: '',
+    additional_notes: '',
+    overdue_days: '',
+    damage_cost: '',
+    policy_reference: '',
+    contract_clause_reference: ''
+  });
 
-  useEffect(() => {
-    loadCustomers();
-    loadLetterHistory();
-  }, []);
+  // Hooks for data fetching
+  const { customers, isLoading: loadingCustomers } = useCustomers();
 
-  const loadCustomers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, phone_number')
-        .eq('role', 'customer')
-        .order('full_name');
+  // Legal AI Service
+  const legalAIService = new LegalAIService();
 
-      if (error) throw error;
-      setCustomers(data || []);
-    } catch (error) {
-      console.error('Error loading customers:', error);
-      alert('خطأ في تحميل العملاء');
+  // Template definitions - جميع السيناريوهات المطلوبة
+  const LETTER_TEMPLATES = {
+    // 🟦 أولاً: خطابات موجهة إلى المستأجرين
+    'contract_violation_notice': {
+      name: 'إخطار بانتهاك شروط الاتفاقية',
+      description: 'إخطار رسمي بانتهاك شروط وأحكام عقد الإيجار',
+      category: 'tenant_notices'
+    },
+    'rent_payment_demand': {
+      name: 'مطالبة بسداد قيمة الإيجار المتأخرة',
+      description: 'مطالبة رسمية بسداد الإيجار المتأخر مع احتساب الغرامات',
+      category: 'tenant_notices'
+    },
+    'contract_termination_notice': {
+      name: 'إشعار بفسخ العقد بسبب الإخلال',
+      description: 'إشعار رسمي بفسخ العقد لعدم الالتزام بالشروط',
+      category: 'tenant_notices'
+    },
+    'final_legal_warning': {
+      name: 'إنذار نهائي قبل اتخاذ إجراء قانوني',
+      description: 'إنذار أخير قبل رفع الدعوى القضائية أو الإجراءات القانونية',
+      category: 'tenant_notices'
+    },
+    'vehicle_policy_violation': {
+      name: 'إشعار بمخالفة سياسة استخدام المركبة',
+      description: 'إشعار بمخالفة شروط الاستخدام الآمن للمركبة',
+      category: 'tenant_notices'
+    },
+    'rental_extension_rejection': {
+      name: 'خطاب رفض طلب تمديد فترة الإيجار',
+      description: 'رفض طلب التمديد مع توضيح الأسباب',
+      category: 'tenant_notices'
+    },
+    'late_fees_demand': {
+      name: 'مطالبة بسداد غرامات التأخير',
+      description: 'مطالبة بسداد غرامات التأخير المتراكمة',
+      category: 'tenant_notices'
+    },
+    'special_cleaning_charge': {
+      name: 'إشعار بتحميل تكاليف تنظيف خاص',
+      description: 'إشعار بتحميل تكاليف التنظيف الإضافية',
+      category: 'tenant_notices'
+    },
+    'traffic_fines_demand': {
+      name: 'مطالبة بسداد غرامات مرورية',
+      description: 'مطالبة بسداد المخالفات المرورية المسجلة على المركبة',
+      category: 'tenant_notices'
+    },
+    'damage_repair_demand': {
+      name: 'مطالبة بسداد تكاليف إصلاح الأضرار',
+      description: 'مطالبة بتكاليف إصلاح الأضرار التي لحقت بالمركبة',
+      category: 'tenant_notices'
+    },
+    'parts_replacement_demand': {
+      name: 'مطالبة بقيمة القطع المستبدلة',
+      description: 'مطالبة بتكلفة قطع الغيار المستبدلة',
+      category: 'tenant_notices'
+    },
+    'deposit_refund_rejection': {
+      name: 'خطاب رفض استرداد مبلغ الضمان',
+      description: 'رفض استرداد الضمان مع توضيح المخصومات',
+      category: 'tenant_notices'
+    },
+    'insurance_clarification': {
+      name: 'خطاب توضيح حول شروط التأمين',
+      description: 'توضيح شروط وأحكام التأمين وحدود التغطية',
+      category: 'tenant_notices'
+    },
+    'technical_inspection_failure': {
+      name: 'إشعار بفشل المركبة في الفحص الفني',
+      description: 'إشعار بعدم اجتياز الفحص الفني والإجراءات المطلوبة',
+      category: 'tenant_notices'
+    },
+    'missing_items_demand': {
+      name: 'مطالبة بإرجاع المفتاح الإضافي أو الوثائق',
+      description: 'مطالبة بإرجاع العناصر المفقودة مع المركبة',
+      category: 'tenant_notices'
+    },
+    'blacklist_notification': {
+      name: 'إشعار بالتوقف عن التعامل وإدراج في القائمة السوداء',
+      description: 'إشعار بإدراج العميل في القائمة السوداء',
+      category: 'tenant_notices'
+    },
+    'vehicle_return_deadline': {
+      name: 'إنذار بوجوب تسليم المركبة خلال مهلة محددة',
+      description: 'إنذار بضرورة إرجاع المركبة خلال مهلة زمنية محددة',
+      category: 'tenant_notices'
+    },
+    'compensation_claim_rejection': {
+      name: 'خطاب رفض طلب التعويض',
+      description: 'رفض طلب التعويض المقدم من العميل',
+      category: 'tenant_notices'
+    },
+    'legal_department_transfer': {
+      name: 'إشعار بتحويل الملف للقسم القانوني',
+      description: 'إشعار بتحويل الملف للإدارة القانونية لاتخاذ الإجراءات',
+      category: 'tenant_notices'
+    },
+    'driver_addition_rejection': {
+      name: 'إشعار برفض إضافة سائق جديد',
+      description: 'رفض طلب إضافة سائق إضافي للعقد',
+      category: 'tenant_notices'
+    },
+    'contract_fees_clarification': {
+      name: 'توضيح حول الرسوم المفروضة على العقد',
+      description: 'توضيح تفصيلي للرسوم والمصاريف المطبقة',
+      category: 'tenant_notices'
+    },
+    'contract_cancellation_rejection': {
+      name: 'إشعار بعدم الموافقة على إلغاء العقد',
+      description: 'رفض طلب إلغاء العقد مع توضيح الأسباب',
+      category: 'tenant_notices'
+    },
+    'uninsured_damage_liability': {
+      name: 'خطاب تحميل مسؤولية الأضرار غير المؤمنة',
+      description: 'تحميل المستأجر مسؤولية الأضرار غير المشمولة بالتأمين',
+      category: 'tenant_notices'
+    },
+    'facilities_cancellation': {
+      name: 'إخطار بإلغاء التسهيلات بسبب سوء الالتزام',
+      description: 'إلغاء التسهيلات الممنوحة بسبب عدم الالتزام',
+      category: 'tenant_notices'
+    },
+    'policy_update_notification': {
+      name: 'إشعار بتحديث سياسة الشركة',
+      description: 'إشعار بالتحديثات على سياسات وإجراءات الشركة',
+      category: 'tenant_notices'
+    },
+    'mandatory_maintenance_notice': {
+      name: 'خطاب إلزامي بإجراء الصيانة الدورية',
+      description: 'إلزام المستأجر بإجراء الصيانة الدورية المطلوبة',
+      category: 'tenant_notices'
+    },
+    'legal_vehicle_recovery': {
+      name: 'إخطار بالمطالبة القانونية لاسترداد المركبة',
+      description: 'إخطار بالإجراءات القانونية لاسترداد المركبة',
+      category: 'tenant_notices'
+    },
+    'vehicle_freeze_notice': {
+      name: 'إشعار بتحويل المركبة إلى "ممنوع التصرف بها"',
+      description: 'إشعار بتجميد المركبة ومنع التصرف بها',
+      category: 'tenant_notices'
+    },
+    'contract_obligations_demand': {
+      name: 'مطالبة بتنفيذ الالتزامات المتعاقد عليها',
+      description: 'مطالبة بتنفيذ جميع الالتزامات المنصوص عليها في العقد',
+      category: 'tenant_notices'
+    },
+
+    // 🟨 ثانياً: خطابات موجهة إلى مركز الشرطة
+    'police_theft_report': {
+      name: 'بلاغ رسمي بسرقة أو اختفاء مركبة',
+      description: 'بلاغ للشرطة عن سرقة أو اختفاء مركبة مؤجرة',
+      category: 'police_reports'
+    },
+    'police_vehicle_alert': {
+      name: 'طلب تعميم على مركبة غير مستردة',
+      description: 'طلب تعميم أمني على مركبة لم يتم إرجاعها',
+      category: 'police_reports'
+    },
+    'travel_ban_request': {
+      name: 'طلب منع سفر لمستأجر متهرب',
+      description: 'طلب منع سفر للمستأجر المتهرب من السداد',
+      category: 'police_reports'
+    },
+    'incident_documentation': {
+      name: 'طلب إثبات حادث أو ضرر',
+      description: 'طلب توثيق حادث أو ضرر لحق بالمركبة',
+      category: 'police_reports'
+    },
+    'late_delivery_documentation': {
+      name: 'خطاب توثيق واقعة تسليم متأخر',
+      description: 'توثيق واقعة التسليم المتأخر للمركبة',
+      category: 'police_reports'
+    },
+    'legal_support_request': {
+      name: 'خطاب دعم مطالبة قانونية ضد مستأجر',
+      description: 'طلب دعم الشرطة في الدعوى القانونية',
+      category: 'police_reports'
+    },
+    'vehicle_recovery_request': {
+      name: 'طلب استرداد مركبة بموجب العقد',
+      description: 'طلب مساعدة الشرطة في استرداد مركبة مؤجرة',
+      category: 'police_reports'
+    },
+    'criminal_background_inquiry': {
+      name: 'خطاب استفسار عن موقف جنائي للمستأجر',
+      description: 'استفسار عن السجل الجنائي للمستأجر',
+      category: 'police_reports'
+    },
+    'repeated_violation_report': {
+      name: 'خطاب إثبات مخالفة مرور متكررة',
+      description: 'إثبات حالات المخالفات المرورية المتكررة',
+      category: 'police_reports'
+    },
+    'court_transfer_request': {
+      name: 'طلب تحويل ملف للقضاء المختص',
+      description: 'طلب تحويل القضية للمحكمة المختصة',
+      category: 'police_reports'
+    },
+
+    // 🟥 ثالثاً: خطابات موجهة إلى وكالات السيارات / الورش / التأمين
+    'warranty_repair_request': {
+      name: 'طلب إصلاح مركبة ضمن الضمان',
+      description: 'طلب إصلاح عيوب مشمولة بالضمان',
+      category: 'service_providers'
+    },
+    'insurance_repair_claim': {
+      name: 'مطالبة بتحمل تكلفة إصلاح ضمن التأمين',
+      description: 'مطالبة شركة التأمين بتغطية تكاليف الإصلاح',
+      category: 'service_providers'
+    },
+    'insurance_cancellation': {
+      name: 'إشعار بإلغاء بوليصة تأمين',
+      description: 'إشعار بإلغاء أو تعديل بوليصة التأمين',
+      category: 'service_providers'
+    },
+    'parts_quotation_request': {
+      name: 'طلب عرض أسعار لقطع غيار',
+      description: 'طلب عرض أسعار لقطع الغيار المطلوبة',
+      category: 'service_providers'
+    },
+    'workshop_approval': {
+      name: 'خطاب اعتماد ورشة للإصلاح',
+      description: 'اعتماد ورشة إصلاح للتعامل معها',
+      category: 'service_providers'
+    },
+    'technical_report_request': {
+      name: 'طلب تقرير فني مفصل عن حالة المركبة',
+      description: 'طلب تقرير فني شامل عن حالة المركبة',
+      category: 'service_providers'
+    },
+    'repair_invoice_objection': {
+      name: 'خطاب اعتراض على فاتورة إصلاح',
+      description: 'اعتراض على فاتورة إصلاح مع طلب إعادة النظر',
+      category: 'service_providers'
+    },
+    'maintenance_file_request': {
+      name: 'طلب ملف صيانة للمركبة',
+      description: 'طلب سجل الصيانة الكامل للمركبة',
+      category: 'service_providers'
+    },
+    'warranty_extension_request': {
+      name: 'طلب تمديد ضمان المركبة',
+      description: 'طلب تمديد فترة الضمان للمركبة',
+      category: 'service_providers'
+    },
+    'fleet_insurance_quotation': {
+      name: 'طلب تقديم عرض تأمين سنوي لمركبات الأسطول',
+      description: 'طلب عرض تأمين شامل لجميع مركبات الأسطول',
+      category: 'service_providers'
+    },
+
+    // 🟩 رابعاً: خطابات داخلية / إدارية
+    'employee_vehicle_assignment': {
+      name: 'خطاب تكليف موظف باستلام مركبة',
+      description: 'تكليف موظف بمهمة استلام مركبة من عميل',
+      category: 'internal_admin'
+    },
+    'interdepartmental_handover': {
+      name: 'محضر تسليم مركبة بين الإدارات',
+      description: 'محضر رسمي لتسليم مركبة بين الأقسام',
+      category: 'internal_admin'
+    },
+    'legal_transfer_notice': {
+      name: 'إشعار تحويل عميل إلى الإدارة القانونية',
+      description: 'إشعار داخلي بتحويل ملف العميل للقسم القانوني',
+      category: 'internal_admin'
+    },
+    'discount_approval': {
+      name: 'خطاب موافقة داخلية على خصم مالي',
+      description: 'موافقة إدارية على منح خصم أو تسهيل مالي',
+      category: 'internal_admin'
+    },
+    'contract_policy_update': {
+      name: 'إشعار بتعديل بنود عقد حسب سياسة جديدة',
+      description: 'إشعار بتحديث شروط العقود حسب السياسات الجديدة',
+      category: 'internal_admin'
+    },
+    'collection_memo': {
+      name: 'مذكرة لإدارة التحصيل بشأن متأخرات',
+      description: 'مذكرة داخلية بخصوص المتأخرات وإجراءات التحصيل',
+      category: 'internal_admin'
+    },
+    'employee_authorization': {
+      name: 'خطاب تفويض موظف لاستلام مستحقات',
+      description: 'تفويض موظف لاستلام مبالغ مالية أو وثائق',
+      category: 'internal_admin'
+    },
+    'delivery_scheduling': {
+      name: 'إشعار إلى قسم العمليات بجدولة تسليم',
+      description: 'إشعار بجدولة تسليم أو استلام مركبات',
+      category: 'internal_admin'
+    },
+    'account_freeze_notice': {
+      name: 'إشعار بتجميد حساب عميل بسبب الإخلال',
+      description: 'إشعار داخلي بتجميد حساب عميل متعثر',
+      category: 'internal_admin'
+    },
+    'file_closure_request': {
+      name: 'طلب إغلاق ملف إيجار بعد التحصيل الكامل',
+      description: 'طلب إغلاق ملف العميل بعد تحصيل جميع المستحقات',
+      category: 'internal_admin'
     }
   };
 
-  const loadLetterHistory = async () => {
-    try {
-      const history = await legalAIService.getLetterHistory();
-      setLetterHistory(history);
-    } catch (error) {
-      console.error('Error loading letter history:', error);
+  // Handle customer selection
+  const handleCustomerChange = (customerId: string) => {
+    const customer = customers?.find(c => c.id === customerId);
+    if (customer) {
+      setSelectedCustomer({
+        id: customer.id || '',
+        name: customer.full_name || '',
+        phone: customer.phone || '',
+        email: customer.email || '',
+        address: customer.address || '',
+        nationality: customer.nationality || ''
+      });
+      setFormData(prev => ({
+        ...prev,
+        customer_id: customer.id || ''
+      }));
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const addMessage = (type: 'ai' | 'user', content: string, isQuestion = false, questionId = '') => {
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type,
-      content,
-      timestamp: new Date(),
-      isQuestion,
-      questionId
-    };
-    setMessages(prev => [...prev, newMessage]);
-    return newMessage.id;
-  };
-
-  const startConversation = () => {
-    setConversationMode(true);
-    setMessages([]);
-    setContext({});
-    setGeneratedLetter(null);
+  // Handle template selection
+  const handleTemplateChange = (templateKey: string) => {
+    setSelectedTemplate(templateKey);
+    const template = LETTER_TEMPLATES[templateKey as keyof typeof LETTER_TEMPLATES];
     
-    addMessage('ai', `مرحباً! أنا محامي الشركة الذكي 🤖
-
-سأساعدك في كتابة خطاب قانوني احترافي من خلال طرح أسئلة مخصصة لفهم احتياجاتك.
-
-**🎯 السؤال الأول: إلى من ستوجه هذا الخطاب؟**
-
-أمثلة:
-• مركز شرطة أم صلال
-• شركة الأولى للتمويل  
-• المرور العام
-• البلدية
-• المحكمة
-• أي جهة أخرى...
-
-اكتب اسم الجهة المطلوبة:`, true, 'recipient');
-    
-    setCurrentQuestionId('recipient');
-  };
-
-  const fetchVehicleInfo = async (vehicleNumber: string) => {
-    try {
-      const { data: vehicle, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .or(`license_plate.ilike.%${vehicleNumber}%, chassis_number.ilike.%${vehicleNumber}%`)
-        .single();
-
-      if (error) {
-        console.log('Vehicle not found in database');
-        return null;
-      }
-
-      return vehicle;
-    } catch (error) {
-      console.error('Error fetching vehicle:', error);
-      return null;
-    }
-  };
-
-  const processUserResponse = async (response: string) => {
-    setIsProcessing(true);
-    
-    try {
-      // Add user message
-      addMessage('user', response);
+    if (template) {
+      let defaultAmount = '';
+      let defaultClause = '';
       
-      // Update context based on current question
-      const updatedContext = { ...context };
-      
-      switch (currentQuestionId) {
-        case 'recipient':
-          updatedContext.recipient = response;
-          await askNextQuestion(updatedContext, 'subject');
-          break;
-          
-        case 'subject':
-          updatedContext.subject = response;
-          // Check if subject involves vehicle
-          if (response.toLowerCase().includes('مركبة') || 
-              response.toLowerCase().includes('سيارة') ||
-              response.toLowerCase().includes('استلام') ||
-              response.toLowerCase().includes('حجز')) {
-            await askNextQuestion(updatedContext, 'vehicle_number');
+      switch (template.category) {
+        case 'tenant_notices':
+          // قيم افتراضية للخطابات الموجهة للمستأجرين
+          if (templateKey.includes('rent_payment') || templateKey.includes('late_fees')) {
+            defaultAmount = '1250'; // مبلغ إيجار شهري
+            defaultClause = 'المادة 8: يلتزم المستأجر بدفع الإيجار الشهري في المواعيد المحددة، وفي حالة التأخير يتم تطبيق غرامة قدرها 100 ريال قطري عن كل يوم تأخير.';
+          } else if (templateKey.includes('damage') || templateKey.includes('repair')) {
+            defaultAmount = '800'; 
+            defaultClause = 'المادة 12: يتحمل المستأجر كامل تكاليف إصلاح أي أضرار تلحق بالمركبة أثناء فترة الإيجار.';
+          } else if (templateKey.includes('traffic_fines')) {
+            defaultAmount = '500';
+            defaultClause = 'المادة 9: يتحمل المستأجر جميع المخالفات المرورية والغرامات المترتبة عليها خلال فترة الإيجار.';
+          } else if (templateKey.includes('contract_termination') || templateKey.includes('cancellation')) {
+            defaultAmount = '5000';
+            defaultClause = 'المادة 15: في حالة فسخ العقد من قبل المستأجر قبل انتهاء المدة، يتوجب عليه دفع غرامة الفسخ المحددة في العقد.';
           } else {
-            await askNextQuestion(updatedContext, 'details');
+            defaultClause = 'يرجى الرجوع إلى شروط وأحكام العقد المُوقع بين الطرفين.';
           }
           break;
           
-        case 'vehicle_number':
-          updatedContext.vehicleNumber = response;
-          // Try to fetch vehicle info
-          const vehicleInfo = await fetchVehicleInfo(response);
-          if (vehicleInfo) {
-            updatedContext.vehicleInfo = vehicleInfo;
-            addMessage('ai', `✅ تم العثور على المركبة في النظام:
+        case 'police_reports':
+          // قيم افتراضية للخطابات الموجهة للشرطة
+          defaultAmount = '0'; // عادة لا توجد مبالغ مالية في البلاغات
+          defaultClause = 'المادة (349) من القانون رقم 11 لسنة 2004 - قانون العقوبات القطري: يُعاقب كل من امتنع بغير مبرر عن دفع ما استحق عليه من أجرة وسيلة نقل معدة للإيجار.';
+          break;
+          
+        case 'service_providers':
+          // قيم افتراضية للخطابات الموجهة لمقدمي الخدمات
+          if (templateKey.includes('warranty') || templateKey.includes('insurance')) {
+            defaultAmount = '0';
+            defaultClause = 'حسب شروط وأحكام الضمان/التأمين المعمول بها.';
+          } else if (templateKey.includes('repair') || templateKey.includes('parts')) {
+            defaultAmount = '1500';
+            defaultClause = 'حسب عرض الأسعار المقدم من الورشة المعتمدة.';
+          }
+          break;
+          
+        case 'internal_admin':
+          // قيم افتراضية للخطابات الداخلية
+          defaultAmount = '0';
+          defaultClause = 'حسب السياسات والإجراءات الداخلية للشركة.';
+          break;
 
-🚗 **معلومات المركبة:**
-• نوع المركبة: ${vehicleInfo.make} ${vehicleInfo.model}
-• رقم اللوحة: ${vehicleInfo.license_plate}
-• سنة الصنع: ${vehicleInfo.year}
-• اللون: ${vehicleInfo.color}
-
-سيتم استخدام هذه المعلومات في الخطاب.`);
-          } else {
-            addMessage('ai', `⚠️ لم يتم العثور على المركبة في النظام.
-سيتم استخدام الرقم المدخل (${response}) في الخطاب.`);
-          }
-          await askNextQuestion(updatedContext, 'details');
-          break;
-          
-        case 'details':
-          if (response.toLowerCase() !== 'لا' && response.toLowerCase() !== 'لايوجد') {
-            updatedContext.additionalInfo = { ...updatedContext.additionalInfo, details: response };
-          }
-          await askNextQuestion(updatedContext, 'authorization');
-          break;
-          
-        case 'authorization':
-          updatedContext.needsAuthorization = response.toLowerCase().includes('نعم') || 
-                                            response.toLowerCase().includes('يحتاج') ||
-                                            response.toLowerCase().includes('مطلوب');
-          await askNextQuestion(updatedContext, 'confirmation');
-          break;
-          
-        case 'confirmation':
-          if (response.toLowerCase().includes('نعم') || 
-              response.toLowerCase().includes('موافق') ||
-              response.toLowerCase().includes('أنشئ')) {
-            await generateLetter(updatedContext);
-          } else {
-            await askNextQuestion(updatedContext, 'modification');
-          }
-          break;
-          
-        case 'modification':
-          updatedContext.additionalInfo = { 
-            ...updatedContext.additionalInfo, 
-            modifications: response 
-          };
-          await generateLetter(updatedContext);
-          break;
+        default:
+          defaultClause = 'يرجى الرجوع إلى شروط وأحكام العقد المُوقع.';
       }
       
-      setContext(updatedContext);
-      
-    } catch (error) {
-      console.error('Error processing response:', error);
-      addMessage('ai', `❌ عذراً، حدث خطأ في معالجة ردك. يرجى المحاولة مرة أخرى.`);
-    } finally {
-      setIsProcessing(false);
+      setFormData(prev => ({
+        ...prev,
+        amount_due: defaultAmount,
+        contract_clause_reference: defaultClause,
+        policy_reference: `شروط وأحكام شركة الأعراف لتأجير السيارات - ${template.name}`
+      }));
     }
   };
 
-  const askNextQuestion = async (currentContext: ConversationContext, nextQuestionType: string) => {
-    let questionContent = '';
-    let questionId = '';
-
-    switch (nextQuestionType) {
-      case 'subject':
-        questionContent = `**📝 ما هو موضوع الخطاب؟**
-
-أمثلة حسب الجهة:
-${currentContext.recipient?.toLowerCase().includes('شرطة') ? 
-  '• طلب استلام مركبة محجوزة\n• بلاغ عن حادث\n• طلب تحرير محضر' :
-  currentContext.recipient?.toLowerCase().includes('مرور') ?
-  '• طلب إلغاء مخالفة\n• استعلام عن نقاط\n• طلب ترخيص' :
-  '• طلب إعادة جدولة\n• إشعار دفع\n• شكوى رسمية'
-}
-
-اكتب موضوع الخطاب:`;
-        questionId = 'subject';
-        break;
-        
-      case 'vehicle_number':
-        questionContent = `**🚗 ما هو رقم المركبة؟**
-
-يمكنك إدخال:
-• رقم اللوحة (مثل: 123456)
-• رقم الشاسيه
-• أي رقم تعريفي للمركبة
-
-سيقوم النظام بالبحث عن معلومات المركبة تلقائياً:`;
-        questionId = 'vehicle_number';
-        break;
-        
-      case 'details':
-        questionContent = `**📋 هل توجد تفاصيل إضافية مهمة؟**
-
-مثل:
-• تاريخ محدد
-• مبالغ مالية
-• أرقام مرجعية
-• أي معلومات أخرى
-
-اكتب التفاصيل أو "لا" إذا لم توجد:`;
-        questionId = 'details';
-        break;
-        
-      case 'authorization':
-        questionContent = `**🔐 هل يحتاج الخطاب لتفويض رسمي؟**
-
-• **نعم** - سيتم إضافة تفويض أسامة أحمد البشرى
-• **لا** - خطاب بدون تفويض
-
-معظم الخطابات للجهات الحكومية تحتاج تفويض:`;
-        questionId = 'authorization';
-        break;
-        
-      case 'confirmation':
-        const summary = `**✅ ملخص الخطاب:**
-
-📍 **المرسل إليه:** ${currentContext.recipient}
-📝 **الموضوع:** ${currentContext.subject}
-${currentContext.vehicleNumber ? `🚗 **رقم المركبة:** ${currentContext.vehicleNumber}` : ''}
-${currentContext.vehicleInfo ? `   (${currentContext.vehicleInfo.make} ${currentContext.vehicleInfo.model})` : ''}
-${currentContext.additionalInfo?.details ? `📋 **تفاصيل:** ${currentContext.additionalInfo.details}` : ''}
-🔐 **التفويض:** ${currentContext.needsAuthorization ? 'نعم - أسامة أحمد البشرى' : 'لا'}
-
-**هل المعلومات صحيحة؟**
-اكتب "نعم" لإنشاء الخطاب أو "تعديل" للتعديل:`;
-        questionContent = summary;
-        questionId = 'confirmation';
-        break;
-        
-      case 'modification':
-        questionContent = `**✏️ ما التعديل المطلوب؟**
-
-يمكنك تعديل أو إضافة أي معلومات تريدها في الخطاب:`;
-        questionId = 'modification';
-        break;
+  // Generate letter
+  const handleGenerateLetter = async () => {
+    if (!selectedTemplate || !selectedCustomer) {
+      toast.error('يرجى اختيار القالب والعميل');
+      return;
     }
 
-    if (questionContent) {
-      addMessage('ai', questionContent, true, questionId);
-      setCurrentQuestionId(questionId);
-    }
-  };
-
-  const generateLetter = async (finalContext: ConversationContext) => {
-    setIsProcessing(true);
-    
+    setIsGenerating(true);
     try {
-      addMessage('ai', `🤖 **جاري إنشاء الخطاب...**
-
-يتم الآن إنشاء خطاب احترافي باستخدام DeepSeek مع جميع المعلومات التي قدمتها.
-
-⏳ يرجى الانتظار...`);
-
-      // Build comprehensive prompt
-      let vehicleDetails = '';
-      if (finalContext.vehicleInfo) {
-        vehicleDetails = `
-معلومات المركبة من النظام:
-- نوع المركبة: ${finalContext.vehicleInfo.make} ${finalContext.vehicleInfo.model}
-- رقم اللوحة: ${finalContext.vehicleInfo.license_plate}
-- سنة الصنع: ${finalContext.vehicleInfo.year}
-- اللون: ${finalContext.vehicleInfo.color}`;
-      } else if (finalContext.vehicleNumber) {
-        vehicleDetails = `- رقم المركبة: ${finalContext.vehicleNumber}`;
-      }
-
-      // Prepare the letter request
-      const letterRequest: LegalLetterRequest = {
-        type: finalContext.subject || 'خطاب رسمي',
-        reason: `خطاب موجه إلى ${finalContext.recipient} بخصوص ${finalContext.subject}`,
-        language: language,
-        customPrompt: `
-هذا طلب لإنشاء خطاب رسمي بناءً على محادثة تفاعلية:
-
-معلومات الخطاب:
-- المرسل إليه: ${finalContext.recipient}
-- الموضوع: ${finalContext.subject}
-${vehicleDetails}
-${finalContext.additionalInfo?.details ? `- تفاصيل إضافية: ${finalContext.additionalInfo.details}` : ''}
-${finalContext.additionalInfo?.modifications ? `- طلبات تعديل: ${finalContext.additionalInfo.modifications}` : ''}
-
-التفويض: ${finalContext.needsAuthorization ? 'يجب تضمين تفويض أسامة أحمد البشرى' : 'لا يحتاج تفويض'}
-
-يرجى إنشاء خطاب رسمي احترافي مناسب للسياق المحدد مع مراعاة طبيعة الجهة المرسل إليها.
-
-إذا كان الخطاب موجه للشرطة أو جهة حكومية، استخدم أسلوباً رسمياً ومهذباً.
-إذا كان موجه لشركة، استخدم أسلوباً تجارياً احترافياً.`
+      const template = LETTER_TEMPLATES[selectedTemplate as keyof typeof LETTER_TEMPLATES];
+      
+      const enhancedContext = {
+        customer: {
+          id: selectedCustomer.id,
+          name: selectedCustomer.name,
+          phone: selectedCustomer.phone,
+          email: selectedCustomer.email || '',
+          address: selectedCustomer.address || '',
+          nationality: selectedCustomer.nationality || ''
+        },
+        financial: {
+          amount_due: parseFloat(formData.amount_due) || 0,
+          overdue_days: parseInt(formData.overdue_days) || 0,
+          damage_cost: parseFloat(formData.damage_cost) || 0
+        },
+        contract_reference: {
+          policy_reference: formData.policy_reference,
+          contract_clause: formData.contract_clause_reference
+        },
+        company_info: {
+          name: 'شركة الأعراف لتأجير السيارات',
+          commercial_registration: 'سجل تجاري رقم 123456',
+          contact: 'هاتف: +974 1234 5678 | البريد الإلكتروني: info@alaraf-rental.com'
+        }
       };
 
-      const result = await legalAIService.generateLegalLetter(letterRequest);
-      
-      setGeneratedLetter(result);
-      
-      await loadLetterHistory();
-      
-      addMessage('ai', `✅ **تم إنشاء الخطاب بنجاح!**
+      const request: LegalLetterRequest = {
+        type: template.name,
+        reason: template.description,
+        customPrompt: formData.additional_notes,
+        language: 'ar'
+      };
 
-يمكنك الآن مراجعة الخطاب أدناه. إذا كنت تريد تعديل شيء، يمكنك:
-
-🔄 بدء محادثة جديدة للحصول على خطاب مختلف
-📝 نسخ النص وتعديله يدوياً
-🖨️ طباعة الخطاب مباشرة
-
-شكراً لاستخدامك النظام التفاعلي! 🎉`);
+      const result = await legalAIService.generateLetter(request, enhancedContext as any);
       
+      if (result.success && result.data) {
+        setGeneratedLetter(result.data.content);
+        setShowPreview(true);
+        toast.success('تم إنشاء الخطاب بنجاح');
+      } else {
+        throw new Error(result.error || 'فشل في إنشاء الخطاب');
+      }
     } catch (error) {
       console.error('Error generating letter:', error);
-      addMessage('ai', `❌ **خطأ في إنشاء الخطاب**
-
-عذراً، حدث خطأ في إنشاء الخطاب. يرجى:
-• التأكد من اتصال الإنترنت
-• المحاولة مرة أخرى
-• أو استخدام النموذج التقليدي
-
-يمكنك بدء محادثة جديدة والمحاولة مرة أخرى.`);
+      toast.error('حدث خطأ في إنشاء الخطاب');
     } finally {
-      setIsProcessing(false);
+      setIsGenerating(false);
     }
   };
 
-  const handleSendMessage = () => {
-    if (!userInput.trim() || isProcessing) return;
-    
-    const response = userInput.trim();
-    setUserInput('');
-    processUserResponse(response);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  // Group templates by category
+  const groupedTemplates = Object.entries(LETTER_TEMPLATES).reduce((acc, [key, template]) => {
+    if (!acc[template.category]) {
+      acc[template.category] = [];
     }
-  };
+    acc[template.category].push({ key, ...template });
+    return acc;
+  }, {} as Record<string, any[]>);
 
-  const downloadLetter = (letter: GeneratedLetter) => {
-    const blob = new Blob([letter.content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${letter.title}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const categoryNames = {
+    tenant_notices: '🟦 خطابات موجهة إلى المستأجرين',
+    police_reports: '🟨 خطابات موجهة إلى مركز الشرطة', 
+    service_providers: '🟥 خطابات موجهة إلى وكالات السيارات / الورش / التأمين',
+    internal_admin: '🟩 خطابات داخلية / إدارية'
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-reverse space-x-3">
-            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+    <div className="space-y-6 p-6" dir="rtl">
+      <div className="flex items-center gap-3 mb-6">
+        <Brain className="h-8 w-8 text-blue-600" />
             <div>
-              <h3 className="text-sm font-medium text-green-800">
-                🤖 DeepSeek متصل ومُفعل
-              </h3>
-              <p className="text-xs text-green-600">
-                DeepSeek • محامي تفاعلي ذكي • قوانين دولة قطر
-              </p>
-            </div>
-          </div>
-          <div className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-            نظام تفاعلي متطور
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">مولد الخطابات القانونية</h1>
+          <p className="text-gray-600">نظام متكامل لإنشاء الخطابات القانونية للعملاء</p>
         </div>
       </div>
 
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          مولد الخطابات القانونية التفاعلي
-        </h2>
-        <p className="text-gray-600">
-          نظام ذكي يطرح أسئلة مخصصة لإنشاء خطابات قانونية احترافية
-        </p>
+      {/* Progress Steps */}
+      <div className="flex items-center justify-center space-x-reverse space-x-8 mb-8" dir="rtl">
+        {[1, 2, 3, 4].map((step) => (
+          <div key={step} className="flex items-center">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                step <= currentStep
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-600'
+              }`}
+            >
+              {step}
+            </div>
+            {step < 4 && (
+              <div
+                className={`w-16 h-1 mr-4 ${
+                  step < currentStep ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              />
+            )}
+          </div>
+        ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <Tabs value={currentStep.toString()} className="w-full">
+        {/* Step 1: Customer Selection */}
+        <TabsContent value="1" className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-right">
-              <Bot className="h-5 w-5 text-green-500" />
-              إنشاء خطاب جديد
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                اختيار العميل
             </CardTitle>
+              <CardDescription>
+                اختر العميل لإنشاء الخطاب القانوني
+              </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!conversationMode ? (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border-r-4 border-blue-500">
-                  <div className="flex items-start gap-2">
-                    <Sparkles className="h-5 w-5 text-blue-500 mt-1" />
-                    <div className="text-sm text-right">
-                      <p className="font-medium text-blue-900 mb-2">🎯 مميزات النظام التفاعلي:</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-blue-800">
-                        <div>
-                          <p className="font-medium text-green-700 mb-1">🧠 ذكاء متطور:</p>
-                          <ul className="space-y-1 text-xs">
-                            <li>• أسئلة مخصصة لكل حالة</li>
-                            <li>• فهم السياق تلقائياً</li>
-                            <li>• البحث في بيانات المركبات</li>
-                            <li>• اقتراحات ذكية للمحتوى</li>
-                          </ul>
+              <div className="space-y-2">
+                <Label htmlFor="customer">العميل</Label>
+                <Select onValueChange={handleCustomerChange} disabled={loadingCustomers}>
+                  <SelectTrigger className="text-right" dir="rtl">
+                    <SelectValue placeholder={loadingCustomers ? "جاري التحميل..." : "اختر العميل"} />
+                  </SelectTrigger>
+                  <SelectContent className="text-right" dir="rtl">
+                    {customers?.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id || ''} className="text-right">
+                        <div className="flex flex-col text-right">
+                          <span className="text-right">{customer.full_name || 'اسم غير محدد'}</span>
+                          <span className="text-sm text-gray-500 text-right phone-number">
+                            {customer.phone || 'رقم غير محدد'}
+                          </span>
                         </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {customers && customers.length > 0 && (
+                  <p className="text-sm text-green-600 text-right">
+                    تم العثور على {customers.length} عميل
+                  </p>
+                )}
+                {loadingCustomers && (
+                  <p className="text-sm text-blue-600 text-right">
+                    جاري تحميل العملاء...
+                  </p>
+                )}
+              </div>
+
+              {selectedCustomer && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <h3 className="font-semibold text-blue-900 mb-2">بيانات العميل المحددة:</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div><span className="font-medium">الاسم:</span> {selectedCustomer.name}</div>
                         <div>
-                          <p className="font-medium text-blue-700 mb-1">⚡ سرعة وكفاءة:</p>
-                          <ul className="space-y-1 text-xs">
-                            <li>• أسئلة أقل مع الوقت</li>
-                            <li>• إنشاء أسرع للخطابات</li>
-                            <li>• دقة أعلى في المحتوى</li>
-                            <li>• توفير في الوقت والجهد</li>
-                          </ul>
-                        </div>
-                      </div>
+                      <span className="font-medium">الهاتف:</span> 
+                      <span className="phone-number"> {selectedCustomer.phone}</span>
                     </div>
+                    <div><span className="font-medium">البريد:</span> {selectedCustomer.email || 'غير محدد'}</div>
+                    <div><span className="font-medium">العنوان:</span> {selectedCustomer.address || 'غير محدد'}</div>
                   </div>
                 </div>
+              )}
                 
-                <div className="text-center">
                   <Button 
-                    onClick={startConversation}
-                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
+                onClick={() => setCurrentStep(2)} 
+                disabled={!selectedCustomer}
+                className="w-full"
                   >
-                    🚀 ابدأ المحادثة التفاعلية
+                التالي: اختيار نوع الخطاب
                   </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Chat messages */}
-                <div className="h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
-                  <div className="space-y-4">
-                    {messages.map((message) => (
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Step 2: Template Selection */}
+        <TabsContent value="2" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                اختيار نوع الخطاب القانوني
+              </CardTitle>
+              <CardDescription>
+                اختر نوع الخطاب المناسب لحالتك
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Object.entries(groupedTemplates).map(([category, templates]) => (
+                <div key={category} className="space-y-2">
+                  <h3 className="font-semibold text-gray-900">
+                    {categoryNames[category as keyof typeof categoryNames]}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2" dir="rtl">
+                    {templates.map((template) => (
                       <div
-                        key={message.id}
-                        className={`flex ${message.type === 'user' ? 'justify-start' : 'justify-end'}`}
+                        key={template.key}
+                        className={`p-3 border rounded-lg cursor-pointer transition-all text-right ${
+                          selectedTemplate === template.key
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => handleTemplateChange(template.key)}
                       >
-                        <div
-                          className={`max-w-[85%] p-3 rounded-lg ${
-                            message.type === 'user'
-                              ? 'bg-blue-500 text-white'
-                              : message.isQuestion
-                              ? 'bg-green-100 border-2 border-green-300'
-                              : 'bg-white border'
-                          }`}
-                        >
-                          <div className="flex items-start gap-2">
-                            {message.type === 'user' ? (
-                              <User className="h-4 w-4 mt-1 flex-shrink-0" />
-                            ) : (
-                              <Bot className="h-4 w-4 mt-1 flex-shrink-0 text-green-600" />
-                            )}
-                            <div className="text-sm whitespace-pre-wrap">
-                              {message.content}
-                            </div>
-                          </div>
-                          <div className="text-xs opacity-70 mt-1">
-                            {message.timestamp.toLocaleTimeString('ar-QA')}
-                          </div>
-                        </div>
+                        <div className="font-medium text-sm text-right">{template.name}</div>
+                        <div className="text-xs text-gray-500 mt-1 text-right">{template.description}</div>
                       </div>
                     ))}
-                    {isProcessing && (
-                      <div className="flex justify-end">
-                        <div className="bg-white border p-3 rounded-lg max-w-[85%]">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                            <span className="text-sm">جاري المعالجة...</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                  <div ref={messagesEndRef} />
                 </div>
+              ))}
 
-                {/* Input area */}
-                <div className="flex gap-2 mb-4">
+              <div className="flex gap-2 mt-6" dir="rtl">
                   <Button 
-                    onClick={handleSendMessage}
-                    disabled={!userInput.trim() || isProcessing}
-                    className="px-6"
-                  >
-                    <Send className="h-4 w-4 ml-2" />
-                    إرسال
+                  onClick={() => setCurrentStep(3)} 
+                  disabled={!selectedTemplate}
+                  className="flex-1"
+                >
+                  التالي: تفاصيل الخطاب
+                </Button>
+                <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                  السابق
                   </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Step 3: Details */}
+        <TabsContent value="3" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                تفاصيل الخطاب
+              </CardTitle>
+              <CardDescription>
+                أدخل التفاصيل المطلوبة للخطاب
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="vehicle_license_plate">رقم لوحة المركبة</Label>
                   <Input
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="اكتب ردك هنا..."
-                    disabled={isProcessing}
-                    className="text-right"
+                    id="vehicle_license_plate"
+                    value={formData.vehicle_license_plate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, vehicle_license_plate: e.target.value }))}
+                    placeholder="رقم اللوحة"
                   />
                 </div>
 
-                {/* Control buttons */}
-                <div className="flex justify-between">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setConversationMode(false);
-                      setMessages([]);
-                      setContext({});
-                      setGeneratedLetter(null);
-                    }}
-                    className="text-sm"
-                  >
-                    🔄 بدء محادثة جديدة
-                  </Button>
-                  
-                  {/* Customer selection */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">العميل (اختياري):</span>
-                    <Select value={selectedCustomer || "no-customer"} onValueChange={(value) => setSelectedCustomer(value === "no-customer" ? "" : value)}>
-                      <SelectTrigger className="w-48 text-right text-sm">
-                        <SelectValue placeholder="اختر عميلاً..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="no-customer">
-                          <div className="text-right text-muted-foreground text-sm">
-                            بدون عميل محدد
+                <div className="space-y-2">
+                  <Label htmlFor="amount_due">المبلغ المستحق (ريال)</Label>
+                  <Input
+                    id="amount_due"
+                    type="number"
+                    value={formData.amount_due}
+                    onChange={(e) => setFormData(prev => ({ ...prev, amount_due: e.target.value }))}
+                    placeholder="المبلغ بالريال القطري"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="incident_date">تاريخ الحادثة</Label>
+                  <Input
+                    id="incident_date"
+                    type="date"
+                    value={formData.incident_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, incident_date: e.target.value }))}
+                  />
                           </div>
-                        </SelectItem>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            <div className="text-right">
-                              <div className="font-medium text-sm">{customer.full_name}</div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="overdue_days">عدد أيام التأخير</Label>
+                  <Input
+                    id="overdue_days"
+                    type="number"
+                    value={formData.overdue_days}
+                    onChange={(e) => setFormData(prev => ({ ...prev, overdue_days: e.target.value }))}
+                    placeholder="عدد الأيام"
+                  />
                 </div>
               </div>
-            )}
+
+              <div className="space-y-2">
+                <Label htmlFor="additional_notes">ملاحظات إضافية</Label>
+                <Textarea
+                  id="additional_notes"
+                  value={formData.additional_notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, additional_notes: e.target.value }))}
+                  rows={3}
+                  placeholder="أي تفاصيل إضافية..."
+                />
+              </div>
+
+              <div className="flex gap-2 mt-6" dir="rtl">
+                <Button 
+                  onClick={() => setCurrentStep(4)} 
+                  className="flex-1"
+                >
+                  التالي: إنشاء الخطاب
+                </Button>
+                <Button variant="outline" onClick={() => setCurrentStep(2)}>
+                  السابق
+                </Button>
+              </div>
           </CardContent>
         </Card>
+        </TabsContent>
 
+        {/* Step 4: Generate Letter */}
+        <TabsContent value="4" className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-right">
-              <Bot className="h-5 w-5 text-purple-500" />
-              معاينة الخطاب المُولد
+              <CardTitle className="flex items-center gap-2">
+                <Send className="h-5 w-5" />
+                إنشاء الخطاب النهائي
             </CardTitle>
+              <CardDescription>
+                مراجعة البيانات وإنشاء الخطاب القانوني
+              </CardDescription>
           </CardHeader>
-          <CardContent>
-            {generatedLetter ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <div className="text-right">
-                    <h3 className="font-medium">{generatedLetter.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(generatedLetter.generatedAt).toLocaleString('ar-QA')}
-                    </p>
-                  </div>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+                <h3 className="font-semibold text-gray-900">ملخص الخطاب:</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="font-medium">العميل:</span> {selectedCustomer?.name}</div>
+                  <div><span className="font-medium">نوع الخطاب:</span> {selectedTemplate ? LETTER_TEMPLATES[selectedTemplate as keyof typeof LETTER_TEMPLATES]?.name : ''}</div>
+                  <div><span className="font-medium">المركبة:</span> {formData.vehicle_license_plate}</div>
+                  <div><span className="font-medium">المبلغ:</span> {formData.amount_due} ريال</div>
+                </div>
                 </div>
 
-                <div className="bg-white border rounded-lg p-4 max-h-96 overflow-y-auto">
-                  <pre className="whitespace-pre-wrap text-right text-sm leading-relaxed">
-                    {generatedLetter.content}
-                  </pre>
-                </div>
-
-                <div className="flex gap-2 justify-end">
+              <div className="flex gap-2" dir="rtl">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadLetter(generatedLetter)}
-                    className="gap-1"
-                  >
-                    <Download className="h-4 w-4" />
-                    تحميل
+                  onClick={handleGenerateLetter}
+                  disabled={isGenerating}
+                  className="flex-1"
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
+                      جاري إنشاء الخطاب...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 ml-2" />
+                      إنشاء الخطاب القانوني
+                    </>
+                  )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigator.clipboard.writeText(generatedLetter.content)}
-                    className="gap-1"
-                  >
-                    <FileText className="h-4 w-4" />
-                    نسخ
+                <Button variant="outline" onClick={() => setCurrentStep(3)}>
+                  السابق
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.print()}
-                    className="gap-1"
-                  >
-                    🖨️ طباعة
-                  </Button>
-                </div>
               </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Brain className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                <p>ابدأ المحادثة التفاعلية لإنشاء خطاب قانوني مخصص</p>
-                <p className="text-xs mt-2">النظام سيطرح أسئلة ذكية لفهم احتياجاتك</p>
-              </div>
-            )}
           </CardContent>
         </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              معاينة الخطاب القانوني
+            </DialogTitle>
+            <DialogDescription>
+              راجع الخطاب قبل الحفظ أو الطباعة
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-6 bg-white border rounded-lg min-h-[400px] whitespace-pre-wrap font-mono text-sm">
+              {generatedLetter || 'لم يتم إنشاء الخطاب بعد'}
       </div>
 
-      {letterHistory.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-right">
-              <Bot className="h-5 w-5 text-amber-500" />
-              سجل الخطابات المُولدة
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 max-h-60 overflow-y-auto">
-              {letterHistory.map((letter) => (
-                <div
-                  key={letter.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="text-right">
-                    <h4 className="font-medium">{letter.title}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(letter.generatedAt).toLocaleString('ar-QA')}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => downloadLetter(letter)}
-                  >
-                    <Download className="h-4 w-4" />
+            <div className="flex gap-2 justify-start" dir="rtl">
+              <Button onClick={() => window.print()}>
+                <Download className="h-4 w-4 ml-2" />
+                طباعة/حفظ
+              </Button>
+              <Button variant="outline" onClick={() => setShowPreview(false)}>
+                إغلاق
                   </Button>
-                </div>
-              ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default AILegalLetterGenerator; 
+

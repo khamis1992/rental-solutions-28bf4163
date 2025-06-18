@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import '@/styles/legal-rtl.css';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -41,6 +42,8 @@ import {
   UnpaidTrafficFine
 } from '@/services/LegalManagementService';
 import AILegalLetterGenerator from './AILegalLetterGenerator';
+import '@/styles/legal-rtl.css';
+import '@/styles/legal-rtl.css';
 
 const LegalManagementDashboard = () => {
   // State management
@@ -523,69 +526,17 @@ const LegalManagementDashboard = () => {
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6 legal-rtl" dir="rtl">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">إدارة الشؤون القانونية</h1>
-          <p className="text-muted-foreground">الكشف التلقائي والإدارة الشاملة للحالات القانونية</p>
-        </div>
-        <div className="flex gap-2">
+              <div className="flex justify-between items-center" dir="rtl">
+          <div className="text-right">
+            <h1 className="text-3xl font-bold text-right">إدارة الشؤون القانونية</h1>
+            <p className="text-muted-foreground text-right">الكشف التلقائي والإدارة الشاملة للحالات القانونية</p>
+          </div>
+        <div className="flex gap-2" dir="rtl">
           <Button onClick={loadDashboardData} variant="outline">
             تحديث البيانات
           </Button>
-          <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                قالب جديد
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>إنشاء قالب قانوني جديد</DialogTitle>
-                <DialogDescription>
-                  أنشئ قالب جديد للوثائق القانونية
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="اسم القالب"
-                  value={newTemplateForm.name}
-                  onChange={(e) => setNewTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                />
-                <Select
-                  value={newTemplateForm.type}
-                  onValueChange={(value: any) => setNewTemplateForm(prev => ({ ...prev, type: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="نوع القالب" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="demand_letter">خطاب مطالبة</SelectItem>
-                    <SelectItem value="court_notice">إشعار محكمة</SelectItem>
-                    <SelectItem value="settlement_offer">عرض تسوية</SelectItem>
-                    <SelectItem value="payment_reminder">تذكير دفع</SelectItem>
-                    <SelectItem value="legal_notice">إنذار قانوني</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Textarea
-                  placeholder="محتوى القالب (استخدم {{variable_name}} للمتغيرات)"
-                  value={newTemplateForm.content}
-                  onChange={(e) => setNewTemplateForm(prev => ({ ...prev, content: e.target.value }))}
-                  className="min-h-[200px]"
-                />
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setShowTemplateDialog(false)}>
-                    إلغاء
-                  </Button>
-                  <Button onClick={handleCreateTemplate}>
-                    إنشاء القالب
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
@@ -593,50 +544,50 @@ const LegalManagementDashboard = () => {
 
       {/* Dashboard Statistics */}
       {dashboardStats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">المرشحون للإجراءات القانونية</CardTitle>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4" dir="rtl">
+          <Card className="text-right">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" dir="rtl">
+              <CardTitle className="text-sm font-medium text-right">المرشحون للإجراءات القانونية</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardStats.total_candidates}</div>
-              <p className="text-xs text-muted-foreground">عميل يحتاج متابعة</p>
+            <CardContent className="text-right">
+              <div className="text-2xl font-bold text-right">{dashboardStats.total_candidates}</div>
+              <p className="text-xs text-muted-foreground text-right">عميل يحتاج متابعة</p>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">القضايا النشطة</CardTitle>
+          <Card className="text-right">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" dir="rtl">
+              <CardTitle className="text-sm font-medium text-right">القضايا النشطة</CardTitle>
               <Gavel className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardStats.total_cases}</div>
-              <p className="text-xs text-muted-foreground">قضية مفتوحة</p>
+            <CardContent className="text-right">
+              <div className="text-2xl font-bold text-right">{dashboardStats.total_cases}</div>
+              <p className="text-xs text-muted-foreground text-right">قضية مفتوحة</p>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">المبلغ المعرض للخطر</CardTitle>
+          <Card className="text-right">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" dir="rtl">
+              <CardTitle className="text-sm font-medium text-right">المبلغ المعرض للخطر</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="text-right">
+              <div className="text-2xl font-bold text-right">
                 {dashboardStats.total_amount_at_risk.toLocaleString()} ر.ق
               </div>
-              <p className="text-xs text-muted-foreground">إجمالي المبالغ المستحقة</p>
+              <p className="text-xs text-muted-foreground text-right">إجمالي المبالغ المستحقة</p>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">القوالب النشطة</CardTitle>
+          <Card className="text-right">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" dir="rtl">
+              <CardTitle className="text-sm font-medium text-right">القوالب النشطة</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{legalTemplates.length}</div>
-              <p className="text-xs text-muted-foreground">قالب متاح</p>
+            <CardContent className="text-right">
+              <div className="text-2xl font-bold text-right">{legalTemplates.length}</div>
+              <p className="text-xs text-muted-foreground text-right">قالب متاح</p>
             </CardContent>
           </Card>
         </div>
@@ -644,31 +595,31 @@ const LegalManagementDashboard = () => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="candidates" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="templates">إدارة القوالب</TabsTrigger>
-          <TabsTrigger value="cases">القضايا النشطة</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3" dir="rtl">
           <TabsTrigger value="candidates">المرشحون للإجراءات القانونية</TabsTrigger>
+          <TabsTrigger value="cases">القضايا النشطة</TabsTrigger>
+          <TabsTrigger value="templates">مولد الخطابات الذكي</TabsTrigger>
         </TabsList>
 
         {/* Legal Candidates Tab */}
         <TabsContent value="candidates" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>الكشف التلقائي - المرشحون للإجراءات القانونية</CardTitle>
-                  <CardDescription>
+              <div className="flex justify-between items-center" dir="rtl">
+                <div className="text-right">
+                  <CardTitle className="text-right">الكشف التلقائي - المرشحون للإجراءات القانونية</CardTitle>
+                  <CardDescription className="text-right">
                     العملاء الذين لديهم التزامات مالية متأخرة تستدعي اتخاذ إجراءات قانونية
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Search className="w-4 h-4 text-muted-foreground" />
+                <div className="flex items-center gap-2" dir="rtl">
                   <Input
                     placeholder="البحث عن عميل..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64"
+                    className="w-64 text-right"
                   />
+                  <Search className="w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
             </CardHeader>
@@ -679,22 +630,53 @@ const LegalManagementDashboard = () => {
                   <p className="text-muted-foreground">لا توجد حالات تستدعي إجراءات قانونية حالياً</p>
                 </div>
               ) : (
-                <Table>
+                <Table dir="rtl" className="text-right">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>الإجراءات</TableHead>
-                      <TableHead>الإجراء المقترح</TableHead>
-                      <TableHead>نقاط الأولوية</TableHead>
-                      <TableHead>المبلغ المستحق</TableHead>
-                      <TableHead>النوع</TableHead>
-                      <TableHead>العميل</TableHead>
+                      <TableHead className="text-right">العميل</TableHead>
+                      <TableHead className="text-right">النوع</TableHead>
+                      <TableHead className="text-right">المبلغ المستحق</TableHead>
+                      <TableHead className="text-right">نقاط الأولوية</TableHead>
+                      <TableHead className="text-right">الإجراء المقترح</TableHead>
+                      <TableHead className="text-right">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCandidates.map((candidate) => (
                       <TableRow key={candidate.id}>
-                        <TableCell>
-                          <div className="flex gap-2">
+                        <TableCell className="text-right">
+                          <div>
+                            <p className="font-medium">{candidate.customer_name}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="outline">
+                            {candidate.type === 'unpaid_agreement' && 'إيجار متأخر'}
+                            {candidate.type === 'unpaid_traffic_fine' && 'مخالفات مرورية'}
+                            {candidate.type === 'combined' && 'مختلط'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-bold text-red-600">
+                            {candidate.total_amount_owed.toLocaleString()} ر.ق
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center gap-2 justify-end" dir="rtl">
+                            <span className="text-sm font-medium">{candidate.priority_score}/100</span>
+                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-red-500 h-2 rounded-full" 
+                                style={{ width: `${candidate.priority_score}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <p className="text-sm">{candidate.recommended_action}</p>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end" dir="rtl">
                             <Button
                               size="sm"
                               variant="outline"
@@ -703,7 +685,7 @@ const LegalManagementDashboard = () => {
                                 setShowCaseDialog(true);
                               }}
                             >
-                              <Gavel className="w-4 h-4 mr-1" />
+                              <Gavel className="w-4 h-4 ml-1" />
                               فتح قضية
                             </Button>
                             <Button 
@@ -711,40 +693,9 @@ const LegalManagementDashboard = () => {
                               variant="outline"
                               onClick={() => handleViewDetails(candidate)}
                             >
-                              <Eye className="w-4 h-4 mr-1" />
+                              <Eye className="w-4 h-4 ml-1" />
                               عرض التفاصيل
                             </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <p className="text-sm">{candidate.recommended_action}</p>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-red-500 h-2 rounded-full" 
-                                style={{ width: `${candidate.priority_score}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-sm font-medium">{candidate.priority_score}/100</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-bold text-red-600">
-                            {candidate.total_amount_owed.toLocaleString()} ر.ق
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {candidate.type === 'unpaid_agreement' && 'إيجار متأخر'}
-                            {candidate.type === 'unpaid_traffic_fine' && 'مخالفات مرورية'}
-                            {candidate.type === 'combined' && 'مختلط'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{candidate.customer_name}</p>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -774,70 +725,7 @@ const LegalManagementDashboard = () => {
 
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-4">
-          <Tabs defaultValue="ai-generator" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="ai-generator" className="flex items-center gap-2">
-                <Brain className="h-4 w-4" />
-                مولد الخطابات بالذكاء الاصطناعي
-              </TabsTrigger>
-              <TabsTrigger value="traditional-templates" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                القوالب التقليدية
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="ai-generator" className="mt-6">
-              <AILegalLetterGenerator />
-            </TabsContent>
-            
-            <TabsContent value="traditional-templates" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>إدارة القوالب القانونية</CardTitle>
-              <CardDescription>إنشاء وإدارة قوالب الوثائق القانونية</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {legalTemplates.map((template) => (
-                  <Card key={template.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-lg">{template.name}</CardTitle>
-                          <Badge variant="outline" className="mt-1">
-                            {template.type === 'demand_letter' && 'خطاب مطالبة'}
-                            {template.type === 'court_notice' && 'إشعار محكمة'}
-                            {template.type === 'settlement_offer' && 'عرض تسوية'}
-                            {template.type === 'payment_reminder' && 'تذكير دفع'}
-                            {template.type === 'legal_notice' && 'إنذار قانوني'}
-                          </Badge>
-                        </div>
-                        <Badge variant={template.is_active ? 'default' : 'secondary'}>
-                          {template.is_active ? 'نشط' : 'غير نشط'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        المتغيرات: {template.variables.join(', ')}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          <Eye className="w-4 h-4 mr-1" />
-                          عرض
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          تعديل
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-            </TabsContent>
-          </Tabs>
+          <AILegalLetterGenerator />
         </TabsContent>
       </Tabs>
 
@@ -880,12 +768,12 @@ const LegalManagementDashboard = () => {
                 onChange={(e) => setNewCaseForm(prev => ({ ...prev, notes: e.target.value }))}
               />
               
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowCaseDialog(false)}>
-                  إلغاء
-                </Button>
+              <div className="flex justify-end gap-2" dir="rtl">
                 <Button onClick={handleCreateCase}>
                   فتح القضية
+                </Button>
+                <Button variant="outline" onClick={() => setShowCaseDialog(false)}>
+                  إلغاء
                 </Button>
               </div>
             </div>
@@ -911,9 +799,9 @@ const LegalManagementDashboard = () => {
                 size="sm"
               >
                 {isExporting ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary ml-2"></div>
                 ) : (
-                  <Download className="w-4 h-4 mr-2" />
+                  <Download className="w-4 h-4 ml-2" />
                 )}
                 تصدير PDF للمحكمة
               </Button>

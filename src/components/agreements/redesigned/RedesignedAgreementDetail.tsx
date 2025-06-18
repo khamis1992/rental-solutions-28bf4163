@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import '@/styles/legal-rtl.css';
 import { differenceInMonths } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -177,7 +178,7 @@ export function RedesignedAgreementDetail({
   if (!agreement) {
     return (
       <Card className="p-6">
-        <div className="text-center text-muted-foreground" dir="rtl">
+        <div className="text-center text-muted-foreground legal-rtl" dir="rtl">
           لم يتم اختيار عقد
         </div>
       </Card>
@@ -198,7 +199,7 @@ export function RedesignedAgreementDetail({
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6 legal-rtl" dir="rtl">
       {/* Header with Agreement Info and Debug Toggle */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         {/* Diagnostic buttons moved to far left */}

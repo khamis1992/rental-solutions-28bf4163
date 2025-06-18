@@ -3,9 +3,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/ui/PageHeader";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { UserCog, Sliders, Settings as SettingsIcon } from "lucide-react";
+import { UserCog, Sliders, Settings as SettingsIcon, Smartphone } from "lucide-react";
 const UserSettings = React.lazy(() => import("./UserSettings"));
 const SystemSettings = React.lazy(() => import("./SystemSettings"));
+const PWASettings = React.lazy(() => import("@/components/settings/PWASettings"));
 
 const Settings: React.FC = () => {
   const { language } = useLanguage();
@@ -32,6 +33,10 @@ const Settings: React.FC = () => {
               <Sliders className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
               {language === 'ar' ? 'إعدادات النظام' : 'System Settings'}
             </TabsTrigger>
+            <TabsTrigger value="pwa" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <Smartphone className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+              {language === 'ar' ? 'إعدادات التطبيق' : 'App Settings'}
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="user" className="mt-4">
@@ -51,6 +56,16 @@ const Settings: React.FC = () => {
               </div>
             }>
               <SystemSettings />
+            </React.Suspense>
+          </TabsContent>
+          
+          <TabsContent value="pwa" className="mt-4">
+            <React.Suspense fallback={
+              <div className={`text-center py-8 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                {language === 'ar' ? 'جاري تحميل إعدادات التطبيق...' : 'Loading App Settings...'}
+              </div>
+            }>
+              <PWASettings />
             </React.Suspense>
           </TabsContent>
         </Tabs>

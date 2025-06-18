@@ -131,7 +131,7 @@ const CustomerSection = ({
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="flex-grow">{customer.phone_number}</span>
+                <span className="flex-grow phone-number-ltr" dir="ltr">{customer.phone_number}</span>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(customer.phone_number, 'Phone')}>
                   <Copy className="h-4 w-4" />
                 </Button>

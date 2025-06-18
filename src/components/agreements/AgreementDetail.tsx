@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -251,7 +250,7 @@ export function AgreementDetail({
         {/* Title area moved to far right */}
         <div className="space-y-2 text-right order-1 lg:order-1">
           <div className="flex items-center gap-3 flex-row-reverse">
-            <h1 className="text-2xl font-bold">تفاصيل العقد</h1>
+            <h1 className="text-2xl font-bold">لوحة التحكم</h1>
             <Badge variant="outline" className="px-3 py-1">
               {agreement.agreement_number || 'بدون رقم'}
             </Badge>
@@ -263,7 +262,7 @@ export function AgreementDetail({
             </Badge>
           </div>
           <p className="text-muted-foreground text-right">
-            عرض وإدارة تفاصيل عقد الإيجار
+            لوحة التحكم
           </p>
         </div>
         

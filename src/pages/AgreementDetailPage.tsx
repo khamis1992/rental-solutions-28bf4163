@@ -1,6 +1,6 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import '@/styles/legal-rtl.css';
 import { format } from 'date-fns';
 import PageContainer from '@/components/layout/PageContainer';
 import { useAgreement } from '@/hooks/use-agreement';
@@ -22,6 +22,8 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { usePayment } from '@/hooks/use-payment';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { agreementPaymentService } from '@/services/AgreementPaymentService';
+import { supabase } from '@/lib/supabase';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +40,7 @@ const AgreementDetailPage = () => {
   
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+  const [autoPaymentCreationAttempted, setAutoPaymentCreationAttempted] = useState(false);
   
   const { rentAmount } = useRentAmount(agreement, id);
   const contractAmount = agreement?.total_amount || null;
@@ -56,6 +59,64 @@ const AgreementDetailPage = () => {
 
   // Add traffic fines hook
   const { trafficFines } = useTrafficFines();
+
+  // Automatic payment schedule creation
+  useEffect(() => {
+    const createPaymentScheduleIfNeeded = async () => {
+      // Only attempt once and if we have an agreement
+      if (autoPaymentCreationAttempted || !agreement?.id || isLoading) {
+        return;
+      }
+
+      // Mark as attempted to prevent multiple calls
+      setAutoPaymentCreationAttempted(true);
+
+      console.log('🔄 Auto-checking payments for agreement on page load:', agreement.id);
+
+      try {
+        // Check directly from database to get the most current data
+        const { data: existingPayments, error: paymentsError } = await supabase
+          .from('unified_payments')
+          .select('id')
+          .eq('lease_id', agreement.id)
+          .limit(1);
+
+        if (paymentsError) {
+          console.warn('⚠️ Error checking payments on page load:', paymentsError);
+          return;
+        }
+
+        const hasPayments = existingPayments && existingPayments.length > 0;
+        console.log(`📊 Page load check: Found ${existingPayments?.length || 0} payments for agreement ${agreement.id}`);
+
+        if (hasPayments) {
+          console.log('ℹ️ Payments already exist, no auto-creation needed');
+          return;
+        }
+
+        // No payments found, create them automatically
+        console.log('🚀 No payments found on page load, creating automatically...');
+        const result = await agreementPaymentService.createPaymentScheduleByAgreementId(agreement.id);
+
+        if (result.success && result.scheduleCount > 0) {
+          console.log('✅ Payment schedule auto-created on page load');
+          
+          // Refresh payments data
+          setTimeout(() => {
+            fetchPayments();
+            setRefreshTrigger(prev => prev + 1);
+          }, 1000);
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not auto-create payment schedule on page load:', error);
+        // Don't show error toast here as this is a background operation
+      }
+    };
+
+    // Run after a delay to ensure all data is loaded
+    const timeoutId = setTimeout(createPaymentScheduleIfNeeded, 1500);
+    return () => clearTimeout(timeoutId);
+  }, [agreement?.id, isLoading, fetchPayments, autoPaymentCreationAttempted]);
 
   const refreshAgreementData = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -158,7 +219,7 @@ const AgreementDetailPage = () => {
   // Render loading state while fetching agreement
   if (isLoading) {
     return (
-      <PageContainer title="تفاصيل العقد" description="عرض وإدارة تفاصيل عقد الإيجار" backLink="/agreements">
+      <PageContainer title="لوحة التحكم" description="لوحة التحكم" backLink="/agreements">
         <div className="space-y-6">
           <Skeleton className="h-12 w-2/3" />
           <div className="grid gap-6 md:grid-cols-2">
@@ -174,13 +235,13 @@ const AgreementDetailPage = () => {
   // Render error state if agreement couldn't be loaded
   if (error) {
     return (
-      <PageContainer title="تفاصيل العقد" description="عرض وإدارة تفاصيل عقد الإيجار" backLink="/agreements">
-        <div className="text-center py-12">
+      <PageContainer title="لوحة التحكم" description="لوحة التحكم" backLink="/agreements">
+        <div className="text-center py-12 legal-rtl" dir="rtl">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">حدث خطأ أثناء تحميل العقد</h3>
-          <p className="text-muted-foreground mb-4">
+          <h3 className="text-lg font-semibold mb-2 text-right">حدث خطأ أثناء تحميل العقد</h3>
+          <p className="text-muted-foreground mb-4 text-right">
             {error instanceof Error ? error.message : 'حدث خطأ غير معروف أثناء جلب تفاصيل العقد.'}
           </p>
           <Button variant="outline" onClick={() => navigate("/agreements")}>العودة إلى العقود</Button>
@@ -192,13 +253,13 @@ const AgreementDetailPage = () => {
   // Render not found state if agreement doesn't exist
   if (!agreement) {
     return (
-      <PageContainer title="تفاصيل العقد" description="عرض وإدارة تفاصيل عقد الإيجار" backLink="/agreements">
-        <div className="text-center py-12">
+      <PageContainer title="لوحة التحكم" description="لوحة التحكم" backLink="/agreements">
+        <div className="text-center py-12 legal-rtl" dir="rtl">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">العقد غير موجود</h3>
-          <p className="text-muted-foreground mb-4">
+          <h3 className="text-lg font-semibold mb-2 text-right">العقد غير موجود</h3>
+          <p className="text-muted-foreground mb-4 text-right">
             العقد الذي تبحث عنه غير موجود أو تم حذفه.
           </p>
           <Button variant="outline" onClick={() => navigate("/agreements")}>العودة إلى العقود</Button>
@@ -210,14 +271,15 @@ const AgreementDetailPage = () => {
   // Main component rendering with agreement data
   return (
     <PageContainer 
-      title="تفاصيل العقد" 
-      description="عرض وإدارة تفاصيل عقد الإيجار" 
+      title="لوحة التحكم" 
+      description="لوحة التحكم" 
       backLink="/agreements" 
     >
+      <div className="legal-rtl" dir="rtl">
       <div className="flex justify-between items-center mb-4" dir="rtl">
         {/* Title and badges moved to far right */}
-        <div className="flex items-center space-x-2 flex-row-reverse">
-          <h2 className="text-3xl font-bold tracking-tight">
+        <div className="flex items-center space-x-reverse space-x-2">
+          <h2 className="text-3xl font-bold tracking-tight text-right">
             عقد رقم {agreement.agreement_number}
           </h2>
           <Badge variant={getStatusBadgeVariant(agreement.status)}>
@@ -300,40 +362,40 @@ const AgreementDetailPage = () => {
       </div>
 
       <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md">
-        <CardContent className="p-6 bg-zinc-100 rounded-md">
+        <CardContent className="p-6 bg-zinc-100 rounded-md text-right" dir="rtl">
           <div className="flex flex-col md:flex-row justify-between">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">
+            <div className="space-y-1 text-right">
+              <p className="text-sm text-muted-foreground text-right">
                 {agreement.created_at && <>تم الإنشاء في {format(new Date(agreement.created_at), 'd MMMM, yyyy', {locale: undefined})}</>}
               </p>
             </div>
           </div>
           
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground">الإيجار الشهري</p>
-              <p className="text-2xl font-bold">ر.ق {rentAmount?.toLocaleString() || 0}</p>
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4" dir="rtl">
+            <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm text-right">
+              <p className="text-sm font-medium text-muted-foreground text-right">الإيجار الشهري</p>
+              <p className="text-2xl font-bold text-right">ر.ق {rentAmount?.toLocaleString() || 0}</p>
             </div>
-            <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground">إجمالي العقد</p>
-              <p className="text-2xl font-bold">ر.ق {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || 0}</p>
+            <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm text-right">
+              <p className="text-sm font-medium text-muted-foreground text-right">إجمالي العقد</p>
+              <p className="text-2xl font-bold text-right">ر.ق {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || 0}</p>
             </div>
-            <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground">الضمان</p>
-              <p className="text-2xl font-bold">ر.ق {agreement.deposit_amount?.toLocaleString() || 0}</p>
+            <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm text-right">
+              <p className="text-sm font-medium text-muted-foreground text-right">الضمان</p>
+              <p className="text-2xl font-bold text-right">ر.ق {agreement.deposit_amount?.toLocaleString() || 0}</p>
             </div>
           </div>
           
           {agreement.start_date && agreement.end_date && (
-            <div className="mt-6">
-              <div className="flex justify-between text-sm mb-1">
-                <span>تقدم العقد</span>
+            <div className="mt-6" dir="rtl">
+              <div className="flex justify-between text-sm mb-1 text-right">
                 <span>{calculateProgress()}%</span>
+                <span>تقدم العقد</span>
               </div>
               <Progress value={calculateProgress()} className="h-2" />
-              <div className="flex justify-between text-xs mt-1">
-                <span>{format(new Date(agreement.start_date), "d MMMM, yyyy", {locale: undefined})}</span>
+              <div className="flex justify-between text-xs mt-1 text-right">
                 <span>{format(new Date(agreement.end_date), "d MMMM, yyyy", {locale: undefined})}</span>
+                <span>{format(new Date(agreement.start_date), "d MMMM, yyyy", {locale: undefined})}</span>
               </div>
             </div>
           )}
@@ -360,6 +422,7 @@ const AgreementDetailPage = () => {
           />
         </DialogContent>
       </Dialog>
+      </div>
     </PageContainer>
   );
 };

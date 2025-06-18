@@ -13,21 +13,58 @@ export const AgreementStatus = {
   DRAFT: 'draft'
 } as const;
 
-// Add the missing agreementSchema
+// Function to generate next agreement number
+export const generateAgreementNumber = async (supabase: SupabaseClient): Promise<string> => {
+  try {
+    // Get the highest existing AGR_LTO number
+    const { data, error } = await supabase
+      .from('leases')
+      .select('agreement_number')
+      .like('agreement_number', 'AGR_LTO%')
+      .order('agreement_number', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Error fetching agreement numbers:', error);
+      throw new Error('Failed to generate agreement number');
+    }
+
+    let nextNumber = 1;
+    
+    if (data && data.length > 0 && data[0].agreement_number) {
+      // Extract number from AGR_LTO### format
+      const match = data[0].agreement_number.match(/AGR_LTO(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1;
+      }
+    }
+
+    // Format with leading zeros (3 digits)
+    const formattedNumber = nextNumber.toString().padStart(3, '0');
+    return `AGR_LTO${formattedNumber}`;
+  } catch (error) {
+    console.error('Error generating agreement number:', error);
+    throw new Error('Failed to generate agreement number');
+  }
+};
+
+// Add the missing agreementSchema with optional agreement_number
 export const agreementSchema = z.object({
-  agreement_number: z.string().min(1, "Agreement number is required"),
-  start_date: z.date(),
-  end_date: z.date(),
-  customer_id: z.string().min(1, "Customer is required"),
-  vehicle_id: z.string().min(1, "Vehicle is required"),
-  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]) as z.ZodEnum<[ValidationLeaseStatus, ...ValidationLeaseStatus[]]>,
-  rent_amount: z.number().positive("Rent amount must be positive"),
-  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
-  total_amount: z.number().positive("Total amount must be positive"),
-  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
+  agreement_number: z.string().optional(), // Make optional for auto-generation
+  start_date: z.string().transform((str) => new Date(str)), // Handle string to date conversion
+  end_date: z.string().transform((str) => new Date(str)),   // Handle string to date conversion
+  customer_id: z.string().min(1, "العميل مطلوب"),
+  vehicle_id: z.string().min(1, "المركبة مطلوبة"),
+  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]).default("draft"),
+  rent_amount: z.number().positive("يجب أن يكون مبلغ الإيجار أكبر من صفر"),
+  deposit_amount: z.number().nonnegative("يجب أن يكون مبلغ الضمان صفر أو أكبر").default(0),
+  total_amount: z.number().nonnegative("يجب أن يكون المبلغ الإجمالي صفر أو أكبر").default(0),
+  daily_late_fee: z.number().nonnegative("يجب أن تكون رسوم التأخير صفر أو أكبر").default(100),
   agreement_type: z.enum(["short_term", "lease_to_own"]).default("short_term"),
   agreement_duration: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().optional().default(""),
+  payment_frequency: z.enum(["weekly", "biweekly", "monthly", "quarterly"]).default("monthly"),
+  payment_day: z.number().min(1).max(31).default(1),
   // Mark as optional with a default value so it's available in the UI but not sent to DB
   terms_accepted: z.boolean().default(false).optional(),
 }).refine(
@@ -36,28 +73,32 @@ export const agreementSchema = z.object({
     return data.end_date > data.start_date;
   },
   {
-    message: "End date must be after start date",
+    message: "يجب أن يكون تاريخ النهاية بعد تاريخ البداية",
     path: ["end_date"],
   }
 );
 
 // Update schema for existing agreements (more flexible validation)
 export const updateAgreementSchema = z.object({
-  agreement_number: z.string().min(1, "Agreement number is required"),
-  start_date: z.date().optional(), // Make optional for updates
-  end_date: z.date().optional(), // Make optional for updates
-  customer_id: z.string().min(1, "Customer is required"),
-  vehicle_id: z.string().min(1, "Vehicle is required"),
-  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]) as z.ZodEnum<[ValidationLeaseStatus, ...ValidationLeaseStatus[]]>,
-  rent_amount: z.number().positive("Rent amount must be positive"),
-  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
-  total_amount: z.number().positive("Total amount must be positive"),
-  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
+  agreement_number: z.string().optional(),
+  start_date: z.union([z.string(), z.date()]).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  ).optional(),
+  end_date: z.union([z.string(), z.date()]).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  ).optional(),
+  customer_id: z.string().min(1, "العميل مطلوب"),
+  vehicle_id: z.string().min(1, "المركبة مطلوبة"),
+  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]).default("draft"),
+  rent_amount: z.number().positive("يجب أن يكون مبلغ الإيجار أكبر من صفر"),
+  deposit_amount: z.number().nonnegative("يجب أن يكون مبلغ الضمان صفر أو أكبر").default(0),
+  total_amount: z.number().nonnegative("يجب أن يكون المبلغ الإجمالي صفر أو أكبر").default(0),
+  daily_late_fee: z.number().nonnegative("يجب أن تكون رسوم التأخير صفر أو أكبر").default(100),
   agreement_type: z.enum(["short_term", "lease_to_own"]).default("short_term"),
   agreement_duration: z.string().optional(),
   notes: z.string().optional(),
   terms_accepted: z.boolean().default(false).optional(),
-  payment_frequency: z.enum(["weekly", "monthly", "quarterly"]).default("monthly").optional(),
+  payment_frequency: z.enum(["weekly", "biweekly", "monthly", "quarterly"]).default("monthly").optional(),
   payment_day: z.number().min(1).max(31).default(1).optional(),
 }).refine(
   (data) => {
@@ -68,7 +109,7 @@ export const updateAgreementSchema = z.object({
     return true;
   },
   {
-    message: "End date must be after start date",
+    message: "يجب أن يكون تاريخ النهاية بعد تاريخ البداية",
     path: ["end_date"],
   }
 );
@@ -87,8 +128,8 @@ export interface Agreement {
   id: string;
   customer_id: string;
   vehicle_id: string;
-  start_date: Date;
-  end_date: Date;
+  start_date: Date | string;
+  end_date: Date | string;
   agreement_type?: string;
   agreement_number?: string;
   status: LeaseStatus;
@@ -113,6 +154,7 @@ export interface Agreement {
   daily_late_fee?: number;
   rent_due_day?: number;
   payment_day?: number;
+  payment_frequency?: string;
 }
 
 // Function to force generate payment for a specific agreement

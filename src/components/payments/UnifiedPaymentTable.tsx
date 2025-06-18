@@ -11,7 +11,7 @@ interface PaymentItem {
   dueDate: Date;
   amount: number;
   description: string;
-  status: 'pending' | 'completed' | 'overdue';
+  status: 'pending' | 'completed' | 'overdue' | 'paid' | 'partially_paid' | 'cancelled';
   type: string;
   isProjected: boolean;
 }
@@ -51,13 +51,18 @@ export function UnifiedPaymentTable({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
+      case 'paid':
         return <Badge className="bg-green-500 text-white">مدفوع</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-500 text-white">معلق</Badge>;
       case 'overdue':
         return <Badge className="bg-red-500 text-white">متأخر</Badge>;
+      case 'partially_paid':
+        return <Badge className="bg-blue-500 text-white">مدفوع جزئياً</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-gray-500 text-white">ملغي</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">غير محدد</Badge>;
     }
   };
 

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { format } from 'date-fns';
+import '@/styles/legal-rtl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Agreement } from '@/types/agreement';
@@ -27,21 +28,21 @@ export function AgreementOverviewCard({
   contractAmount
 }: AgreementOverviewCardProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 legal-rtl" dir="rtl">
       {/* Key Information Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Customer Info */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
+          <CardContent className="p-4 text-right">
+            <div className="flex items-center space-x-reverse space-x-3">
+              <div className="flex-1 text-right">
+                <p className="text-sm text-muted-foreground text-right">العميل</p>
+                <p className="font-semibold truncate text-right">
+                  {agreement.customers?.full_name || 'عميل غير معروف'}
+                </p>
+              </div>
               <div className="bg-blue-500/10 rounded-full p-2">
                 <User className="h-5 w-5 text-blue-500" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Customer</p>
-                <p className="font-semibold truncate">
-                  {agreement.customers?.full_name || 'Unknown Customer'}
-                </p>
               </div>
             </div>
           </CardContent>
@@ -49,16 +50,16 @@ export function AgreementOverviewCard({
 
         {/* Vehicle Info */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
+          <CardContent className="p-4 text-right">
+            <div className="flex items-center space-x-reverse space-x-3">
+              <div className="flex-1 text-right">
+                <p className="text-sm text-muted-foreground text-right">المركبة</p>
+                <p className="font-semibold truncate text-right">
+                  {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'مركبة غير معروفة'}
+                </p>
+              </div>
               <div className="bg-green-500/10 rounded-full p-2">
                 <Car className="h-5 w-5 text-green-500" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Vehicle</p>
-                <p className="font-semibold truncate">
-                  {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'Unknown Vehicle'}
-                </p>
               </div>
             </div>
           </CardContent>
@@ -66,16 +67,16 @@ export function AgreementOverviewCard({
 
         {/* Duration */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
+          <CardContent className="p-4 text-right">
+            <div className="flex items-center space-x-reverse space-x-3">
+              <div className="flex-1 text-right">
+                <p className="text-sm text-muted-foreground text-right">المدة</p>
+                <p className="font-semibold text-right">
+                  {duration} {duration === 1 ? 'شهر' : 'أشهر'}
+                </p>
+              </div>
               <div className="bg-purple-500/10 rounded-full p-2">
                 <Clock className="h-5 w-5 text-purple-500" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Duration</p>
-                <p className="font-semibold">
-                  {duration} {duration === 1 ? 'month' : 'months'}
-                </p>
               </div>
             </div>
           </CardContent>
@@ -83,16 +84,16 @@ export function AgreementOverviewCard({
 
         {/* Monthly Amount */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
+          <CardContent className="p-4 text-right">
+            <div className="flex items-center space-x-reverse space-x-3">
+              <div className="flex-1 text-right">
+                <p className="text-sm text-muted-foreground text-right">الإيجار الشهري</p>
+                <p className="font-semibold text-right">
+                  {rentAmount?.toLocaleString() || 0} ر.ق
+                </p>
+              </div>
               <div className="bg-amber-500/10 rounded-full p-2">
                 <DollarSign className="h-5 w-5 text-amber-500" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Monthly</p>
-                <p className="font-semibold">
-                  {formatCurrency(rentAmount)}
-                </p>
               </div>
             </div>
           </CardContent>
@@ -102,63 +103,63 @@ export function AgreementOverviewCard({
       {/* Combined Customer & Vehicle Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-right" dir="rtl">
+            <span>تفاصيل العميل والمركبة</span>
             <User className="h-5 w-5" />
-            Customer & Vehicle Details
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="text-right" dir="rtl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Customer Information Section */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
+            <div className="space-y-4 text-right">
+              <h3 className="font-semibold text-lg flex items-center gap-2 text-right justify-end">
+                <span>معلومات العميل</span>
                 <User className="h-5 w-5 text-blue-500" />
-                Customer Information
               </h3>
               <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{agreement.customers?.full_name || 'N/A'}</p>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">الاسم الكامل</p>
+                  <p className="font-medium text-right">{agreement.customers?.full_name || 'غير متوفر'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">ID Number</p>
-                  <p className="font-medium">{agreement.customers?.driver_license || 'N/A'}</p>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">رقم الهوية</p>
+                  <p className="font-medium text-right">{agreement.customers?.driver_license || 'غير متوفر'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Phone</p>
-                  <p className="font-medium">{agreement.customers?.phone_number || 'N/A'}</p>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">رقم الهاتف</p>
+                  <p className="font-medium text-right">{agreement.customers?.phone_number || 'غير متوفر'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Address</p>
-                  <p className="font-medium">{agreement.customers?.address || 'N/A'}</p>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">العنوان</p>
+                  <p className="font-medium text-right">{agreement.customers?.address || 'غير متوفر'}</p>
                 </div>
               </div>
             </div>
 
             {/* Vehicle Information Section */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
+            <div className="space-y-4 text-right">
+              <h3 className="font-semibold text-lg flex items-center gap-2 text-right justify-end">
+                <span>معلومات المركبة</span>
                 <Car className="h-5 w-5 text-green-500" />
-                Vehicle Information
               </h3>
               <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Make & Model</p>
-                  <p className="font-medium">
-                    {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'N/A'}
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">الماركة والموديل</p>
+                  <p className="font-medium text-right">
+                    {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'غير متوفر'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">License Plate</p>
-                  <p className="font-medium">{agreement.vehicles?.license_plate || 'N/A'}</p>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">رقم اللوحة</p>
+                  <p className="font-medium text-right">{agreement.vehicles?.license_plate || 'غير متوفر'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Year</p>
-                  <p className="font-medium">{agreement.vehicles?.year || 'N/A'}</p>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">سنة الصنع</p>
+                  <p className="font-medium text-right">{agreement.vehicles?.year || 'غير متوفر'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Color</p>
-                  <p className="font-medium">{agreement.vehicles?.color || 'N/A'}</p>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">اللون</p>
+                  <p className="font-medium text-right">{agreement.vehicles?.color || 'غير متوفر'}</p>
                 </div>
               </div>
             </div>

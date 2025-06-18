@@ -46,7 +46,7 @@ export const CustomerSearchResults: React.FC<CustomerSearchResultsProps> = ({
             {customer.phone_number && (
               <>
                 <span className="hidden sm:inline">•</span>
-                <span>{customer.phone_number}</span>
+                <span className="phone-number-ltr" dir="ltr">{customer.phone_number}</span>
               </>
             )}
           </div>

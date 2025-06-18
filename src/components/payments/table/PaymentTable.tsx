@@ -39,13 +39,13 @@ export function PaymentTable({ payments, onEditPayment, onDeletePayment }: Payme
       case 'overdue':
         return 'متأخر';
       case 'partially_paid':
-        return 'دفع جزئي';
+        return 'مدفوع جزئياً';
       case 'cancelled':
         return 'ملغي';
       case 'refunded':
         return 'مسترد';
       default:
-        return status;
+        return 'غير محدد';
     }
   };
 
@@ -121,11 +121,11 @@ export function PaymentTable({ payments, onEditPayment, onDeletePayment }: Payme
                   : '-'}
               </td>
               <td className="px-4 py-3 text-right">
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(payment.status)}`}>
-                  {getStatusText(payment.status)}
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(payment.status || '')}`}>
+                  {getStatusText(payment.status || '')}
                 </span>
               </td>
-              <td className="px-4 py-3 text-right">{getPaymentMethodText(payment.payment_method)}</td>
+              <td className="px-4 py-3 text-right">{getPaymentMethodText(payment.payment_method || undefined)}</td>
               <td className="px-4 py-3 max-w-xs truncate text-right">{payment.description || 'بدون وصف'}</td>
               <td className="px-4 py-3">
                 <div className="flex space-x-2 space-x-reverse flex-row-reverse">

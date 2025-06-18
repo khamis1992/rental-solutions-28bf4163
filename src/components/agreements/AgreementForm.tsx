@@ -4,7 +4,7 @@ import { Form } from '@/components/ui/form';
 import { Agreement } from '@/types/agreement';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { agreementSchema } from '@/lib/validation-schemas/agreement';
+import { agreementSchema, generateAgreementNumber } from '@/lib/validation-schemas/agreement';
 import { toast } from 'sonner';
 import { AgreementBasicDetails } from './form/AgreementBasicDetails';
 import { AgreementContractTerms } from './form/AgreementContractTerms';
@@ -12,6 +12,9 @@ import { VehicleDetailsCard } from './form/VehicleDetailsCard';
 import CustomerSection from './CustomerSection';
 import { CustomerInfo } from '@/types/customer';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface AgreementFormProps {
   initialData?: Agreement;
@@ -27,6 +30,7 @@ const AgreementForm = ({
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const [selectedVehicle, setSelectedVehicle] = useState(null as any);
   const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
+  const [isGeneratingAgreementNumber, setIsGeneratingAgreementNumber] = useState(false);
 
   // Initialize form with default values, ensuring proper date handling
   const form = useForm<Agreement>({
@@ -35,21 +39,45 @@ const AgreementForm = ({
       ...initialData || {
         customer_id: '',
         vehicle_id: '',
-        start_date: new Date().toISOString(),
-        end_date: new Date().toISOString(),
+        start_date: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 30 days from now
         status: 'draft',
         agreement_number: '',
         total_amount: 0,
         deposit_amount: 0,
         rent_amount: 0,
-        daily_late_fee: 120,
+        daily_late_fee: 100,
         notes: '',
         additional_drivers: [],
         payment_frequency: 'monthly',
         payment_day: 1,
+        terms_accepted: false
       }
     },
   });
+
+  const isEdit = !!initialData?.id;
+
+  // Auto-generate agreement number for new agreements
+  useEffect(() => {
+    if (!isEdit && !form.getValues('agreement_number')) {
+      const generateNumber = async () => {
+        try {
+          setIsGeneratingAgreementNumber(true);
+          const newNumber = await generateAgreementNumber(supabase);
+          form.setValue('agreement_number', newNumber);
+          console.log('تم توليد رقم الاتفاقية:', newNumber);
+        } catch (error) {
+          console.error('خطأ في توليد رقم الاتفاقية:', error);
+          toast.error('فشل في توليد رقم الاتفاقية تلقائياً');
+        } finally {
+          setIsGeneratingAgreementNumber(false);
+        }
+      };
+      
+      generateNumber();
+    }
+  }, [isEdit, form]);
 
   // Set initial selections if editing
   useEffect(() => {
@@ -73,83 +101,81 @@ const AgreementForm = ({
     form.setValue('customer_id', customer?.id || '');
   };
 
-  // Calculate total amount based on start/end dates and rent amount
-  const calculateTotalAmount = () => {
-    const startDate = form.getValues('start_date');
-    const endDate = form.getValues('end_date');
-    const rentAmount = form.getValues('rent_amount') || 0;
-
-    if (startDate && endDate && rentAmount > 0) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const months = diffDays / 30; // Approximate
-      const totalAmount = months * rentAmount;
-      
-      form.setValue('total_amount', parseFloat(totalAmount.toFixed(2)));
-    }
-  };
-
-  // Recalculate total when relevant fields change
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === 'start_date' || name === 'end_date' || name === 'rent_amount') {
-        calculateTotalAmount();
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
+  // Enhanced form submission with payment generation
   const handleSubmit = async (data: Agreement) => {
-    try {
       if (!termsAccepted) {
-        toast.error("يجب موافقة على الشروط والأحكام");
-        return;
-      }
-      
-      const finalData = {
-        ...data,
-        terms_accepted: termsAccepted,
-        id: initialData?.id
-      };
-      
-      console.log('إرسال بيانات الاتفاقية:', finalData);
-      
-      // Call the parent onSubmit function first
-      await onSubmit(finalData);
+      toast.error('يجب الموافقة على الشروط والأحكام');
+      return;
+    }
 
-      // Only generate payment schedule for NEW agreements (not edits)
-      if (!initialData?.id && finalData.id) {
-        console.log('إنشاء جدولة الدفعات للاتفاقية الجديدة:', finalData.id);
-        
+    try {
+      // Generate agreement number if not provided
+      let agreementNumber = data.agreement_number;
+      if (!agreementNumber) {
         try {
-          const result = await agreementPaymentService.createPaymentScheduleForAgreement(finalData);
-          
-          if (result.success) {
-            console.log(`تم إنشاء جدولة الدفعات بنجاح: ${result.scheduleCount} بند جدولة، ${result.paymentCount} سجل دفع`);
-            toast.success(`تم إنشاء الاتفاقية وجدولة الدفعات بنجاح (${result.paymentCount} دفعة)`);
-          } else {
-            console.error('فشل في إنشاء جدولة الدفعات:', result.error);
-            toast.warning(`تم إنشاء الاتفاقية ولكن فشل في إنشاء جدولة الدفعات: ${result.error}`);
-          }
-        } catch (scheduleError) {
-          console.error('خطأ في إنشاء جدولة الدفعات:', scheduleError);
-          toast.warning(`تم إنشاء الاتفاقية ولكن فشل في إنشاء جدولة الدفعات: ${scheduleError instanceof Error ? scheduleError.message : 'خطأ غير معروف'}`);
+          agreementNumber = await generateAgreementNumber(supabase);
+          console.log('تم توليد رقم اتفاقية جديد:', agreementNumber);
+        } catch (error) {
+          console.error('خطأ في توليد رقم الاتفاقية:', error);
+          toast.error('فشل في توليد رقم الاتفاقية');
+        return;
         }
       }
+      
+      // Prepare agreement data with proper date formatting
+      const agreementData = {
+        ...data,
+        agreement_number: agreementNumber,
+        start_date: typeof data.start_date === 'string' ? data.start_date : data.start_date.toISOString(),
+        end_date: typeof data.end_date === 'string' ? data.end_date : data.end_date.toISOString(),
+        terms_accepted: termsAccepted
+      };
+
+      // Submit the agreement
+      await onSubmit(agreementData);
+      
+      // Show success message
+      toast.success(
+        isEdit ? 'تم تحديث الاتفاقية بنجاح' : 'تم إنشاء الاتفاقية بنجاح',
+        {
+          description: `رقم الاتفاقية: ${agreementNumber}`
+        }
+      );
     } catch (error) {
-      console.error("خطأ في handleSubmit:", error);
-      toast.error("فشل في حفظ الاتفاقية");
+      console.error('Agreement submission error:', error);
+      toast.error('فشل في حفظ الاتفاقية');
     }
   };
 
-  const isEdit = !!initialData?.id;
-
   return (
-    <div dir="rtl">
+    <div dir="rtl" className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-10">
+          {/* Agreement Number Generation Status */}
+          {isGeneratingAgreementNumber && (
+            <Alert>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <AlertDescription className="text-right">
+                جاري توليد رقم الاتفاقية التلقائي...
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Agreement Number Display */}
+          {form.watch('agreement_number') && (
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription className="text-right">
+                <div className="font-medium">
+                  رقم الاتفاقية: <span className="text-blue-600">{form.watch('agreement_number')}</span>
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {isEdit ? 'رقم الاتفاقية الحالي' : 'تم توليد رقم الاتفاقية تلقائياً'}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <AgreementBasicDetails 
             form={form} 
             isEdit={isEdit} 
@@ -174,12 +200,51 @@ const AgreementForm = ({
             setTermsAccepted={setTermsAccepted} 
           />
 
+          {/* Terms Acceptance Validation */}
+          {!termsAccepted && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-right">
+                يجب الموافقة على الشروط والأحكام قبل حفظ الاتفاقية
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Payment Schedule Information */}
+          {!isEdit && (
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription className="text-right">
+                <div className="space-y-1">
+                  <div className="font-medium">ما سيحدث عند الحفظ:</div>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>سيتم حفظ الاتفاقية مع جميع التفاصيل المدخلة</li>
+                    <li>سيتم إنشاء جدولة دفعات تلقائية فوراً في الخلفية</li>
+                    <li>ستظهر جميع الدفعات تلقائياً في صفحة تفاصيل العقد</li>
+                    <li>لن تحتاج لأي إجراءات إضافية - النظام يتولى كل شيء</li>
+                  </ul>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="flex justify-start space-x-2 flex-row-reverse gap-2">
             <Button variant="outline" type="button" onClick={() => window.history.back()}>
               إلغاء
             </Button>
-            <Button type="submit" className="bg-primary" disabled={isSubmitting}>
-              {isSubmitting ? "جاري الحفظ..." : "حفظ الاتفاقية"}
+            <Button 
+              type="submit" 
+              className="bg-primary" 
+              disabled={isSubmitting || isGeneratingAgreementNumber || !termsAccepted}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  "جاري الحفظ..."
+                </>
+              ) : (
+                isEdit ? "تحديث الاتفاقية" : "حفظ الاتفاقية"
+              )}
             </Button>
           </div>
         </form>

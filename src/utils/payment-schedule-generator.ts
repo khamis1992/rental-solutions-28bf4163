@@ -69,7 +69,7 @@ export function generatePaymentSchedule(params: PaymentScheduleParams): Schedule
       });
     }
   } else if (paymentFrequency === 'weekly') {
-    // Weekly payment logic
+    // Weekly payment logic - fixed
     let currentDate = new Date(startDate);
     let weekNumber = 1;
     
@@ -84,9 +84,29 @@ export function generatePaymentSchedule(params: PaymentScheduleParams): Schedule
         isProjected: true
       });
       
-      currentDate = addMonths(currentDate, 0);
+      // Add 7 days to current date for next payment
       currentDate.setDate(currentDate.getDate() + 7);
       weekNumber++;
+    }
+  } else if (paymentFrequency === 'daily') {
+    // Daily payment logic
+    let currentDate = new Date(startDate);
+    let dayNumber = 1;
+    
+    while (currentDate <= endDate) {
+      payments.push({
+        id: `rent-day-${dayNumber}-${currentDate.getTime()}`,
+        dueDate: new Date(currentDate),
+        amount: rentAmount,
+        description: `إيجار يومي - اليوم ${dayNumber}`,
+        status: 'معلق',
+        type: 'إيجار',
+        isProjected: true
+      });
+      
+      // Add 1 day to current date for next payment
+      currentDate.setDate(currentDate.getDate() + 1);
+      dayNumber++;
     }
   }
 

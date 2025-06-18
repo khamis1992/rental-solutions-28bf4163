@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -37,13 +36,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               className="text-2xl font-bold tracking-tight"
               style={{ textAlign: 'right', direction: 'rtl' }}
             >
-              تفاصيل العقد
+              لوحة التحكم
             </h2>
             <p 
               className="text-muted-foreground mt-1"
               style={{ textAlign: 'right', direction: 'rtl' }}
             >
-              عرض وإدارة تفاصيل عقد الإيجار
+              لوحة التحكم
             </p>
           </div>
         </div>

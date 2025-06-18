@@ -139,7 +139,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                   </TableCell>
                   <TableCell>{getStatusBadge(customer.status)}</TableCell>
                   <TableCell>{customer.created_at ? new Date(customer.created_at).toLocaleDateString('ar-SA') : 'غير متوفر'}</TableCell>
-                  <TableCell>{customer.phone_number || customer.phone || 'غير متوفر'}</TableCell>
+                  <TableCell><span className="phone-number-ltr" dir="ltr">{customer.phone_number || customer.phone || 'غير متوفر'}</span></TableCell>
                   <TableCell className="font-medium text-right">
                     <Link 
                       to={`/customers/${customer.id}`}

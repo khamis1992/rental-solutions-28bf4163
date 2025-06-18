@@ -8,6 +8,8 @@ import CustomerSelector from '@/components/customers/CustomerSelector';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
 import { CustomerInfo } from '@/types/customer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
 
 interface AgreementBasicDetailsProps {
   form: UseFormReturn<any>;
@@ -26,12 +28,14 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
   const handleCustomerSelect = (customer: CustomerInfo) => {
+    console.log('تم اختيار العميل:', customer);
     setSelectedCustomer(customer);
     form.setValue('customer_id', customer.id);
     onCustomerChange?.(customer);
   };
 
   const handleVehicleSelect = (vehicle: any) => {
+    console.log('تم اختيار المركبة:', vehicle);
     setSelectedVehicle(vehicle);
     form.setValue('vehicle_id', vehicle.id);
     onVehicleChange?.(vehicle);
@@ -64,6 +68,14 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
         <CardTitle className="text-right">التفاصيل الأساسية</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6" dir="rtl">
+        {/* إرشادات للمستخدم */}
+        <Alert>
+          <InfoIcon className="h-4 w-4" />
+          <AlertDescription className="text-right">
+            يرجى ملء جميع المعلومات المطلوبة لإنشاء اتفاقية الإيجار. ستتم إضافة جدولة الدفعات تلقائياً بناءً على المعلومات المدخلة.
+          </AlertDescription>
+        </Alert>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -73,13 +85,18 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
                 <FormLabel className="text-right">رقم الاتفاقية</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="سيتم التوليد تلقائياً إذا ترك فارغاً" 
+                    placeholder="سيتم التوليد تلقائياً..." 
                     {...field} 
-                    className="text-right"
+                    className="text-right bg-gray-50"
                     dir="rtl"
+                    readOnly
+                    disabled
                   />
                 </FormControl>
-                <FormMessage />
+                <div className="text-xs text-muted-foreground text-right">
+                  يتم توليد رقم الاتفاقية تلقائياً بتنسيق AGR_LTO###
+                </div>
+                <FormMessage className="text-right" />
               </FormItem>
             )}
           />
@@ -96,12 +113,12 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
                       <SelectValue placeholder="اختر نوع الاتفاقية" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent align="start">
                     <SelectItem value="short_term" className="text-right">قصير المدى</SelectItem>
                     <SelectItem value="lease_to_own" className="text-right">إيجار منتهي بالتملك</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormMessage />
+                <FormMessage className="text-right" />
               </FormItem>
             )}
           />
@@ -118,7 +135,7 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
                       <SelectValue placeholder="اختر الحالة" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent align="start">
                     <SelectItem value="draft" className="text-right">مسودة</SelectItem>
                     <SelectItem value="active" className="text-right">نشط</SelectItem>
                     <SelectItem value="pending" className="text-right">معلق</SelectItem>
@@ -126,7 +143,7 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
                     <SelectItem value="cancelled" className="text-right">ملغي</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormMessage />
+                <FormMessage className="text-right" />
               </FormItem>
             )}
           />
@@ -136,15 +153,31 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
             name="customer_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-right">العميل</FormLabel>
+                <FormLabel className="text-right flex items-center gap-2">
+                  العميل
+                  <span className="text-red-500">*</span>
+                </FormLabel>
                 <FormControl>
+                  <div className="w-full">
                   <CustomerSelector
                     selectedCustomer={selectedCustomer}
                     onCustomerSelect={handleCustomerSelect}
                     placeholder="البحث عن عميل..."
+                      inputClassName="text-right"
                   />
+                  </div>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-right" />
+                {selectedCustomer && (
+                  <div className="text-sm text-muted-foreground text-right bg-green-50 p-2 rounded">
+                    تم اختيار العميل: <span className="font-medium">{selectedCustomer.full_name}</span>
+                    {selectedCustomer.phone_number && (
+                      <span className="block ltr-text" dir="ltr">
+                        الهاتف: {selectedCustomer.phone_number}
+                      </span>
+                    )}
+                  </div>
+                )}
               </FormItem>
             )}
           />
@@ -154,15 +187,28 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
             name="vehicle_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-right">المركبة</FormLabel>
+                <FormLabel className="text-right flex items-center gap-2">
+                  المركبة
+                  <span className="text-red-500">*</span>
+                </FormLabel>
                 <FormControl>
+                  <div className="w-full">
                   <VehicleSelector
                     selectedVehicle={selectedVehicle}
                     onVehicleSelect={handleVehicleSelect}
                     placeholder="البحث عن مركبة..."
                   />
+                  </div>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-right" />
+                {selectedVehicle && (
+                  <div className="text-sm text-muted-foreground text-right bg-blue-50 p-2 rounded">
+                    تم اختيار المركبة: <span className="font-medium">{selectedVehicle.make} {selectedVehicle.model}</span>
+                    <span className="block">
+                      رقم اللوحة: {selectedVehicle.license_plate}
+                    </span>
+                  </div>
+                )}
               </FormItem>
             )}
           />
@@ -171,15 +217,23 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
             control={form.control}
             name="start_date"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
+              <FormItem>
                 <FormLabel className="text-right">تاريخ البداية</FormLabel>
                 <FormControl>
                   <DatePicker
-                    date={field.value ? (field.value instanceof Date ? field.value : new Date(field.value)) : undefined}
-                    setDate={field.onChange}
+                    date={field.value ? new Date(field.value) : undefined}
+                    setDate={(date) => {
+                      if (date) {
+                        field.onChange(date.toISOString().split('T')[0]);
+                      } else {
+                        field.onChange('');
+                      }
+                    }}
+                    placeholder="اختر تاريخ البداية"
+                    className="text-right"
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-right" />
               </FormItem>
             )}
           />
@@ -188,15 +242,23 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
             control={form.control}
             name="end_date"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
+              <FormItem>
                 <FormLabel className="text-right">تاريخ النهاية</FormLabel>
                 <FormControl>
                   <DatePicker
-                    date={field.value ? (field.value instanceof Date ? field.value : new Date(field.value)) : undefined}
-                    setDate={field.onChange}
+                    date={field.value ? new Date(field.value) : undefined}
+                    setDate={(date) => {
+                      if (date) {
+                        field.onChange(date.toISOString().split('T')[0]);
+                      } else {
+                        field.onChange('');
+                      }
+                    }}
+                    placeholder="اختر تاريخ النهاية"
+                    className="text-right"
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-right" />
               </FormItem>
             )}
           />

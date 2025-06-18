@@ -12,20 +12,23 @@ interface PaymentListProps {
 }
 
 export function PaymentList({ payments, onDeletePayment }: PaymentListProps) {
-  const getStatusBadge = (status: string | undefined) => {
+  const getStatusBadge = (status: string | null | undefined) => {
     const style = status === 'completed' || status === 'paid'
       ? 'bg-green-100 text-green-800 hover:bg-green-200'
       : status === 'overdue'
       ? 'bg-red-100 text-red-800'
       : status === 'pending'
       ? 'bg-yellow-100 text-yellow-800'
+      : status === 'partially_paid'
+      ? 'bg-blue-100 text-blue-800'
       : 'bg-gray-100 text-gray-800';
 
     const statusText = status === 'completed' || status === 'paid' ? 'مدفوع' 
       : status === 'overdue' ? 'متأخر' 
       : status === 'pending' ? 'معلق'
       : status === 'cancelled' ? 'ملغي'
-      : 'غير مدفوع';
+      : status === 'partially_paid' ? 'مدفوع جزئياً'
+      : 'غير محدد';
 
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${style}`}>
@@ -77,7 +80,7 @@ export function PaymentList({ payments, onDeletePayment }: PaymentListProps) {
               </TableCell>
               <TableCell className="text-right">{formatCurrency(payment.amount)} ر.ق</TableCell>
               <TableCell className="text-right">
-                {getStatusBadge(payment.status)}
+                {getStatusBadge(payment.status || '')}
               </TableCell>
               <TableCell className="text-right">{getPaymentMethodText(payment.payment_method)}</TableCell>
               <TableCell className="max-w-[200px] truncate text-right">

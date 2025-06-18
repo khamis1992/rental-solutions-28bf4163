@@ -211,7 +211,7 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
                   <div className="flex flex-col items-center text-sm gap-1">
                     <div className="flex items-center justify-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      <span>{customer.phone_number || 'غير محدد'}</span>
+                      <span className="phone-number-ltr" dir="ltr">{customer.phone_number || 'غير محدد'}</span>
                     </div>
                     <div className="flex items-center justify-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
