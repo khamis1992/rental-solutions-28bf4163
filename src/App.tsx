@@ -76,6 +76,10 @@ const LegalCalendarPage = lazy(() => import("./pages/LegalCalendarPage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const TrafficFines = lazy(() => import("./pages/TrafficFines"));
 const Financials = lazy(() => import("./pages/Financials"));
+
+// Maintenance Management
+const MaintenanceHistory = lazy(() => import("./pages/MaintenanceHistory"));
+const MaintenanceSchedule = lazy(() => import("./pages/MaintenanceSchedule"));
 const FinancialOverview = lazy(() => import("./pages/FinancialOverview"));
 const FinancialTransactionsPage = lazy(() => import("./pages/FinancialTransactionsPage"));
 const FinancialInstallments = lazy(() => import("./pages/FinancialInstallments"));
@@ -199,6 +203,10 @@ function App() {
                                   <Route path="/activity" element={withErrorBoundary(ActivityPage)} />
                                   <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
                                   <Route path="/financials" element={withErrorBoundary(Financials)} />
+                                  
+                                  {/* Maintenance Management */}
+                                  <Route path="/maintenance/history" element={withErrorBoundary(MaintenanceHistory)} />
+                                  <Route path="/maintenance/schedule" element={withErrorBoundary(MaintenanceSchedule)} />
                                   <Route path="/financials/overview" element={withErrorBoundary(FinancialOverview)} />
                                   <Route path="/financials/transactions" element={withErrorBoundary(FinancialTransactionsPage)} />
                                   <Route path="/financials/installments" element={withErrorBoundary(FinancialInstallments)} />

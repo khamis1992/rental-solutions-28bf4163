@@ -16,7 +16,7 @@ export async function ensureFontsLoaded() {
     const fontsInitialized = await initializeFonts();
     if (!fontsInitialized) {
       console.warn('Font initialization failed, using fallback configuration');
-      configurePdfMakeFonts();
+      await configurePdfMakeFonts();
     }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
