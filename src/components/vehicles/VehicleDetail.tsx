@@ -56,7 +56,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
         </div>
       </div>
 
-      <VehicleTabContent vehicleId={vehicle.id} />
+      <VehicleTabContent vehicleId={vehicle.id} vehicle={vehicle} />
     </div>
   );
 };

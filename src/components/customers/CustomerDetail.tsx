@@ -18,6 +18,7 @@ import { Customer } from '@/types/customer.types';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCustomerService } from '@/hooks/services/useCustomerService';
+import { CustomerFinancialTab } from './CustomerFinancialTab';
 
 interface CustomerDetailProps {
   customerId: string;
@@ -193,6 +194,11 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         roles: ['admin', 'manager', 'staff', 'viewer'] // Everyone can see profile
       },
       {
+        value: 'financials',
+        label: language === 'ar' ? 'الماليات' : 'Financials',
+        roles: ['admin', 'manager', 'staff'] // Financial access for relevant roles
+      },
+      {
         value: 'agreements',
         label: language === 'ar' ? 'العقود' : 'Agreements',
         roles: ['admin', 'manager', 'staff'] // Viewers cannot see agreements
@@ -263,6 +269,33 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     }
   };
 
+  // Handle financial actions
+  const handleFinancialAction = (action: 'add' | 'reminder' | 'history' | 'report') => {
+    switch (action) {
+      case 'add':
+        toast({
+          title: language === 'ar' ? 'تسجيل دفعة جديدة' : 'Record New Payment',
+          description: language === 'ar' ? 'سيتم فتح نافذة تسجيل الدفعة قريباً' : 'Payment recording will open soon'
+        });
+        break;
+      case 'reminder':
+        toast({
+          title: language === 'ar' ? 'إرسال تذكير' : 'Send Reminder',
+          description: language === 'ar' ? 'تم إرسال تذكير للعميل' : 'Reminder sent to customer'
+        });
+        break;
+      case 'history':
+        navigate(`/customers/${customerId}/payments`);
+        break;
+      case 'report':
+        toast({
+          title: language === 'ar' ? 'تقرير مالي' : 'Financial Report',
+          description: language === 'ar' ? 'سيتم إنشاء التقرير المالي قريباً' : 'Financial report generation coming soon'
+        });
+        break;
+    }
+  };
+
   // Show explicit loading indicator
   if (isLoading) {
     console.log("CustomerDetail: Rendering loading state");
@@ -289,8 +322,6 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
       </Card>
     );
   }
-
-
 
   console.log("CustomerDetail: Rendering customer detail view for:", customer?.full_name || 'unknown customer');
   
@@ -375,6 +406,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <TabsList 
           className={`w-full mb-4 ${
+            visibleTabs.length === 5 ? 'grid-cols-5' : 
             visibleTabs.length === 4 ? 'grid-cols-4' : 
             visibleTabs.length === 3 ? 'grid-cols-3' : 
             visibleTabs.length === 2 ? 'grid-cols-2' : 'grid-cols-1'
@@ -534,6 +566,13 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="financials">
+          <CustomerFinancialTab 
+            customerId={customerId} 
+            onPaymentAction={handleFinancialAction}
+          />
         </TabsContent>
         
         <TabsContent value="agreements">

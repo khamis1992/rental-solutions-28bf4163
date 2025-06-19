@@ -374,6 +374,23 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ className }) =>
     </Card>
   );
 
+  const handleQuickReport = (type: string, params?: any) => {
+    // التعامل مع التقارير السريعة
+    switch (type) {
+      case 'daily-summary':
+        // منطق التقرير اليومي
+        break;
+      case 'utilization':
+        // منطق تقرير الاستخدام
+        break;
+      case 'urgent':
+        // منطق التقارير العاجلة
+        break;
+      default:
+        break;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">

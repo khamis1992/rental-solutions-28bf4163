@@ -206,33 +206,13 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             onClick={handleNavClick}
           />
 
-          <NavGroup
-            label={getNavLabel('navigation.maintenance')}
+          <NavLink
+            to="/maintenance"
             icon={<Wrench className="h-5 w-5 flex-shrink-0" />}
-            onSelect={handleNavClick}
-          >
-            <NavLink
-              to="/maintenance"
-              icon={<Wrench className="h-4 w-4 flex-shrink-0" />}
-              label="إدارة الصيانة"
-              isActive={isActive('/maintenance')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/maintenance/history"
-              icon={<FileSpreadsheet className="h-4 w-4 flex-shrink-0" />}
-              label="سجل الصيانة"
-              isActive={isActive('/maintenance/history')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/maintenance/schedule"
-              icon={<FileSpreadsheet className="h-4 w-4 flex-shrink-0" />}
-              label="جدولة الصيانة"
-              isActive={isActive('/maintenance/schedule')}
-              onClick={handleNavClick}
-            />
-          </NavGroup>
+            label="إدارة الصيانة"
+            isActive={isActive('/maintenance')}
+            onClick={handleNavClick}
+          />
 
           <NavGroup
             label={getNavLabel('navigation.financials')}

@@ -7,6 +7,10 @@ import DashboardStats from './DashboardStats';
 import RevenueChart from './RevenueChart';
 import VehicleStatusChart from './VehicleStatusChart';
 import RecentActivity from './RecentActivity';
+import { QuickReportsWidget } from './QuickReportsWidget';
+import { RealTimeAnalytics } from './RealTimeAnalytics';
+import { LegalIntegrationSection } from './LegalIntegrationSection';
+import { WorkflowIntegrationWidget } from './WorkflowIntegrationWidget';
 import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -46,6 +50,72 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
   return (
     <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* مسارات العمل الموحدة */}
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('workflows')}
+          >
+            {collapsedSections['workflows'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">مسارات العمل الموحدة</h2>
+        </div>
+        {!collapsedSections['workflows'] && (
+          isLoading ? <Skeleton className="h-[400px] w-full rounded-lg" /> : <WorkflowIntegrationWidget />
+        )}
+      </div>
+
+      {/* التحليلات السريعة والمباشرة */}
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('quick-analytics')}
+          >
+            {collapsedSections['quick-analytics'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">التحليلات السريعة والتقارير</h2>
+        </div>
+        {!collapsedSections['quick-analytics'] && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {isLoading ? (
+              <>
+                <Skeleton className="h-[400px] w-full rounded-lg" />
+                <Skeleton className="h-[400px] w-full rounded-lg" />
+              </>
+            ) : (
+              <>
+                <QuickReportsWidget />
+                <RealTimeAnalytics />
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* التكامل القانوني والتنبيهات */}
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('legal-integration')}
+          >
+            {collapsedSections['legal-integration'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">التكامل القانوني والقضايا</h2>
+        </div>
+        {!collapsedSections['legal-integration'] && (
+          isLoading ? <Skeleton className="h-[400px] w-full rounded-lg" /> : <LegalIntegrationSection />
+        )}
+      </div>
+
       <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4 flex-row-reverse">
           <Button

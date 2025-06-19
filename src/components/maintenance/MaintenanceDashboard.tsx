@@ -54,24 +54,28 @@ const MaintenanceDashboard = () => {
 
   const statCards = [
     {
+      id: 'completed',
       title: 'مكتملة',
       value: statusCounts.completed,
       icon: CheckCircle,
       color: 'text-green-500'
     },
     {
+      id: 'in-progress',
       title: 'قيد التنفيذ',
       value: maintenanceCount || 0,
       icon: AlertTriangle,
       color: 'text-orange-500'
     },
     {
+      id: 'accidents',
       title: 'الحوادث',
       value: accidentCount || 0,
       icon: AlertOctagon,
       color: 'text-red-500'
     },
     {
+      id: 'scheduled',
       title: 'مجدولة',
       value: statusCounts.scheduled,
       icon: Wrench,
@@ -83,7 +87,7 @@ const MaintenanceDashboard = () => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-pulse" dir="rtl">
         {[1, 2, 3, 4].map(i => (
-          <Card key={i} className="bg-gray-100">
+          <Card key={`loading-${i}`} className="bg-gray-100">
             <CardContent className="p-6 h-24"></CardContent>
           </Card>
         ))}
@@ -93,8 +97,8 @@ const MaintenanceDashboard = () => {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" dir="rtl">
-      {statCards.map((card, index) => (
-        <Card key={index}>
+      {statCards.map((card) => (
+        <Card key={card.id}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between flex-row-reverse">
               <div className="text-right">

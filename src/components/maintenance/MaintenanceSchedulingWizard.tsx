@@ -100,15 +100,15 @@ export function MaintenanceSchedulingWizard({
   };
 
   const maintenanceTypeOptions = [
-    { value: MaintenanceType.REGULAR_INSPECTION, label: language === 'ar' ? 'فحص دوري' : 'Regular Inspection' },
-    { value: MaintenanceType.OIL_CHANGE, label: language === 'ar' ? 'تغيير الزيت' : 'Oil Change' },
-    { value: MaintenanceType.TIRE_REPLACEMENT, label: language === 'ar' ? 'استبدال الإطارات' : 'Tire Replacement' },
-    { value: MaintenanceType.BRAKE_SERVICE, label: language === 'ar' ? 'خدمة الفرامل' : 'Brake Service' },
-    { value: MaintenanceType.ENGINE_REPAIR, label: language === 'ar' ? 'إصلاح المحرك' : 'Engine Repair' },
-    { value: MaintenanceType.TRANSMISSION_SERVICE, label: language === 'ar' ? 'خدمة ناقل الحركة' : 'Transmission Service' },
-    { value: MaintenanceType.BATTERY_REPLACEMENT, label: language === 'ar' ? 'استبدال البطارية' : 'Battery Replacement' },
-    { value: MaintenanceType.AIR_CONDITIONING, label: language === 'ar' ? 'تكييف الهواء' : 'Air Conditioning' },
-    { value: MaintenanceType.ELECTRICAL_REPAIR, label: language === 'ar' ? 'إصلاح كهربائي' : 'Electrical Repair' }
+    { id: 'regular', value: MaintenanceType.REGULAR_INSPECTION, label: language === 'ar' ? 'فحص دوري' : 'Regular Inspection' },
+    { id: 'oil', value: MaintenanceType.OIL_CHANGE, label: language === 'ar' ? 'تغيير الزيت' : 'Oil Change' },
+    { id: 'tire', value: MaintenanceType.TIRE_REPLACEMENT, label: language === 'ar' ? 'استبدال الإطارات' : 'Tire Replacement' },
+    { id: 'brake', value: MaintenanceType.BRAKE_SERVICE, label: language === 'ar' ? 'خدمة الفرامل' : 'Brake Service' },
+    { id: 'engine', value: MaintenanceType.ENGINE_REPAIR, label: language === 'ar' ? 'إصلاح المحرك' : 'Engine Repair' },
+    { id: 'transmission', value: MaintenanceType.TRANSMISSION_SERVICE, label: language === 'ar' ? 'خدمة ناقل الحركة' : 'Transmission Service' },
+    { id: 'battery', value: MaintenanceType.BATTERY_REPLACEMENT, label: language === 'ar' ? 'استبدال البطارية' : 'Battery Replacement' },
+    { id: 'ac', value: MaintenanceType.AIR_CONDITIONING, label: language === 'ar' ? 'تكييف الهواء' : 'Air Conditioning' },
+    { id: 'electrical', value: MaintenanceType.ELECTRICAL_REPAIR, label: language === 'ar' ? 'إصلاح كهربائي' : 'Electrical Repair' }
   ];
 
   const renderTypeSelection = () => (
@@ -129,7 +129,7 @@ export function MaintenanceSchedulingWizard({
           </SelectTrigger>
           <SelectContent>
             {maintenanceTypeOptions.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
+              <SelectItem key={type.id} value={type.value}>
                 {type.label}
               </SelectItem>
             ))}
