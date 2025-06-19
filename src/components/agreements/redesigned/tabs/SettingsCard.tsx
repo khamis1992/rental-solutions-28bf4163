@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,39 +20,38 @@ export function SettingsCard({
   const updatedAt = agreement.updated_at instanceof Date ? agreement.updated_at : new Date(agreement.updated_at);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       {/* Agreement Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-right flex-row-reverse">
             <Settings className="h-5 w-5" />
-            Agreement Actions
+            إجراءات العقد
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button onClick={onEdit} className="flex-1">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Agreement
+            <Button onClick={onEdit} className="flex-1 flex items-center gap-2 flex-row-reverse">
+              <Edit className="h-4 w-4" />
+              تعديل العقد
             </Button>
             <Button 
               variant="destructive" 
               onClick={onDelete}
-              className="flex-1"
+              className="flex-1 flex items-center gap-2 flex-row-reverse"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Agreement
+              <Trash2 className="h-4 w-4" />
+              حذف العقد
             </Button>
           </div>
           
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 flex-row-reverse">
               <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="font-medium text-amber-800">Important Notice</h4>
-                <p className="text-sm text-amber-700 mt-1">
-                  Deleting an agreement is permanent and cannot be undone. All associated payments, 
-                  documents, and history will be removed.
+              <div className="flex-1 text-right">
+                <h4 className="font-medium text-amber-800">ملاحظة مهمة</h4>
+                <p className="text-sm text-amber-700 mt-1 text-right">
+                  حذف العقد نهائي ولا يمكن التراجع عنه. سيتم حذف جميع المدفوعات والوثائق والسجلات المرتبطة به.
                 </p>
               </div>
             </div>
@@ -64,28 +62,30 @@ export function SettingsCard({
       {/* Agreement Metadata */}
       <Card>
         <CardHeader>
-          <CardTitle>Agreement Information</CardTitle>
+          <CardTitle className="text-right">معلومات العقد</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Created</p>
-              <p className="font-medium">{format(createdAt, "PPP 'at' p")}</p>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground text-right">تاريخ الإنشاء</p>
+              <p className="font-medium text-right">{format(createdAt, "PPP 'at' p")}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Last Modified</p>
-              <p className="font-medium">{format(updatedAt, "PPP 'at' p")}</p>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground text-right">آخر تعديل</p>
+              <p className="font-medium text-right">{format(updatedAt, "PPP 'at' p")}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Agreement ID</p>
-              <p className="font-mono text-sm bg-muted px-2 py-1 rounded">
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground text-right">معرّف العقد</p>
+              <p className="font-mono text-sm bg-muted px-2 py-1 rounded text-right">
                 {agreement.id}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Agreement Type</p>
-              <p className="font-medium capitalize">
-                {agreement.agreement_type?.replace('_', ' ') || 'Standard'}
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground text-right">نوع العقد</p>
+              <p className="font-medium capitalize text-right">
+                {agreement.agreement_type?.replace('_', ' ') === 'lease_to_own' ? 'إيجار منتهي بالتملك' : 
+                 agreement.agreement_type?.replace('_', ' ') === 'short_term' ? 'قصير المدى' : 
+                 'قياسي'}
               </p>
             </div>
           </div>
@@ -95,14 +95,14 @@ export function SettingsCard({
       {/* System Information */}
       <Card>
         <CardHeader>
-          <CardTitle>System Information</CardTitle>
+          <CardTitle className="text-right">معلومات النظام</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p>• All changes are automatically saved</p>
-            <p>• Payment history is preserved across edits</p>
-            <p>• Documents are linked to this agreement permanently</p>
-            <p>• Audit logs track all modifications</p>
+          <div className="text-sm text-muted-foreground space-y-2 text-right">
+            <p>• يتم حفظ جميع التغييرات تلقائياً</p>
+            <p>• يتم الاحتفاظ بسجل المدفوعات عبر التعديلات</p>
+            <p>• الوثائق مرتبطة بهذا العقد بشكل دائم</p>
+            <p>• سجلات المراجعة تتتبع جميع التعديلات</p>
           </div>
         </CardContent>
       </Card>

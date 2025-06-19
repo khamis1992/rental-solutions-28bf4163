@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import AgreementForm from '@/components/agreements/AgreementForm';
+import AgreementWithCustomerSteps from '@/components/agreements/AgreementWithCustomerSteps';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { Agreement } from '@/types/agreement';
 import { toast } from 'sonner';
@@ -78,7 +78,7 @@ const AddAgreement = () => {
 
   return (
     <PageContainer
-      title="إنشاء اتفاقية جديدة"
+      title="إنشاء اتفاقية إيجار جديدة مع جدولة دفعات تلقائية"
       description="إنشاء اتفاقية إيجار جديدة مع جدولة دفعات تلقائية"
       backLink="/agreements"
       dir="rtl"
@@ -152,7 +152,7 @@ const AddAgreement = () => {
             <CardTitle className="text-right">تفاصيل الاتفاقية</CardTitle>
           </CardHeader>
           <CardContent>
-            <AgreementForm
+            <AgreementWithCustomerSteps
               onSubmit={handleSubmit}
               isSubmitting={isSubmitting}
             />

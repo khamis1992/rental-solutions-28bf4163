@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/ui/section-header';
-import { LayoutDashboard, RefreshCw, Settings } from 'lucide-react';
+import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { createRTLButtonClasses } from '@/utils/arabic-rtl-utils';
@@ -61,15 +61,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <RefreshCw className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'} ${isRefreshing ? 'animate-spin' : ''}`} />
             تحديث
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/system-settings')}
-            className={`${createRTLButtonClasses()} ${language === 'ar' ? 'flex-row-reverse' : ''}`}
-          >
-            <Settings className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-            الإعدادات
-          </Button>
+
         </div>
         {/* System date stays in current position */}
         <p className="text-sm text-muted-foreground">

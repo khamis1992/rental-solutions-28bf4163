@@ -65,23 +65,12 @@ const AgreementDetailPage = lazy(() => import("./pages/AgreementDetailPage"));
 const AddAgreement = lazy(() => import("./pages/AddAgreement"));
 const EditAgreement = lazy(() => import("./pages/EditAgreement"));
 
-// Maintenance Management
-const Maintenance = lazy(() => import("./pages/Maintenance"));
-const MaintenanceHistory = lazy(() => import("./pages/MaintenanceHistory"));
-const MaintenanceSchedule = lazy(() => import("./pages/MaintenanceSchedule"));
-const AddMaintenance = lazy(() => import("./pages/AddMaintenance"));
-const EditMaintenance = lazy(() => import("./pages/EditMaintenance"));
-const MaintenanceDetailPage = lazy(() => import("./pages/MaintenanceDetailPage"));
-const MaintenanceJobCard = lazy(() => import("./pages/MaintenanceJobCard"));
-
 // Legal Management
 const Legal = lazy(() => import("./pages/Legal"));
 const NewLegalCasePage = lazy(() => import("./pages/NewLegalCasePage"));
 const LegalCasesPage = lazy(() => import("./pages/LegalCasesPage"));
 const LegalDocumentsPage = lazy(() => import("./pages/LegalDocumentsPage"));
 const LegalCalendarPage = lazy(() => import("./pages/LegalCalendarPage"));
-const LegalCompliancePage = lazy(() => import("./pages/LegalCompliancePage"));
-const LegalActivityPage = lazy(() => import("./pages/LegalActivityPage"));
 
 // Other Features
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
@@ -199,23 +188,12 @@ function App() {
                                   <Route path="/agreements/edit/:id" element={withErrorBoundary(EditAgreement)} />
                                   <Route path="/agreements/:id" element={withErrorBoundary(AgreementDetailPage)} />
                                   
-                                  {/* Maintenance Management */}
-                                  <Route path="/maintenance" element={withErrorBoundary(Maintenance)} />
-                                  <Route path="/maintenance/add" element={withErrorBoundary(AddMaintenance)} />
-                                  <Route path="/maintenance/job/:vehicleId" element={withErrorBoundary(MaintenanceJobCard)} />
-                                  <Route path="/maintenance/:id" element={withErrorBoundary(MaintenanceDetailPage)} />
-                                  <Route path="/maintenance/edit/:id" element={withErrorBoundary(EditMaintenance)} />
-                                  <Route path="/maintenance/history" element={withErrorBoundary(MaintenanceHistory)} />
-                                  <Route path="/maintenance/schedule" element={withErrorBoundary(MaintenanceSchedule)} />
-                                  
                                   {/* Legal Management */}
                                   <Route path="/legal" element={withErrorBoundary(Legal)} />
                                   <Route path="/legal/new-case" element={withErrorBoundary(NewLegalCasePage)} />
                                   <Route path="/legal/cases" element={withErrorBoundary(LegalCasesPage)} />
                                   <Route path="/legal/documents" element={withErrorBoundary(LegalDocumentsPage)} />
                                   <Route path="/legal/calendar" element={withErrorBoundary(LegalCalendarPage)} />
-                                  <Route path="/legal/compliance" element={withErrorBoundary(LegalCompliancePage)} />
-                                  <Route path="/legal/activity" element={withErrorBoundary(LegalActivityPage)} />
                                   
                                   {/* Other Features */}
                                   <Route path="/activity" element={withErrorBoundary(ActivityPage)} />

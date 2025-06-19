@@ -112,10 +112,10 @@ const PageContainer: React.FC<PageContainerProps> = ({
             "mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0",
             isRTL && "sm:flex-row-reverse"
           )}>
-            <div className={isRTL ? "text-right" : ""}>
-              {title && <h1 className={cn("text-xl md:text-2xl font-bold tracking-tight", isRTL && "text-right")}>{title}</h1>}
-              {description && <p className={cn("text-muted-foreground mt-1 text-sm md:text-base", isRTL && "text-right")}>{description}</p>}
-              <p className={cn("text-xs text-muted-foreground mt-1", isRTL && "text-right")}>
+            <div className={isRTL ? "text-right" : "text-left"}>
+              {title && <h1 className={cn("text-xl md:text-2xl font-bold tracking-tight", isRTL ? "text-right" : "text-left")}>{title}</h1>}
+              {description && <p className={cn("text-muted-foreground mt-1 text-sm md:text-base", isRTL ? "text-right" : "text-left")}>{description}</p>}
+              <p className={cn("text-xs text-muted-foreground mt-1", isRTL ? "text-right" : "text-left")}>
                 {isRTL ? `تاريخ النظام: ${formatDate(systemDate)}` : `System Date: ${formatDate(systemDate)}`}
               </p>
             </div>

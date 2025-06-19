@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { createRTLAnimation, createRTLTransition, rtlAnimations, rtlTransitions } from '@/utils/rtl-advanced-features';
+import { createRTLAnimation, createAnimationStyles, createRTLTransition, rtlAnimations, rtlTransitions } from '@/utils/rtl-advanced-features';
 
 /**
  * RTL Animated Container Component
@@ -85,13 +85,18 @@ export const RTLAnimated: React.FC<RTLAnimatedProps> = ({
   };
 
   const animationClasses = shouldAnimate
-    ? createRTLAnimation(animation, { duration, delay, easing })
+    ? createRTLAnimation(animation)
     : '';
+
+  const animationStyles = shouldAnimate
+    ? createAnimationStyles({ duration, delay, easing })
+    : {};
 
   return (
     <div
       ref={elementRef}
       className={cn(animationClasses, className)}
+      style={animationStyles}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}

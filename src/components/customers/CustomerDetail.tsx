@@ -559,9 +559,11 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                     {(customer as any).agreements.map((agreement: any) => (
-                    <tr key={agreement.id}>
+                    <tr key={agreement.id} 
+                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => window.open(`/agreements/${agreement.id}`, '_blank')}>
                         <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <div className="text-sm font-medium text-gray-900">{agreement.agreement_number}</div>
+                        <div className="text-sm font-medium text-blue-600 hover:text-blue-800">{agreement.agreement_number}</div>
                       </td>
                         <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
                         <div className="text-sm text-gray-500">{formatDate(agreement.start_date)}</div>

@@ -219,7 +219,7 @@ const AgreementDetailPage = () => {
   // Render loading state while fetching agreement
   if (isLoading) {
     return (
-      <PageContainer title="لوحة التحكم" description="لوحة التحكم" backLink="/agreements">
+      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد" backLink="/agreements">
         <div className="space-y-6">
           <Skeleton className="h-12 w-2/3" />
           <div className="grid gap-6 md:grid-cols-2">
@@ -235,7 +235,7 @@ const AgreementDetailPage = () => {
   // Render error state if agreement couldn't be loaded
   if (error) {
     return (
-      <PageContainer title="لوحة التحكم" description="لوحة التحكم" backLink="/agreements">
+      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد" backLink="/agreements">
         <div className="text-center py-12 legal-rtl" dir="rtl">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
@@ -253,7 +253,7 @@ const AgreementDetailPage = () => {
   // Render not found state if agreement doesn't exist
   if (!agreement) {
     return (
-      <PageContainer title="لوحة التحكم" description="لوحة التحكم" backLink="/agreements">
+      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد" backLink="/agreements">
         <div className="text-center py-12 legal-rtl" dir="rtl">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
@@ -271,8 +271,8 @@ const AgreementDetailPage = () => {
   // Main component rendering with agreement data
   return (
     <PageContainer 
-      title="لوحة التحكم" 
-      description="لوحة التحكم" 
+      title="تفاصيل العقد" 
+      description="تفاصيل العقد" 
       backLink="/agreements" 
     >
       <div className="legal-rtl" dir="rtl">
@@ -311,50 +311,6 @@ const AgreementDetailPage = () => {
               <h4 className="font-medium mb-1">تقرير العقد</h4>
               <p className="text-sm text-muted-foreground">
                 إنشاء تقرير PDF مفصل لهذا العقد يشمل سجل الدفعات وتفاصيل العقد.
-              </p>
-            </HoverCardContent>
-          </HoverCard>
-          
-          {agreement && agreement.status === AgreementStatus.ACTIVE && (
-            <HoverCard openDelay={300} closeDelay={200}>
-              <HoverCardTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleGeneratePayment} 
-                  disabled={paymentIsPending.generatePayment} 
-                  className="gap-2"
-                >
-                  <Calendar className="h-4 w-4" />
-                  {paymentIsPending.generatePayment ? "جاري الإنشاء..." : "إنشاء جدول الدفعات"}
-                </Button>
-              </HoverCardTrigger>
-              <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
-                <h4 className="font-medium mb-1">إنشاء جدول الدفعات</h4>
-                <p className="text-sm text-muted-foreground">
-                  ينشئ سجل دفعة شهرية جديدة لهذا العقد مع حساب المبلغ المستحق تلقائيًا ورسوم التأخير. سيتم تعيين حالة الدفعة إلى "معلقة".
-                </p>
-              </HoverCardContent>
-            </HoverCard>
-          )}
-          
-          <HoverCard openDelay={300} closeDelay={200}>
-            <HoverCardTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleRunMaintenanceJob} 
-                disabled={paymentIsPending.runMaintenance} 
-                className="gap-2"
-              >
-                <RefreshCcw className="h-4 w-4" />
-                {paymentIsPending.runMaintenance ? "جاري الفحص..." : "تشغيل صيانة الدفعات"}
-              </Button>
-            </HoverCardTrigger>
-            <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
-              <h4 className="font-medium mb-1">صيانة الدفعات</h4>
-              <p className="text-sm text-muted-foreground">
-                يتحقق ويصلح جداول الدفعات من خلال اكتشاف الدفعات المفقودة أو المكررة، وتحديث حالات الدفعات، وإعادة حساب رسوم التأخير إذا لزم الأمر.
               </p>
             </HoverCardContent>
           </HoverCard>
