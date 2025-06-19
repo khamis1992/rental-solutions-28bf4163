@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,7 @@ const MaintenanceHistory = () => {
   const [vehicleFilter, setVehicleFilter] = useState('all');
   const [maintenanceTypeFilter, setMaintenanceTypeFilter] = useState('all');
 
-  // Fetch data on component mount
+  // Fetch data on component mount - مرة واحدة فقط
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -53,9 +53,9 @@ const MaintenanceHistory = () => {
     };
 
     fetchData();
-  }, [getAllRecords, getAllVehicles, language]);
+  }, []); // إزالة الـ functions من dependency array لمنع الحلقة اللا نهائية
 
-  // Apply filters
+  // Apply filters - تشغيل فقط عند تغيير الفلاتر أو البيانات
   useEffect(() => {
     let filtered = [...maintenanceRecords];
 
@@ -91,7 +91,7 @@ const MaintenanceHistory = () => {
     setFilteredRecords(filtered);
   }, [maintenanceRecords, searchTerm, statusFilter, vehicleFilter, maintenanceTypeFilter]);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = useCallback((status: string) => {
     const statusLabels = language === 'ar' ? {
       'scheduled': 'مجدولة',
       'in_progress': 'قيد التنفيذ',
@@ -118,9 +118,9 @@ const MaintenanceHistory = () => {
       default:
         return <Badge variant="outline">{label}</Badge>;
     }
-  };
+  }, [language]);
 
-  const getMaintenanceTypeLabel = (type: string) => {
+  const getMaintenanceTypeLabel = useCallback((type: string) => {
     const typeLabels = language === 'ar' ? {
       'oil_change': 'تغيير الزيت',
       'tire_replacement': 'استبدال الإطارات',
@@ -144,20 +144,20 @@ const MaintenanceHistory = () => {
     };
 
     return typeLabels[type as keyof typeof typeLabels] || type.replace(/_/g, ' ');
-  };
+  }, [language]);
 
-  const getVehicleDisplayName = (vehicleId: string) => {
+  const getVehicleDisplayName = useCallback((vehicleId: string) => {
     const vehicle = vehicles.find((v) => (v as any).id === vehicleId);
     if (!vehicle) return vehicleId;
     return `${vehicle.make} ${vehicle.model} (${vehicle.license_plate || 'N/A'})`;
-  };
+  }, [vehicles]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchTerm('');
     setStatusFilter('all');
     setVehicleFilter('all');
     setMaintenanceTypeFilter('all');
-  };
+  }, []);
 
   const statusOptions = [
     { value: 'scheduled', label: language === 'ar' ? 'مجدولة' : 'Scheduled' },
@@ -183,6 +183,9 @@ const MaintenanceHistory = () => {
       <PageContainer systemDate={new Date()}>
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="mr-2 text-muted-foreground">
+            {language === 'ar' ? 'جاري تحميل تاريخ الصيانة...' : 'Loading maintenance history...'}
+          </span>
         </div>
       </PageContainer>
     );

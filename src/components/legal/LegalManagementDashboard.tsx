@@ -44,6 +44,7 @@ import {
 import AILegalLetterGenerator from './AILegalLetterGenerator';
 import '@/styles/legal-rtl.css';
 import '@/styles/legal-rtl.css';
+import { supabase } from '@/lib/supabase';
 
 const LegalManagementDashboard = () => {
   // State management
@@ -179,37 +180,88 @@ const LegalManagementDashboard = () => {
     setIsExporting(true);
     
     try {
+      // Fetch actual agreement details from database
+      let actualAgreementData = null;
+      let actualVehicleData = null;
+      let actualCustomerData = null;
+      let pendingPayments = [];
+      
+      if (selectedCandidate.unpaid_agreements.length > 0) {
+        const firstAgreement = selectedCandidate.unpaid_agreements[0];
+        
+        // Fetch full agreement details
+        const { data: agreementDetails, error: agreementError } = await supabase
+          .from('leases')
+          .select(`
+            *,
+            vehicles(*),
+            customers(*)
+          `)
+          .eq('id', firstAgreement.agreement_id)
+          .single();
+          
+        if (!agreementError && agreementDetails) {
+          actualAgreementData = agreementDetails;
+          actualVehicleData = agreementDetails.vehicles;
+          actualCustomerData = agreementDetails.customers;
+          
+          // Fetch pending payments for this agreement
+          const { data: paymentsData, error: paymentsError } = await supabase
+            .from('unified_payments')
+            .select('*')
+            .eq('lease_id', firstAgreement.agreement_id)
+            .eq('status', 'pending')
+            .order('due_date', { ascending: true });
+            
+          if (!paymentsError && paymentsData) {
+            pendingPayments = paymentsData;
+          }
+        }
+      }
+
       // Calculate totals for the complaint
       const totalRentAmount = selectedCandidate.unpaid_agreements.reduce((sum, agreement) => sum + agreement.amount_owed, 0);
-      const totalLateFees = selectedCandidate.unpaid_agreements.reduce((sum, agreement) => sum + (agreement.days_overdue * 10), 0);
       const totalTrafficFines = selectedCandidate.unpaid_traffic_fines.reduce((sum, fine) => sum + fine.fine_amount, 0);
+      
+      // Calculate late fees with 120 QAR per day
+      const totalDaysOverdue = selectedCandidate.unpaid_agreements.reduce((sum, agreement) => sum + agreement.days_overdue, 0);
+      const totalLateFees = totalDaysOverdue * 120; // 120 QAR per day as requested
+      
       const compensationAmount = 2000;
       const totalClaimAmount = totalRentAmount + totalLateFees + totalTrafficFines + compensationAmount;
 
-      // Get first agreement for contract details
-      const firstAgreement = selectedCandidate.unpaid_agreements[0];
-      const agreementDate = 'غير محدد'; // We don't have start_date in the interface
-      const monthlyRent = firstAgreement ? Math.round(firstAgreement.amount_owed / Math.max(1, Math.ceil(firstAgreement.days_overdue / 30))) : 0; // Estimate monthly rent
+      // Use actual agreement data
+      const actualMonthlyRent = actualAgreementData?.rent_amount || 
+        (selectedCandidate.unpaid_agreements[0] ? 
+          Math.round(selectedCandidate.unpaid_agreements[0].amount_owed / Math.max(1, Math.ceil(selectedCandidate.unpaid_agreements[0].days_overdue / 30))) : 
+          0);
+      
+      const agreementDate = actualAgreementData?.start_date ? 
+        new Date(actualAgreementData.start_date).toLocaleDateString('ar-QA') : 
+        'غير محدد';
 
-      // Calculate overdue months for display
-      const getOverdueMonths = () => {
-        if (!firstAgreement) return 'غير محدد';
-        
-        const monthsOverdue = Math.ceil(firstAgreement.days_overdue / 30);
-        const monthNames = [
-          'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-          'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
-        ];
-        
-        const currentMonth = new Date().getMonth();
-        const overdueMonthsList = [];
-        
-        for (let i = monthsOverdue - 1; i >= 0; i--) {
-          const monthIndex = (currentMonth - i + 12) % 12;
-          overdueMonthsList.push(`شهر ${monthNames[monthIndex]}`);
+      // Generate pending payments table
+      const generatePendingPaymentsTable = () => {
+        if (pendingPayments.length === 0) {
+          return `
+            <tr>
+              <td colspan="3" style="text-align: center; color: #666;">لا توجد مدفوعات معلقة</td>
+            </tr>
+          `;
         }
         
-        return overdueMonthsList.join(', ');
+        return pendingPayments.map(payment => {
+          const dueDate = new Date(payment.due_date).toLocaleDateString('ar-QA');
+          const description = payment.description || `أجرة شهر ${dueDate}`;
+          
+          return `
+            <tr>
+              <td style="text-align: center;">${description}</td>
+              <td style="text-align: center;">${dueDate}</td>
+              <td style="text-align: center;" class="amount">${payment.amount.toLocaleString()} ر.ق</td>
+            </tr>
+          `;
+        }).join('');
       };
 
       console.log('Calculated totals:', {
@@ -218,8 +270,9 @@ const LegalManagementDashboard = () => {
         totalTrafficFines,
         totalClaimAmount,
         agreementDate,
-        monthlyRent,
-        overdueMonths: getOverdueMonths()
+        actualMonthlyRent,
+        totalDaysOverdue,
+        pendingPaymentsCount: pendingPayments.length
       });
 
       const htmlContent = `
@@ -283,17 +336,17 @@ const LegalManagementDashboard = () => {
               border: 2px solid #333;
               padding: 15px;
             }
-            .vehicle-table {
+            .vehicle-table, .payments-table {
               width: 100%;
               border-collapse: collapse;
               margin: 10px 0;
             }
-            .vehicle-table th, .vehicle-table td {
+            .vehicle-table th, .vehicle-table td, .payments-table th, .payments-table td {
               border: 1px solid #333;
               padding: 8px;
               text-align: center;
             }
-            .vehicle-table th {
+            .vehicle-table th, .payments-table th {
               background-color: #f0f0f0;
               font-weight: bold;
             }
@@ -319,6 +372,11 @@ const LegalManagementDashboard = () => {
             .signature {
               margin-top: 40px;
               text-align: center;
+            }
+            .payments-section {
+              margin: 20px 0;
+              border: 2px solid #333;
+              padding: 15px;
             }
             .print-button {
               position: fixed;
@@ -366,41 +424,61 @@ const LegalManagementDashboard = () => {
           </div>
 
           <div class="paragraph">
-            نتقدم بشكوى ضد السيد / <strong>${selectedCandidate.customer_name}</strong> - الجنسية ${selectedCandidate.customer_nationality || 'غير محدد'} – رقم رخصة القيادة ${selectedCandidate.driving_license_number || selectedCandidate.customer_id} رقم الهاتف ${selectedCandidate.customer_phone || 'غير محدد'}
+            نتقدم بشكوى ضد السيد / <strong>${selectedCandidate.customer_name}</strong> - الجنسية ${actualCustomerData?.nationality || selectedCandidate.customer_nationality || 'غير محدد'} – رقم رخصة القيادة ${actualCustomerData?.driver_license || selectedCandidate.driving_license_number || selectedCandidate.customer_id} رقم الهاتف ${actualCustomerData?.phone_number || selectedCandidate.customer_phone || 'غير محدد'}
           </div>
 
           ${selectedCandidate.unpaid_agreements.length > 0 ? `
           <div class="vehicle-info">
-            <h3 style="text-align: center; margin-bottom: 15px;">معلومات المركبة</h3>
+            <h3 style="text-align: center; margin-bottom: 15px;">معلومات المركبة من العقد</h3>
             <table class="vehicle-table">
               <thead>
                 <tr>
                   <th>رقم اللوحة</th>
-                  <th>نوع المركبة</th>
-                  <th>موديل</th>
+                  <th>الماركة</th>
+                  <th>الموديل</th>
+                  <th>سنة الصنع</th>
+                  <th>اللون</th>
                   <th>الإيجار الشهري</th>
                 </tr>
               </thead>
               <tbody>
-                ${selectedCandidate.unpaid_agreements.map(agreement => `
-                  <tr>
-                    <td>${agreement.vehicle_license_plate}</td>
-                    <td>${agreement.vehicle_type || 'غير محدد'}</td>
-                    <td>${agreement.vehicle_model || 'غير محدد'}</td>
-                    <td class="amount">${monthlyRent.toLocaleString()} ريال</td>
-                  </tr>
-                `).join('')}
+                <tr>
+                  <td>${actualVehicleData?.license_plate || selectedCandidate.unpaid_agreements[0].vehicle_license_plate}</td>
+                  <td>${actualVehicleData?.make || 'غير محدد'}</td>
+                  <td>${actualVehicleData?.model || 'غير محدد'}</td>
+                  <td>${actualVehicleData?.year || 'غير محدد'}</td>
+                  <td>${actualVehicleData?.color || 'غير محدد'}</td>
+                  <td class="amount">${actualMonthlyRent.toLocaleString()} ر.ق</td>
+                </tr>
               </tbody>
             </table>
           </div>
           ` : ''}
 
           <div class="paragraph">
-            المشكو ضده استأجر السيارة أعلاه بموجب عقد بتاريخ <strong>${agreementDate}</strong> بقيمة أجرة شهرية مبلغ <span class="amount">${monthlyRent.toLocaleString()}</span> ريال وتأخر وامتنع عن سداد مستحقات الأجرة بالرغم من المطالبة ومازالت السيارة في حوزته ورفض ردها للشركة على الرغم من انتهاء العقد:
+            المشكو ضده استأجر السيارة أعلاه بموجب عقد بتاريخ <strong>${agreementDate}</strong> بقيمة أجرة شهرية مبلغ <span class="amount">${actualMonthlyRent.toLocaleString()}</span> ريال وتأخر وامتنع عن سداد مستحقات الأجرة بالرغم من المطالبة ومازالت السيارة في حوزته ورفض ردها للشركة على الرغم من انتهاء العقد.
           </div>
 
+          ${pendingPayments.length > 0 ? `
+          <div class="payments-section">
+            <h3 style="text-align: center; margin-bottom: 15px;">تفاصيل الأشهر المتأخرة (المعلقة)</h3>
+            <table class="payments-table">
+              <thead>
+                <tr>
+                  <th>الوصف</th>
+                  <th>تاريخ الاستحقاق</th>
+                  <th>المبلغ</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${generatePendingPaymentsTable()}
+              </tbody>
+            </table>
+          </div>
+          ` : ''}
+
           <div class="paragraph">
-            قيمة المتأخرات المترصدة في ذمته <span class="amount">${totalRentAmount.toLocaleString()}</span> ريال عن ${getOverdueMonths()}، غرامات التأخير <span class="amount">${totalLateFees.toLocaleString()}</span> ريال
+            قيمة المتأخرات المترصدة في ذمته <span class="amount">${totalRentAmount.toLocaleString()}</span> ريال، غرامات التأخير بواقع 120 ريال لكل يوم تأخير (${totalDaysOverdue} يوم) = <span class="amount">${totalLateFees.toLocaleString()}</span> ريال
           </div>
 
           <div class="paragraph">
@@ -425,7 +503,7 @@ const LegalManagementDashboard = () => {
               <li>متأخرات الأجرة إلى حين التسليم</li>
               <li>قيمة مخالفات المرور إلى حين التسليم</li>
               <li>قيمة أي أضرار على السيارة إن وجدت</li>
-              <li>غرامات التأخير</li>
+              <li>غرامات التأخير بواقع 120 ريال لكل يوم تأخير</li>
               <li>تعويض الشركة لما تسبب من ضرر</li>
             </ol>
           </div>

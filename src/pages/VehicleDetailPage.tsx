@@ -52,12 +52,6 @@ const VehicleDetailPage: React.FC = () => {
     }
   };
 
-  const handleScheduleMaintenance = () => {
-    if (vehicle?.id) {
-      navigate(`/maintenance/add?vehicle_id=${vehicle.id}`);
-    }
-  };
-
   if (isLoading) {
     return (
       <PageContainer>
@@ -127,15 +121,6 @@ const VehicleDetailPage: React.FC = () => {
         icon={Car}
         actions={
           <div className={`flex flex-wrap gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={handleScheduleMaintenance}
-              className={language === 'ar' ? 'flex-row-reverse' : ''}
-            >
-              <Calendar className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-              {language === 'ar' ? 'جدولة صيانة' : 'Schedule Maintenance'}
-            </Button>
             <Button 
               size="sm" 
               variant="outline" 

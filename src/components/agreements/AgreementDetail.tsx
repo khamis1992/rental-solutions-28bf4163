@@ -16,19 +16,17 @@ import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { useLoadingStates } from '@/hooks/payment/use-loading-states';
 import { useDialogVisibility } from '@/utils/api/dialog-utils';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
-import { PaymentSyncButton } from './PaymentSyncButton';
-import { PaymentDebugPanel } from '@/components/debug/PaymentDebugPanel';
 import { AgreementOverviewCard } from './redesigned/tabs/AgreementOverviewCard';
 import { PaymentManagementCard } from './redesigned/tabs/PaymentManagementCard';
 import { DocumentsCard } from './redesigned/tabs/DocumentsCard';
 import { SettingsCard } from './redesigned/tabs/SettingsCard';
-import { FileText, CreditCard, FileImage, Settings, Bug } from 'lucide-react';
+import { FileText, CreditCard, FileImage, Settings } from 'lucide-react';
 
 interface AgreementDetailProps {
   onDelete: (id: string) => void;
   onPaymentDeleted: () => void;
   onDataRefresh: () => void;
-  onGenerateDocument?: () => Promise<void>;
+  onGenerateDocument?: () => void;
 }
 
 export function AgreementDetail({
@@ -51,8 +49,6 @@ export function AgreementDetail({
   const { loadingStates, setLoading, setIdle } = useLoadingStates({
     generatingPdf: false
   });
-
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Fetch agreement data
   const { data: agreement, isLoading: isLoadingAgreement } = useQuery({
@@ -203,7 +199,7 @@ export function AgreementDetail({
   // Fix the type issue by making this function properly async and handle the case when onGenerateDocument is undefined
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      await onGenerateDocument();
+      onGenerateDocument();
     } else {
       // Default behavior - generate Arabic contract
       await handleDownloadPdf();
@@ -245,54 +241,6 @@ export function AgreementDetail({
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Header with Agreement Info and Debug Toggle */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        {/* Title area moved to far right */}
-        <div className="space-y-2 text-right order-1 lg:order-1">
-          <div className="flex items-center gap-3 flex-row-reverse">
-            <h1 className="text-2xl font-bold">لوحة التحكم</h1>
-            <Badge variant="outline" className="px-3 py-1">
-              {agreement.agreement_number || 'بدون رقم'}
-            </Badge>
-            <Badge 
-              variant={agreement.status === 'active' ? 'default' : 'secondary'}
-              className="px-3 py-1"
-            >
-              {agreement.status === 'active' ? 'نشط' : agreement.status}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground text-right">
-            لوحة التحكم
-          </p>
-        </div>
-        
-        {/* Diagnostic buttons moved to far left */}
-        <div className="flex gap-2 order-2 lg:order-2">
-          <PaymentSyncButton 
-            agreementId={agreement.id} 
-            variant="fix"
-            className="text-xs"
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowDebugPanel(!showDebugPanel)}
-            className="text-xs"
-          >
-            <Bug className="h-4 w-4 ml-1" />
-            {showDebugPanel ? 'إخفاء' : 'إظهار'} التشخيص
-          </Button>
-        </div>
-      </div>
-
-      {/* Debug Panel */}
-      {showDebugPanel && (
-        <PaymentDebugPanel 
-          agreement={agreement} 
-          isOpen={showDebugPanel}
-        />
-      )}
-
       {/* Main Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4" dir="rtl">

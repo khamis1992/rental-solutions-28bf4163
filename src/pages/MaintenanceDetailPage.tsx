@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const MaintenanceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,40 +25,24 @@ const MaintenanceDetailPage = () => {
 
   if (isLoading) {
     return (
-      <PageContainer title="Maintenance Details" backLink="/maintenance">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-1/3" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-4 w-1/3" />
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-20 w-full" />
-          </CardContent>
-        </Card>
+      <PageContainer title="Maintenance Details">
+        <div className="flex items-center justify-center h-64">
+          <LoadingSpinner />
+        </div>
       </PageContainer>
     );
   }
 
   if (error || !maintenance) {
     return (
-      <PageContainer title="Maintenance Not Found" backLink="/maintenance">
-        <Card className="bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-700">Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>The maintenance record you're looking for could not be found.</p>
-            <Button 
-              className="mt-4" 
-              onClick={() => navigate('/maintenance')}
-              variant="outline"
-            >
-              Back to Maintenance List
-            </Button>
-          </CardContent>
-        </Card>
+      <PageContainer title="Maintenance Not Found">
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Maintenance Record Not Found</h3>
+          <p className="text-muted-foreground">
+            The maintenance record you're looking for doesn't exist or has been removed.
+          </p>
+        </div>
       </PageContainer>
     );
   }
@@ -112,137 +98,121 @@ const MaintenanceDetailPage = () => {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      completed: "default",
+      scheduled: "secondary", 
+      in_progress: "outline",
+      cancelled: "destructive"
+    };
+    return variants[status] || "outline";
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      high: "destructive",
+      medium: "secondary",
+      low: "outline"
+    };
+    return variants[priority] || "outline";
+  };
+
   return (
     <PageContainer 
       title="Maintenance Details" 
-      backLink="/maintenance"
-      actions={
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate(`/maintenance/edit/${id}`)}
-          >
-            <Pencil className="h-4 w-4 mr-1" /> Edit
-          </Button>
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            onClick={() => setIsDeleteDialogOpen(true)}
-          >
-            <Trash2 className="h-4 w-4 mr-1" /> Delete
-          </Button>
-        </div>
-      }
+      description={`Details for maintenance record #${maintenance.id}`}
     >
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <CardTitle>{maintenance.maintenance_type?.replace(/_/g, ' ') || 'Maintenance'}</CardTitle>
+              <label className="text-sm font-medium text-muted-foreground">Status</label>
               <div className="mt-1">
-                <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${getStatusBadgeClass(maintenance.status)}`}>
-                  {maintenance.status?.replace(/_/g, ' ')}
-                </span>
+                <Badge variant={getStatusBadge(maintenance.status)}>
+                  {maintenance.status.replace('_', ' ').toUpperCase()}
+                </Badge>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-muted-foreground text-sm flex items-center justify-end">
-                <Clock className="h-4 w-4 mr-1" />
-                Created: {formatDate(maintenance.created_at)}
+            
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Priority</label>
+              <div className="mt-1">
+                <Badge variant={getPriorityBadge(maintenance.priority)}>
+                  {maintenance.priority.toUpperCase()}
+                </Badge>
               </div>
-              {maintenance.status === 'completed' && maintenance.completed_date && (
-                <div className="text-muted-foreground text-sm flex items-center justify-end mt-1">
-                  <CheckCircle className="h-4 w-4 mr-1 text-green-600" />
-                  Completed: {formatDate(maintenance.completed_date)}
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Vehicle</label>
+              <p className="mt-1">{vehicleDetails ? 
+                `${vehicleDetails.make} ${vehicleDetails.model} (${vehicleDetails.license_plate})` : 
+                `Vehicle ID: ${maintenance.vehicle_id}`
+              }</p>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Type</label>
+              <p className="mt-1">{maintenance.maintenance_type?.replace(/_/g, ' ')}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Schedule & Dates</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Scheduled Date</label>
+              <p className="mt-1">{formatDate(maintenance.scheduled_date)}</p>
+            </div>
+            
+            {maintenance.completed_date && (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Completed Date</label>
+                <p className="mt-1">{formatDate(maintenance.completed_date)}</p>
+              </div>
+            )}
+            
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Created</label>
+              <p className="mt-1">{formatDate(maintenance.created_at)}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Description & Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Description</label>
+                <p className="mt-1">{maintenance.description || 'No description provided'}</p>
+              </div>
+              
+              {maintenance.notes && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Notes</label>
+                  <p className="mt-1">{maintenance.notes}</p>
+                </div>
+              )}
+              
+              {maintenance.cost && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Cost</label>
+                  <p className="mt-1 text-lg font-semibold">QAR {maintenance.cost.toLocaleString()}</p>
                 </div>
               )}
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium flex items-center">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Scheduled Date
-                </h3>
-                <p className="text-muted-foreground">{formatDate(maintenance.scheduled_date)}</p>
-              </div>
-              <div>
-                <h3 className="font-medium flex items-center">
-                  <Car className="h-4 w-4 mr-2" />
-                  Vehicle
-                </h3>
-                <p className="text-muted-foreground">
-                  {vehicleDetails ? 
-                    `${vehicleDetails.make} ${vehicleDetails.model} (${vehicleDetails.license_plate})` : 
-                    `Vehicle ID: ${maintenance.vehicle_id}`
-                  }
-                </p>
-              </div>
-              <div>
-                <h3 className="font-medium flex items-center">
-                  <ClipboardList className="h-4 w-4 mr-2" />
-                  Maintenance Type
-                </h3>
-                <p className="text-muted-foreground">
-                  {maintenance.maintenance_type?.replace(/_/g, ' ')}
-                </p>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium flex items-center">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Cost
-                </h3>
-                <p className="text-muted-foreground">
-                  {maintenance.cost ? `$${maintenance.cost.toFixed(2)}` : 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <h3 className="font-medium flex items-center">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Service Provider
-                </h3>
-                <p className="text-muted-foreground">
-                  {maintenance.service_provider || maintenance.performed_by || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <h3 className="font-medium flex items-center">
-                  <User className="h-4 w-4 mr-2" />
-                  Invoice Number
-                </h3>
-                <p className="text-muted-foreground">
-                  {maintenance.invoice_number || 'Not specified'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div>
-            <h3 className="font-medium mb-2">Description</h3>
-            <p className="text-muted-foreground">
-              {maintenance.description || 'No description provided.'}
-            </p>
-          </div>
-
-          {maintenance.notes && (
-            <>
-              <Separator />
-              <div>
-                <h3 className="font-medium mb-2">Additional Notes</h3>
-                <p className="text-muted-foreground">{maintenance.notes}</p>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
