@@ -9,7 +9,7 @@ const LegalCalendarPage = () => {
     <PageContainer
       title="Compliance Calendar"
       description="Track upcoming compliance deadlines and regulatory requirements"
-
+      backLink="/legal"
     >
       <SectionHeader
         title="Compliance Calendar"

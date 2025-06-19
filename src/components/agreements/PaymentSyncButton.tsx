@@ -27,65 +27,28 @@ export function PaymentSyncButton({
     isPending 
   } = usePaymentSync();
 
-  // Helper function to format error messages properly
-  const formatErrorMessage = (error: any): string => {
-    if (error instanceof Error) {
-      return error.message;
-    }
-    if (typeof error === 'string') {
-      return error;
-    }
-    if (error && typeof error === 'object') {
-      if (error.message) return error.message;
-      try {
-        return JSON.stringify(error);
-      } catch {
-        return 'خطأ في البيانات';
-      }
-    }
-    return 'خطأ غير معروف';
-  };
-
-  // Handle comprehensive payment sync fix
+  // Handle deep fix using our dedicated service
   const handleDeepFix = async () => {
     setIsFixing(true);
     try {
-      toast.info("🔄 جاري تشغيل مزامنة شاملة للمدفوعات...", {
-        description: "سيتم إنشاء جدول الدفعات ومزامنة البيانات"
-      });
-      
+      toast.info("Running comprehensive payment synchronization...");
       const result = await paymentSyncService.fixAgreementPaymentSync(agreementId);
       
-      if (result.success && result.data) {
+      if (result.success) {
         const { data } = result;
-        const message = `✅ تمت المزامنة بنجاح!`;
-        const description = `تم إنشاء ${data.scheduleItems} عنصر جدولة و ${data.unifiedPaymentsCreated} سجل دفع`;
-        
-        toast.success(message, {
-          description,
-          duration: 5000
-        });
-        
-        // إذا تم إنشاء عناصر جديدة، أعلم المستخدم
-        if (data.generatedScheduleItems && data.generatedScheduleItems > 0) {
-          toast.info(`📅 تم إنشاء ${data.generatedScheduleItems} عنصر جدولة جديد`, {
-            description: "جدول الدفعات أصبح جاهزاً حسب تاريخ البداية والانتهاء"
-          });
+        if (data) {
+          toast.success(`Payment sync completed! Created ${data.scheduleItems} schedule items and ${data.unifiedPaymentsCreated} payment records.`);
+        } else {
+          toast.success("Payment sync completed successfully!");
         }
       } else {
-        const errorMessage = formatErrorMessage(result.error);
-        toast.error("❌ فشل في مزامنة المدفوعات", {
-          description: errorMessage,
-          duration: 6000
-        });
+        const errorMessage = result.error instanceof Error ? result.error.message : 'Unknown error';
+        toast.error(`Payment sync encountered issues: ${errorMessage}`);
       }
     } catch (error) {
       console.error("Error fixing payment sync:", error);
-      const errorMessage = formatErrorMessage(error);
-      toast.error("❌ خطأ في مزامنة المدفوعات", {
-        description: errorMessage,
-        duration: 6000
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Error fixing payment synchronization: ${errorMessage}`);
     } finally {
       setIsFixing(false);
     }
@@ -96,63 +59,41 @@ export function PaymentSyncButton({
     setIsChecking(true);
     try {
       const result = await paymentSyncService.getPaymentSyncStatus(agreementId);
-      if (result.success && result.data) {
+      if (result.success) {
         const { data } = result;
-        toast.info("📊 حالة المزامنة", {
-          description: `جدولة الدفعات: ${data.scheduleTables.payment_schedules} | الدفعات المتحدة: ${data.scheduleTables.unified_payments}`,
-          duration: 4000
-        });
-      } else {
-        const errorMessage = formatErrorMessage(result.error);
-        toast.error("❌ فشل في فحص حالة المزامنة", {
-          description: errorMessage
-        });
+        console.log('Payment sync status:', data);
+        toast.info(`Schedule items: ${data.scheduleTables.payment_schedules}, Unified payments: ${data.scheduleTables.unified_payments}`);
       }
     } catch (error) {
       console.error("Error checking sync status:", error);
-      const errorMessage = formatErrorMessage(error);
-      toast.error("❌ خطأ في فحص حالة المزامنة", {
-        description: errorMessage
-      });
+      toast.error("Failed to check sync status");
     } finally {
       setIsChecking(false);
     }
   };
   
-  // Handle basic sync for existing data
+  // Handle sync which just synchronizes with existing data
   const handleSync = async () => {
     try {
-      toast.info("🔄 جاري مزامنة المدفوعات...");
       await syncPaymentSchedule.mutateAsync(agreementId);
-      toast.success("✅ تمت مزامنة المدفوعات بنجاح");
     } catch (error) {
       console.error("Error syncing payments:", error);
-      const errorMessage = formatErrorMessage(error);
-      toast.error("❌ فشل في مزامنة المدفوعات", {
-        description: errorMessage
-      });
     }
   };
   
-  // Fix duplicate payments
+  // Debug mode - fix duplicates with error handling
   const handleFixDuplicates = async () => {
     setIsDebugging(true);
     try {
-      toast.info("🔍 جاري فحص المدفوعات المكررة...");
+      toast.info("Checking for duplicate payment records...");
       await fixDuplicatePayments.mutateAsync(agreementId);
-      toast.success("✅ تم إصلاح المدفوعات المكررة");
     } catch (error) {
       console.error("Error fixing duplicates:", error);
-      const errorMessage = formatErrorMessage(error);
-      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       if (errorMessage.includes('fix_duplicate_payments')) {
-        toast.warning("⚠️ وظيفة إصلاح المدفوعات المكررة غير متاحة", {
-          description: "يرجى التواصل مع الدعم الفني"
-        });
+        toast.warning("Duplicate payment fix function not available. Please contact support.");
       } else {
-        toast.error("❌ فشل في إصلاح المدفوعات المكررة", {
-          description: errorMessage
-        });
+        toast.error(`Error fixing duplicates: ${errorMessage}`);
       }
     } finally {
       setIsDebugging(false);
@@ -162,7 +103,7 @@ export function PaymentSyncButton({
   if (variant === "fix") {
     return (
       <div className="flex gap-1 flex-row-reverse" dir="rtl">
-        <TooltipWrapper content="إصلاح شامل لمزامنة المدفوعات - ينشئ جدول الدفعات حسب تاريخ البداية والانتهاء">
+        <TooltipWrapper content="إصلاح مشاكل مزامنة المدفوعات لهذا العقد.">
           <Button
             size="sm"
             variant="outline"
@@ -174,7 +115,7 @@ export function PaymentSyncButton({
             {isFixing ? "جاري الإصلاح..." : "إصلاح المزامنة"}
           </Button>
         </TooltipWrapper>
-        <TooltipWrapper content="فحص حالة المزامنة الحالية وعدد عناصر الجدولة">
+        <TooltipWrapper content="فحص حالة المزامنة الحالية لهذا العقد.">
           <Button
             size="sm"
             variant="ghost"
@@ -191,7 +132,7 @@ export function PaymentSyncButton({
   
   return (
     <div className="flex gap-1 flex-row-reverse" dir="rtl">
-      <TooltipWrapper content="مزامنة المدفوعات والجداول الموجودة لهذا العقد">
+      <TooltipWrapper content="مزامنة المدفوعات والجداول لهذا العقد.">
         <Button
           size="sm"
           variant="outline"
@@ -203,7 +144,7 @@ export function PaymentSyncButton({
           {isPending.sync ? "جاري المزامنة..." : "مزامنة"}
         </Button>
       </TooltipWrapper>
-      <TooltipWrapper content="إصلاح المدفوعات المكررة لهذا العقد">
+      <TooltipWrapper content="إصلاح المدفوعات المكررة لهذا العقد.">
         <Button
           size="sm"
           variant="ghost"

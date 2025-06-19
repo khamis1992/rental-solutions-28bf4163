@@ -9,7 +9,7 @@ const LegalCompliancePage = () => {
     <PageContainer
       title="Compliance Reporting"
       description="Analyze and monitor legal compliance across your organization"
-
+      backLink="/legal"
     >
       <SectionHeader
         title="Compliance Reporting"

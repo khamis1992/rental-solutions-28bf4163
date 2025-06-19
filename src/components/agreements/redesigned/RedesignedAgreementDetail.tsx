@@ -16,11 +16,13 @@ import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { useLoadingStates } from '@/hooks/payment/use-loading-states';
 import { useDialogVisibility } from '@/utils/api/dialog-utils';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
+import { PaymentSyncButton } from '../PaymentSyncButton';
+import { PaymentDebugPanel } from '@/components/debug/PaymentDebugPanel';
 import { AgreementOverviewCard } from './tabs/AgreementOverviewCard';
 import { PaymentManagementCard } from './tabs/PaymentManagementCard';
 import { DocumentsCard } from './tabs/DocumentsCard';
 import { SettingsCard } from './tabs/SettingsCard';
-import { FileText, CreditCard, FileImage, Settings } from 'lucide-react';
+import { FileText, CreditCard, FileImage, Settings, Bug } from 'lucide-react';
 
 interface RedesignedAgreementDetailProps {
   agreement: Agreement | null;
@@ -54,6 +56,8 @@ export function RedesignedAgreementDetail({
   const { loadingStates, setLoading, setIdle } = useLoadingStates({
     generatingPdf: false
   });
+
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Use payment management hook
   const {
@@ -198,8 +202,26 @@ export function RedesignedAgreementDetail({
     <div className="space-y-6 legal-rtl" dir="rtl">
       {/* Header with Agreement Info and Debug Toggle */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        {/* Diagnostic buttons moved to far left */}
+        <div className="flex gap-2 order-2 lg:order-1">
+          <PaymentSyncButton 
+            agreementId={agreement.id} 
+            variant="fix"
+            className="text-xs"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            className="text-xs"
+          >
+            <Bug className="h-4 w-4 ml-1" />
+            {showDebugPanel ? 'إخفاء' : 'إظهار'} التشخيص
+          </Button>
+        </div>
+        
         {/* Title area moved to far right */}
-        <div className="space-y-2 text-right order-1 lg:order-1">
+        <div className="space-y-2 text-right order-1 lg:order-2">
           <div className="flex items-center gap-3 flex-row-reverse">
             <h1 className="text-2xl font-bold">تفاصيل العقد</h1>
             <Badge variant="outline" className="px-3 py-1">
@@ -217,6 +239,14 @@ export function RedesignedAgreementDetail({
           </p>
         </div>
       </div>
+
+      {/* Debug Panel */}
+      {showDebugPanel && (
+        <PaymentDebugPanel 
+          agreement={agreement} 
+          isOpen={showDebugPanel}
+        />
+      )}
 
       {/* Main Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

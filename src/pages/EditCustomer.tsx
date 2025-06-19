@@ -93,6 +93,7 @@ const EditCustomer = () => {
       <PageContainer
         title="Edit Customer"
         description="Loading customer information..."
+        backLink="/customers"
       >
         <div className="space-y-6">
           <Skeleton className="h-12 w-full" />
@@ -110,6 +111,7 @@ const EditCustomer = () => {
       <PageContainer
         title="Customer Not Found"
         description={error || "The customer you're trying to edit doesn't exist."}
+        backLink="/customers"
       >
         <div className="bg-destructive/10 text-destructive p-4 rounded-md">
           {error || "Customer not found or has been deleted."}
@@ -122,6 +124,7 @@ const EditCustomer = () => {
     <PageContainer
       title="Edit Customer"
       description={`Update information for ${customer.full_name}`}
+      backLink={`/customers/${id}`}
     >
       <CustomerForm 
         initialData={customer} 

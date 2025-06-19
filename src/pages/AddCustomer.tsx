@@ -37,7 +37,7 @@ const AddCustomer = () => {
     <PageContainer
       title="إضافة عميل جديد"
       description="إنشاء سجل عميل جديد في النظام."
-
+      backLink="/customers"
     >
       <CustomerOnboardingWizard
         open={wizardOpen}

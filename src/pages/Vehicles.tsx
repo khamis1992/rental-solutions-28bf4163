@@ -360,6 +360,16 @@ const Vehicles = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
+                    onClick={() => navigate('/maintenance/add')}
+                    className="flex items-center justify-end"
+                  >
+                    <Wrench className="h-4 w-4 mr-2" />
+                    إضافة صيانة
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
                     onClick={() => navigate('/vehicles/status-update')}
                     className="flex items-center justify-end"
                   >

@@ -1,141 +1,266 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>غير متصل - نظام إدارة تأجير السيارات</title>
+    <title>Offline - Al-Araf Car Rental</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: #333;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
+        }
+
+        .offline-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            padding: 60px 40px;
             text-align: center;
-            direction: rtl;
+            animation: fadeIn 0.5s ease-out;
         }
-        
-        .container {
-            max-width: 500px;
-            padding: 2rem;
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        
-        .icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.8;
+
+        .offline-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            position: relative;
         }
-        
+
+        .offline-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
         h1 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            font-weight: 300;
+            font-size: 32px;
+            color: #1e40af;
+            margin-bottom: 20px;
+            font-weight: 700;
         }
-        
+
         p {
-            font-size: 1.1rem;
+            font-size: 18px;
+            color: #6b7280;
             line-height: 1.6;
-            margin-bottom: 2rem;
-            opacity: 0.9;
+            margin-bottom: 40px;
         }
-        
-        .btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 50px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            margin: 0.5rem;
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 10px 20px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 40px;
         }
-        
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
-            transform: translateY(-2px);
-        }
-        
-        .status {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            font-size: 0.9rem;
-        }
-        
-        .pulse {
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #dc2626;
+            border-radius: 50%;
             animation: pulse 2s infinite;
         }
-        
+
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
-        
-        .logo {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
+
+        .cached-pages {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+
+        .cached-pages h2 {
+            font-size: 20px;
+            color: #1e40af;
+            margin-bottom: 20px;
+        }
+
+        .cached-links {
+            display: grid;
+            gap: 10px;
+            text-align: left;
+        }
+
+        .cached-links a {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: bold;
+            gap: 12px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.2s;
+            border: 1px solid #e5e7eb;
+        }
+
+        .cached-links a:hover {
+            background: #f3f4f6;
+            transform: translateX(5px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .link-icon {
+            width: 20px;
+            height: 20px;
+            color: #6b7280;
+        }
+
+        .retry-button {
+            background: #1e40af;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 20px;
+        }
+
+        .retry-button:hover {
+            background: #1e3a8a;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 64, 175, 0.3);
+        }
+
+        @media (max-width: 640px) {
+            .offline-container {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            p {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">العارف</div>
-        <div class="icon pulse">📱</div>
-        <h1>أنت غير متصل بالإنترنت</h1>
-        <p>لا تقلق! يمكنك الاستمرار في استخدام العديد من ميزات التطبيق. سيتم مزامنة بياناتك عند عودة الاتصال.</p>
+    <div class="offline-container">
+        <div class="offline-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8.91003 19.92L15.43 13.4C15.68 13.15 15.93 12.9 16.18 12.65C17.19 11.64 17.84 10.27 17.97 8.79004L19.44 7.32004C19.8156 6.94446 20.0375 6.44366 20.0634 5.91345C20.0893 5.38324 19.9178 4.86065 19.5822 4.44719C19.2466 4.03372 18.7695 3.75756 18.2424 3.67175C17.7153 3.58594 17.1744 3.69632 16.72 3.98404L7.68002 4.61404C6.20002 4.74404 4.83002 5.39404 3.82002 6.40404C3.57002 6.65404 3.32002 6.90404 3.07002 7.15404L6.33002 10.41L2.39002 14.35C2.14002 14.6 1.89002 14.85 1.64002 15.1C0.630024 16.11 -0.019976 17.48 0.110024 18.96L1.58002 17.49C1.83002 17.24 2.08002 16.99 2.33002 16.74C3.34002 15.73 4.71002 15.08 6.19002 15.21L8.91003 19.92Z" fill="#6b7280"/>
+                <path d="M21.7099 21.71C21.8982 21.5217 22.0039 21.2663 22.0039 21C22.0039 20.7337 21.8982 20.4783 21.7099 20.29L12.7099 11.29L11.2899 12.71L20.2899 21.71C20.4782 21.8983 20.7336 22.004 20.9999 22.004C21.2662 22.004 21.5216 21.8983 21.7099 21.71Z" fill="#6b7280"/>
+                <path d="M3.71 2.29C3.52169 2.10169 3.26629 1.99609 3 1.99609C2.73371 1.99609 2.47831 2.10169 2.29 2.29C2.10169 2.47831 1.99609 2.73371 1.99609 3C1.99609 3.26629 2.10169 3.52169 2.29 3.71L7.29 8.71L8.71 7.29L3.71 2.29Z" fill="#dc2626"/>
+            </svg>
+        </div>
         
-        <a href="/" class="btn" onclick="window.location.reload()">إعادة المحاولة</a>
-        <a href="/" class="btn">العودة للتطبيق</a>
+        <h1>You're Offline</h1>
         
-        <div class="status">
-            <div>📊 يمكنك عرض البيانات المحفوظة محلياً</div>
-            <div>💾 سيتم حفظ التغييرات ومزامنتها لاحقاً</div>
-            <div>🔄 التطبيق سيعمل تلقائياً عند عودة الإنترنت</div>
+        <div class="status-indicator">
+            <span class="status-dot"></span>
+            No internet connection
+        </div>
+        
+        <p>It looks like you've lost your internet connection. Don't worry - you can still access some cached content below, or try reconnecting.</p>
+        
+        <button class="retry-button" onclick="window.location.reload()">
+            Try Again
+        </button>
+        
+        <div class="cached-pages">
+            <h2>Available Offline</h2>
+            <div class="cached-links">
+                <a href="/">
+                    <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="/agreements">
+                    <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    Agreements
+                </a>
+                <a href="/vehicles">
+                    <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    </svg>
+                    Vehicles
+                </a>
+                <a href="/customers">
+                    <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Customers
+                </a>
+            </div>
         </div>
     </div>
     
     <script>
-        // Check for network status
-        function updateOnlineStatus() {
+        // Check connection status periodically
+        function checkConnection() {
             if (navigator.onLine) {
-                // Redirect to main app when back online
-                window.location.href = '/';
+                window.location.reload();
             }
         }
         
-        // Listen for online/offline events
-        window.addEventListener('online', updateOnlineStatus);
-        window.addEventListener('offline', updateOnlineStatus);
-        
         // Check every 5 seconds
-        setInterval(updateOnlineStatus, 5000);
+        setInterval(checkConnection, 5000);
         
-        // Auto-retry after 10 seconds
-        setTimeout(() => {
-            updateOnlineStatus();
-        }, 10000);
+        // Listen for online event
+        window.addEventListener('online', () => {
+            window.location.reload();
+        });
     </script>
 </body>
 </html>

@@ -1,23 +1,27 @@
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import { SectionHeader } from '@/components/ui/section-header';
+import PageHeader from '@/components/ui/PageHeader';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { RecentLegalActivity } from '@/components/legal/activity/RecentLegalActivity';
 import { Clock } from 'lucide-react';
-import { LegalActivityFeed } from '@/components/legal/activity/LegalActivityFeed';
 
 const LegalActivityPage = () => {
+  const { language } = useLanguage();
   return (
-    <PageContainer 
-      title="Legal Activity Log" 
-      description="Track all legal activities and updates"
+    <PageContainer
+      title="النشاط القانوني الحديث"
+      description="آخر التحديثات من القضايا والوثائق القانونية"
+      backLink="/legal"
     >
-      <SectionHeader 
-        title="Activity Feed" 
-        description="Monitor legal case activities, compliance updates, and system changes" 
-        icon={Clock} 
+      <PageHeader
+        title="النشاط الحديث"
+        subtitle="آخر التحديثات والتغييرات"
+        icon={<Clock className="w-6 h-6 text-blue-500" />}
+        align={language === 'ar' ? 'right' : 'left'}
+        dir={language === 'ar' ? 'rtl' : 'ltr'}
       />
-      
-      <div className="mt-6">
-        <LegalActivityFeed />
+      <div className="mt-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <RecentLegalActivity />
       </div>
     </PageContainer>
   );

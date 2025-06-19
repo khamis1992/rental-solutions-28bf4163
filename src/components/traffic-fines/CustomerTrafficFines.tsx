@@ -107,30 +107,30 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
   }, [customerId]);
 
   const getStatusBadge = (status: string) => {
-    if (!status) return <Badge variant="outline">غير معروف</Badge>;
+    if (!status) return <Badge variant="outline">Unknown</Badge>;
     
     switch (status.toLowerCase()) {
       case 'paid':
-        return <Badge className="bg-green-500">مدفوع</Badge>;
+        return <Badge className="bg-green-500">Paid</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500">معلق</Badge>;
+        return <Badge className="bg-yellow-500">Pending</Badge>;
       case 'disputed':
-        return <Badge className="bg-blue-500">متنازع عليه</Badge>;
+        return <Badge className="bg-blue-500">Disputed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   const getValidationBadge = (status: string) => {
-    if (!status) return <Badge variant="outline">غير معروف</Badge>;
+    if (!status) return <Badge variant="outline">Unknown</Badge>;
     
     switch (status.toLowerCase()) {
       case 'verified':
-        return <Badge className="bg-green-500">موثق</Badge>;
+        return <Badge className="bg-green-500">Verified</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500">معلق</Badge>;
+        return <Badge className="bg-yellow-500">Pending</Badge>;
       case 'failed':
-        return <Badge className="bg-red-500">فشل</Badge>;
+        return <Badge className="bg-red-500">Failed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -142,15 +142,15 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
 
   if (isLoading) {
     return (
-      <Card dir="rtl">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-right">المخالفات المرورية</CardTitle>
-          <CardDescription className="text-right">جاري تحميل المخالفات المرورية لهذا العميل...</CardDescription>
+          <CardTitle>Traffic Fines</CardTitle>
+          <CardDescription>Loading traffic fines for this customer...</CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center items-center h-64">
           <div className="flex flex-col items-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-            <p className="text-muted-foreground">جاري تحميل المخالفات المرورية...</p>
+            <p className="text-muted-foreground">Loading traffic fines...</p>
           </div>
         </CardContent>
       </Card>
@@ -159,14 +159,14 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
 
   if (error) {
     return (
-      <Card dir="rtl">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-right">المخالفات المرورية</CardTitle>
-          <CardDescription className="text-right">حدث خطأ</CardDescription>
+          <CardTitle>Traffic Fines</CardTitle>
+          <CardDescription>An error occurred</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center text-destructive flex-row-reverse">
-            <AlertTriangle className="ml-2" />
+          <div className="flex items-center text-destructive">
+            <AlertTriangle className="mr-2" />
             <p>{error}</p>
           </div>
         </CardContent>
@@ -180,52 +180,52 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
   );
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex justify-between items-center flex-row-reverse">
-        <div className="text-right">
-          <h2 className="text-3xl font-bold tracking-tight">المخالفات المرورية</h2>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Traffic Fines</h2>
           <p className="text-muted-foreground">
-            إدارة المخالفات المرورية المرتبطة بهذا العميل
+            Manage traffic fines associated with this customer
           </p>
         </div>
         <Button onClick={handleAddFine}>
-          <Plus className="ml-2 h-4 w-4" /> إضافة مخالفة
+          <Plus className="mr-2 h-4 w-4" /> Add Fine
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-row-reverse">
-            <CardTitle className="text-sm font-medium text-right">إجمالي المخالفات</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Fines</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-right">
+          <CardContent>
             <div className="text-2xl font-bold">{trafficFines.length}</div>
             <p className="text-xs text-muted-foreground">
-              إجمالي المخالفات المرورية المسجلة
+              Total traffic fines recorded
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-row-reverse">
-            <CardTitle className="text-sm font-medium text-right">المخالفات المعلقة</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Fines</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-right">
+          <CardContent>
             <div className="text-2xl font-bold">{pendingFines.length}</div>
             <p className="text-xs text-muted-foreground">
-              المخالفات التي تتطلب سداد
+              Fines requiring payment
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-row-reverse">
-            <CardTitle className="text-sm font-medium text-right">المبلغ الإجمالي</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-right">
+          <CardContent>
             <div className="text-2xl font-bold">
-              {new Intl.NumberFormat('ar-QA', {
+              {new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'QAR',
                 minimumFractionDigits: 0,
@@ -233,7 +233,7 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
               }).format(totalFineAmount)}
             </div>
             <p className="text-xs text-muted-foreground">
-              المبلغ الإجمالي لجميع المخالفات
+              Total amount for all fines
             </p>
           </CardContent>
         </Card>
@@ -241,52 +241,52 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-right">سجلات المخالفات المرورية</CardTitle>
-          <CardDescription className="text-right">جميع المخالفات المرورية المرتبطة بهذا العميل</CardDescription>
+          <CardTitle>Traffic Fine Records</CardTitle>
+          <CardDescription>All traffic fines associated with this customer</CardDescription>
         </CardHeader>
         <CardContent>
           {trafficFines.length > 0 ? (
-            <Table dir="rtl">
+            <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right">رقم اللوحة</TableHead>
-                  <TableHead className="text-right">التاريخ</TableHead>
-                  <TableHead className="text-right">المكان</TableHead>
-                  <TableHead className="text-right">المخالفة</TableHead>
-                  <TableHead className="text-right">المبلغ</TableHead>
-                  <TableHead className="text-right">الحالة</TableHead>
-                  <TableHead className="text-right">التوثيق</TableHead>
+                  <TableHead>License Plate</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Violation</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Validation</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {trafficFines.map((fine) => (
                   <TableRow key={fine.id}>
-                    <TableCell className="font-medium text-right">{fine.license_plate || 'غير متوفر'}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center flex-row-reverse">
-                        <Calendar className="ml-1 h-3 w-3 text-muted-foreground" />
-                        {fine.violation_date ? formatDate(fine.violation_date) : 'غير متوفر'}
+                    <TableCell className="font-medium">{fine.license_plate || 'N/A'}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Calendar className="mr-1 h-3 w-3 text-muted-foreground" />
+                        {fine.violation_date ? formatDate(fine.violation_date) : 'N/A'}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center flex-row-reverse">
-                        <MapPin className="ml-1 h-3 w-3 text-muted-foreground" />
-                        {fine.fine_location || 'غير متوفر'}
+                    <TableCell>
+                      <div className="flex items-center">
+                        <MapPin className="mr-1 h-3 w-3 text-muted-foreground" />
+                        {fine.fine_location || 'N/A'}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{fine.violation_charge || 'غير متوفر'}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>{fine.violation_charge || 'N/A'}</TableCell>
+                    <TableCell>
                       {fine.fine_amount ? (
-                        new Intl.NumberFormat('ar-QA', {
+                        new Intl.NumberFormat('en-US', {
                           style: 'currency',
                           currency: 'QAR',
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         }).format(fine.fine_amount)
-                      ) : 'غير متوفر'}
+                      ) : 'N/A'}
                     </TableCell>
-                    <TableCell className="text-right">{getStatusBadge(fine.payment_status || '')}</TableCell>
-                    <TableCell className="text-right">{getValidationBadge(fine.validation_status || '')}</TableCell>
+                    <TableCell>{getStatusBadge(fine.payment_status || '')}</TableCell>
+                    <TableCell>{getValidationBadge(fine.validation_status || '')}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -294,7 +294,7 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
           ) : (
             <div className="flex flex-col items-center justify-center h-48">
               <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">لا توجد مخالفات مرورية لهذا العميل</p>
+              <p className="text-muted-foreground">No traffic fines found for this customer</p>
             </div>
           )}
         </CardContent>

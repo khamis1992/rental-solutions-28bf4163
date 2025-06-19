@@ -9,7 +9,8 @@ const NewLegalCasePage = () => {
   return (
     <PageContainer 
       title="New Legal Case" 
-      description="Create a new legal case"
+      description="Create a new legal case" 
+      backLink="/legal"
     >
       <SectionHeader 
         title="Create New Case" 

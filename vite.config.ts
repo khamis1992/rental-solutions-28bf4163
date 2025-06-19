@@ -22,35 +22,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // Vendor chunks
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-select',
-            '@radix-ui/react-toast',
-            'lucide-react'
-          ],
-          'supabase-vendor': ['@supabase/supabase-js', '@supabase/ssr'],
-          'query-vendor': ['@tanstack/react-query'],
-          'chart-vendor': ['chart.js', 'recharts'],
-          'pdf-vendor': ['jspdf', 'jspdf-autotable', 'pdfmake'],
-          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          'date-vendor': ['date-fns'],
-          'utils-vendor': ['clsx', 'class-variance-authority', 'tailwind-merge']
-        }
-      }
-    },
-    // Optimize dependencies
-    commonjsOptions: {
-      transformMixedEsModules: true
-    }
-  }
 }));

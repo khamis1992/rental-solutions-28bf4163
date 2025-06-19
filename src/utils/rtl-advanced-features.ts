@@ -410,19 +410,6 @@ export const createRTLAnimation = (
     fillMode?: string;
   } = {}
 ) => {
-  // Return the base animation class only, inline styles will be handled separately
-  return rtlAnimations[animationType];
-};
-
-/**
- * Create inline styles for animation properties
- */
-export const createAnimationStyles = (options: {
-  duration?: string;
-  delay?: string;
-  easing?: string;
-  fillMode?: string;
-} = {}) => {
   const {
     duration = '300ms',
     delay = '0ms',
@@ -430,12 +417,13 @@ export const createAnimationStyles = (options: {
     fillMode = 'both',
   } = options;
 
-  return {
-    animationDuration: duration,
-    animationDelay: delay,
-    animationTimingFunction: easing,
-    animationFillMode: fillMode,
-  };
+  return cn(
+    rtlAnimations[animationType],
+    `duration-[${duration}]`,
+    `delay-[${delay}]`,
+    `ease-[${easing}]`,
+    `fill-[${fillMode}]`
+  );
 };
 
 /**

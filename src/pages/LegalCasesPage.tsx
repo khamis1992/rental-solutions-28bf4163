@@ -9,7 +9,7 @@ const LegalCasesPage = () => {
     <PageContainer
       title="Legal Cases"
       description="Manage and track legal cases"
-
+      backLink="/legal"
     >
       <SectionHeader
         title="Legal Cases"

@@ -85,6 +85,14 @@ export const VehicleStatusCard: React.FC<VehicleStatusCardProps> = ({ vehicle })
                 <p className={`text-sm ${language === 'ar' ? 'text-right' : ''}`}>
                   {language === 'ar' ? 'هذه المركبة قيد الصيانة حالياً.' : 'This vehicle is currently under maintenance.'}
                 </p>
+                <Button 
+                  size="sm" 
+                  className={`w-full ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+                  onClick={() => navigate(`/maintenance/add?vehicle_id=${vehicle.id}`)}
+                >
+                  <Wrench className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                  {language === 'ar' ? 'إضافة سجل صيانة' : 'Add Maintenance Record'}
+                </Button>
               </div>
             </>
           )}

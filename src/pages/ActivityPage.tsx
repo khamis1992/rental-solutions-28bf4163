@@ -152,7 +152,7 @@ const ActivityPage = () => {
     <PageContainer
       title="سجل النشاط"
       description="عرض جميع أنشطة النظام والأحداث"
-
+      backLink="/dashboard"
     >
       <div dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <PageHeader

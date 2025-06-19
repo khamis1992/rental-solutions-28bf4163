@@ -14,6 +14,7 @@ import {
   DollarSign,
   Scale,
   ChevronDown,
+  ChevronRight,
   ChevronLeft,
   Car,
   FileSpreadsheet,
@@ -36,24 +37,24 @@ type NavLinkProps = {
 
 const NavLink: React.FC<NavLinkProps> = ({ to, icon, label, isActive, badgeCount, onClick }) => {
   return (
-    <Link 
-      to={to} 
-      onClick={onClick}
+    <Link
+      to={to}
       className={cn(
-        "flex items-center justify-end gap-3 rounded-md px-3 py-3 text-sm font-medium transition-colors text-right",
-        isActive 
-          ? "bg-gray-800 text-white" 
-          : "text-gray-200 hover:bg-gray-800 hover:text-white"
+        "flex items-center justify-end gap-3 rounded-md px-3 py-3 text-sm transition-all text-right w-full",
+        isActive ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
       )}
+      onClick={onClick}
       dir="rtl"
     >
-      <div className="flex items-center gap-2 flex-row-reverse">
+      <div className="flex items-center gap-2 flex-row-reverse w-full justify-end">
         {icon}
-        <span>{label}</span>
-        {badgeCount && badgeCount > 0 && (
-          <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+        <span className="text-right flex-1">
+          {label}
+        </span>
+        {badgeCount !== undefined && badgeCount > 0 && (
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
             {badgeCount}
-          </span>
+          </div>
         )}
       </div>
     </Link>
@@ -105,6 +106,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ onClose }: SidebarProps) => {
+  const [expanded, setExpanded] = useState(true);
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
@@ -112,6 +114,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
+  const toggleSidebar = () => {
+    setExpanded(!expanded);
   };
 
   // Arabic navigation labels
@@ -155,214 +161,218 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
   return (
     <div
-      className="fixed inset-y-0 z-40 flex flex-col bg-[#111827] border-gray-800 transition-all duration-300 ease-in-out w-64 right-0 border-l"
+      className={cn(
+        "fixed inset-y-0 z-40 flex flex-col bg-[#111827] border-gray-800 transition-all duration-300 ease-in-out",
+        "right-0 border-l", // Always positioned on the right
+        expanded ? "w-64" : "w-0 md:w-20",
+        expanded ? "" : "md:px-2 md:py-4"
+      )}
       dir="rtl"
     >
-      <div className="flex h-16 items-center border-b border-gray-800 px-4">
-        <div 
-          className="flex items-center gap-3 w-full justify-start"
-          dir="ltr"
-        >
-          <h2 className="text-lg font-semibold text-white text-left">
-            Rental Solutions
-          </h2>
-          <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg text-white font-bold text-sm">
-            RS
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden md:flex absolute top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white -left-12"
+        onClick={toggleSidebar}
+      >
+        {expanded ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+      </Button>
+
+      <div className={cn(
+        "flex h-16 items-center border-b border-gray-800 px-4",
+        expanded ? "" : "md:justify-center"
+      )}>
+        {expanded ? (
+          <div 
+            className="flex items-center gap-3 w-full justify-start"
+            dir="ltr"
+          >
+            <h2 className="text-lg font-semibold text-white text-left">
+              Rental Solutions
+            </h2>
+            <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg text-white font-bold text-sm">
+              RS
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="hidden md:block">
+            <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg text-white font-bold text-sm">
+              RS
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-auto py-4 px-4">
+      
+      <div className={cn(
+        "flex-1 overflow-auto py-4 px-4",
+        expanded ? "" : "md:px-2"
+      )}>
         <nav className="flex flex-col gap-1" dir="rtl">
-          <NavLink
-            to="/dashboard"
-            icon={<LayoutDashboard className="h-5 w-5 flex-shrink-0" />}
-            label={getNavLabel('navigation.dashboard')}
-            isActive={isActive('/dashboard')}
-            onClick={handleNavClick}
-          />
+          {(expanded || !expanded && window.innerWidth >= 768) && (
+            <>
+              <NavLink
+                to="/dashboard"
+                icon={<LayoutDashboard className="h-5 w-5 flex-shrink-0" />}
+                label={getNavLabel('navigation.dashboard')}
+                isActive={isActive('/dashboard')}
+                onClick={handleNavClick}
+              />
 
-          <NavLink
-            to="/customers"
-            icon={<Users className="h-5 w-5 flex-shrink-0" />}
-            label={getNavLabel('navigation.customers')}
-            isActive={isActive('/customers')}
-            onClick={handleNavClick}
-          />
+              <NavLink
+                to="/customers"
+                icon={<Users className="h-5 w-5 flex-shrink-0" />}
+                label={getNavLabel('navigation.customers')}
+                isActive={isActive('/customers')}
+                onClick={handleNavClick}
+              />
 
-          <NavLink
-            to="/agreements"
-            icon={<FileText className="h-5 w-5 flex-shrink-0" />}
-            label={getNavLabel('navigation.agreements')}
-            isActive={isActive('/agreements')}
-            onClick={handleNavClick}
-          />
+              <NavLink
+                to="/agreements"
+                icon={<FileText className="h-5 w-5 flex-shrink-0" />}
+                label={getNavLabel('navigation.agreements')}
+                isActive={isActive('/agreements')}
+                onClick={handleNavClick}
+              />
 
-          <NavLink
-            to="/vehicles"
-            icon={<Car className="h-5 w-5 flex-shrink-0" />}
-            label={getNavLabel('navigation.vehicles')}
-            isActive={isActive('/vehicles')}
-            onClick={handleNavClick}
-          />
+              <NavLink
+                to="/vehicles"
+                icon={<Car className="h-5 w-5 flex-shrink-0" />}
+                label={getNavLabel('navigation.vehicles')}
+                isActive={isActive('/vehicles')}
+                onClick={handleNavClick}
+              />
 
-          <NavGroup
-            label={getNavLabel('navigation.maintenance')}
-            icon={<Wrench className="h-5 w-5 flex-shrink-0" />}
-            onSelect={handleNavClick}
-          >
-            <NavLink
-              to="/maintenance"
-              icon={<Wrench className="h-4 w-4 flex-shrink-0" />}
-              label="إدارة الصيانة"
-              isActive={isActive('/maintenance')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/maintenance/history"
-              icon={<FileSpreadsheet className="h-4 w-4 flex-shrink-0" />}
-              label="سجل الصيانة"
-              isActive={isActive('/maintenance/history')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/maintenance/schedule"
-              icon={<FileSpreadsheet className="h-4 w-4 flex-shrink-0" />}
-              label="جدولة الصيانة"
-              isActive={isActive('/maintenance/schedule')}
-              onClick={handleNavClick}
-            />
-          </NavGroup>
+              <NavGroup
+                label={getNavLabel('navigation.maintenance')}
+                icon={<Wrench className="h-5 w-5 flex-shrink-0" />}
+                onSelect={handleNavClick}
+              >
+                <NavLink
+                  to="/maintenance/schedule"
+                  icon={<AlertTriangle className="h-4 w-4 flex-shrink-0" />}
+                  label="جدولة الصيانة"
+                  isActive={isActive('/maintenance/schedule')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/maintenance/history"
+                  icon={<BarChart2 className="h-4 w-4 flex-shrink-0" />}
+                  label="تاريخ الصيانة"
+                  isActive={isActive('/maintenance/history')}
+                  onClick={handleNavClick}
+                />
+              </NavGroup>
 
-          <NavGroup
-            label={getNavLabel('navigation.financials')}
-            icon={<DollarSign className="h-5 w-5 flex-shrink-0" />}
-            onSelect={handleNavClick}
-          >
-            <NavLink
-              to="/financials"
-              icon={<DollarSign className="h-4 w-4 flex-shrink-0" />}
-              label="الماليات"
-              isActive={isActive('/financials')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/payments"
-              icon={<Receipt className="h-4 w-4 flex-shrink-0" />}
-              label="المدفوعات"
-              isActive={isActive('/payments')}
-              onClick={handleNavClick}
-            />
-          </NavGroup>
+              <NavGroup
+                label={getNavLabel('navigation.financials')}
+                icon={<DollarSign className="h-5 w-5 flex-shrink-0" />}
+                onSelect={handleNavClick}
+              >
+                <NavLink
+                  to="/financials/overview"
+                  icon={<BarChart2 className="h-4 w-4 flex-shrink-0" />}
+                  label="النظرة العامة"
+                  isActive={isActive('/financials/overview')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/financials/transactions"
+                  icon={<DollarSign className="h-4 w-4 flex-shrink-0" />}
+                  label="المعاملات"
+                  isActive={isActive('/financials/transactions')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/financials/installments"
+                  icon={<FileSpreadsheet className="h-4 w-4 flex-shrink-0" />}
+                  label="الاقساط"
+                  isActive={isActive('/financials/installments')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/financials/analytics"
+                  icon={<TrendingUp className="h-4 w-4 flex-shrink-0" />}
+                  label="تحليلات الأقساط"
+                  isActive={isActive('/financials/analytics')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/financials/collection-reports"
+                  icon={<Receipt className="h-4 w-4 flex-shrink-0" />}
+                  label="تقارير التحصيل"
+                  isActive={isActive('/financials/collection-reports')}
+                  onClick={handleNavClick}
+                />
+              </NavGroup>
 
-          <NavGroup
-            label={getNavLabel('navigation.reports')}
-            icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
-            onSelect={handleNavClick}
-          >
-            <NavLink
-              to="/reports"
-              icon={<BarChart2 className="h-4 w-4 flex-shrink-0" />}
-              label="التقارير"
-              isActive={isActive('/reports')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/reports/agreements"
-              icon={<FileText className="h-4 w-4 flex-shrink-0" />}
-              label="تقارير العقود"
-              isActive={isActive('/reports/agreements')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/reports/payments"
-              icon={<DollarSign className="h-4 w-4 flex-shrink-0" />}
-              label="تقارير الدفعات"
-              isActive={isActive('/reports/payments')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/reports/financial"
-              icon={<TrendingUp className="h-4 w-4 flex-shrink-0" />}
-              label="التقارير المالية"
-              isActive={isActive('/reports/financial')}
-              onClick={handleNavClick}
-            />
-          </NavGroup>
+              <NavGroup
+                label={getNavLabel('navigation.reports')}
+                icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
+                onSelect={handleNavClick}
+              >
+                <NavLink
+                  to="/reports/financial"
+                  icon={<DollarSign className="h-4 w-4 flex-shrink-0" />}
+                  label="التقارير المالية"
+                  isActive={isActive('/reports/financial')}
+                  onClick={handleNavClick}
+                />
+                <NavLink
+                  to="/reports/operational"
+                  icon={<BarChart2 className="h-4 w-4 flex-shrink-0" />}
+                  label="التقارير التشغيلية"
+                  isActive={isActive('/reports/operational')}
+                  onClick={handleNavClick}
+                />
+              </NavGroup>
 
-          <NavGroup
-            label={getNavLabel('navigation.legal')}
-            icon={<Scale className="h-5 w-5 flex-shrink-0" />}
-            onSelect={handleNavClick}
-          >
-            <NavLink
-              to="/legal"
-              icon={<Scale className="h-4 w-4 flex-shrink-0" />}
-              label="إدارة القضايا"
-              isActive={isActive('/legal')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/legal/cases"
-              icon={<AlertTriangle className="h-4 w-4 flex-shrink-0" />}
-              label="القضايا القانونية"
-              isActive={isActive('/legal/cases')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/legal/compliance"
-              icon={<FileText className="h-4 w-4 flex-shrink-0" />}
-              label="الامتثال"
-              isActive={isActive('/legal/compliance')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/legal/calendar"
-              icon={<FileText className="h-4 w-4 flex-shrink-0" />}
-              label="التقويم القانوني"
-              isActive={isActive('/legal/calendar')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/legal/activity"
-              icon={<FileText className="h-4 w-4 flex-shrink-0" />}
-              label="سجل النشاط"
-              isActive={isActive('/legal/activity')}
-              onClick={handleNavClick}
-            />
-          </NavGroup>
+              <NavLink
+                to="/legal"
+                icon={<Scale className="h-5 w-5 flex-shrink-0" />}
+                label={getNavLabel('navigation.legal')}
+                isActive={isActive('/legal')}
+                onClick={handleNavClick}
+              />
+            </>
+          )}
         </nav>
       </div>
 
-      {/* User Profile Section */}
-      <div className="border-t border-gray-800 p-4">
-        <div className="flex items-center gap-3 mb-4 flex-row-reverse" dir="rtl">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || ''} />
-            <AvatarFallback className="bg-blue-600 text-white">
-              {profile?.full_name?.slice(0, 2).toUpperCase() || user?.email?.slice(0, 2).toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 text-right">
-            <p className="text-sm font-medium text-white">
-              {profile?.full_name || user?.email || 'مستخدم'}
-            </p>
-            <p className="text-xs text-gray-400">
-              {profile?.role || 'مدير'}
-            </p>
+      {expanded && (
+        <div className="border-t border-gray-800 p-4" dir="rtl">
+          <div className="flex items-center gap-3 mb-3 flex-row-reverse justify-end">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={profile?.avatar_url || ''} />
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {profile?.full_name?.split(' ').map(n => n[0]).join('') || user?.email?.[0].toUpperCase() || '?'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0 text-right">
+              <p className="text-sm font-medium text-white truncate text-right">
+                {profile?.full_name || user?.email || 'مستخدم'}
+              </p>
+              <p className="text-xs text-gray-400 truncate text-right">
+                مدير النظام
+              </p>
+            </div>
           </div>
+          
+          <Button
+            variant="ghost"
+            onClick={signOut}
+            className="w-full text-gray-200 hover:bg-gray-800 hover:text-white flex items-center justify-end gap-2"
+            dir="rtl"
+          >
+            <div className="flex items-center gap-2 flex-row-reverse">
+              <LogOut className="h-4 w-4" />
+              <span className="text-right">
+                تسجيل الخروج
+              </span>
+            </div>
+          </Button>
         </div>
-        
-        <Button
-          variant="ghost"
-          onClick={signOut}
-          className="w-full text-gray-200 hover:text-white hover:bg-gray-800 flex items-center justify-end gap-2 flex-row-reverse"
-          dir="rtl"
-        >
-          <LogOut className="h-4 w-4" />
-          تسجيل الخروج
-        </Button>
-      </div>
+      )}
     </div>
   );
 };

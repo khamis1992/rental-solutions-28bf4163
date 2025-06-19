@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,6 +94,19 @@ export function DocumentsCard({
                   <Download className="h-4 w-4" />
                   إنشاء العقد الكامل
                 </Button>
+              </div>
+              
+              {/* Only Edit and Delete buttons remain */}
+              <div className="pt-4 border-t">
+                <h4 className="font-medium mb-3 text-right">خيارات الوثائق الأخرى</h4>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={onEdit}>
+                    تعديل العقد
+                  </Button>
+                  <Button variant="destructive" onClick={onDelete}>
+                    حذف العقد
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

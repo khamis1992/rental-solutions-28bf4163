@@ -11,7 +11,7 @@ const EditAgreement = () => {
     <PageContainer
       title="Edit Agreement"
       description="Modify existing rental agreement details"
-
+      backLink={`/agreements/${id}`}
     >
       <EditAgreementContent
         id={id}

@@ -1,3 +1,4 @@
+
 // @ts-ignore
 import pdfMake from 'pdfmake/build/pdfmake';
 import { configurePdfMakeFonts, initializeFonts } from './font-loader';
@@ -15,12 +16,12 @@ async function ensureFontsLoaded(): Promise<void> {
     const initialized = await initializeFonts();
     if (!initialized) {
       console.warn('Font initialization failed, using fallback configuration');
-      await configurePdfMakeFonts();
+      configurePdfMakeFonts();
     }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
     // Continue with default font configuration
-    await configurePdfMakeFonts();
+    configurePdfMakeFonts();
   }
 }
 

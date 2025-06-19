@@ -13,46 +13,14 @@ export default {
 	theme: {
 		container: {
 			center: true,
-			padding: {
-				DEFAULT: '1rem',
-				sm: '1.5rem',
-				lg: '2rem',
-				xl: '3rem',
-				'2xl': '4rem',
-			},
+			padding: '2rem',
 			screens: {
-				sm: '640px',
-				md: '768px',
-				lg: '1024px',
-				xl: '1280px',
 				'2xl': '1400px'
 			}
-		},
-		screens: {
-			'xs': '475px',
-			'sm': '640px',
-			'md': '768px',
-			'lg': '1024px',
-			'xl': '1280px',
-			'2xl': '1536px',
-			// Raw breakpoints for specific use cases
-			'mobile': {'max': '767px'},
-			'tablet': {'min': '768px', 'max': '1023px'},
-			'desktop': {'min': '1024px'},
-			// Height-based breakpoints for mobile
-			'short': {'raw': '(max-height: 667px)'},
-			'tall': {'raw': '(min-height: 668px)'},
 		},
 		extend: {
 			fontFamily: {
 				sans: ['Inter', 'system-ui', 'sans-serif'],
-				arabic: ['Noto Sans Arabic', 'Inter', 'system-ui', 'sans-serif'],
-			},
-			spacing: {
-				'safe-top': 'env(safe-area-inset-top)',
-				'safe-bottom': 'env(safe-area-inset-bottom)',
-				'safe-left': 'env(safe-area-inset-left)',
-				'safe-right': 'env(safe-area-inset-right)',
 			},
 			colors: {
 				border: 'hsl(var(--border))',
