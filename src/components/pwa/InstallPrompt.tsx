@@ -38,6 +38,8 @@ const logPWAStatus = () => {
     console.log('Display Mode:', window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser');
     console.log('Service Worker Support:', 'serviceWorker' in navigator);
     console.log('PWA Install Support:', 'beforeinstallprompt' in window);
+    console.log('Can Install PWA:', (window as any).canInstallPWA || false);
+    console.log('Deferred Prompt Available:', !!(window as any).deferredPrompt);
     console.groupEnd();
   }
 };
@@ -49,12 +51,13 @@ export const InstallPrompt: React.FC = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   const [visitCount, setVisitCount] = useState(0);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
 
   useEffect(() => {
     logPWAStatus();
 
     // Check if already installed
-    if (isInStandaloneMode()) {
+    if (isInStandaloneMode() || (window as any).isPWAInstalled) {
       setIsInstalled(true);
       return;
     }
@@ -70,35 +73,68 @@ export const InstallPrompt: React.FC = () => {
     const dismissedTime = dismissed ? parseInt(dismissed) : 0;
     const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24);
     
-    // Show prompt again after 3 days for mobile users, 7 days for desktop
-    const daysToWait = isMobile() ? 3 : 7;
+    // Show prompt again after 1 day for mobile users, 3 days for desktop
+    const daysToWait = isMobile() ? 1 : 3;
     if (dismissed && daysSinceDismissed < daysToWait) {
       return;
     }
 
-    // For iOS devices, show manual install instructions
-    if (isIOS()) {
-      // Show iOS prompt after 2 visits or 30 seconds on first visit
-      if (newVisitCount >= 2 || newVisitCount === 1) {
-        const showTimeout = newVisitCount === 1 ? 30000 : 5000;
-        setTimeout(() => {
-          setShowIOSPrompt(true);
-        }, showTimeout);
-      }
-      return;
-    }
-
-    // For Android/Chrome - handle beforeinstallprompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      console.log('beforeinstallprompt event fired');
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    // Listen for PWA install availability event from main.tsx
+    const handlePWAInstallAvailable = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('PWA install event received:', customEvent.detail);
+      setDeferredPrompt(customEvent.detail);
       
       // Show prompt after a short delay for better UX
       setTimeout(() => {
         setShowPrompt(true);
       }, 2000);
     };
+
+    // For iOS devices, show manual install instructions
+    if (isIOS()) {
+      // Show iOS prompt after 1 visit or 15 seconds on first visit
+      if (newVisitCount >= 1) {
+        const showTimeout = newVisitCount === 1 ? 15000 : 3000;
+        setTimeout(() => {
+          setShowIOSPrompt(true);
+        }, showTimeout);
+      }
+    } else {
+      // For Android/Chrome - listen for install availability
+      window.addEventListener('pwa-install-available', handlePWAInstallAvailable);
+      
+      // Check if install is already available from main.tsx
+      if ((window as any).canInstallPWA && (window as any).deferredPrompt) {
+        setDeferredPrompt((window as any).deferredPrompt);
+        setTimeout(() => {
+          setShowPrompt(true);
+        }, 2000);
+      }
+      
+      // Fallback for browsers that don't support beforeinstallprompt but are PWA capable
+      if (isAndroid() && !deferredPrompt && isMobile() && newVisitCount >= 2) {
+        setTimeout(() => {
+          if (!isInstalled) {
+            console.log('Showing fallback install prompt for Android');
+            setShowPrompt(true);
+          }
+        }, 10000);
+      }
+    }
+
+    // Debug: Show install prompt in development after 3 seconds regardless
+    if (process.env.NODE_ENV === 'development' && isMobile()) {
+      setTimeout(() => {
+        if (!isInstalled) {
+          if (isIOS()) {
+            setShowIOSPrompt(true);
+          } else {
+            setShowPrompt(true);
+          }
+        }
+      }, 3000);
+    }
 
     const handleAppInstalled = () => {
       console.log('App installed successfully');
@@ -110,62 +146,57 @@ export const InstallPrompt: React.FC = () => {
       localStorage.removeItem('pwa-visit-count');
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // Fallback for browsers that don't support beforeinstallprompt but are PWA capable
-    if (isAndroid() && !deferredPrompt && isMobile()) {
-      setTimeout(() => {
-        if (!isInstalled && newVisitCount >= 2) {
-          console.log('Showing fallback install prompt for Android');
-          setShowPrompt(true);
-        }
-      }, 10000);
-    }
-
-    // Debug: Show install prompt in development after 5 seconds regardless
-    if (process.env.NODE_ENV === 'development' && isMobile()) {
-      setTimeout(() => {
-        if (!isInstalled) {
-          setShowPrompt(true);
-        }
-      }, 5000);
-    }
-
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('pwa-install-available', handlePWAInstallAvailable);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) {
-      // Fallback for browsers without beforeinstallprompt
-      const instructions = isAndroid() 
-        ? 'لإضافة التطبيق إلى الشاشة الرئيسية:\n1. اضغط على قائمة المتصفح (⋮)\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"'
-        : 'لإضافة التطبيق، استخدم خيار "إضافة إلى الشاشة الرئيسية" في متصفحك';
-      
-      alert(instructions);
-      setShowPrompt(false);
-      return;
-    }
-
+    setIsInstalling(true);
+    
     try {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      
-      console.log(`Install prompt result: ${outcome}`);
-      
-      if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      } else {
-        console.log('User dismissed the install prompt');
+      // Try the global install function first
+      if ((window as any).installPWA) {
+        const success = await (window as any).installPWA();
+        if (success) {
+          setShowPrompt(false);
+          setIsInstalling(false);
+          return;
+        }
       }
-      
-      setDeferredPrompt(null);
-      setShowPrompt(false);
+
+      // Fallback to direct prompt if available
+      if (deferredPrompt) {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        console.log(`Install prompt result: ${outcome}`);
+        
+        if (outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+          setShowPrompt(false);
+        } else {
+          console.log('User dismissed the install prompt');
+        }
+        
+        setDeferredPrompt(null);
+      } else {
+        // Final fallback with instructions
+        const instructions = isAndroid() 
+          ? 'لإضافة التطبيق إلى الشاشة الرئيسية:\n1. اضغط على قائمة المتصفح (⋮)\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"'
+          : 'لإضافة التطبيق، استخدم خيار "إضافة إلى الشاشة الرئيسية" في متصفحك';
+        
+        alert(instructions);
+        setShowPrompt(false);
+      }
     } catch (error) {
-      console.error('Error showing install prompt:', error);
+      console.error('Error during installation:', error);
+      alert('حدث خطأ أثناء التثبيت. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsInstalling(false);
     }
   };
 
@@ -200,6 +231,8 @@ export const InstallPrompt: React.FC = () => {
           <p>Standalone: {isInStandaloneMode() ? 'Yes' : 'No'}</p>
           <p>Visit Count: {visitCount}</p>
           <p>Deferred Prompt: {deferredPrompt ? 'Available' : 'Not Available'}</p>
+          <p>Can Install: {(window as any).canInstallPWA ? 'Yes' : 'No'}</p>
+          <p>Is Installing: {isInstalling ? 'Yes' : 'No'}</p>
         </div>
       </div>
     );
@@ -234,7 +267,7 @@ export const InstallPrompt: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3 mb-4 text-right">
+            <div className="space-y-3 mb-4">
               <div className="flex items-center gap-3 flex-row-reverse">
                 <Share className="w-5 h-5 text-blue-600" />
                 <p className="text-sm text-gray-600">1. اضغط على زر المشاركة في أسفل الشاشة</p>
@@ -310,12 +343,13 @@ export const InstallPrompt: React.FC = () => {
               <button
                 onClick={handleDismiss}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={isInstalling}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 mb-4 text-right">
+            <div className="space-y-2 mb-4">
               <div className="flex items-center gap-3 flex-row-reverse">
                 <div className="w-2 h-2 bg-green-500 rounded-full" />
                 <p className="text-sm text-gray-600">يعمل بدون إنترنت</p>
@@ -333,15 +367,26 @@ export const InstallPrompt: React.FC = () => {
             <div className="flex gap-3">
               <Button
                 onClick={handleInstall}
+                disabled={isInstalling}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               >
-                <Download className="w-4 h-4 ml-2" />
-                تثبيت التطبيق
+                {isInstalling ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    جارٍ التثبيت...
+                  </div>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 ml-2" />
+                    تثبيت التطبيق
+                  </>
+                )}
               </Button>
               <Button
                 onClick={handleDismiss}
                 variant="outline"
                 className="flex-1"
+                disabled={isInstalling}
               >
                 ليس الآن
               </Button>

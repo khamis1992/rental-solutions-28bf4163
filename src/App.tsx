@@ -4,10 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
+import { ResponsiveMobileLayout } from "./components/layout/ResponsiveMobileLayout";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { LoadingFallback } from "./components/ui/loading-fallback";
 import { ErrorBoundary } from "./components/ui/error-boundary";
 import { getRetryConfig } from "./lib/api/retry-utils";
+import { useIsMobile } from "./hooks/use-mobile";
 
 // PWA Components
 import { InstallPrompt } from "./components/pwa/InstallPrompt";
@@ -101,6 +103,113 @@ import initializeApp from "./utils/app-initializer";
 import { DocumentationModeProvider } from '@/context/DocumentationModeContext';
 import { DocumentationToggleButton } from '@/components/DocumentationToggleButton';
 
+// Main App Content Component
+const AppContent = () => {
+  const isMobile = useIsMobile();
+
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      
+      {/* Auth Routes */}
+      <Route path="auth" element={<AuthLayout />}>
+        <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="reset-password" element={<ResetPassword />} />
+      </Route>
+
+      {/* Customer Portal */}
+      <Route
+        path="/portal"
+        element={
+          <ProtectedRoute>
+            {withErrorBoundary(CustomerPortal)}
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Protected Routes */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <ResponsiveMobileLayout 
+              sidebar={!isMobile ? <Sidebar /> : undefined}
+              showBottomNav={isMobile}
+            >
+              <Routes>
+                {/* Mobile Field Operations - Direct routes without sidebar */}
+                <Route path="/field-ops" element={withErrorBoundary(FieldOperations)} />
+                <Route path="/field-ops/scan" element={withErrorBoundary(QRScanPage)} />
+                <Route path="/field-ops/inspection/:vehicleId" element={withErrorBoundary(VehicleInspectionPage)} />
+
+                {/* Main App Routes */}
+                <Route path="/dashboard" element={<Dashboard />} />
+                
+                {/* Vehicle Management */}
+                <Route path="/vehicles" element={withErrorBoundary(Vehicles)} />
+                <Route path="/vehicles/add" element={withErrorBoundary(AddVehicle)} />
+                <Route path="/vehicles/:id" element={withErrorBoundary(VehicleDetailPage)} />
+                <Route path="/vehicles/edit/:id" element={withErrorBoundary(EditVehicle)} />
+                
+                {/* Customer Management */}
+                <Route path="/customers" element={withErrorBoundary(Customers)} />
+                <Route path="/customers/add" element={withErrorBoundary(AddCustomer)} />
+                <Route path="/customers/:id" element={withErrorBoundary(CustomerDetailPage)} />
+                <Route path="/customers/edit/:id" element={withErrorBoundary(EditCustomer)} />
+                
+                {/* Agreement Management */}
+                <Route path="/agreements" element={withErrorBoundary(Agreements)} />
+                <Route path="/agreements/add" element={withErrorBoundary(AddAgreement)} />
+                <Route path="/agreements/edit/:id" element={withErrorBoundary(EditAgreement)} />
+                <Route path="/agreements/:id" element={withErrorBoundary(AgreementDetailPage)} />
+                
+                {/* Legal Management */}
+                <Route path="/legal" element={withErrorBoundary(Legal)} />
+                <Route path="/legal/new-case" element={withErrorBoundary(NewLegalCasePage)} />
+                <Route path="/legal/cases" element={withErrorBoundary(LegalCasesPage)} />
+                <Route path="/legal/documents" element={withErrorBoundary(LegalDocumentsPage)} />
+                <Route path="/legal/calendar" element={withErrorBoundary(LegalCalendarPage)} />
+                
+                {/* Other Features */}
+                <Route path="/activity" element={withErrorBoundary(ActivityPage)} />
+                <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
+                <Route path="/financials" element={withErrorBoundary(Financials)} />
+                
+                {/* Maintenance Management */}
+                <Route path="/maintenance/history" element={withErrorBoundary(MaintenanceHistory)} />
+                <Route path="/maintenance/schedule" element={withErrorBoundary(MaintenanceSchedule)} />
+                <Route path="/financials/overview" element={withErrorBoundary(FinancialOverview)} />
+                <Route path="/financials/transactions" element={withErrorBoundary(FinancialTransactionsPage)} />
+                <Route path="/financials/installments" element={withErrorBoundary(FinancialInstallments)} />
+                <Route path="/financials/analytics" element={withErrorBoundary(InstallmentAnalytics)} />
+                <Route path="/financials/collection-reports" element={withErrorBoundary(CollectionReports)} />
+                <Route path="/reports" element={withErrorBoundary(Reports)} />
+                <Route path="/reports/financial" element={withErrorBoundary(Reports)} />
+                <Route path="/reports/operational" element={withErrorBoundary(Reports)} />
+                <Route path="/reports/scheduled" element={withErrorBoundary(ScheduledReports)} />
+                <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
+                <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/system" element={<Navigate to="/settings" replace />} />
+                <Route path="/users" element={withErrorBoundary(UserManagement)} />
+                <Route path="/user-settings" element={withErrorBoundary(UserSettings)} />
+                
+                {/* Redirect /fines to /traffic-fines for backward compatibility */}
+                <Route path="/fines" element={<Navigate to="/traffic-fines" replace />} />
+                
+                {/* 404 Route */}
+                <Route path="*" element={withErrorBoundary(NotFound)} />
+              </Routes>
+            </ResponsiveMobileLayout>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+};
+
 function App() {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -123,123 +232,26 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <LanguageProvider>
-          <AuthProvider>
-            <ProfileProvider>
-              <SettingsProvider>
-                <NotificationProvider>
-                  <TooltipProvider>
-                    {/* PWA Components */}
-                    <OfflineIndicator />
-                    <InstallPrompt />
-                    <UpdatePrompt />
-                    
-                    <Toaster />
-                    <Sonner />
-                    <ErrorBoundary>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        
-                        {/* Auth Routes */}
-                        <Route path="auth" element={<AuthLayout />}>
-                          <Route path="login" element={<Login />} />
-                          <Route path="register" element={<Register />} />
-                          <Route path="forgot-password" element={<ForgotPassword />} />
-                          <Route path="reset-password" element={<ResetPassword />} />
-                        </Route>
-
-                        {/* Customer Portal */}
-                        <Route
-                          path="/portal"
-                          element={
-                            <ProtectedRoute>
-                              {withErrorBoundary(CustomerPortal)}
-                            </ProtectedRoute>
-                          }
-                        />
-
-                        {/* Protected Routes */}
-                        <Route
-                          path="/*"
-                          element={
-                            <ProtectedRoute>
-                              <>
-                                {/* Mobile Field Operations */}
-                                <Routes>
-                                  <Route path="/field-ops" element={withErrorBoundary(FieldOperations)} />
-                                  <Route path="/field-ops/scan" element={withErrorBoundary(QRScanPage)} />
-                                  <Route path="/field-ops/inspection/:vehicleId" element={withErrorBoundary(VehicleInspectionPage)} />
-                                </Routes>
-
-                                <Sidebar />
-                                <Routes>
-                                  <Route path="/dashboard" element={<Dashboard />} />
-                                  
-                                  {/* Vehicle Management */}
-                                  <Route path="/vehicles" element={withErrorBoundary(Vehicles)} />
-                                  <Route path="/vehicles/add" element={withErrorBoundary(AddVehicle)} />
-                                  <Route path="/vehicles/:id" element={withErrorBoundary(VehicleDetailPage)} />
-                                  <Route path="/vehicles/edit/:id" element={withErrorBoundary(EditVehicle)} />
-                                  
-                                  {/* Customer Management */}
-                                  <Route path="/customers" element={withErrorBoundary(Customers)} />
-                                  <Route path="/customers/add" element={withErrorBoundary(AddCustomer)} />
-                                  <Route path="/customers/:id" element={withErrorBoundary(CustomerDetailPage)} />
-                                  <Route path="/customers/edit/:id" element={withErrorBoundary(EditCustomer)} />
-                                  
-                                  {/* Agreement Management */}
-                                  <Route path="/agreements" element={withErrorBoundary(Agreements)} />
-                                  <Route path="/agreements/add" element={withErrorBoundary(AddAgreement)} />
-                                  <Route path="/agreements/edit/:id" element={withErrorBoundary(EditAgreement)} />
-                                  <Route path="/agreements/:id" element={withErrorBoundary(AgreementDetailPage)} />
-                                  
-                                  {/* Legal Management */}
-                                  <Route path="/legal" element={withErrorBoundary(Legal)} />
-                                  <Route path="/legal/new-case" element={withErrorBoundary(NewLegalCasePage)} />
-                                  <Route path="/legal/cases" element={withErrorBoundary(LegalCasesPage)} />
-                                  <Route path="/legal/documents" element={withErrorBoundary(LegalDocumentsPage)} />
-                                  <Route path="/legal/calendar" element={withErrorBoundary(LegalCalendarPage)} />
-                                  
-                                  {/* Other Features */}
-                                  <Route path="/activity" element={withErrorBoundary(ActivityPage)} />
-                                  <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
-                                  <Route path="/financials" element={withErrorBoundary(Financials)} />
-                                  
-                                  {/* Maintenance Management */}
-                                  <Route path="/maintenance/history" element={withErrorBoundary(MaintenanceHistory)} />
-                                  <Route path="/maintenance/schedule" element={withErrorBoundary(MaintenanceSchedule)} />
-                                  <Route path="/financials/overview" element={withErrorBoundary(FinancialOverview)} />
-                                  <Route path="/financials/transactions" element={withErrorBoundary(FinancialTransactionsPage)} />
-                                  <Route path="/financials/installments" element={withErrorBoundary(FinancialInstallments)} />
-                                  <Route path="/financials/analytics" element={withErrorBoundary(InstallmentAnalytics)} />
-                                  <Route path="/financials/collection-reports" element={withErrorBoundary(CollectionReports)} />
-                                  <Route path="/reports" element={withErrorBoundary(Reports)} />
-                                  <Route path="/reports/financial" element={withErrorBoundary(Reports)} />
-                                  <Route path="/reports/operational" element={withErrorBoundary(Reports)} />
-                                  <Route path="/reports/scheduled" element={withErrorBoundary(ScheduledReports)} />
-                                  <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
-                                  <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />
-                                  <Route path="/settings" element={<Settings />} />
-                                  <Route path="/settings/system" element={<Navigate to="/settings" replace />} />
-                                  <Route path="/users" element={withErrorBoundary(UserManagement)} />
-                                  <Route path="/user-settings" element={withErrorBoundary(UserSettings)} />
-                                  
-                                  {/* Redirect /fines to /traffic-fines for backward compatibility */}
-                                  <Route path="/fines" element={<Navigate to="/traffic-fines" replace />} />
-                                  
-                                  {/* 404 Route */}
-                                  <Route path="*" element={withErrorBoundary(NotFound)} />
-                                </Routes>
-                              </>
-                            </ProtectedRoute>
-                          }
-                        />
-                      </Routes>
-                    </ErrorBoundary>
-                  </TooltipProvider>
-                </NotificationProvider>
-              </SettingsProvider>
-            </ProfileProvider>
-          </AuthProvider>
+            <AuthProvider>
+              <ProfileProvider>
+                <SettingsProvider>
+                  <NotificationProvider>
+                    <TooltipProvider>
+                      {/* PWA Components */}
+                      <OfflineIndicator />
+                      <InstallPrompt />
+                      <UpdatePrompt />
+                      
+                      <Toaster />
+                      <Sonner />
+                      <ErrorBoundary>
+                        <AppContent />
+                      </ErrorBoundary>
+                    </TooltipProvider>
+                  </NotificationProvider>
+                </SettingsProvider>
+              </ProfileProvider>
+            </AuthProvider>
           </LanguageProvider>
         </BrowserRouter>
         <DocumentationToggleButton />

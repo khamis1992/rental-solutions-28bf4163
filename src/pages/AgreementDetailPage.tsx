@@ -219,7 +219,7 @@ const AgreementDetailPage = () => {
   // Render loading state while fetching agreement
   if (isLoading) {
     return (
-      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد" backLink="/agreements">
+      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد">
         <div className="space-y-6">
           <Skeleton className="h-12 w-2/3" />
           <div className="grid gap-6 md:grid-cols-2">
@@ -235,7 +235,7 @@ const AgreementDetailPage = () => {
   // Render error state if agreement couldn't be loaded
   if (error) {
     return (
-      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد" backLink="/agreements">
+      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد">
         <div className="text-center py-12 legal-rtl" dir="rtl">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
@@ -253,7 +253,7 @@ const AgreementDetailPage = () => {
   // Render not found state if agreement doesn't exist
   if (!agreement) {
     return (
-      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد" backLink="/agreements">
+      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد">
         <div className="text-center py-12 legal-rtl" dir="rtl">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
@@ -272,8 +272,7 @@ const AgreementDetailPage = () => {
   return (
     <PageContainer 
       title="تفاصيل العقد" 
-      description="تفاصيل العقد" 
-      backLink="/agreements" 
+      description="تفاصيل العقد"
     >
       <div className="legal-rtl" dir="rtl">
       <div className="flex justify-between items-center mb-4" dir="rtl">

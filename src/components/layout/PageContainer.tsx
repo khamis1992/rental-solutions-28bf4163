@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, WifiOff } from 'lucide-react';
+import { WifiOff } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -15,7 +14,6 @@ interface PageContainerProps {
   className?: string;
   title?: string;
   description?: string;
-  backLink?: string;
   actions?: React.ReactNode;
   systemDate?: Date;
   dir?: 'ltr' | 'rtl';
@@ -26,7 +24,6 @@ const PageContainer: React.FC<PageContainerProps> = ({
   className,
   title,
   description,
-  backLink,
   actions,
   systemDate = new Date(),
   dir = 'ltr'
@@ -86,27 +83,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
           )}
           dir={dir}
         >
-          {backLink && (
-            <Link 
-              to={backLink} 
-              className={cn(
-                "inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors",
-                isRTL && "flex-row-reverse"
-              )}
-            >
-              {isRTL ? (
-                <>
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                  رجوع
-                </>
-              ) : (
-                <>
-                  <ArrowLeft className="mr-1 h-4 w-4" />
-                  Back
-                </>
-              )}
-            </Link>
-          )}
+
           
           <div className={cn(
             "mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0",
