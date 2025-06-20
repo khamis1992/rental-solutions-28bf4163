@@ -1,4 +1,3 @@
-
 export * from './ComplianceCalendar';
 export * from './ComplianceReporting';
 export * from './CustomerLegalObligations';
@@ -8,3 +7,4 @@ export * from './LegalCaseCompactView';
 export * from './LegalCaseDetails';
 export * from './LegalCaseManagement';
 export * from './LegalDashboard';
+export * from './LegalQuickActions';
