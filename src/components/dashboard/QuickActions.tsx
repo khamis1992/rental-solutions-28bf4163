@@ -2,16 +2,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { FileText, CreditCard, Wrench, UserPlus, Car, BarChart3, TrendingUp, Gavel } from 'lucide-react';
+import { FileText, CreditCard, Wrench, UserPlus, Car, BarChart3 } from 'lucide-react';
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
-import { QuickReportsDialog } from './QuickReportsDialog';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export const QuickActions = () => {
   const navigate = useNavigate();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [showQuickReportsDialog, setShowQuickReportsDialog] = useState(false);
   const { t } = useTranslation();
   const { language } = useLanguage();
   
@@ -44,20 +42,11 @@ export const QuickActions = () => {
       hoverColor: "hover:bg-purple-600"
     },
     {
-      id: "legal-management",
-      title: "الإدارة القانونية",
-      description: "القضايا والتنبيهات القانونية",
-      icon: <Gavel className="h-5 w-5" />,
-      href: "/legal",
-      bgColor: "bg-red-500",
-      hoverColor: "hover:bg-red-600"
-    },
-    {
-      id: "quick-reports",
-      title: "تقارير سريعة",
-      description: "تحليلات وتقارير فورية",
-      icon: <TrendingUp className="h-5 w-5" />,
-      action: () => setShowQuickReportsDialog(true),
+      id: "view-reports",
+      title: "التقارير",
+      description: "عرض التقارير والإحصائيات",
+      icon: <BarChart3 className="h-5 w-5" />,
+      href: "/reports",
       bgColor: "bg-orange-500",
       hoverColor: "hover:bg-orange-600"
     }
@@ -71,17 +60,17 @@ export const QuickActions = () => {
             الإجراءات السريعة
           </CardTitle>
           <CardDescription className={language === 'ar' ? 'text-right' : ''}>
-            الوصول السريع للمهام الأساسية، التقارير، والقضايا القانونية
+            الوصول السريع للمهام الأساسية
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {quickActions.map((action) => (
               <Button
                 key={action.id}
                 variant="outline"
                 className="h-auto py-4 justify-start flex flex-col items-center text-center hover:bg-accent/5"
-                onClick={() => action.action ? action.action() : navigate(action.href)}
+                onClick={() => navigate(action.href)}
               >
                 <div className={`rounded-full p-2 ${action.bgColor} bg-opacity-10 mb-2`}>
                   {action.icon}
@@ -96,11 +85,6 @@ export const QuickActions = () => {
       <RecordPaymentDialog 
         open={showPaymentDialog} 
         onOpenChange={setShowPaymentDialog} 
-      />
-      
-      <QuickReportsDialog 
-        open={showQuickReportsDialog} 
-        onOpenChange={setShowQuickReportsDialog} 
       />
     </>
   );
