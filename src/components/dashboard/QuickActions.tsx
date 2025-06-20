@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { FileText, CreditCard, Wrench, UserPlus, Car, BarChart3 } from 'lucide-react';
+import { FileText, UserPlus, Car, TrendingUp, Gavel } from 'lucide-react';
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -10,8 +10,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export const QuickActions = () => {
   const navigate = useNavigate();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const { t } = useTranslation();
-  const { language } = useLanguage();
   
   const quickActions = [
     {
@@ -20,8 +18,7 @@ export const QuickActions = () => {
       description: "إنشاء اتفاقية إيجار جديدة",
       icon: <FileText className="h-5 w-5" />,
       href: "/agreements/add",
-      bgColor: "bg-blue-500",
-      hoverColor: "hover:bg-blue-600"
+      bgColor: "bg-blue-500"
     },
     {
       id: "add-customer",
@@ -29,8 +26,7 @@ export const QuickActions = () => {
       description: "تسجيل عميل جديد",
       icon: <UserPlus className="h-5 w-5" />,
       href: "/customers/add",
-      bgColor: "bg-green-500", 
-      hoverColor: "hover:bg-green-600"
+      bgColor: "bg-green-500"
     },
     {
       id: "add-vehicle",
@@ -38,33 +34,39 @@ export const QuickActions = () => {
       description: "إضافة مركبة جديدة للأسطول",
       icon: <Car className="h-5 w-5" />,
       href: "/vehicles/add",
-      bgColor: "bg-purple-500",
-      hoverColor: "hover:bg-purple-600"
+      bgColor: "bg-purple-500"
     },
     {
-      id: "view-reports",
-      title: "التقارير",
-      description: "عرض التقارير والإحصائيات",
-      icon: <BarChart3 className="h-5 w-5" />,
+      id: "legal-management",
+      title: "الإدارة القانونية",
+      description: "القضايا والتنبيهات القانونية",
+      icon: <Gavel className="h-5 w-5" />,
+      href: "/legal",
+      bgColor: "bg-red-500"
+    },
+    {
+      id: "quick-reports",
+      title: "تقارير سريعة",
+      description: "تحليلات وتقارير فورية",
+      icon: <TrendingUp className="h-5 w-5" />,
       href: "/reports",
-      bgColor: "bg-orange-500",
-      hoverColor: "hover:bg-orange-600"
+      bgColor: "bg-orange-500"
     }
   ];
 
   return (
     <>
-      <Card className="mb-6 border border-border/60 shadow-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <Card className="mb-6 border border-border/60 shadow-sm" dir="rtl">
         <CardHeader className="pb-2">
-          <CardTitle className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+          <CardTitle className="text-lg font-medium text-right">
             الإجراءات السريعة
           </CardTitle>
-          <CardDescription className={language === 'ar' ? 'text-right' : ''}>
-            الوصول السريع للمهام الأساسية
+          <CardDescription className="text-right">
+            الوصول السريع للمهام الأساسية، التقارير، والقضايا القانونية
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {quickActions.map((action) => (
               <Button
                 key={action.id}
@@ -88,4 +90,4 @@ export const QuickActions = () => {
       />
     </>
   );
-};
+}; 

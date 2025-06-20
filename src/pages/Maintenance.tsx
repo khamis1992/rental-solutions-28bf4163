@@ -408,13 +408,14 @@ const Maintenance = () => {
         )}
 
         {/* Main Tabs System */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 h-12">
-            <TabsTrigger value="overview" className="flex items-center gap-2 flex-row-reverse">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
+          <TabsList className="grid w-full grid-cols-4 h-12" dir="rtl" style={{ direction: 'rtl' }}>
+            {/* ترتيب التبويبات من اليمين لليسار: نظرة عامة، الصيانة النشطة، الجدولة، السجل */}
+            <TabsTrigger value="overview" className="flex items-center gap-2 flex-row-reverse" style={{ order: 1 }}>
               <Wrench className="h-4 w-4" />
               <span>نظرة عامة</span>
             </TabsTrigger>
-            <TabsTrigger value="active" className="flex items-center gap-2 flex-row-reverse">
+            <TabsTrigger value="active" className="flex items-center gap-2 flex-row-reverse" style={{ order: 2 }}>
               <AlertTriangle className="h-4 w-4" />
               <span>الصيانة النشطة</span>
               {tabCounts.active > 0 && (
@@ -423,7 +424,7 @@ const Maintenance = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="flex items-center gap-2 flex-row-reverse">
+            <TabsTrigger value="schedule" className="flex items-center gap-2 flex-row-reverse" style={{ order: 3 }}>
               <Calendar className="h-4 w-4" />
               <span>الجدولة</span>
               {tabCounts.scheduled > 0 && (
@@ -432,7 +433,7 @@ const Maintenance = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2 flex-row-reverse">
+            <TabsTrigger value="history" className="flex items-center gap-2 flex-row-reverse" style={{ order: 4 }}>
               <CheckCircle className="h-4 w-4" />
               <span>السجل</span>
               <Badge variant="outline" className="text-xs">

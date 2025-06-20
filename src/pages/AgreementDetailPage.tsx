@@ -24,6 +24,7 @@ import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
 import { supabase } from '@/lib/supabase';
+import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +60,10 @@ const AgreementDetailPage = () => {
 
   // Add traffic fines hook
   const { trafficFines } = useTrafficFines();
+
+  // Additional state for financial integration
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isFinancialExpanded, setIsFinancialExpanded] = useState(true);
 
   // Automatic payment schedule creation
   useEffect(() => {
@@ -216,6 +221,23 @@ const AgreementDetailPage = () => {
     }
   };
 
+  const handlePaymentAction = (action: 'add' | 'reminder' | 'report') => {
+    switch (action) {
+      case 'add':
+        setIsPaymentDialogOpen(true);
+        break;
+      case 'reminder':
+        toast.info('إرسال تذكير للعميل...');
+        // TODO: Implement reminder functionality
+        break;
+      case 'report':
+        handleGenerateReport();
+        break;
+      default:
+        break;
+    }
+  };
+
   // Render loading state while fetching agreement
   if (isLoading) {
     return (
@@ -357,6 +379,32 @@ const AgreementDetailPage = () => {
         </CardContent>
       </Card>
 
+      {/* Financial summary section - temporarily disabled */}
+      {/* 
+      {agreement && isFinancialExpanded && (
+        <AgreementFinancialSummary
+          agreement={{
+            id: agreement.id,
+            total_amount: agreement.total_amount || 0,
+            deposit_amount: agreement.deposit_amount,
+            monthly_amount: rentAmount || 0,
+            start_date: agreement.start_date || '',
+            end_date: agreement.end_date || '',
+            status: agreement.status
+          }}
+          payments={payments.map(p => ({
+            id: p.id,
+            amount: p.amount || 0,
+            payment_date: p.payment_date,
+            status: p.status as 'paid' | 'pending' | 'overdue' | 'cancelled',
+            description: p.description
+          }))}
+          onPaymentAction={handlePaymentAction}
+          className="mb-6"
+        />
+      )}
+      */}
+
       {/* Use the AgreementDetailWrapper which handles both designs */}
       <AgreementDetailWrapper
         agreement={agreement}
@@ -377,6 +425,17 @@ const AgreementDetailPage = () => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Add payment dialog */}
+      <RecordPaymentDialog 
+        open={isPaymentDialogOpen} 
+        onOpenChange={setIsPaymentDialogOpen}
+        agreementId={agreement?.id}
+        onPaymentRecorded={() => {
+          refreshAgreementData();
+          fetchPayments();
+        }}
+      />
       </div>
     </PageContainer>
   );
