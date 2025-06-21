@@ -120,8 +120,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         )}
       </div>
 
-      {/* 5. الإحصائيات (الإحصائيات المباشرة سابقاً) */}
-      <div className="dashboard-section animate-fade-in border-2 border-green-200 bg-green-50 p-4 rounded-lg">
+      {/* 5. الإحصائيات - now with white background matching other sections */}
+      <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4 flex-row-reverse">
           <Button
             variant="ghost"
@@ -131,7 +131,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           >
             {collapsedSections['realtime'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
-          <h2 className="text-lg font-semibold text-right text-green-700">الإحصائيات</h2>
+          <h2 className="text-lg font-semibold text-right">الإحصائيات</h2>
         </div>
         {!collapsedSections['realtime'] && <RealTimeStatsWidget />}
       </div>
