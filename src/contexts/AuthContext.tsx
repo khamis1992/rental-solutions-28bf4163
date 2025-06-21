@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -18,11 +17,11 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, userData?: UserData) => Promise<void>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  updateUserData: (data: UserData) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string, userData?: UserData) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  updateUserData: (data: UserData) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,14 +30,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const isInitialMount = useRef(true);
   const hasToasted = useRef(false);
 
-  const handleAuthError = (error: unknown, action: string) => {
+  const handleAuthError = (error: unknown, action: string): string => {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     toast.error(`${action} failed: ${errorMessage}`);
-    throw error;
+    return errorMessage;
   };
 
   useEffect(() => {
@@ -78,7 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hasToasted.current = true;
         }
       } catch (error) {
-        handleAuthError(error, 'Session initialization');
+        console.error('Session initialization error:', error);
+        setLoading(false);
       }
     };
 
@@ -90,17 +89,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      navigate('/dashboard');
+      if (error) {
+        const errorMessage = handleAuthError(error, 'Sign in');
+        return { success: false, error: errorMessage };
+      }
+      return { success: true };
     } catch (error) {
-      handleAuthError(error, 'Sign in');
+      const errorMessage = handleAuthError(error, 'Sign in');
+      return { success: false, error: errorMessage };
     }
   };
 
-  const signUp = async (email: string, password: string, userData?: UserData) => {
+  const signUp = async (email: string, password: string, userData?: UserData): Promise<{ success: boolean; error?: string }> => {
     try {
       const { error } = await supabase.auth.signUp({ 
         email, 
@@ -109,42 +112,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: userData,
         }
       });
-      if (error) throw error;
+      if (error) {
+        const errorMessage = handleAuthError(error, 'Registration');
+        return { success: false, error: errorMessage };
+      }
       toast.success('Registration successful! Please check your email for verification.');
+      return { success: true };
     } catch (error) {
-      handleAuthError(error, 'Registration');
+      const errorMessage = handleAuthError(error, 'Registration');
+      return { success: false, error: errorMessage };
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (): Promise<{ success: boolean; error?: string }> => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      navigate('/');
+      if (error) {
+        const errorMessage = handleAuthError(error, 'Sign out');
+        return { success: false, error: errorMessage };
+      }
+      return { success: true };
     } catch (error) {
-      handleAuthError(error, 'Sign out');
+      const errorMessage = handleAuthError(error, 'Sign out');
+      return { success: false, error: errorMessage };
     }
   };
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      if (error) throw error;
+      if (error) {
+        const errorMessage = handleAuthError(error, 'Password reset');
+        return { success: false, error: errorMessage };
+      }
       toast.success('Password reset email sent');
+      return { success: true };
     } catch (error) {
-      handleAuthError(error, 'Password reset');
+      const errorMessage = handleAuthError(error, 'Password reset');
+      return { success: false, error: errorMessage };
     }
   };
 
-  const updateUserData = async (data: UserData) => {
+  const updateUserData = async (data: UserData): Promise<{ success: boolean; error?: string }> => {
     try {
       const { error } = await supabase.auth.updateUser({ data });
-      if (error) throw error;
+      if (error) {
+        const errorMessage = handleAuthError(error, 'Profile update');
+        return { success: false, error: errorMessage };
+      }
       toast.success('Profile updated successfully');
+      return { success: true };
     } catch (error) {
-      handleAuthError(error, 'Profile update');
+      const errorMessage = handleAuthError(error, 'Profile update');
+      return { success: false, error: errorMessage };
     }
   };
 
