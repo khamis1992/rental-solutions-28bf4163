@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,10 +33,8 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
-import { SmartAlertsSettings } from './SmartAlertsSettings';
-import { SmartAlertsAnalytics } from './SmartAlertsAnalytics';
 
-// Enhanced alert types with more categories and metadata
+// Enhanced alert types
 interface SmartAlert {
   id: string;
   type: 'maintenance' | 'payment' | 'contract' | 'vehicle' | 'legal' | 'insurance' | 'inspection';
@@ -69,14 +68,10 @@ interface AlertFilters {
   timeRange: 'today' | 'week' | 'month' | 'all';
 }
 
-// Enhanced data fetching with more comprehensive alerts
+// Enhanced data fetching
 const fetchEnhancedSmartAlerts = async (): Promise<SmartAlert[]> => {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
-  const futureDate = new Date(today);
-  futureDate.setDate(futureDate.getDate() + 30);
-  const futureStr = futureDate.toISOString().split('T')[0];
-
   const alerts: SmartAlert[] = [];
 
   try {
@@ -136,71 +131,6 @@ const fetchEnhancedSmartAlerts = async (): Promise<SmartAlert[]> => {
       });
     }
 
-    // Contract Expiration Alerts
-    const { data: expiringContracts } = await supabase
-      .from('leases')
-      .select('id, agreement_number, end_date, profiles(full_name)')
-      .eq('status', 'active')
-      .gte('end_date', todayStr)
-      .lte('end_date', futureStr);
-
-    if (expiringContracts?.length) {
-      const urgentCount = expiringContracts.filter(c => {
-        const daysUntilExpiry = Math.ceil((new Date(c.end_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        return daysUntilExpiry <= 7;
-      }).length;
-
-      alerts.push({
-        id: 'expiring-contracts',
-        type: 'contract',
-        category: 'operational',
-        priority: urgentCount > 0 ? 'high' : 'medium',
-        severity: urgentCount > 0 ? 'urgent' : 'warning',
-        title: `${expiringContracts.length} عقد ينتهي قريباً`,
-        description: urgentCount > 0 ? `${urgentCount} عقد ينتهي خلال أسبوع` : 'خلال الـ 30 يوماً القادمة',
-        actionText: 'مراجعة العقود',
-        actionUrl: '/agreements',
-        estimatedImpact: 'medium',
-        tags: ['contracts', 'expiration'],
-        createdAt: new Date(),
-        dueDate: new Date(Math.min(...expiringContracts.map(c => new Date(c.end_date).getTime()))),
-        isRead: false,
-        isResolved: false,
-        metadata: { contracts: expiringContracts, urgentCount }
-      });
-    }
-
-    // Vehicle Utilization Alert
-    const { data: allVehicles } = await supabase
-      .from('vehicles')
-      .select('id, status');
-
-    if (allVehicles) {
-      const availableCount = allVehicles.filter(v => v.status === 'available').length;
-      const utilizationRate = ((allVehicles.length - availableCount) / allVehicles.length) * 100;
-
-      if (utilizationRate < 60) {
-        alerts.push({
-          id: 'low-utilization',
-          type: 'vehicle',
-          category: 'operational',
-          priority: 'medium',
-          severity: 'info',
-          title: 'معدل استخدام منخفض للأسطول',
-          description: `${utilizationRate.toFixed(1)}% من الأسطول مستخدم حالياً`,
-          details: `${availableCount} مركبة متاحة من أصل ${allVehicles.length}`,
-          actionText: 'تحليل الاستخدام',
-          actionUrl: '/vehicles',
-          estimatedImpact: 'medium',
-          tags: ['utilization', 'efficiency'],
-          createdAt: new Date(),
-          isRead: false,
-          isResolved: false,
-          metadata: { utilizationRate, availableCount, totalCount: allVehicles.length }
-        });
-      }
-    }
-
     return alerts.sort((a, b) => {
       const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
       return priorityOrder[b.priority] - priorityOrder[a.priority];
@@ -225,8 +155,6 @@ export const EnhancedSmartAlertsWidget: React.FC<{ className?: string }> = ({ cl
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTab, setSelectedTab] = useState('all');
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const { data: alerts = [], isLoading, refetch } = useQuery({
     queryKey: ['enhancedSmartAlerts'],
@@ -360,30 +288,6 @@ export const EnhancedSmartAlertsWidget: React.FC<{ className?: string }> = ({ cl
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
-            
-            {/* Analytics Button */}
-            <Dialog open={showAnalytics} onOpenChange={setShowAnalytics}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <BarChart3 className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-                <SmartAlertsAnalytics />
-              </DialogContent>
-            </Dialog>
-
-            {/* Settings Button */}
-            <Dialog open={showSettings} onOpenChange={setShowSettings}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <SmartAlertsSettings onClose={() => setShowSettings(false)} />
-              </DialogContent>
-            </Dialog>
           </div>
           
           <div className="text-right flex-1">
@@ -429,14 +333,18 @@ export const EnhancedSmartAlertsWidget: React.FC<{ className?: string }> = ({ cl
         <CardContent className="pt-2">
           {/* Filters Panel */}
           {showFilters && (
-            <Card className="mb-4 p-3 bg-gray-50">
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3" dir="rtl">
                 <div>
                   <label className="text-xs font-medium text-right block mb-1">الأولوية</label>
                   <div className="space-y-1">
                     {['critical', 'high', 'medium', 'low'].map(priority => (
                       <label key={priority} className="flex items-center text-xs">
-                        <span className="mr-2">{priority === 'critical' ? 'حرج' : priority === 'high' ? 'عالي' : priority === 'medium' ? 'متوسط' : 'منخفض'}</span>
+                        <span className="mr-2">
+                          {priority === 'critical' ? 'حرج' : 
+                           priority === 'high' ? 'عالي' : 
+                           priority === 'medium' ? 'متوسط' : 'منخفض'}
+                        </span>
                         <input
                           type="checkbox"
                           checked={filters.priority.includes(priority)}
@@ -458,4 +366,101 @@ export const EnhancedSmartAlertsWidget: React.FC<{ className?: string }> = ({ cl
                   <div className="space-y-1">
                     {['financial', 'operational', 'compliance', 'customer'].map(category => (
                       <label key={category} className="flex items-center text-xs">
-                        <span className="mr-2">{category === 'financial' ? 'مالي' : category === 'operational' ? '
+                        <span className="mr-2">
+                          {category === 'financial' ? 'مالي' : 
+                           category === 'operational' ? 'تشغيلي' : 
+                           category === 'compliance' ? 'امتثال' : 'عملاء'}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={filters.category.includes(category)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFilters(prev => ({ ...prev, category: [...prev.category, category] }));
+                            } else {
+                              setFilters(prev => ({ ...prev, category: prev.category.filter(c => c !== category) }));
+                            }
+                          }}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Alerts Display */}
+          <ScrollArea className="h-64">
+            <div className="space-y-3">
+              {filteredAlerts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
+                  <p className="text-lg font-medium">لا توجد تنبيهات!</p>
+                  <p className="text-sm">جميع الأمور تسير على ما يرام</p>
+                </div>
+              ) : (
+                filteredAlerts.map((alert) => {
+                  const config = getPriorityConfig(alert.priority, alert.severity);
+                  return (
+                    <div
+                      key={alert.id}
+                      className={cn("p-4 rounded-lg border-l-4", config.color)}
+                      dir="rtl"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            {getCategoryIcon(alert.category)}
+                            <h4 className="font-medium text-right">{alert.title}</h4>
+                            <Badge className={config.badge}>
+                              {alert.priority === 'critical' ? 'حرج' : 
+                               alert.priority === 'high' ? 'عالي' : 
+                               alert.priority === 'medium' ? 'متوسط' : 'منخفض'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 text-right mb-2">{alert.description}</p>
+                          {alert.details && (
+                            <p className="text-xs text-gray-500 text-right">{alert.details}</p>
+                          )}
+                          {alert.actionText && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-2"
+                              onClick={() => window.location.href = alert.actionUrl || '#'}
+                            >
+                              {alert.actionText}
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => resolveAlert(alert.id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => dismissAlert(alert.id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      )}
+    </Card>
+  );
+};
