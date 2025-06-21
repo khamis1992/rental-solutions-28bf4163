@@ -1,55 +1,68 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, Calendar, AlertCircle, FileText } from 'lucide-react';
+import { Car, ArrowLeft, AlertCircle } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
 import VehicleDetail from '@/components/vehicles/VehicleDetail';
 import PageContainer from '@/components/layout/PageContainer';
 import { useVehicleDetail } from '@/hooks/use-vehicle-detail';
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import DocumentList from '@/components/documents/DocumentList';
-import { DocumentEntityType } from '@/types/document.types';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Skeleton } from '@/components/ui/skeleton';
+import { VehicleStatusUpdateDialog } from '@/components/vehicles/VehicleStatusUpdateDialog';
+import { useVehicleStatus } from '@/hooks/use-vehicle-status';
 import { toast } from 'sonner';
-import { asVehicleId } from '@/utils/database-type-helpers';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const VehicleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { updateStatus } = useVehicleStatus(id);
+  const [dialogConfig, setDialogConfig] = useState<{
+    isOpen: boolean;
+    targetStatus: 'available' | 'maintenance';
+    title: string;
+    description: string;
+    confirmLabel: string;
+  }>({
+    isOpen: false,
+    targetStatus: 'available',
+    title: '',
+    description: '',
+    confirmLabel: '',
+  });
   
   const {
     vehicle,
     isLoading,
-    error,
-    deleteVehicle
+    error
   } = useVehicleDetail(id);
 
-  const handleDelete = async () => {
-    if (!vehicle?.id) return;
-    
-    try {
-      await deleteVehicle.mutateAsync(asVehicleId(vehicle.id));
-      toast.success(language === 'ar' ? 'تم حذف المركبة بنجاح' : 'Vehicle deleted successfully');
-      navigate('/vehicles');
-    } catch (error) {
-      console.error('Error deleting vehicle:', error);
-      toast.error(language === 'ar' ? 'فشل في حذف المركبة' : 'Failed to delete vehicle');
+  const handleMarkAsAvailable = () => {
+    setDialogConfig({
+      isOpen: true,
+      targetStatus: 'available',
+      title: language === 'ar' ? 'تعيين كمتاحة' : 'Mark as Available',
+      description: language === 'ar' ? 'سيتم تعيين المركبة كمتاحة للإيجار. هل تريد المتابعة؟' : 'This will mark the vehicle as available for rent. Continue?',
+      confirmLabel: language === 'ar' ? 'تعيين كمتاحة' : 'Mark as Available',
+    });
+  };
+
+  const handleMarkForMaintenance = () => {
+    setDialogConfig({
+      isOpen: true,
+      targetStatus: 'maintenance',
+      title: language === 'ar' ? 'تعيين للصيانة' : 'Mark for Maintenance',
+      description: language === 'ar' ? 'سيتم تعيين المركبة قيد الصيانة وغير متاحة للإيجار. هل تريد المتابعة؟' : 'This will mark the vehicle as under maintenance and unavailable for rent. Continue?',
+      confirmLabel: language === 'ar' ? 'تعيين للصيانة' : 'Mark for Maintenance',
+    });
+  };
+
+  const handleDialogClose = (confirmed?: boolean) => {
+    if (confirmed && dialogConfig.targetStatus) {
+      updateStatus(dialogConfig.targetStatus);
     }
+    
+    setDialogConfig(prev => ({ ...prev, isOpen: false }));
   };
 
   if (isLoading) {
@@ -112,7 +125,6 @@ const VehicleDetailPage: React.FC = () => {
     );
   }
 
-  
   return (
     <PageContainer>
       <SectionHeader
@@ -133,48 +145,23 @@ const VehicleDetailPage: React.FC = () => {
       />
       
       <div className="section-transition mt-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <Tabs defaultValue="details" className="space-y-6">
-          <TabsList className={`grid grid-cols-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <TabsTrigger value="details" className={`flex gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <Car className="h-4 w-4" /> 
-              {language === 'ar' ? 'تفاصيل المركبة' : 'Vehicle Details'}
-            </TabsTrigger>
-            <TabsTrigger value="documents" className={`flex gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <FileText className="h-4 w-4" /> 
-              {language === 'ar' ? 'المستندات' : 'Documents'}
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="details" className="space-y-6">
-            <VehicleDetail 
-              vehicle={vehicle} 
-              key={`vehicle-detail-${vehicle.id}`} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="documents" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className={language === 'ar' ? 'text-right' : ''}>
-                  {language === 'ar' ? 'المستندات' : 'Documents'}
-                </CardTitle>
-                <CardDescription className={language === 'ar' ? 'text-right' : ''}>
-                  {language === 'ar' ? 'إدارة المستندات المتعلقة بهذه المركبة' : 'Manage documents related to this vehicle'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <DocumentList 
-                  entityType={DocumentEntityType.VEHICLE} 
-                  entityId={vehicle.id} 
-                  showUploadButton={true}
-                  showSearch={true}
-                  showFilters={false}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <VehicleDetail 
+          vehicle={vehicle}
+          onMarkForMaintenance={handleMarkForMaintenance}
+          onMarkAsAvailable={handleMarkAsAvailable}
+          key={`vehicle-detail-${vehicle.id}`} 
+        />
       </div>
+
+      <VehicleStatusUpdateDialog
+        isOpen={dialogConfig.isOpen}
+        onClose={handleDialogClose}
+        vehicleId={vehicle.id}
+        targetStatus={dialogConfig.targetStatus}
+        title={dialogConfig.title}
+        description={dialogConfig.description}
+        confirmLabel={dialogConfig.confirmLabel}
+      />
     </PageContainer>
   );
 };

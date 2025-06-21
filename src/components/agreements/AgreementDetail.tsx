@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -98,10 +97,10 @@ export function AgreementDetail({
   
   // Helper function to safely convert date string to Date object
   const ensureDate = (dateValue: string | Date): Date => {
-    if (typeof dateValue === 'string') {
-      return new Date(dateValue);
+    if (dateValue instanceof Date) {
+      return dateValue;
     }
-    return dateValue;
+    return new Date(dateValue);
   };
 
   // Use payment calculation hook with correct parameters
@@ -198,10 +197,8 @@ export function AgreementDetail({
   // Fix the type issue by making this function properly async and handle the case when onGenerateDocument is undefined
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      const result = onGenerateDocument();
-      if (result instanceof Promise) {
-        await result;
-      }
+      // Call onGenerateDocument without expecting a return value
+      onGenerateDocument();
     } else {
       // Default behavior - generate Arabic contract
       await handleDownloadPdf();

@@ -1,85 +1,87 @@
+
 import React from 'react';
-import { FileText, Wrench, BarChart3 } from 'lucide-react';
+import { FileText, Wrench, BarChart3, Car, Settings } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AgreementHistoryTab } from './AgreementHistoryTab';
-import { MaintenanceHistoryTab } from './MaintenanceHistoryTab';
-import { VehicleMaintenanceOverview } from './VehicleMaintenanceOverview';
-import { VehiclePreventiveMaintenanceWidget } from './VehiclePreventiveMaintenanceWidget';
+import { VehicleOverviewTab } from './tabs/VehicleOverviewTab';
+import { VehicleMaintenanceTab } from './tabs/VehicleMaintenanceTab';
+import { VehicleRentalTab } from './tabs/VehicleRentalTab';
+import { VehicleDocumentsTab } from './tabs/VehicleDocumentsTab';
+import { VehicleSettingsTab } from './tabs/VehicleSettingsTab';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { VehicleData } from '@/types/vehicle.types';
 
 interface VehicleTabContentProps {
   vehicleId?: string;
-  vehicle?: any; // نحتاج بيانات المركبة للمكون الجديد
+  vehicle?: VehicleData;
+  onMarkForMaintenance?: () => void;
+  onMarkAsAvailable?: () => void;
 }
 
-export const VehicleTabContent: React.FC<VehicleTabContentProps> = ({ vehicleId, vehicle }) => {
+export const VehicleTabContent: React.FC<VehicleTabContentProps> = ({ 
+  vehicleId, 
+  vehicle,
+  onMarkForMaintenance = () => {},
+  onMarkAsAvailable = () => {}
+}) => {
   const { language } = useLanguage();
-  const navigate = useNavigate();
 
-  // Handlers للإجراءات في نظرة عامة الصيانة
-  const handleScheduleMaintenance = () => {
-    navigate('/maintenance', { state: { selectedVehicleId: vehicleId } });
-    toast.info(language === 'ar' ? 'تم الانتقال لصفحة جدولة الصيانة' : 'Navigating to maintenance scheduling');
-  };
-
-  const handleViewMaintenanceHistory = () => {
-    // تفعيل تبويب تاريخ الصيانة
-    const maintenanceTab = document.querySelector('[data-value="maintenance"]') as HTMLElement;
-    maintenanceTab?.click();
-  };
-
-  const handleGenerateMaintenanceReport = () => {
-    navigate('/reports', { state: { vehicleId, reportType: 'maintenance' } });
-    toast.info(language === 'ar' ? 'تم الانتقال لصفحة التقارير' : 'Navigating to reports');
-  };
-
-  const handleScheduleService = (ruleId: string) => {
-    navigate('/maintenance', { state: { selectedVehicleId: vehicleId, serviceType: ruleId } });
-    toast.info(language === 'ar' ? 'تم الانتقال لجدولة الصيانة الوقائية' : 'Navigating to preventive maintenance scheduling');
-  };
+  if (!vehicle) {
+    return (
+      <div className={`text-center py-8 ${language === 'ar' ? 'text-right' : ''}`}>
+        <p className="text-muted-foreground">
+          {language === 'ar' ? 'لا توجد بيانات للمركبة' : 'No vehicle data available'}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <Tabs defaultValue="maintenance-overview" className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <TabsList className={`grid w-full grid-cols-3 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-        <TabsTrigger value="maintenance-overview" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`} data-value="maintenance-overview">
+    <Tabs defaultValue="overview" className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <TabsList className={`grid w-full grid-cols-5 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+        <TabsTrigger value="overview" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
           <BarChart3 className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-          {language === 'ar' ? 'نظرة عامة على الصيانة' : 'Maintenance Overview'}
+          <span className="hidden sm:inline">{language === 'ar' ? 'نظرة عامة' : 'Overview'}</span>
         </TabsTrigger>
-        <TabsTrigger value="agreements" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`} data-value="agreements">
-          <FileText className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-          {language === 'ar' ? 'الاتفاقيات' : 'Agreements'}
+        <TabsTrigger value="rental" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+          <Car className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+          <span className="hidden sm:inline">{language === 'ar' ? 'الإيجار' : 'Rental'}</span>
         </TabsTrigger>
-        <TabsTrigger value="maintenance" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`} data-value="maintenance">
+        <TabsTrigger value="maintenance" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
           <Wrench className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-          {language === 'ar' ? 'تاريخ الصيانة' : 'Maintenance History'}
+          <span className="hidden sm:inline">{language === 'ar' ? 'الصيانة' : 'Maintenance'}</span>
+        </TabsTrigger>
+        <TabsTrigger value="documents" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+          <FileText className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+          <span className="hidden sm:inline">{language === 'ar' ? 'المستندات' : 'Documents'}</span>
+        </TabsTrigger>
+        <TabsTrigger value="settings" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+          <Settings className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+          <span className="hidden sm:inline">{language === 'ar' ? 'الإعدادات' : 'Settings'}</span>
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="maintenance-overview" className="space-y-4">
-        {vehicle && (
-          <>
-            <VehicleMaintenanceOverview
-              vehicle={vehicle}
-              onScheduleMaintenance={handleScheduleMaintenance}
-              onViewHistory={handleViewMaintenanceHistory}
-              onGenerateReport={handleGenerateMaintenanceReport}
-            />
-            <VehiclePreventiveMaintenanceWidget
-              vehicle={vehicle}
-              onScheduleService={handleScheduleService}
-            />
-          </>
-        )}
+      <TabsContent value="overview" className="space-y-4 mt-6">
+        <VehicleOverviewTab 
+          vehicle={vehicle}
+          onMarkForMaintenance={onMarkForMaintenance}
+          onMarkAsAvailable={onMarkAsAvailable}
+        />
       </TabsContent>
       
-      <TabsContent value="agreements" className="space-y-4">
-        <AgreementHistoryTab vehicleId={vehicleId} />
+      <TabsContent value="rental" className="space-y-4 mt-6">
+        <VehicleRentalTab vehicle={vehicle} />
       </TabsContent>
       
-      <TabsContent value="maintenance" className="space-y-4">
-        <MaintenanceHistoryTab vehicleId={vehicleId} />
+      <TabsContent value="maintenance" className="space-y-4 mt-6">
+        <VehicleMaintenanceTab vehicle={vehicle} />
+      </TabsContent>
+      
+      <TabsContent value="documents" className="space-y-4 mt-6">
+        <VehicleDocumentsTab vehicle={vehicle} />
+      </TabsContent>
+      
+      <TabsContent value="settings" className="space-y-4 mt-6">
+        <VehicleSettingsTab vehicle={vehicle} />
       </TabsContent>
     </Tabs>
   );
