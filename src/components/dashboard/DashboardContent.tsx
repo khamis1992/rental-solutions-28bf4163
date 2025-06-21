@@ -1,4 +1,5 @@
-﻿import React from 'react';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -80,8 +81,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         {!collapsedSections['quickActions'] && <QuickActions />}
       </div>
 
-      {/* 3. تحليلات النظام (التحليلات المتقدمة سابقاً) */}
-      <div className="dashboard-section animate-fade-in border-2 border-purple-200 bg-purple-50 p-4 rounded-lg">
+      {/* 3. تحليلات النظام - now with white background matching Quick Actions */}
+      <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4 flex-row-reverse">
           <Button
             variant="ghost"
@@ -91,7 +92,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           >
             {collapsedSections['analytics'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
-          <h2 className="text-lg font-semibold text-right text-purple-700">تحليلات النظام</h2>
+          <h2 className="text-lg font-semibold text-right">تحليلات النظام</h2>
         </div>
         {!collapsedSections['analytics'] && <AdvancedAnalyticsPanel />}
       </div>
