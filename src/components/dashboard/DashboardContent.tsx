@@ -1,4 +1,5 @@
-﻿import React from 'react';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -12,6 +13,7 @@ import { QuickActions } from './QuickActions';
 import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface DashboardContentProps {
   isLoading: boolean;
@@ -80,21 +82,28 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         {!collapsedSections['quickActions'] && <QuickActions />}
       </div>
 
-      {/* 3. تحليلات النظام (التحليلات المتقدمة سابقاً) */}
-      <div className="dashboard-section animate-fade-in border-2 border-purple-200 bg-purple-50 p-4 rounded-lg">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('analytics')}
-          >
-            {collapsedSections['analytics'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right text-purple-700">تحليلات النظام</h2>
-        </div>
-        {!collapsedSections['analytics'] && <AdvancedAnalyticsPanel />}
-      </div>
+      {/* 3. تحليلات النظام */}
+      <Card className="dashboard-section animate-fade-in shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between flex-row-reverse">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => onToggleSection('analytics')}
+            >
+              {collapsedSections['analytics'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+            <div className="text-right">
+              <CardTitle className="text-lg font-medium">تحليلات النظام</CardTitle>
+              <CardDescription>تحليلات شاملة لأداء النظام والمؤشرات الرئيسية</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!collapsedSections['analytics'] && <AdvancedAnalyticsPanel />}
+        </CardContent>
+      </Card>
       
       {/* 4. حالة الأسطول */}
       <div className="dashboard-section animate-fade-in">
@@ -119,21 +128,28 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         )}
       </div>
 
-      {/* 5. الإحصائيات (الإحصائيات المباشرة سابقاً) */}
-      <div className="dashboard-section animate-fade-in border-2 border-green-200 bg-green-50 p-4 rounded-lg">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('realtime')}
-          >
-            {collapsedSections['realtime'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right text-green-700">الإحصائيات</h2>
-        </div>
-        {!collapsedSections['realtime'] && <RealTimeStatsWidget />}
-      </div>
+      {/* 5. الإحصائيات */}
+      <Card className="dashboard-section animate-fade-in shadow-sm border-2 border-green-200 bg-green-50">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between flex-row-reverse">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => onToggleSection('realtime')}
+            >
+              {collapsedSections['realtime'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+            <div className="text-right">
+              <CardTitle className="text-lg font-medium text-green-700">الإحصائيات</CardTitle>
+              <CardDescription>إحصائيات مباشرة ومؤشرات الأداء</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!collapsedSections['realtime'] && <RealTimeStatsWidget />}
+        </CardContent>
+      </Card>
       
       {/* 6. النشاط والتنبيهات */}
       <div className="dashboard-section animate-fade-in">

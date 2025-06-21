@@ -160,7 +160,7 @@ const AppContent = () => {
         path="/portal"
         element={
           <ProtectedRoute>
-            {withErrorBoundary(CustomerPortal)}
+            {withErrorBoundary(lazy(() => import("./pages/CustomerPortal")))}
           </ProtectedRoute>
         }
       />
@@ -176,9 +176,9 @@ const AppContent = () => {
             >
               <Routes>
                 {/* Mobile Field Operations - Direct routes without sidebar */}
-                <Route path="/field-ops" element={withErrorBoundary(FieldOperations)} />
-                <Route path="/field-ops/scan" element={withErrorBoundary(QRScanPage)} />
-                <Route path="/field-ops/inspection/:vehicleId" element={withErrorBoundary(VehicleInspectionPage)} />
+                <Route path="/field-ops" element={withErrorBoundary(lazy(() => import("./pages/mobile/FieldOperations")))} />
+                <Route path="/field-ops/scan" element={withErrorBoundary(lazy(() => import("./pages/mobile/QRScanPage")))} />
+                <Route path="/field-ops/inspection/:vehicleId" element={withErrorBoundary(lazy(() => import("./pages/mobile/VehicleInspectionPage")))} />
 
                 {/* Main App Routes */}
                 <Route path="/dashboard" element={<Dashboard />} />
@@ -237,7 +237,7 @@ const AppContent = () => {
                 <Route path="/fines" element={<Navigate to="/traffic-fines" replace />} />
                 
                 {/* 404 Route */}
-                <Route path="*" element={withErrorBoundary(NotFound)} />
+                <Route path="*" element={withErrorBoundary(lazy(() => import("./pages/NotFound")))} />
               </Routes>
             </ResponsiveMobileLayout>
           </ProtectedRoute>
