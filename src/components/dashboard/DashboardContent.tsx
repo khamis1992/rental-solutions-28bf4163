@@ -8,8 +8,8 @@ import DashboardStats from './DashboardStats';
 import VehicleStatusChart from './VehicleStatusChart';
 import { RealTimeStatsWidget } from './RealTimeStatsWidget';
 import { AdvancedAnalyticsPanel } from './AdvancedAnalyticsPanel';
-import { ActivityWithAlertsWidget } from './ActivityWithAlertsWidget';
 import { QuickActions } from './QuickActions';
+import { EnhancedSmartAlertsWidget } from './EnhancedSmartAlertsWidget';
 import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -81,7 +81,23 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         {!collapsedSections['quickActions'] && <QuickActions />}
       </div>
 
-      {/* 3. تحليلات النظام - now with white background matching Quick Actions */}
+      {/* 3. التن بيهات الذكية المحسنة - Enhanced Smart Alerts */}
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('smartAlerts')}
+          >
+            {collapsedSections['smartAlerts'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">التنبيهات الذكية</h2>
+        </div>
+        {!collapsedSections['smartAlerts'] && <EnhancedSmartAlertsWidget />}
+      </div>
+
+      {/* 4. تحليلات النظام */}
       <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4 flex-row-reverse">
           <Button
@@ -97,7 +113,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         {!collapsedSections['analytics'] && <AdvancedAnalyticsPanel />}
       </div>
       
-      {/* 4. حالة الأسطول */}
+      {/* 5. حالة الأسطول */}
       <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4 flex-row-reverse">
           <div className="flex items-center gap-2 space-x-reverse">
@@ -120,7 +136,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         )}
       </div>
 
-      {/* 5. الإحصائيات - now with white background matching other sections */}
+      {/* 6. الإحصائيات */}
       <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4 flex-row-reverse">
           <Button
@@ -134,24 +150,6 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           <h2 className="text-lg font-semibold text-right">الإحصائيات</h2>
         </div>
         {!collapsedSections['realtime'] && <RealTimeStatsWidget />}
-      </div>
-      
-      {/* 6. النشاط والتنبيهات */}
-      <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('activity')}
-          >
-            {collapsedSections['activity'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right">النشاط والتنبيهات</h2>
-        </div>
-        {!collapsedSections['activity'] && (
-          isLoading ? <Skeleton className="h-[200px] w-full rounded-lg" /> : <ActivityWithAlertsWidget activities={activity} />
-        )}
       </div>
     </div>
   );
