@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -197,8 +198,11 @@ export function AgreementDetail({
   // Fix the type issue by making this function properly async and handle the case when onGenerateDocument is undefined
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      // Call onGenerateDocument without expecting a return value
-      onGenerateDocument();
+      // Convert to async if it's not already
+      const result = onGenerateDocument();
+      if (result instanceof Promise) {
+        await result;
+      }
     } else {
       // Default behavior - generate Arabic contract
       await handleDownloadPdf();
