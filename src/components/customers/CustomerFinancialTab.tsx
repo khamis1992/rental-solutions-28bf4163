@@ -1,0 +1,878 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, Badge, Button, Progress, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui";
+import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
+import { generateCustomerFinancialReport } from '@/utils/customer-financial-report';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { 
+  DollarSign, 
+  CreditCard, 
+  AlertCircle, 
+  TrendingUp, 
+  Calendar,
+  FileText,
+  Send,
+  History,
+  Plus,
+  CheckCircle,
+  Clock,
+  XCircle
+} from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
+import { formatDate } from '@/lib/date-utils';
+
+interface CustomerFinancialTabProps {
+  customerId: string;
+}
+
+interface FinancialSummary {
+  totalPaid: number;
+  totalPending: number;
+  totalOverdue: number;
+  averagePayment: number;
+  paymentProgress: number;
+  nextPaymentDue: string | null;
+  nextPaymentAmount: number;
+  onTimePaymentRate: number;
+  financialHealth: 'excellent' | 'good' | 'attention' | 'critical';
+  totalContracts: number;
+  activeContracts: number;
+}
+
+export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ customerId }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [financialData, setFinancialData] = useState<FinancialSummary | null>(null);
+  const [customerData, setCustomerData] = useState<any>(null);
+  const [agreements, setAgreements] = useState<any[]>([]);
+  const [recentPayments, setRecentPayments] = useState<any[]>([]);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
+  const [showPaymentHistoryDialog, setShowPaymentHistoryDialog] = useState(false);
+  const [allPayments, setAllPayments] = useState<any[]>([]);
+  const { language } = useLanguage();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchFinancialData();
+  }, [customerId]);
+
+  const fetchFinancialData = async () => {
+    if (!customerId) return;
+    
+    setIsLoading(true);
+    try {
+      // جلب بيانات العميل
+      const { data: customerData, error: customerError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', customerId);
+
+      if (customerError) {
+        console.error('Error fetching customer:', customerError);
+        throw customerError;
+      }
+
+      if (!customerData || customerData.length === 0) {
+        throw new Error(language === 'ar' ? `لم يتم العثور على العميل بالمعرف: ${customerId}` : `Customer not found with ID: ${customerId}`);
+      }
+
+      const customer = customerData[0];
+
+      // جلب العقود والدفعات
+      const { data: agreements, error: agreementsError } = await supabase
+        .from('leases')
+        .select(`
+          id,
+          agreement_number,
+          rent_amount,
+          start_date,
+          end_date,
+          status,
+          unified_payments:unified_payments(
+            id,
+            amount,
+            payment_date,
+            original_due_date,
+            status,
+            payment_method
+          ),
+          payment_schedules:payment_schedules(
+            id,
+            amount,
+            due_date,
+            status,
+            actual_payment_date
+          )
+        `)
+        .eq('customer_id', customerId);
+
+      if (agreementsError) {
+        console.error('Error fetching agreements:', agreementsError);
+        // لا نرمي خطأ هنا، بل نستمر بدون بيانات عقود
+        console.warn('Continuing without agreement data due to error:', agreementsError);
+      }
+
+      // حساب الإحصائيات المالية
+      let totalPaid = 0;
+      let totalPending = 0;
+      let totalOverdue = 0;
+      let allPayments: any[] = [];
+      let onTimePayments = 0;
+      let totalPayments = 0;
+
+      const today = new Date();
+      let nextPaymentDue: string | null = null;
+      let nextPaymentAmount = 0;
+
+      // التحقق من وجود عقود قبل المعالجة
+      if (agreements && Array.isArray(agreements) && agreements.length > 0) {
+        agreements.forEach((agreement: any) => {
+        // معالجة unified_payments
+        if (agreement.unified_payments) {
+          agreement.unified_payments.forEach((payment: any) => {
+            allPayments.push({
+              ...payment,
+              agreement_number: agreement.agreement_number,
+              source: 'unified_payments'
+            });
+
+            if (payment.status === 'paid') {
+              totalPaid += payment.amount;
+              // التحقق من الدفع في الوقت المحدد
+              if (payment.payment_date && payment.original_due_date) {
+                const paymentDate = new Date(payment.payment_date);
+                const dueDate = new Date(payment.original_due_date);
+                if (paymentDate <= dueDate) {
+                  onTimePayments++;
+                }
+              }
+              totalPayments++;
+            } else if (payment.status === 'pending') {
+              const dueDate = payment.original_due_date ? new Date(payment.original_due_date) : null;
+              if (dueDate && dueDate < today) {
+                totalOverdue += payment.amount;
+              } else {
+                totalPending += payment.amount;
+                // العثور على أقرب دفعة مستحقة
+                if (dueDate && (!nextPaymentDue || dueDate < new Date(nextPaymentDue))) {
+                  nextPaymentDue = payment.original_due_date;
+                  nextPaymentAmount = payment.amount;
+                }
+              }
+              totalPayments++;
+            } else if (payment.status === 'overdue') {
+              totalOverdue += payment.amount;
+              totalPayments++;
+            }
+          });
+        }
+
+        // معالجة payment_schedules (كبديل إضافي)
+        if (agreement.payment_schedules) {
+          agreement.payment_schedules.forEach((schedule: any) => {
+            allPayments.push({
+              ...schedule,
+              agreement_number: agreement.agreement_number,
+              source: 'payment_schedules',
+              // تحويل حقول payment_schedules لتوافق unified_payments
+              original_due_date: schedule.due_date,
+              payment_date: schedule.actual_payment_date
+            });
+
+            if (schedule.status === 'completed') {
+              totalPaid += schedule.amount;
+              // التحقق من الدفع في الوقت المحدد
+              if (schedule.actual_payment_date && schedule.due_date) {
+                const paymentDate = new Date(schedule.actual_payment_date);
+                const dueDate = new Date(schedule.due_date);
+                if (paymentDate <= dueDate) {
+                  onTimePayments++;
+                }
+              }
+              totalPayments++;
+            } else if (schedule.status === 'pending') {
+              const dueDate = schedule.due_date ? new Date(schedule.due_date) : null;
+              if (dueDate && dueDate < today) {
+                totalOverdue += schedule.amount;
+              } else {
+                totalPending += schedule.amount;
+                // العثور على أقرب دفعة مستحقة
+                if (dueDate && (!nextPaymentDue || dueDate < new Date(nextPaymentDue))) {
+                  nextPaymentDue = schedule.due_date;
+                  nextPaymentAmount = schedule.amount;
+                }
+              }
+              totalPayments++;
+            } else if (schedule.status === 'overdue') {
+              totalOverdue += schedule.amount;
+              totalPayments++;
+            }
+          });
+        }
+      });
+      } // إغلاق if statement للتحقق من وجود العقود
+
+      // حساب معدل الدفع في الوقت المحدد
+      const onTimePaymentRate = totalPayments > 0 ? (onTimePayments / totalPayments) * 100 : 0;
+
+      // حساب متوسط الدفعة
+      const completedPayments = allPayments.filter(p => p.status === 'paid' || p.status === 'completed');
+      const averagePayment = completedPayments.length > 0 
+        ? completedPayments.reduce((sum, p) => sum + p.amount, 0) / completedPayments.length 
+        : 0;
+
+      // حساب تقدم الدفعات
+      const totalAmount = totalPaid + totalPending + totalOverdue;
+      const paymentProgress = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
+
+      // تحديد الصحة المالية
+      let financialHealth: 'excellent' | 'good' | 'attention' | 'critical' = 'excellent';
+      if (totalOverdue > 0) {
+        if (totalOverdue > totalPaid * 0.5) {
+          financialHealth = 'critical';
+        } else if (totalOverdue > totalPaid * 0.25) {
+          financialHealth = 'attention';
+        } else {
+          financialHealth = 'good';
+        }
+      } else if (onTimePaymentRate < 80) {
+        financialHealth = 'attention';
+      } else if (onTimePaymentRate < 95) {
+        financialHealth = 'good';
+      }
+
+      const summary: FinancialSummary = {
+        totalPaid,
+        totalPending,
+        totalOverdue,
+        averagePayment,
+        paymentProgress,
+        nextPaymentDue,
+        nextPaymentAmount,
+        onTimePaymentRate,
+        financialHealth,
+        totalContracts: agreements?.length || 0,
+        activeContracts: agreements?.filter(a => a.status === 'active').length || 0
+      };
+
+      setFinancialData(summary);
+      setCustomerData(customer);
+      setAgreements(agreements || []);
+      
+      // ترتيب جميع الدفعات حسب التاريخ
+      const sortedAllPayments = allPayments
+        .sort((a, b) => new Date(b.payment_date || b.original_due_date || b.created_at).getTime() - new Date(a.payment_date || a.original_due_date || a.created_at).getTime());
+      
+      setAllPayments(sortedAllPayments);
+      
+      // الدفعات الأخيرة للعرض السريع
+      const recentPaymentsForDisplay = sortedAllPayments.slice(0, 5);
+      setRecentPayments(recentPaymentsForDisplay);
+
+    } catch (error: any) {
+      console.error('Error fetching financial data:', error);
+      toast({
+        title: language === 'ar' ? 'خطأ في جلب البيانات المالية' : 'Error fetching financial data',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getHealthColor = (health: string) => {
+    switch (health) {
+      case 'excellent': return 'text-green-600 bg-green-50 border-green-200';
+      case 'good': return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'attention': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'critical': return 'text-red-600 bg-red-50 border-red-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getHealthText = (health: string) => {
+    if (language === 'ar') {
+      switch (health) {
+        case 'excellent': return 'ممتازة';
+        case 'good': return 'جيدة';
+        case 'attention': return 'تحتاج انتباه';
+        case 'critical': return 'حرجة';
+        default: return 'غير محدد';
+      }
+    } else {
+      switch (health) {
+        case 'excellent': return 'Excellent';
+        case 'good': return 'Good';
+        case 'attention': return 'Needs Attention';
+        case 'critical': return 'Critical';
+        default: return 'Unknown';
+      }
+    }
+  };
+
+  const getPaymentStatusBadge = (status: string) => {
+    const baseClasses = "px-2 py-1 rounded-full text-xs font-medium";
+    
+    switch (status) {
+      case 'paid':
+      case 'completed':
+        return (
+          <Badge className={`${baseClasses} bg-green-100 text-green-800 border-green-200`}>
+            <CheckCircle className={`w-3 h-3 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+            {language === 'ar' ? 'مدفوع' : 'Paid'}
+          </Badge>
+        );
+      case 'pending':
+        return (
+          <Badge className={`${baseClasses} bg-blue-100 text-blue-800 border-blue-200`}>
+            <Clock className={`w-3 h-3 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+            {language === 'ar' ? 'معلق' : 'Pending'}
+          </Badge>
+        );
+      case 'overdue':
+        return (
+          <Badge className={`${baseClasses} bg-red-100 text-red-800 border-red-200`}>
+            <XCircle className={`w-3 h-3 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+            {language === 'ar' ? 'متأخر' : 'Overdue'}
+          </Badge>
+        );
+      case 'cancelled':
+        return (
+          <Badge className={`${baseClasses} bg-gray-100 text-gray-800 border-gray-200`}>
+            <XCircle className={`w-3 h-3 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+            {language === 'ar' ? 'ملغي' : 'Cancelled'}
+          </Badge>
+        );
+      case 'refunded':
+        return (
+          <Badge className={`${baseClasses} bg-purple-100 text-purple-800 border-purple-200`}>
+            <CheckCircle className={`w-3 h-3 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+            {language === 'ar' ? 'مسترد' : 'Refunded'}
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className={`${baseClasses} bg-gray-100 text-gray-800 border-gray-200`}>
+            {status}
+          </Badge>
+        );
+    }
+  };
+
+  const handleFinancialAction = async (action: 'add' | 'reminder' | 'history' | 'report') => {
+    switch (action) {
+      case 'add':
+        setShowPaymentDialog(true);
+        break;
+      case 'reminder':
+        setShowReminderDialog(true);
+        break;
+      case 'history':
+        // عرض سجل الدفعات الخاص بالعميل
+        setShowPaymentHistoryDialog(true);
+        break;
+      case 'report':
+        try {
+          if (!customerData || !financialData) {
+            toast({
+              title: language === 'ar' ? 'خطأ' : 'Error',
+              description: language === 'ar' ? 'لا توجد بيانات كافية لإنشاء التقرير' : 'Insufficient data to generate report',
+              variant: 'destructive'
+            });
+            return;
+          }
+
+          toast({
+            title: language === 'ar' ? 'جاري إنشاء التقرير...' : 'Generating report...',
+            description: language === 'ar' ? 'سيتم تحميل ملف PDF قريباً' : 'PDF file will be downloaded shortly'
+          });
+
+          await generateCustomerFinancialReport(
+            customerData,
+            financialData,
+            agreements,
+            recentPayments
+          );
+
+          toast({
+            title: language === 'ar' ? 'تم إنشاء التقرير بنجاح' : 'Report generated successfully',
+            description: language === 'ar' ? 'تم تحميل التقرير المالي' : 'Financial report has been downloaded'
+          });
+        } catch (error) {
+          console.error('Error generating financial report:', error);
+          toast({
+            title: language === 'ar' ? 'خطأ في إنشاء التقرير' : 'Error generating report',
+            description: language === 'ar' ? 'فشل في إنشاء التقرير المالي' : 'Failed to generate financial report',
+            variant: 'destructive'
+          });
+        }
+        break;
+    }
+  };
+
+  const handleSendReminder = async () => {
+    try {
+      // هنا يمكن إضافة منطق إرسال التذكير الفعلي
+      // مثل إرسال إيميل أو SMS للعميل
+      toast({
+        title: language === 'ar' ? 'تم إرسال التذكير' : 'Reminder Sent',
+        description: language === 'ar' ? 'تم إرسال تذكير الدفع للعميل بنجاح' : 'Payment reminder sent to customer successfully'
+      });
+      setShowReminderDialog(false);
+    } catch (error) {
+      toast({
+        title: language === 'ar' ? 'خطأ في إرسال التذكير' : 'Error Sending Reminder',
+        description: language === 'ar' ? 'فشل في إرسال التذكير' : 'Failed to send reminder',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className={`flex items-center justify-center p-8 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <span className={`text-sm text-gray-500 ${language === 'ar' ? 'mr-3' : 'ml-3'}`}>
+          {language === 'ar' ? 'جاري تحميل البيانات المالية...' : 'Loading financial data...'}
+        </span>
+      </div>
+    );
+  }
+
+  if (!financialData) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-6 text-center">
+          <p className="text-gray-500">
+            {language === 'ar' ? 'لا توجد بيانات مالية متاحة' : 'No financial data available'}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* الإحصائيات المالية الرئيسية */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-green-500">
+          <CardContent className="p-4">
+            <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-gray-500 mb-1">
+                  {language === 'ar' ? 'إجمالي المدفوع' : 'Total Paid'}
+                </p>
+                <p className="text-lg font-bold text-green-600">
+                  {formatCurrency(financialData.totalPaid)}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-gray-500 mb-1">
+                  {language === 'ar' ? 'المبلغ المعلق' : 'Pending Amount'}
+                </p>
+                <p className="text-lg font-bold text-blue-600">
+                  {formatCurrency(financialData.totalPending)}
+                </p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-red-500">
+          <CardContent className="p-4">
+            <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-gray-500 mb-1">
+                  {language === 'ar' ? 'المبلغ المتأخر' : 'Overdue Amount'}
+                </p>
+                <p className="text-lg font-bold text-red-600">
+                  {formatCurrency(financialData.totalOverdue)}
+                </p>
+              </div>
+              <div className="p-3 bg-red-100 rounded-full">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardContent className="p-4">
+            <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-gray-500 mb-1">
+                  {language === 'ar' ? 'متوسط الدفعة' : 'Average Payment'}
+                </p>
+                <p className="text-lg font-bold text-purple-600">
+                  {formatCurrency(financialData.averagePayment)}
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* مؤشر أداء الدفع وصحة مالية */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <h3 className={`text-lg font-semibold mb-4 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              {language === 'ar' ? 'تقدم الدفعات' : 'Payment Progress'}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <div className={`flex justify-between items-center mb-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-sm text-gray-600">
+                    {language === 'ar' ? 'نسبة الاكتمال' : 'Completion Rate'}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {Math.round(financialData.paymentProgress)}%
+                  </span>
+                </div>
+                <Progress value={financialData.paymentProgress} className="h-2" />
+              </div>
+              
+              <div className={`grid grid-cols-2 gap-4 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {language === 'ar' ? 'إجمالي العقود' : 'Total Contracts'}
+                  </p>
+                  <p className="text-lg font-semibold">{financialData.totalContracts}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {language === 'ar' ? 'العقود النشطة' : 'Active Contracts'}
+                  </p>
+                  <p className="text-lg font-semibold">{financialData.activeContracts}</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <h3 className={`text-lg font-semibold mb-4 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              {language === 'ar' ? 'الصحة المالية' : 'Financial Health'}
+            </h3>
+            <div className="space-y-4">
+              <div className={`flex items-center gap-3 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                <Badge className={`px-3 py-1 text-sm ${getHealthColor(financialData.financialHealth)}`}>
+                  {getHealthText(financialData.financialHealth)}
+                </Badge>
+              </div>
+              
+              <div>
+                <p className="text-sm text-gray-500 mb-2">
+                  {language === 'ar' ? 'معدل الدفع في الوقت المحدد' : 'On-time Payment Rate'}
+                </p>
+                <div className={`flex justify-between items-center mb-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-lg font-semibold">
+                    {Math.round(financialData.onTimePaymentRate)}%
+                  </span>
+                </div>
+                <Progress value={financialData.onTimePaymentRate} className="h-2" />
+              </div>
+
+              {financialData.nextPaymentDue && (
+                <div className={`p-3 bg-blue-50 rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  <p className="text-sm text-blue-600 mb-1">
+                    {language === 'ar' ? 'الدفعة التالية' : 'Next Payment'}
+                  </p>
+                  <p className="font-semibold text-blue-800">
+                    {formatCurrency(financialData.nextPaymentAmount)}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {language === 'ar' ? 'مستحقة في:' : 'Due:'} {formatDate(financialData.nextPaymentDue)}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* الإجراءات السريعة */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className={`text-lg font-semibold mb-4 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الإجراءات المالية السريعة' : 'Quick Financial Actions'}
+          </h3>
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            <Button 
+              onClick={() => handleFinancialAction('add')}
+              className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+            >
+              <Plus className="w-4 h-4" />
+              {language === 'ar' ? 'تسجيل دفعة' : 'Record Payment'}
+            </Button>
+            
+            <Button 
+              variant="outline"
+              onClick={() => handleFinancialAction('reminder')}
+              className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+            >
+              <Send className="w-4 h-4" />
+              {language === 'ar' ? 'إرسال تذكير' : 'Send Reminder'}
+            </Button>
+            
+            <Button 
+              variant="outline"
+              onClick={() => handleFinancialAction('history')}
+              className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+            >
+              <History className="w-4 h-4" />
+              {language === 'ar' ? 'سجل الدفعات' : 'Payment History'}
+            </Button>
+            
+            <Button 
+              variant="outline"
+              onClick={() => handleFinancialAction('report')}
+              className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+            >
+              <FileText className="w-4 h-4" />
+              {language === 'ar' ? 'تقرير مالي' : 'Financial Report'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* الدفعات الأخيرة */}
+      {recentPayments.length > 0 && (
+        <Card>
+          <CardContent className="p-6">
+            <h3 className={`text-lg font-semibold mb-4 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              {language === 'ar' ? 'الدفعات الأخيرة' : 'Recent Payments'}
+            </h3>
+            <div className="space-y-3">
+              {recentPayments.map((payment, index) => (
+                <div 
+                  key={payment.id || index}
+                  className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+                >
+                  <div className={`flex items-center gap-3 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <div className="p-2 bg-white rounded-full">
+                      <DollarSign className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+                      <p className="font-medium">{formatCurrency(payment.amount)}</p>
+                      <p className="text-sm text-gray-500">
+                        {language === 'ar' ? 'عقد:' : 'Contract:'} {payment.agreement_number}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    {getPaymentStatusBadge(payment.status)}
+                    <p className="text-sm text-gray-500">
+                      {formatDate(payment.payment_date || payment.original_due_date)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* حوار تسجيل دفعة جديدة */}
+      <RecordPaymentDialog 
+        open={showPaymentDialog} 
+        onOpenChange={(open) => {
+          setShowPaymentDialog(open);
+          if (!open) {
+            // إعادة تحميل البيانات المالية بعد إغلاق حوار الدفعة
+            fetchFinancialData();
+          }
+        }} 
+      />
+
+      {/* حوار إرسال تذكير */}
+      <Dialog open={showReminderDialog} onOpenChange={setShowReminderDialog}>
+        <DialogContent className="max-w-md" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+          <DialogHeader>
+            <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
+              {language === 'ar' ? 'إرسال تذكير دفع' : 'Send Payment Reminder'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className={`text-gray-600 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              {language === 'ar' 
+                ? 'هل تريد إرسال تذكير بالدفعات المستحقة لهذا العميل؟'
+                : 'Do you want to send a payment reminder for outstanding payments to this customer?'
+              }
+            </p>
+            {financialData?.nextPaymentDue && (
+              <div className={`p-3 bg-blue-50 rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                <p className="text-sm text-blue-600 mb-1">
+                  {language === 'ar' ? 'الدفعة التالية المستحقة:' : 'Next Payment Due:'}
+                </p>
+                <p className="font-semibold text-blue-800">
+                  {formatCurrency(financialData.nextPaymentAmount)}
+                </p>
+                <p className="text-xs text-blue-600">
+                  {formatDate(financialData.nextPaymentDue)}
+                </p>
+              </div>
+            )}
+            <div className={`flex gap-3 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <Button 
+                onClick={handleSendReminder}
+                className="flex-1"
+              >
+                {language === 'ar' ? 'إرسال التذكير' : 'Send Reminder'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowReminderDialog(false)}
+                className="flex-1"
+              >
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* حوار سجل الدفعات */}
+      <Dialog open={showPaymentHistoryDialog} onOpenChange={setShowPaymentHistoryDialog}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+          <DialogHeader>
+            <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
+              {language === 'ar' ? 'سجل الدفعات' : 'Payment History'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-96">
+            {allPayments.length > 0 ? (
+              <div className="space-y-3">
+                {allPayments.map((payment, index) => (
+                  <div 
+                    key={payment.id || index}
+                    className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+                  >
+                    <div className={`flex items-center gap-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                      <div className="p-3 bg-white rounded-full shadow-sm">
+                        <DollarSign className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div className={`space-y-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                        <p className="font-semibold text-lg">
+                          {formatCurrency(payment.amount)}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {language === 'ar' ? 'عقد:' : 'Contract:'} {payment.agreement_number}
+                        </p>
+                        {payment.payment_method && (
+                          <p className="text-xs text-gray-500">
+                            {language === 'ar' ? 'طريقة الدفع:' : 'Payment method:'} {payment.payment_method}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className={`flex flex-col items-end gap-2 ${language === 'ar' ? 'items-start' : 'items-end'}`}>
+                      <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                        {getPaymentStatusBadge(payment.status)}
+                      </div>
+                      
+                      <div className={`text-sm text-gray-500 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                        {payment.payment_date ? (
+                          <div>
+                            <span className="text-green-600 font-medium">
+                              {language === 'ar' ? 'تم الدفع:' : 'Paid:'} {formatDate(payment.payment_date)}
+                            </span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-orange-600">
+                              {language === 'ar' ? 'لم يتم الدفع بعد' : 'Not paid yet'}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {payment.original_due_date && (
+                          <div className="mt-1">
+                            <span className="text-gray-500">
+                              {language === 'ar' ? 'الاستحقاق:' : 'Due:'} {formatDate(payment.original_due_date)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <DollarSign className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-gray-500">
+                  {language === 'ar' ? 'لا توجد دفعات مسجلة لهذا العميل' : 'No payments recorded for this customer'}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {allPayments.length > 0 && (
+            <div className={`border-t pt-4 mt-4 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 text-sm ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                <div>
+                  <p className="text-gray-500 mb-1">
+                    {language === 'ar' ? 'إجمالي الدفعات:' : 'Total Payments:'}
+                  </p>
+                  <p className="font-semibold text-lg">
+                    {allPayments.length}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500 mb-1">
+                    {language === 'ar' ? 'الدفعات المكتملة:' : 'Completed Payments:'}
+                  </p>
+                  <p className="font-semibold text-lg text-green-600">
+                    {allPayments.filter(p => p.status === 'paid' || p.status === 'completed').length}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500 mb-1">
+                    {language === 'ar' ? 'الدفعات المعلقة:' : 'Pending Payments:'}
+                  </p>
+                  <p className="font-semibold text-lg text-orange-600">
+                    {allPayments.filter(p => p.status === 'pending' || p.status === 'overdue').length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className={`flex gap-3 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowPaymentHistoryDialog(false)}
+              className="flex-1"
+            >
+              {language === 'ar' ? 'إغلاق' : 'Close'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}; 

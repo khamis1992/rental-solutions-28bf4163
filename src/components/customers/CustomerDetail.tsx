@@ -14,6 +14,7 @@ import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock, Save, X } from 'luc
 import { formatDate } from '@/lib/date-utils';
 import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
 import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
+import { CustomerFinancialTab } from './CustomerFinancialTab';
 import { Customer } from '@/types/customer.types';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -568,16 +569,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         </TabsContent>
 
         <TabsContent value="financials">
-          <Card className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-            <CardContent className="p-6">
-              <h3 className={`text-lg font-semibold mb-4 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                {language === 'ar' ? 'الماليات' : 'Financials'}
-              </h3>
-              <p className={`text-gray-500 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                {language === 'ar' ? 'ستكون المعلومات المالية متاحة قريباً' : 'Financial information will be available soon'}
-              </p>
-            </CardContent>
-          </Card>
+          {customerId && <CustomerFinancialTab customerId={customerId} />}
         </TabsContent>
         
         <TabsContent value="agreements">

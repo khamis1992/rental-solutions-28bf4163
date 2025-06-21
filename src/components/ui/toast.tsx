@@ -102,7 +102,7 @@ const ToastClose = React.forwardRef<
       "touch-friendly min-h-[44px] min-w-[44px] flex items-center justify-center",
       className
     )}
-    toast-close=""
+    data-toast-close
     {...props}
   >
     <X className="h-4 w-4" />

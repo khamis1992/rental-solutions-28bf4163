@@ -241,7 +241,7 @@ export function formatQatarRiyal(
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
   
   if (isNaN(numAmount)) {
-    return '0.00 ر.ق';
+    return '0 ر.ق';
   }
 
   // Format for compact display (K, M, B)
@@ -249,11 +249,42 @@ export function formatQatarRiyal(
     return formatCompactQatarRiyal(numAmount, { showSymbol, useArabicNumerals });
   }
 
-  // Format the number with proper separators
+  // إذا كان الرقم عدد صحيح، لا نعرض .00
+  if (Number.isInteger(numAmount) && decimalPlaces === 2) {
+    let formattedNumber = numAmount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    
+    // Convert to Arabic numerals if requested
+    if (useArabicNumerals) {
+      formattedNumber = convertToArabicNumerals(formattedNumber);
+    }
+    
+    // Add currency symbol/code
+    if (showSymbol) {
+      const symbol = showCurrency ? qatarCurrencyConfig.symbols.primary : qatarCurrencyConfig.symbol;
+      
+      if (symbolPosition === 'before') {
+        return `${symbol} ${formattedNumber}`;
+      } else {
+        return `${formattedNumber} ${symbol}`;
+      }
+    }
+    
+    return formattedNumber;
+  }
+
+  // Format the number with proper separators for non-integers
   let formattedNumber = numAmount.toLocaleString('en-US', {
-    minimumFractionDigits: decimalPlaces,
+    minimumFractionDigits: 0,
     maximumFractionDigits: decimalPlaces,
   });
+
+  // إزالة .0 إذا انتهى الرقم بها
+  if (formattedNumber.endsWith('.0')) {
+    formattedNumber = formattedNumber.slice(0, -2);
+  }
 
   // Convert to Arabic numerals if requested
   if (useArabicNumerals) {
@@ -308,9 +339,11 @@ export function formatCompactQatarRiyal(
   // Format to 1 decimal place
   let formattedValue = value.toFixed(1);
   
-  // Remove .0 if it's a whole number
+  // Remove .0 or .00 if it's a whole number
   if (formattedValue.endsWith('.0')) {
     formattedValue = formattedValue.slice(0, -2);
+  } else if (formattedValue.endsWith('.00')) {
+    formattedValue = formattedValue.slice(0, -3);
   }
   
   // Convert to Arabic numerals if requested

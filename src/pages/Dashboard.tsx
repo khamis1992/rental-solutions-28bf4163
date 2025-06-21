@@ -3,7 +3,6 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { toast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { QuickActions } from '@/components/dashboard/QuickActions';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
 import { CacheManager } from '@/lib/cache-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -271,8 +270,6 @@ const Dashboard = () => {
           isRefreshing={isRefreshing}
           onRefresh={handleRefresh}
         />
-        
-        <QuickActions />
         
         <DashboardContent 
           isLoading={isLoading}

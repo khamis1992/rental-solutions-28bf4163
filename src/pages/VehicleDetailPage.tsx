@@ -120,60 +120,15 @@ const VehicleDetailPage: React.FC = () => {
         description={`${vehicle.year} • ${vehicle.license_plate}`}
         icon={Car}
         actions={
-          <div className={`flex flex-wrap gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => navigate('/vehicles')}
-              className={language === 'ar' ? 'flex-row-reverse' : ''}
-            >
-              <ArrowLeft className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-              {language === 'ar' ? 'العودة إلى المركبات' : 'Back to Vehicles'}
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => navigate(`/vehicles/edit/${vehicle.id}`)}
-              className={language === 'ar' ? 'flex-row-reverse' : ''}
-            >
-              <Edit className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-              {language === 'ar' ? 'تحرير المركبة' : 'Edit Vehicle'}
-            </Button>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="destructive"
-                  className={language === 'ar' ? 'flex-row-reverse' : ''}
-                >
-                  <Trash2 className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                  {language === 'ar' ? 'حذف المركبة' : 'Delete Vehicle'}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className={language === 'ar' ? 'text-right' : ''}>
-                    {language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?'}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className={language === 'ar' ? 'text-right' : ''}>
-                    {language === 'ar' 
-                      ? 'هذا الإجراء لا يمكن التراجع عنه. سيتم حذف المركبة وجميع بياناتها المرتبطة نهائياً.' 
-                      : 'This action cannot be undone. This will permanently delete the vehicle and all associated data.'
-                    }
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className={language === 'ar' ? 'flex-row-reverse' : ''}>
-                  <AlertDialogCancel>{language === 'ar' ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleDelete}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    {language === 'ar' ? 'حذف' : 'Delete'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => navigate('/vehicles')}
+            className={language === 'ar' ? 'flex-row-reverse' : ''}
+          >
+            <ArrowLeft className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+            {language === 'ar' ? 'العودة إلى المركبات' : 'Back to Vehicles'}
+          </Button>
         }
       />
       

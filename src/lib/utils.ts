@@ -17,16 +17,22 @@ export function cn(...inputs: ClassValue[]) {
  * @returns Formatted currency string
  */
 export const formatCurrency = (amount: number | string | null | undefined, currency = 'QAR'): string => {
-  if (amount === null || amount === undefined) return `${currency} 0.00`;
+  if (amount === null || amount === undefined) return `${currency} 0`;
   
   const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
   
   if (isNaN(numericAmount)) {
-    return `${currency} 0.00`;
+    return `${currency} 0`;
   }
   
+  // إذا كان الرقم عدد صحيح، لا نعرض .00
+  if (Number.isInteger(numericAmount)) {
+    return `${currency} ${numericAmount.toLocaleString()}`;
+  }
+  
+  // إذا كان هناك كسور، نعرضها
   return `${currency} ${numericAmount.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2
   })}`;
 };
