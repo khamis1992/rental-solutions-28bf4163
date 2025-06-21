@@ -27,6 +27,37 @@ const RETRY_DELAY = 1000; // 1 second
 // Sleep utility for retry mechanism
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Check if fonts are already loaded by the HTML script
+function checkEarlyLoadedFonts(): boolean {
+  if (!isBrowser) return false;
+  
+  const fontStatus = (window as any).fontLoadingStatus;
+  if (fontStatus && fontStatus.loadingComplete) {
+    console.log('Early loaded fonts detected:', fontStatus);
+    return true;
+  }
+  
+  // Fallback check for global variables
+  return !!(window as any).AmiriRegular;
+}
+
+// Wait for early font loading to complete
+async function waitForEarlyFontLoading(timeout: number = 5000): Promise<boolean> {
+  if (!isBrowser) return false;
+  
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeout) {
+    if (checkEarlyLoadedFonts()) {
+      return true;
+    }
+    await sleep(100);
+  }
+  
+  console.warn('Early font loading timed out');
+  return false;
+}
+
 // Function to load font files directly as base64 with retry mechanism
 async function loadFontAsBase64(url: string, retries = 0): Promise<string | null> {
   if (!isBrowser) return null;
@@ -72,19 +103,25 @@ async function loadFontsWithFallback(): Promise<void> {
   let amiriRegularBase64: string | null = null;
   let amiriBoldBase64: string | null = null;
 
-  // Strategy 1: Try to load from global variables (from JS files)
-  if ((window as any).AmiriRegular) {
-    amiriRegularBase64 = (window as any).AmiriRegular;
-    console.log('Loaded Amiri Regular from global variable');
-  }
+  // Strategy 1: Wait for early loading to complete
+  const earlyLoadingComplete = await waitForEarlyFontLoading(3000);
   
-  if ((window as any).AmiriBold) {
-    amiriBoldBase64 = (window as any).AmiriBold;
-    console.log('Loaded Amiri Bold from global variable');
+  if (earlyLoadingComplete) {
+    console.log('Using early loaded fonts');
+    if ((window as any).AmiriRegular) {
+      amiriRegularBase64 = (window as any).AmiriRegular;
+      console.log('Using early loaded Amiri Regular');
+    }
+    
+    if ((window as any).AmiriBold) {
+      amiriBoldBase64 = (window as any).AmiriBold;
+      console.log('Using early loaded Amiri Bold');
+    }
   }
 
-  // Strategy 2: If not available, try direct TTF loading with retry
+  // Strategy 2: If early loading failed, try direct loading
   if (!amiriRegularBase64) {
+    console.log('Early loading failed, attempting direct font loading...');
     amiriRegularBase64 = await loadFontAsBase64('/Amiri-Regular.ttf');
   }
 

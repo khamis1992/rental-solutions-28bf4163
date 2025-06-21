@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
@@ -10,38 +11,29 @@ import { SettingsProvider } from '@/contexts/SettingsContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
-import PWAStatus from '@/components/pwa/PWAStatus';
-import OfflineIndicator from '@/components/pwa/OfflineIndicator';
-import UpdatePrompt from '@/components/pwa/UpdatePrompt';
+import { PWAStatus } from '@/components/pwa/PWAStatus';
+import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
+import { UpdatePrompt } from '@/components/pwa/UpdatePrompt';
 import { initializePDFSystem } from '@/utils/pdf-generator';
 
-import DashboardPage from '@/pages/DashboardPage';
+import Dashboard from '@/pages/Dashboard';
 import VehiclesPage from '@/pages/VehiclesPage';
 import VehicleDetailPage from '@/pages/VehicleDetailPage';
-import NewVehiclePage from '@/pages/NewVehiclePage';
-import CustomersPage from '@/pages/CustomersPage';
+import AddVehicle from '@/pages/AddVehicle';
+import Customers from '@/pages/Customers';
 import CustomerDetailPage from '@/pages/CustomerDetailPage';
-import NewCustomerPage from '@/pages/NewCustomerPage';
-import AgreementsPage from '@/pages/AgreementsPage';
+import AddCustomer from '@/pages/AddCustomer';
+import Agreements from '@/pages/Agreements';
 import AgreementDetailPage from '@/pages/AgreementDetailPage';
-import NewAgreementPage from '@/pages/NewAgreementPage';
-import MaintenancePage from '@/pages/MaintenancePage';
-import NewMaintenanceRecordPage from '@/pages/NewMaintenanceRecordPage';
+import AddAgreement from '@/pages/AddAgreement';
 import MaintenanceDetailPage from '@/pages/MaintenanceDetailPage';
-import ReportsPage from '@/pages/ReportsPage';
-import SettingsPage from '@/pages/SettingsPage';
-import LoginPage from '@/pages/LoginPage';
-import RegisterPage from '@/pages/RegisterPage';
-import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
-import ResetPasswordPage from '@/pages/ResetPasswordPage';
-import ProfilePage from '@/pages/ProfilePage';
+import AddMaintenance from '@/pages/AddMaintenance';
+import Reports from '@/pages/Reports';
+import Settings from '@/pages/Settings';
+import Index from '@/pages/Index';
 import NotificationsPage from '@/pages/NotificationsPage';
 import DocumentsPage from '@/pages/DocumentsPage';
-import NewDocumentPage from '@/pages/NewDocumentPage';
-import DocumentDetailPage from '@/pages/DocumentDetailPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import AccessDeniedPage from './pages/AccessDeniedPage';
-import NotFoundPage from './pages/NotFoundPage';
+import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,37 +80,32 @@ function App() {
                           <Header />
                           <main className="flex-1 overflow-auto">
                             <Routes>
-                              <Route path="/" element={<DashboardPage />} />
-                              <Route path="/dashboard" element={<DashboardPage />} />
+                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/dashboard" element={<Dashboard />} />
 
                               <Route path="/vehicles" element={<VehiclesPage />} />
                               <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
-                              <Route path="/vehicles/new" element={<NewVehiclePage />} />
+                              <Route path="/vehicles/new" element={<AddVehicle />} />
 
-                              <Route path="/customers" element={<CustomersPage />} />
+                              <Route path="/customers" element={<Customers />} />
                               <Route path="/customers/:id" element={<CustomerDetailPage />} />
-                              <Route path="/customers/new" element={<NewCustomerPage />} />
+                              <Route path="/customers/new" element={<AddCustomer />} />
 
-                              <Route path="/agreements" element={<AgreementsPage />} />
+                              <Route path="/agreements" element={<Agreements />} />
                               <Route path="/agreements/:id" element={<AgreementDetailPage />} />
-                              <Route path="/agreements/new" element={<NewAgreementPage />} />
+                              <Route path="/agreements/new" element={<AddAgreement />} />
 
-                              <Route path="/maintenance" element={<MaintenancePage />} />
                               <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
-                              <Route path="/maintenance/new" element={<NewMaintenanceRecordPage />} />
+                              <Route path="/maintenance/new" element={<AddMaintenance />} />
 
-                              <Route path="/reports" element={<ReportsPage />} />
-                              <Route path="/analytics" element={<AnalyticsPage />} />
-                              <Route path="/settings" element={<SettingsPage />} />
-                              <Route path="/profile" element={<ProfilePage />} />
+                              <Route path="/reports" element={<Reports />} />
+                              <Route path="/settings" element={<Settings />} />
+                              <Route path="/profile" element={<Index />} />
                               <Route path="/notifications" element={<NotificationsPage />} />
 
                               <Route path="/documents" element={<DocumentsPage />} />
-                              <Route path="/documents/new" element={<NewDocumentPage />} />
-                              <Route path="/documents/:id" element={<DocumentDetailPage />} />
 
-                              <Route path="/access-denied" element={<AccessDeniedPage />} />
-                              <Route path="*" element={<NotFoundPage />} />
+                              <Route path="*" element={<NotFound />} />
                             </Routes>
                           </main>
                         </div>

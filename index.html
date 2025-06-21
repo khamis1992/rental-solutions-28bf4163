@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -59,15 +60,79 @@
     
     <title>Al-Araf Car Rental Management System</title>
     
+    <!-- Load Amiri fonts EARLY for PDF generation -->
+    <script>
+      // Font loading status tracking
+      window.fontLoadingStatus = {
+        amiriRegular: false,
+        amiriBold: false,
+        loadingStarted: false,
+        loadingComplete: false
+      };
+      
+      // Load fonts immediately
+      (async function loadFontsEarly() {
+        window.fontLoadingStatus.loadingStarted = true;
+        console.log('Starting early font loading...');
+        
+        try {
+          // Load Amiri Regular
+          const regularResponse = await fetch('/Amiri-Regular.ttf');
+          if (regularResponse.ok) {
+            const arrayBuffer = await regularResponse.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            window.AmiriRegular = btoa(binary);
+            window.fontLoadingStatus.amiriRegular = true;
+            console.log('Amiri Regular loaded successfully in head');
+          } else {
+            console.warn('Amiri Regular TTF not found');
+            window.AmiriRegular = null;
+          }
+          
+          // Load Amiri Bold
+          const boldResponse = await fetch('/Amiri-Bold.ttf');
+          if (boldResponse.ok) {
+            const arrayBuffer = await boldResponse.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            window.AmiriBold = btoa(binary);
+            window.fontLoadingStatus.amiriBold = true;
+            console.log('Amiri Bold loaded successfully in head');
+          } else {
+            console.warn('Amiri Bold TTF not found');
+            window.AmiriBold = null;
+          }
+          
+          window.fontLoadingStatus.loadingComplete = true;
+          console.log('Font loading completed in head', window.fontLoadingStatus);
+          
+          // Dispatch event to notify components
+          window.dispatchEvent(new CustomEvent('fonts-loaded', { 
+            detail: {
+              amiriRegular: window.fontLoadingStatus.amiriRegular,
+              amiriBold: window.fontLoadingStatus.amiriBold
+            }
+          }));
+          
+        } catch (error) {
+          console.error('Error loading fonts in head:', error);
+          window.fontLoadingStatus.loadingComplete = true;
+        }
+      })();
+    </script>
+    
     <!-- Lovable script tag -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
   </head>
   <body>
     <div id="root"></div>
-    
-    <!-- Load Amiri fonts for PDF generation -->
-    <script src="/Amiri-Regular.js"></script>
-    <script src="/Amiri-Bold.js"></script>
     
     <script type="module" src="/src/main.tsx"></script>
     
