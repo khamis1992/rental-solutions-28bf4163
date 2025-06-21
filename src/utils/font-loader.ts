@@ -82,7 +82,7 @@ async function loadFontsWithFallback(): Promise<void> {
     (pdfMake as any).vfs = {};
   }
 
-  // Add fonts to virtual file system if available
+  // Add fonts to virtual file system if available, otherwise use fallback
   if (amiriRegularBase64 && amiriBoldBase64) {
     (pdfMake as any).vfs['Amiri-Regular.ttf'] = amiriRegularBase64;
     (pdfMake as any).vfs['Amiri-Bold.ttf'] = amiriBoldBase64;
@@ -101,6 +101,25 @@ async function loadFontsWithFallback(): Promise<void> {
         bold: 'Amiri-Bold.ttf',
         italics: 'Amiri-Regular.ttf',
         bolditalics: 'Amiri-Bold.ttf'
+      }
+    };
+  } else if (amiriRegularBase64) {
+    // If only regular font is available, use it for both normal and bold
+    (pdfMake as any).vfs['Amiri-Regular.ttf'] = amiriRegularBase64;
+    console.log('Using Amiri Regular for both normal and bold text');
+    
+    pdfMake.fonts = {
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
+      },
+      Amiri: {
+        normal: 'Amiri-Regular.ttf',
+        bold: 'Amiri-Regular.ttf', // Use regular for bold as fallback
+        italics: 'Amiri-Regular.ttf',
+        bolditalics: 'Amiri-Regular.ttf'
       }
     };
   } else {
@@ -174,7 +193,7 @@ export function areFontsReady(): boolean {
 
 // Get available font name for PDF generation
 export function getAvailableFontName(): string {
-  if ((pdfMake as any).vfs && (pdfMake as any).vfs['Amiri-Regular.ttf'] && (pdfMake as any).vfs['Amiri-Bold.ttf']) {
+  if ((pdfMake as any).vfs && (pdfMake as any).vfs['Amiri-Regular.ttf']) {
     return 'Amiri';
   }
   return 'Roboto';
