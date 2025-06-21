@@ -6,7 +6,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { UserCog } from "lucide-react";
 import UserProfile from "@/components/auth/UserProfile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,7 +24,6 @@ import { Loader2 } from "lucide-react";
 const UserSettings = () => {
   const { language } = useLanguage();
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -60,13 +58,6 @@ const UserSettings = () => {
       toast.error(`فشل في تغيير كلمة المرور: ${error.message}`);
     } finally {
       setIsChangingPassword(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    const result = await signOut();
-    if (result.success) {
-      navigate('/', { replace: true });
     }
   };
 
@@ -185,7 +176,7 @@ const UserSettings = () => {
                         تسجيل الخروج من حسابك
                       </p>
                     </div>
-                    <Button variant="destructive" onClick={handleSignOut}>
+                    <Button variant="destructive" onClick={signOut}>
                       تسجيل الخروج
                     </Button>
                   </div>

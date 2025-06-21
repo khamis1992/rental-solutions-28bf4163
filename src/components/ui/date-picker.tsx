@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/popover";
 import { formatDate } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
-import { DateRange } from "react-day-picker";
 
 interface DatePickerProps {
   date?: Date;
@@ -221,70 +220,6 @@ export function DateRangePicker({
         placeholder="تاريخ النهاية"
         disabled={disabled}
       />
-    </div>
-  );
-}
-
-interface DatePickerWithRangeProps {
-  date?: DateRange;
-  onDateChange: (date: DateRange | undefined) => void;
-  className?: string;
-  disabled?: boolean;
-}
-
-export function DatePickerWithRange({
-  date,
-  onDateChange,
-  className,
-  disabled = false,
-}: DatePickerWithRangeProps) {
-  const [calendarOpen, setCalendarOpen] = React.useState(false);
-
-  const formatDateRange = (dateRange: DateRange | undefined) => {
-    if (!dateRange) {
-      return "اختر نطاق التاريخ";
-    }
-    
-    if (dateRange.from) {
-      if (dateRange.to) {
-        return `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`;
-      } else {
-        return format(dateRange.from, "dd/MM/yyyy");
-      }
-    }
-    
-    return "اختر نطاق التاريخ";
-  };
-
-  return (
-    <div className={cn("grid gap-2", className)} dir="rtl">
-      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id="date"
-            variant={"outline"}
-            className={cn(
-              "w-full justify-start text-right font-normal",
-              !date && "text-muted-foreground",
-              disabled && "opacity-50 cursor-not-allowed"
-            )}
-            disabled={disabled}
-          >
-            <CalendarIcon className="ml-2 h-4 w-4" />
-            {formatDateRange(date)}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={date?.from}
-            selected={date}
-            onSelect={onDateChange}
-            numberOfMonths={2}
-          />
-        </PopoverContent>
-      </Popover>
     </div>
   );
 }

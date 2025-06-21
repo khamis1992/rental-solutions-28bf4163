@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -106,7 +106,6 @@ interface SidebarProps {
 
 const Sidebar = ({ onClose }: SidebarProps) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const isMobile = useIsMobile();
@@ -151,13 +150,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   const handleNavClick = () => {
     if (isMobile && onClose) {
       onClose();
-    }
-  };
-
-  const handleSignOut = async () => {
-    const result = await signOut();
-    if (result.success) {
-      navigate('/', { replace: true });
     }
   };
 
@@ -343,7 +335,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         
         <Button
           variant="ghost"
-          onClick={handleSignOut}
+          onClick={signOut}
           className="w-full text-gray-200 hover:text-white hover:bg-gray-800 flex items-center justify-end gap-2 flex-row-reverse"
           dir="rtl"
         >

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -36,14 +37,11 @@ const Login = () => {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setIsLoading(true);
-      const result = await signIn(data.email, data.password);
+      await signIn(data.email, data.password);
       
-      if (result.success) {
-        // Redirect to the page they tried to visit or to dashboard
-        const from = (location.state as any)?.from?.pathname || "/dashboard";
-        navigate(from, { replace: true });
-      }
-      // Error handling is already done in the signIn function via toast
+      // Redirect to the page they tried to visit or to dashboard
+      const from = (location.state as any)?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
     } catch (error) {
       console.error("Login error:", error);
     } finally {
