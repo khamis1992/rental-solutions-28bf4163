@@ -1,220 +1,413 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatCard } from '@/components/ui/stat-card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Users, UserPlus, StarIcon, Repeat2 } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { useCustomers } from '@/hooks/use-customers';
-import { formatCurrency } from '@/lib/utils';
-import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePickerWithRange } from '@/components/ui/date-picker';
+import { FileText, Download, Users, TrendingUp, DollarSign, Calendar } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { DateRange } from 'react-day-picker';
+import { addDays, subDays } from 'date-fns';
+import { generatePDFSafely, initializePDFSystem, isPDFSystemReady } from '@/utils/pdf-generator';
+import { getBestArabicFont, getFontLoadingStatus } from '@/utils/font-loader';
+import { toast } from 'sonner';
 
-const CustomerReport = () => {
-  const {
-    customers,
-    isLoading
-  } = useCustomers();
+const CustomerReport: React.FC = () => {
+  const { language } = useLanguage();
+  const [selectedCustomer, setSelectedCustomer] = useState<string>('all');
+  const [reportType, setReportType] = useState<string>('summary');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [pdfSystemStatus, setPdfSystemStatus] = useState({
+    ready: false,
+    loading: true,
+    fonts: [] as string[]
+  });
 
-  // Calculate customer metrics
-  const totalCustomers = customers.length;
+  // Initialize PDF system on component mount
+  useEffect(() => {
+    const initPDF = async () => {
+      try {
+        await initializePDFSystem();
+        const status = getFontLoadingStatus();
+        setPdfSystemStatus({
+          ready: isPDFSystemReady(),
+          loading: status.loading,
+          fonts: status.availableFonts
+        });
+      } catch (error) {
+        console.warn('PDF system initialization warning:', error);
+        setPdfSystemStatus({
+          ready: true, // Allow generation with fallback
+          loading: false,
+          fonts: ['Roboto']
+        });
+      }
+    };
 
-  // Get customers created in the last 30 days
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const newCustomers = customers.filter(customer => {
-    const createdDate = customer.created_at ? new Date(customer.created_at) : null;
-    return createdDate && createdDate > thirtyDaysAgo;
-  }).length;
+    initPDF();
+  }, []);
 
-  // Calculate customer segments based on status
-  const activeCustomers = customers.filter(customer => customer.status === 'active').length;
-  const inactiveCustomers = customers.filter(customer => customer.status === 'inactive').length;
-  const blacklistedCustomers = customers.filter(customer => customer.status === 'blacklisted').length;
-  const pendingCustomers = customers.filter(customer => customer.status === 'pending_review').length;
-
-  // Prepare data for customer segments chart
-  const customerSegmentData = [{
-    name: 'Active',
-    value: activeCustomers,
-    color: '#3b82f6'
-  }, {
-    name: 'Inactive',
-    value: inactiveCustomers,
-    color: '#22c55e'
-  }, {
-    name: 'Blacklisted',
-    value: blacklistedCustomers,
-    color: '#f59e0b'
-  }, {
-    name: 'Pending Review',
-    value: pendingCustomers,
-    color: '#8b5cf6'
-  }].filter(segment => segment.value > 0);
-
-  // Get top customers (for demonstration, we'll sort by most recently created)
-  const topCustomers = [...customers].sort((a, b) => {
-    const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-    const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-    return dateB.getTime() - dateA.getTime();
-  }).slice(0, 5).map((customer, index) => ({
-    id: customer.id,
-    name: customer.full_name,
-    status: customer.status || 'active',
-    totalRentals: Math.floor(Math.random() * 15) + 1,
-    // Sample data as we don't have this info
-    totalSpent: Math.floor(Math.random() * 10000) + 1000,
-    // Sample data
-    lastRental: customer.updated_at ? new Date(customer.updated_at).toISOString().split('T')[0] : 'N/A',
-    rating: (4 + Math.random()).toFixed(1)
-  }));
-
-  // Create rental duration data (sample data as we don't have this in our database)
-  const rentalDurationData = [{
-    name: '1-3 days',
-    value: Math.floor(totalCustomers * 0.4),
-    color: '#3b82f6'
-  }, {
-    name: '4-7 days',
-    value: Math.floor(totalCustomers * 0.3),
-    color: '#22c55e'
-  }, {
-    name: '8-14 days',
-    value: Math.floor(totalCustomers * 0.2),
-    color: '#f59e0b'
-  }, {
-    name: '15+ days',
-    value: Math.floor(totalCustomers * 0.1),
-    color: '#8b5cf6'
-  }];
-  
-  // Prepare report data for download
-  const getReportData = () => {
-    return customers.map(customer => ({
-      id: customer.id,
-      full_name: customer.full_name,
-      email: customer.email,
-      phone: customer.phone,
-      status: customer.status,
-      driver_license: customer.driver_license,
-      created_at: customer.created_at,
-      nationality: customer.nationality || 'N/A',
-      address: customer.address || 'N/A'
-    }));
+  // Mock data for demonstration
+  const mockCustomerData = {
+    totalCustomers: 45,
+    activeCustomers: 38,
+    newCustomers: 7,
+    totalRevenue: 125000,
+    averageRental: 2850,
+    topCustomers: [
+      { name: 'أحمد محمد الأحمد', revenue: 15000, agreements: 5 },
+      { name: 'فاطمة عبدالله السالم', revenue: 12500, agreements: 4 },
+      { name: 'محمد عبدالرحمن النعيمي', revenue: 11000, agreements: 3 }
+    ]
   };
-  
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-64">Loading customer data...</div>;
-  }
-  return <div className="space-y-8">
-      <div className="flex items-center mb-6">
+
+  const generateCustomerFinancialReport = async () => {
+    if (!pdfSystemStatus.ready && pdfSystemStatus.loading) {
+      toast.warning(language === 'ar' ? 'جاري تحميل الخطوط، يرجى الانتظار...' : 'Loading fonts, please wait...');
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      console.log('Starting customer financial report generation...');
+      
+      // Get the best available font
+      const fontName = getBestArabicFont();
+      console.log(`Using font for report: ${fontName}`);
+
+      // Create document definition
+      const documentDefinition = {
+        content: [
+          // Header
+          {
+            text: language === 'ar' ? 'تقرير العملاء المالي' : 'Customer Financial Report',
+            style: 'header',
+            alignment: language === 'ar' ? 'right' : 'left'
+          },
+          {
+            text: language === 'ar' ? 
+              `تاريخ التقرير: ${formatDate(new Date())}` : 
+              `Report Date: ${formatDate(new Date())}`,
+            style: 'subheader',
+            alignment: language === 'ar' ? 'right' : 'left',
+            margin: [0, 0, 0, 20]
+          },
+
+          // Summary Section
+          {
+            text: language === 'ar' ? 'ملخص العملاء' : 'Customer Summary',
+            style: 'sectionHeader',
+            alignment: language === 'ar' ? 'right' : 'left'
+          },
+          {
+            table: {
+              widths: ['*', '*'],
+              body: [
+                [
+                  { text: language === 'ar' ? 'إجمالي العملاء' : 'Total Customers', style: 'tableHeader' },
+                  { text: mockCustomerData.totalCustomers.toString(), style: 'tableData' }
+                ],
+                [
+                  { text: language === 'ar' ? 'العملاء النشطون' : 'Active Customers', style: 'tableHeader' },
+                  { text: mockCustomerData.activeCustomers.toString(), style: 'tableData' }
+                ],
+                [
+                  { text: language === 'ar' ? 'العملاء الجدد' : 'New Customers', style: 'tableHeader' },
+                  { text: mockCustomerData.newCustomers.toString(), style: 'tableData' }
+                ],
+                [
+                  { text: language === 'ar' ? 'إجمالي الإيرادات' : 'Total Revenue', style: 'tableHeader' },
+                  { text: `${formatCurrency(mockCustomerData.totalRevenue)} ${language === 'ar' ? 'ر.ق' : 'QAR'}`, style: 'tableData' }
+                ]
+              ]
+            },
+            layout: 'lightHorizontalLines',
+            margin: [0, 0, 0, 20]
+          },
+
+          // Top Customers Section
+          {
+            text: language === 'ar' ? 'أفضل العملاء' : 'Top Customers',
+            style: 'sectionHeader',
+            alignment: language === 'ar' ? 'right' : 'left'
+          },
+          {
+            table: {
+              widths: ['*', 'auto', 'auto'],
+              body: [
+                [
+                  { text: language === 'ar' ? 'اسم العميل' : 'Customer Name', style: 'tableHeader' },
+                  { text: language === 'ar' ? 'الإيرادات' : 'Revenue', style: 'tableHeader' },
+                  { text: language === 'ar' ? 'الاتفاقيات' : 'Agreements', style: 'tableHeader' }
+                ],
+                ...mockCustomerData.topCustomers.map(customer => [
+                  { text: customer.name, style: 'tableData' },
+                  { text: `${formatCurrency(customer.revenue)} ${language === 'ar' ? 'ر.ق' : 'QAR'}`, style: 'tableData' },
+                  { text: customer.agreements.toString(), style: 'tableData' }
+                ])
+              ]
+            },
+            layout: 'lightHorizontalLines'
+          }
+        ],
         
-        <h2 className="text-xl font-bold">Customer Analytics Dashboard</h2>
-      </div>
-      
-      <div className="mb-6">
-        <ReportDownloadOptions reportType="customers" getReportData={getReportData} />
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Customers" value={totalCustomers.toString()} trend={newCustomers} trendLabel="new this month" icon={Users} iconColor="text-blue-500" />
-        <StatCard title="New Customers" value={newCustomers.toString()} trend={Math.round(newCustomers / (totalCustomers || 1) * 100)} trendLabel="% of total" icon={UserPlus} iconColor="text-green-500" />
-        <StatCard title="Active Customers" value={`${activeCustomers}`} trend={Math.round(activeCustomers / (totalCustomers || 1) * 100)} trendLabel="% of total" icon={StarIcon} iconColor="text-amber-500" />
-        <StatCard title="Retention Rate" value={`${Math.round(activeCustomers / (totalCustomers || 1) * 100)}%`} trend={5} trendLabel="vs last month" icon={Repeat2} iconColor="text-indigo-500" />
-      </div>
+        styles: {
+          header: {
+            fontSize: 20,
+            bold: true,
+            margin: [0, 0, 0, 10],
+            color: '#1a365d'
+          },
+          subheader: {
+            fontSize: 12,
+            color: '#4a5568'
+          },
+          sectionHeader: {
+            fontSize: 16,
+            bold: true,
+            margin: [0, 20, 0, 10],
+            color: '#2d3748'
+          },
+          tableHeader: {
+            bold: true,
+            fontSize: 12,
+            color: '#2d3748',
+            fillColor: '#f7fafc'
+          },
+          tableData: {
+            fontSize: 11,
+            margin: [0, 2, 0, 2]
+          }
+        },
+        
+        defaultStyle: {
+          font: fontName,
+          fontSize: 11,
+          lineHeight: 1.4
+        },
+        
+        pageSize: 'A4',
+        pageMargins: [40, 60, 40, 60],
+        
+        header: {
+          text: language === 'ar' ? 'تقرير العملاء المالي' : 'Customer Financial Report',
+          alignment: 'center',
+          fontSize: 10,
+          color: '#666666',
+          margin: [0, 20, 0, 0]
+        },
+        
+        footer: function(currentPage: number, pageCount: number) {
+          return {
+            text: `${language === 'ar' ? 'صفحة' : 'Page'} ${currentPage} ${language === 'ar' ? 'من' : 'of'} ${pageCount}`,
+            alignment: 'center',
+            fontSize: 10,
+            color: '#666666'
+          };
+        }
+      };
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer Segments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 flex items-center justify-center">
-              {customerSegmentData.length > 0 ? <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={customerSegmentData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({
-                  name,
-                  percent
-                }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                      {customerSegmentData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip formatter={value => [`${value} customers`, 'Count']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer> : <div className="text-center text-gray-500">No segment data available</div>}
+      // Generate PDF safely with font handling
+      await generatePDFSafely(documentDefinition, {
+        filename: `customer-report-${new Date().toISOString().split('T')[0]}.pdf`,
+        preferArabic: language === 'ar',
+        timeout: 15000 // 15 second timeout
+      });
+
+      toast.success(language === 'ar' ? 'تم إنشاء التقرير بنجاح' : 'Report generated successfully');
+      
+    } catch (error) {
+      console.error('Error generating customer report:', error);
+      toast.error(language === 'ar' ? 'خطأ في إنشاء التقرير' : 'Error generating report');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* PDF System Status Indicator */}
+      {pdfSystemStatus.loading && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="pt-4">
+            <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+              <span className="text-sm text-yellow-800">
+                {language === 'ar' ? 'جاري تحميل خطوط PDF...' : 'Loading PDF fonts...'}
+              </span>
             </div>
           </CardContent>
         </Card>
+      )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Rental Duration Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={rentalDurationData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({
-                  name,
-                  percent
-                }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {rentalDurationData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip formatter={value => [`${value} rentals`, 'Count']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Report Configuration */}
       <Card>
         <CardHeader>
-          <CardTitle>Top Customers</CardTitle>
+          <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-right' : ''}`}>
+            <Users className="h-5 w-5" />
+            {language === 'ar' ? 'تقرير العملاء' : 'Customer Report'}
+          </CardTitle>
+          <CardDescription className={language === 'ar' ? 'text-right' : ''}>
+            {language === 'ar' ? 'إنشاء تقارير مفصلة عن العملاء والأداء المالي' : 'Generate detailed customer and financial performance reports'}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {topCustomers.length > 0 ? <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total Rentals</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead>Last Rental</TableHead>
-                  <TableHead>Rating</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {topCustomers.map(customer => <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell>
-                      <CustomerStatusBadge status={customer.status} />
-                    </TableCell>
-                    <TableCell>{customer.totalRentals}</TableCell>
-                    <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
-                    <TableCell>{customer.lastRental}</TableCell>
-                    <TableCell>{customer.rating}/5</TableCell>
-                  </TableRow>)}
-              </TableBody>
-            </Table> : <div className="text-center py-4 text-gray-500">No customer data available</div>}
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className={language === 'ar' ? 'text-right' : ''}>
+              <Label htmlFor="customer-select">
+                {language === 'ar' ? 'اختيار العميل' : 'Select Customer'}
+              </Label>
+              <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                <SelectTrigger>
+                  <SelectValue placeholder={language === 'ar' ? 'اختر العميل' : 'Select Customer'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'ar' ? 'جميع العملاء' : 'All Customers'}</SelectItem>
+                  <SelectItem value="active">{language === 'ar' ? 'العملاء النشطون' : 'Active Customers'}</SelectItem>
+                  <SelectItem value="new">{language === 'ar' ? 'العملاء الجدد' : 'New Customers'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={language === 'ar' ? 'text-right' : ''}>
+              <Label htmlFor="report-type">
+                {language === 'ar' ? 'نوع التقرير' : 'Report Type'}
+              </Label>
+              <Select value={reportType} onValueChange={setReportType}>
+                <SelectTrigger>
+                  <SelectValue placeholder={language === 'ar' ? 'اختر نوع التقرير' : 'Select Report Type'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="summary">{language === 'ar' ? 'تقرير ملخص' : 'Summary Report'}</SelectItem>
+                  <SelectItem value="detailed">{language === 'ar' ? 'تقرير مفصل' : 'Detailed Report'}</SelectItem>
+                  <SelectItem value="financial">{language === 'ar' ? 'تقرير مالي' : 'Financial Report'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className={language === 'ar' ? 'text-right' : ''}>
+            <Label>{language === 'ar' ? 'نطاق التاريخ' : 'Date Range'}</Label>
+            <DatePickerWithRange 
+              date={dateRange} 
+              onDateChange={setDateRange}
+              className="w-full"
+            />
+          </div>
         </CardContent>
       </Card>
-    </div>;
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'إجمالي العملاء' : 'Total Customers'}
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'text-right' : ''}`}>
+              {mockCustomerData.totalCustomers}
+            </div>
+            <p className={`text-xs text-muted-foreground ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? '+7 من الشهر الماضي' : '+7 from last month'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'العملاء النشطون' : 'Active Customers'}
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'text-right' : ''}`}>
+              {mockCustomerData.activeCustomers}
+            </div>
+            <p className={`text-xs text-muted-foreground ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? '84% من إج1مالي العملاء' : '84% of total customers'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'إجمالي الإيرادات' : 'Total Revenue'}
+            </CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'text-right' : ''}`}>
+              {formatCurrency(mockCustomerData.totalRevenue)}
+            </div>
+            <p className={`text-xs text-muted-foreground ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'ر.ق قطري' : 'QAR'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'متوسط الإيجار' : 'Average Rental'}
+            </CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'text-right' : ''}`}>
+              {formatCurrency(mockCustomerData.averageRental)}
+            </div>
+            <p className={`text-xs text-muted-foreground ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'لكل اتفاقية' : 'per agreement'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Generate Report Button */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className={`flex gap-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+            <Button 
+              onClick={generateCustomerFinancialReport}
+              disabled={isGenerating}
+              className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+            >
+              {isGenerating ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isGenerating ? 
+                (language === 'ar' ? 'جاري الإنشاء...' : 'Generating...') :
+                (language === 'ar' ? 'إنشاء تقرير PDF' : 'Generate PDF Report')
+              }
+            </Button>
+            
+            <div className={`text-sm text-muted-foreground flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <span>
+                {language === 'ar' ? 
+                  `الخطوط المتاحة: ${pdfSystemStatus.fonts.join(', ')}` :
+                  `Available fonts: ${pdfSystemStatus.fonts.join(', ')}`
+                }
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
-const CustomerStatusBadge = ({
-  status
-}: {
-  status: string;
-}) => {
-  const variants: Record<string, string> = {
-    'active': 'bg-green-100 text-green-800',
-    'inactive': 'bg-gray-100 text-gray-800',
-    'blacklisted': 'bg-red-100 text-red-800',
-    'pending_review': 'bg-purple-100 text-purple-800'
-  };
-  return <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
-      {status.replace('_', ' ')}
-    </Badge>;
-};
+
 export default CustomerReport;
