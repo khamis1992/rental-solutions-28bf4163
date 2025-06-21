@@ -281,38 +281,40 @@ export const AdvancedAnalyticsPanel: React.FC<{ className?: string }> = ({ class
       {/* Analytics cards matching the design of key indicators */}
       {renderAnalyticsByType()}
 
-      {/* Predictions section */}
-      <Card className='p-4 bg-gradient-to-r from-blue-50 to-indigo-50'>
-        <div className='text-right' dir='rtl'>
-          <h4 className='font-medium mb-2 text-right'>
-            {selectedMetric === 'revenue' && 'توقعات الإيرادات'}
-            {selectedMetric === 'customers' && 'توقعات العملاء'}
-            {selectedMetric === 'fleet' && 'توقعات الأسطول'}
-          </h4>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div className='text-right'>
-              <p className='text-sm text-muted-foreground text-right'>
-                {selectedMetric === 'revenue' && 'الإيرادات المتوقعة'}
-                {selectedMetric === 'customers' && 'عملاء جدد متوقعون'}
-                {selectedMetric === 'fleet' && 'استغلال متوقع'}
-              </p>
-              <p className='text-xl font-bold text-right'>
-                {selectedMetric === 'revenue' && formatCurrency(analytics.predictions.nextMonthRevenue)}
-                {selectedMetric === 'customers' && Math.round(analytics.activeCustomers.count * 0.1).toLocaleString() + ' عميل'}
-                {selectedMetric === 'fleet' && (analytics.fleetUtilization.rate + 5).toFixed(1) + '%'}
-              </p>
-            </div>
-            <div className='text-right'>
-              <p className='text-sm text-muted-foreground text-right'>مستوى الثقة</p>
-              <div className='flex items-center space-x-2 space-x-reverse'>
-                <Badge variant='outline'>
-                  {analytics.predictions.confidence}%
-                </Badge>
-                <p className='text-xl font-bold text-right'>عالي</p>
+      {/* Predictions section with clean card design */}
+      <Card className='shadow-sm'>
+        <CardContent className='p-6'>
+          <div className='text-right' dir='rtl'>
+            <h4 className='font-medium mb-4 text-right text-lg'>
+              {selectedMetric === 'revenue' && 'توقعات الإيرادات'}
+              {selectedMetric === 'customers' && 'توقعات العملاء'}
+              {selectedMetric === 'fleet' && 'توقعات الأسطول'}
+            </h4>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+              <div className='text-right'>
+                <p className='text-sm text-muted-foreground text-right mb-2'>
+                  {selectedMetric === 'revenue' && 'الإيرادات المتوقعة'}
+                  {selectedMetric === 'customers' && 'عملاء جدد متوقعون'}
+                  {selectedMetric === 'fleet' && 'استغلال متوقع'}
+                </p>
+                <p className='text-2xl font-bold text-right'>
+                  {selectedMetric === 'revenue' && formatCurrency(analytics.predictions.nextMonthRevenue)}
+                  {selectedMetric === 'customers' && Math.round(analytics.activeCustomers.count * 0.1).toLocaleString() + ' عميل'}
+                  {selectedMetric === 'fleet' && (analytics.fleetUtilization.rate + 5).toFixed(1) + '%'}
+                </p>
+              </div>
+              <div className='text-right'>
+                <p className='text-sm text-muted-foreground text-right mb-2'>مستوى الثقة</p>
+                <div className='flex items-center space-x-2 space-x-reverse justify-end'>
+                  <Badge variant='outline' className='text-sm'>
+                    {analytics.predictions.confidence}%
+                  </Badge>
+                  <p className='text-2xl font-bold text-right'>عالي</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
     </div>
   );
