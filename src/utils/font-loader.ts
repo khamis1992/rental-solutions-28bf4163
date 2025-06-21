@@ -12,30 +12,21 @@ interface FontDefinition {
   [fontName: string]: FontConfig;
 }
 
-// Font loading state management
+// Flag to track initialization
 let fontsInitialized = false;
 let fontLoadingPromise: Promise<void> | null = null;
-let availableFonts: Set<string> = new Set();
 
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
-// Maximum retry attempts for font loading
-const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAY = 1000; // 1 second
-
-// Sleep utility for retry mechanism
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Function to load font files directly as base64 with retry mechanism
-async function loadFontAsBase64(url: string, retries = 0): Promise<string | null> {
+// Function to load font files directly as base64
+async function loadFontAsBase64(url: string): Promise<string | null> {
   if (!isBrowser) return null;
   
   try {
-    console.log(`Attempting to load font from ${url} (attempt ${retries + 1})`);
     const response = await fetch(url);
     if (!response.ok) {
-      console.warn(`Font file not found: ${url} (status: ${response.status})`);
+      console.warn(`Font file not found: ${url}`);
       return null;
     }
     
@@ -46,28 +37,16 @@ async function loadFontAsBase64(url: string, retries = 0): Promise<string | null
     for (let i = 0; i < len; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
-    const base64 = btoa(binary);
-    console.log(`Successfully loaded font from ${url}`);
-    return base64;
+    return btoa(binary);
   } catch (error) {
-    console.warn(`Failed to load font from ${url} (attempt ${retries + 1}):`, error);
-    
-    // Retry mechanism
-    if (retries < MAX_RETRY_ATTEMPTS) {
-      console.log(`Retrying font load in ${RETRY_DELAY}ms...`);
-      await sleep(RETRY_DELAY);
-      return loadFontAsBase64(url, retries + 1);
-    }
-    
+    console.warn(`Failed to load font from ${url}:`, error);
     return null;
   }
 }
 
-// Load fonts with comprehensive fallback strategies
+// Load fonts with multiple fallback strategies
 async function loadFontsWithFallback(): Promise<void> {
   if (!isBrowser) return;
-
-  console.log('Starting font loading process...');
 
   let amiriRegularBase64: string | null = null;
   let amiriBoldBase64: string | null = null;
@@ -83,13 +62,19 @@ async function loadFontsWithFallback(): Promise<void> {
     console.log('Loaded Amiri Bold from global variable');
   }
 
-  // Strategy 2: If not available, try direct TTF loading with retry
+  // Strategy 2: If not available, try direct TTF loading
   if (!amiriRegularBase64) {
     amiriRegularBase64 = await loadFontAsBase64('/Amiri-Regular.ttf');
+    if (amiriRegularBase64) {
+      console.log('Loaded Amiri Regular directly from TTF');
+    }
   }
 
   if (!amiriBoldBase64) {
     amiriBoldBase64 = await loadFontAsBase64('/Amiri-Bold.ttf');
+    if (amiriBoldBase64) {
+      console.log('Loaded Amiri Bold directly from TTF');
+    }
   }
 
   // Initialize pdfMake virtual file system
@@ -97,13 +82,13 @@ async function loadFontsWithFallback(): Promise<void> {
     (pdfMake as any).vfs = {};
   }
 
-  // Configure fonts based on what's available
+  // Add fonts to virtual file system if available, otherwise use fallback
   if (amiriRegularBase64 && amiriBoldBase64) {
-    // Both fonts available
     (pdfMake as any).vfs['Amiri-Regular.ttf'] = amiriRegularBase64;
     (pdfMake as any).vfs['Amiri-Bold.ttf'] = amiriBoldBase64;
-    availableFonts.add('Amiri');
+    console.log('Added Amiri fonts to pdfMake virtual file system');
     
+    // Configure font definitions with Amiri
     pdfMake.fonts = {
       Roboto: {
         normal: 'Roboto-Regular.ttf',
@@ -118,11 +103,10 @@ async function loadFontsWithFallback(): Promise<void> {
         bolditalics: 'Amiri-Bold.ttf'
       }
     };
-    console.log('Successfully configured Amiri fonts (regular + bold)');
   } else if (amiriRegularBase64) {
-    // Only regular font available
+    // If only regular font is available, use it for both normal and bold
     (pdfMake as any).vfs['Amiri-Regular.ttf'] = amiriRegularBase64;
-    availableFonts.add('Amiri');
+    console.log('Using Amiri Regular for both normal and bold text');
     
     pdfMake.fonts = {
       Roboto: {
@@ -138,12 +122,10 @@ async function loadFontsWithFallback(): Promise<void> {
         bolditalics: 'Amiri-Regular.ttf'
       }
     };
-    console.log('Successfully configured Amiri fonts (regular only)');
   } else {
-    // No Amiri fonts available, use Roboto fallback
-    console.warn('Could not load any Amiri fonts, using Roboto fallback');
-    availableFonts.add('Roboto');
+    console.warn('Could not load Amiri fonts, using Roboto fallback');
     
+    // Fallback to Roboto only
     pdfMake.fonts = {
       Roboto: {
         normal: 'Roboto-Regular.ttf',
@@ -155,30 +137,25 @@ async function loadFontsWithFallback(): Promise<void> {
   }
 
   fontsInitialized = true;
-  console.log('Font loading process completed');
 }
 
 // Configure pdfMake fonts with proper error handling
 export async function configurePdfMakeFonts(): Promise<void> {
   if (fontLoadingPromise) {
     // If already loading, wait for the existing promise
-    console.log('Font loading already in progress, waiting...');
     return fontLoadingPromise;
   }
 
   if (fontsInitialized) {
     // Already initialized
-    console.log('Fonts already initialized');
     return Promise.resolve();
   }
 
-  console.log('Starting font configuration...');
-
   // Create the loading promise
   fontLoadingPromise = loadFontsWithFallback().catch(error => {
-    console.error('Font loading failed with error:', error);
+    console.error('Font loading failed:', error);
     
-    // Fallback configuration on critical error
+    // Fallback configuration on error
     if (!(pdfMake as any).vfs) {
       (pdfMake as any).vfs = {};
     }
@@ -192,120 +169,65 @@ export async function configurePdfMakeFonts(): Promise<void> {
       }
     };
     
-    availableFonts.clear();
-    availableFonts.add('Roboto');
     fontsInitialized = true;
-    console.log('Applied fallback font configuration');
   });
 
   return fontLoadingPromise;
 }
 
-// Check if a specific font is available
-export function isFontAvailable(fontName: string): boolean {
-  return availableFonts.has(fontName);
+// Initialize fonts and return success status
+export async function initializeFontsStatus(): Promise<boolean> {
+  try {
+    await configurePdfMakeFonts();
+    return true;
+  } catch (error) {
+    console.warn('Font initialization failed:', error);
+    return false;
+  }
 }
 
-// Get the best available font for Arabic text
-export function getBestArabicFont(): string {
-  if (isFontAvailable('Amiri')) {
-    return 'Amiri';
-  }
-  return 'Roboto';
+// Check if fonts are initialized
+export function areFontsReady(): boolean {
+  return fontsInitialized;
 }
 
-// Get available font name for PDF generation with language preference
-export function getAvailableFontName(preferArabic: boolean = false): string {
-  if (preferArabic && isFontAvailable('Amiri')) {
-    return 'Amiri';
-  }
-  if (isFontAvailable('Amiri')) {
+// Get available font name for PDF generation
+export function getAvailableFontName(): string {
+  if ((pdfMake as any).vfs && (pdfMake as any).vfs['Amiri-Regular.ttf']) {
     return 'Amiri';
   }
   return 'Roboto';
 }
 
 // Wait for fonts to be ready before proceeding
-export async function waitForFontsReady(timeout: number = 10000): Promise<string> {
-  const startTime = Date.now();
-  
-  while (!fontsInitialized && (Date.now() - startTime) < timeout) {
-    if (!fontLoadingPromise) {
-      await configurePdfMakeFonts();
-    } else {
-      await fontLoadingPromise;
-    }
-    
-    if (!fontsInitialized) {
-      await sleep(100); // Wait a bit before checking again
-    }
-  }
-  
-  if (!fontsInitialized) {
-    console.warn('Font loading timed out, using fallback');
-    return 'Roboto';
-  }
-  
-  return getBestArabicFont();
+export async function waitForFontsReady(): Promise<string> {
+  await configurePdfMakeFonts();
+  return getAvailableFontName();
 }
 
-// Initialize fonts with comprehensive error handling
+// Initialize fonts with the best available method
 export const initializeFonts = async (): Promise<string> => {
   try {
-    console.log('Initializing fonts...');
     await configurePdfMakeFonts();
-    const fontName = getBestArabicFont();
-    console.log(`Fonts initialized successfully, using: ${fontName}`);
-    return fontName;
+    return getAvailableFontName();
   } catch (error) {
     console.error('Font initialization failed:', error);
     return 'Roboto';
   }
 };
 
-// Check if fonts are ready
-export function areFontsReady(): boolean {
-  return fontsInitialized;
-}
-
-// Get font loading status
-export function getFontLoadingStatus(): {
-  initialized: boolean;
-  availableFonts: string[];
-  loading: boolean;
-} {
-  return {
-    initialized: fontsInitialized,
-    availableFonts: Array.from(availableFonts),
-    loading: fontLoadingPromise !== null && !fontsInitialized
-  };
-}
-
 // Reset fonts for testing
 export function resetFonts(): void {
   fontsInitialized = false;
   fontLoadingPromise = null;
-  availableFonts.clear();
-  console.log('Font state reset');
-}
-
-// Preload fonts early (can be called from main app)
-export async function preloadFonts(): Promise<void> {
-  if (!fontsInitialized && !fontLoadingPromise) {
-    console.log('Preloading fonts...');
-    await configurePdfMakeFonts();
-  }
 }
 
 export default {
   initializeFonts,
   configurePdfMakeFonts,
+  initializeFontsStatus,
   areFontsReady,
-  isFontAvailable,
-  getBestArabicFont,
   getAvailableFontName,
   waitForFontsReady,
-  getFontLoadingStatus,
-  resetFonts,
-  preloadFonts
+  resetFonts
 };
