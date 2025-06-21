@@ -1,11 +1,14 @@
-﻿import React, { useState } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, BarChart3, Target, Users, Car, DollarSign } from 'lucide-react';
+import { StatCard } from '@/components/ui/stat-card';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { formatCurrency } from '@/lib/utils';
 
 interface AnalyticsData {
   fleetUtilization: { rate: number; trend: number };
@@ -94,164 +97,114 @@ export const AdvancedAnalyticsPanel: React.FC<{ className?: string }> = ({ class
     staleTime: 240000,
   });
 
-  const MetricCard = ({ 
-    title, 
-    value, 
-    trend, 
-    suffix = '', 
-    icon: Icon,
-    target,
-    color = 'blue'
-  }: {
-    title: string;
-    value: number;
-    trend: number;
-    suffix?: string;
-    icon: any;
-    target?: number;
-    color?: string;
-  }) => (
-    <Card className='p-4 hover:shadow-lg transition-shadow'>
-      <div className='flex items-center justify-between' dir='rtl'>
-        <div className='flex items-center space-x-2 space-x-reverse'>
-          <div className={cn('rounded-full p-2', {
-            'bg-blue-100': color === 'blue',
-            'bg-green-100': color === 'green',
-            'bg-purple-100': color === 'purple',
-            'bg-orange-100': color === 'orange'
-          })}>
-            <Icon className={cn('h-4 w-4', {
-              'text-blue-600': color === 'blue',
-              'text-green-600': color === 'green', 
-              'text-purple-600': color === 'purple',
-              'text-orange-600': color === 'orange'
-            })} />
-          </div>
-          <div className='flex items-center space-x-1 space-x-reverse'>
-            {trend > 0 ? (
-              <TrendingUp className='h-3 w-3 text-green-500' />
-            ) : (
-              <TrendingDown className='h-3 w-3 text-red-500' />
-            )}
-            <span className={cn(
-              'text-xs font-medium',
-              trend > 0 ? 'text-green-500' : 'text-red-500'
-            )}>
-              {trend > 0 ? '+' : ''}{trend.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-        <div className='text-right'>
-          <p className='text-sm font-medium text-muted-foreground text-right'>
-            {title}
-          </p>
-          <p className='text-2xl font-bold text-right'>
-            {value.toLocaleString()}{suffix}
-          </p>
-          {target && (
-            <p className='text-xs text-muted-foreground text-right'>
-              الهدف: {target.toLocaleString()}{suffix}
-            </p>
-          )}
-        </div>
-      </div>
-    </Card>
-  );
-
   const renderAnalyticsByType = () => {
     if (!analytics) return null;
 
     switch (selectedMetric) {
       case 'revenue':
         return (
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6' dir='rtl'>
-            <MetricCard
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" dir='rtl'>
+            <StatCard
               title='إجمالي الإيرادات'
-              value={analytics.totalRevenue.value}
-              trend={analytics.totalRevenue.trend}
-              suffix=' ر.ق'
+              value={formatCurrency(analytics.totalRevenue.value)}
+              description='الإيرادات الإجمالية المحصلة'
               icon={DollarSign}
-              color='green'
+              iconColor='text-green-500'
+              trend={analytics.totalRevenue.trend}
+              trendLabel='مقارنة بالشهر الماضي'
+              className="transition-shadow hover:shadow-md"
             />
-            <MetricCard
+            <StatCard
               title='كفاءة التحصيل'
-              value={analytics.collectionEfficiency.rate}
-              trend={analytics.collectionEfficiency.trend}
-              suffix='%'
+              value={`${analytics.collectionEfficiency.rate.toFixed(1)}%`}
+              description='معدل تحصيل المدفوعات في الوقت المحدد'
               icon={Target}
-              target={95}
-              color='blue'
+              iconColor='text-blue-500'
+              trend={analytics.collectionEfficiency.trend}
+              trendLabel='مقارنة بالشهر الماضي'
+              className="transition-shadow hover:shadow-md"
             />
-            <MetricCard
+            <StatCard
               title='متوسط قيمة العقد'
-              value={analytics.averageContractValue.value}
-              trend={analytics.averageContractValue.trend}
-              suffix=' ر.ق'
+              value={formatCurrency(analytics.averageContractValue.value)}
+              description='متوسط قيمة العقود الجديدة'
               icon={TrendingUp}
-              color='purple'
+              iconColor='text-purple-500'
+              trend={analytics.averageContractValue.trend}
+              trendLabel='مقارنة بالشهر الماضي'
+              className="transition-shadow hover:shadow-md"
             />
           </div>
         );
 
       case 'customers':
         return (
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6' dir='rtl'>
-            <MetricCard
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" dir='rtl'>
+            <StatCard
               title='العملاء النشطون'
-              value={analytics.activeCustomers.count}
-              trend={analytics.activeCustomers.trend}
-              suffix=''
+              value={analytics.activeCustomers.count.toString()}
+              description='العملاء الذين لديهم عقود نشطة'
               icon={Users}
-              color='blue'
+              iconColor='text-blue-500'
+              trend={analytics.activeCustomers.trend}
+              trendLabel='مقارنة بالشهر الماضي'
+              className="transition-shadow hover:shadow-md"
             />
-            <MetricCard
+            <StatCard
               title='معدل الاحتفاظ بالعملاء'
-              value={analytics.customerRetention.rate}
-              trend={analytics.customerRetention.trend}
-              suffix='%'
+              value={`${analytics.customerRetention.rate.toFixed(1)}%`}
+              description='نسبة العملاء المحتفظ بهم'
               icon={Target}
-              target={95}
-              color='green'
+              iconColor='text-green-500'
+              trend={analytics.customerRetention.trend}
+              trendLabel='مقارنة بالشهر الماضي'
+              className="transition-shadow hover:shadow-md"
             />
-            <MetricCard
+            <StatCard
               title='متوسط قيمة العميل'
-              value={analytics.averageContractValue.value}
-              trend={analytics.averageContractValue.trend}
-              suffix=' ر.ق'
+              value={formatCurrency(analytics.averageContractValue.value)}
+              description='متوسط القيمة لكل عميل'
               icon={DollarSign}
-              color='purple'
+              iconColor='text-purple-500'
+              trend={analytics.averageContractValue.trend}
+              trendLabel='مقارنة بالشهر الماضي'
+              className="transition-shadow hover:shadow-md"
             />
           </div>
         );
 
       case 'fleet':
         return (
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6' dir='rtl'>
-            <MetricCard
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" dir='rtl'>
+            <StatCard
               title='معدل استغلال الأسطول'
-              value={analytics.fleetUtilization.rate}
-              trend={analytics.fleetUtilization.trend}
-              suffix='%'
+              value={`${analytics.fleetUtilization.rate.toFixed(1)}%`}
+              description='نسبة المركبات المؤجرة حالياً'
               icon={BarChart3}
-              target={80}
-              color='orange'
+              iconColor='text-orange-500'
+              trend={analytics.fleetUtilization.trend}
+              trendLabel='مقارنة بالشهر الماضي'
+              className="transition-shadow hover:shadow-md"
             />
-            <MetricCard
+            <StatCard
               title='نمو الأسطول'
-              value={analytics.fleetGrowth.rate}
-              trend={analytics.fleetGrowth.trend}
-              suffix='%'
+              value={`${analytics.fleetGrowth.rate.toFixed(1)}%`}
+              description='معدل نمو عدد المركبات'
               icon={TrendingUp}
-              color='green'
+              iconColor='text-green-500'
+              trend={analytics.fleetGrowth.trend}
+              trendLabel='مقارنة بالشهر الماضي'
+              className="transition-shadow hover:shadow-md"
             />
-            <MetricCard
+            <StatCard
               title='المركبات المتاحة'
-              value={analytics.vehicleAvailability.rate}
-              trend={analytics.vehicleAvailability.trend}
-              suffix='%'
+              value={`${analytics.vehicleAvailability.rate.toFixed(1)}%`}
+              description='نسبة المركبات المتاحة للإيجار'
               icon={Car}
-              target={30}
-              color='blue'
+              iconColor='text-blue-500'
+              trend={analytics.vehicleAvailability.trend}
+              trendLabel='مقارنة بالشهر الماضي'
+              className="transition-shadow hover:shadow-md"
             />
           </div>
         );
@@ -262,87 +215,105 @@ export const AdvancedAnalyticsPanel: React.FC<{ className?: string }> = ({ class
   };
 
   if (isLoading) {
-    return <div className='animate-pulse bg-gray-200 h-64 rounded'></div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between" dir="rtl">
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className="h-32 bg-gray-200 rounded animate-pulse"></div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!analytics) {
-    return <div>خطأ في تحميل البيانات</div>;
+    return <div className="text-center text-muted-foreground">خطأ في تحميل البيانات</div>;
   }
 
   return (
-    <Card className={cn('border-0 shadow-md', className)}>
-      <CardHeader className='pb-2'>
-        <div className='flex items-center justify-between' dir='rtl'>
-          <div className='flex items-center space-x-2 space-x-reverse'>
-            <Button
-              variant={selectedMetric === 'revenue' ? 'default' : 'outline'}
-              size='sm'
-              onClick={() => setSelectedMetric('revenue')}
-            >
-              الإيرادات
-            </Button>
-            <Button
-              variant={selectedMetric === 'customers' ? 'default' : 'outline'}
-              size='sm'
-              onClick={() => setSelectedMetric('customers')}
-            >
-              العملاء
-            </Button>
-            <Button
-              variant={selectedMetric === 'fleet' ? 'default' : 'outline'}
-              size='sm'
-              onClick={() => setSelectedMetric('fleet')}
-            >
-              الأسطول
-            </Button>
-          </div>
-          <div className='text-right'>
-            <CardTitle className='text-lg font-medium text-right'>التحليلات المتقدمة</CardTitle>
-            <p className='text-sm text-muted-foreground text-right mt-1'>
-              {selectedMetric === 'revenue' && 'تحليل الإيرادات والمالية'}
-              {selectedMetric === 'customers' && 'تحليل العملاء والاحتفاظ'}
-              {selectedMetric === 'fleet' && 'تحليل الأسطول والاستغلال'}
-            </p>
-          </div>
+    <div className={cn('space-y-6', className)}>
+      {/* Header with metric selection buttons */}
+      <div className='flex items-center justify-between' dir='rtl'>
+        <div className='flex items-center space-x-2 space-x-reverse'>
+          <Button
+            variant={selectedMetric === 'revenue' ? 'default' : 'outline'}
+            size='sm'
+            onClick={() => setSelectedMetric('revenue')}
+            className="transition-colors"
+          >
+            الإيرادات
+          </Button>
+          <Button
+            variant={selectedMetric === 'customers' ? 'default' : 'outline'}
+            size='sm'
+            onClick={() => setSelectedMetric('customers')}
+            className="transition-colors"
+          >
+            العملاء
+          </Button>
+          <Button
+            variant={selectedMetric === 'fleet' ? 'default' : 'outline'}
+            size='sm'
+            onClick={() => setSelectedMetric('fleet')}
+            className="transition-colors"
+          >
+            الأسطول
+          </Button>
         </div>
-      </CardHeader>
+        <div className='text-right'>
+          <h3 className='text-lg font-semibold text-right'>تحليلات النظام</h3>
+          <p className='text-sm text-muted-foreground text-right mt-1'>
+            {selectedMetric === 'revenue' && 'تحليل الإيرادات والمالية'}
+            {selectedMetric === 'customers' && 'تحليل العملاء والاحتفاظ'}
+            {selectedMetric === 'fleet' && 'تحليل الأسطول والاستغلال'}
+          </p>
+        </div>
+      </div>
 
-      <CardContent className='pt-2'>
-        {renderAnalyticsByType()}
+      {/* Analytics cards matching the design of key indicators */}
+      {renderAnalyticsByType()}
 
-        <Card className='p-4 bg-gradient-to-r from-blue-50 to-indigo-50'>
-          <div className='text-right' dir='rtl'>
-            <h4 className='font-medium mb-2 text-right'>
-              {selectedMetric === 'revenue' && 'توقعات الإيرادات'}
-              {selectedMetric === 'customers' && 'توقعات العملاء'}
-              {selectedMetric === 'fleet' && 'توقعات الأسطول'}
-            </h4>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div className='text-right'>
-                <p className='text-sm text-muted-foreground text-right'>
-                  {selectedMetric === 'revenue' && 'الإيرادات المتوقعة'}
-                  {selectedMetric === 'customers' && 'عملاء جدد متوقعون'}
-                  {selectedMetric === 'fleet' && 'استغلال متوقع'}
-                </p>
-                <p className='text-xl font-bold text-right'>
-                  {selectedMetric === 'revenue' && analytics.predictions.nextMonthRevenue.toLocaleString() + ' ر.ق'}
-                  {selectedMetric === 'customers' && Math.round(analytics.activeCustomers.count * 0.1).toLocaleString() + ' عميل'}
-                  {selectedMetric === 'fleet' && (analytics.fleetUtilization.rate + 5).toFixed(1) + '%'}
-                </p>
-              </div>
-              <div className='text-right'>
-                <p className='text-sm text-muted-foreground text-right'>مستوى الثقة</p>
-                <div className='flex items-center space-x-2 space-x-reverse'>
-                  <Badge variant='outline'>
-                    {analytics.predictions.confidence}%
-                  </Badge>
-                  <p className='text-xl font-bold text-right'>عالي</p>
-                </div>
+      {/* Predictions section */}
+      <Card className='p-4 bg-gradient-to-r from-blue-50 to-indigo-50'>
+        <div className='text-right' dir='rtl'>
+          <h4 className='font-medium mb-2 text-right'>
+            {selectedMetric === 'revenue' && 'توقعات الإيرادات'}
+            {selectedMetric === 'customers' && 'توقعات العملاء'}
+            {selectedMetric === 'fleet' && 'توقعات الأسطول'}
+          </h4>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='text-right'>
+              <p className='text-sm text-muted-foreground text-right'>
+                {selectedMetric === 'revenue' && 'الإيرادات المتوقعة'}
+                {selectedMetric === 'customers' && 'عملاء جدد متوقعون'}
+                {selectedMetric === 'fleet' && 'استغلال متوقع'}
+              </p>
+              <p className='text-xl font-bold text-right'>
+                {selectedMetric === 'revenue' && formatCurrency(analytics.predictions.nextMonthRevenue)}
+                {selectedMetric === 'customers' && Math.round(analytics.activeCustomers.count * 0.1).toLocaleString() + ' عميل'}
+                {selectedMetric === 'fleet' && (analytics.fleetUtilization.rate + 5).toFixed(1) + '%'}
+              </p>
+            </div>
+            <div className='text-right'>
+              <p className='text-sm text-muted-foreground text-right'>مستوى الثقة</p>
+              <div className='flex items-center space-x-2 space-x-reverse'>
+                <Badge variant='outline'>
+                  {analytics.predictions.confidence}%
+                </Badge>
+                <p className='text-xl font-bold text-right'>عالي</p>
               </div>
             </div>
           </div>
-        </Card>
-      </CardContent>
-    </Card>
+        </div>
+      </Card>
+    </div>
   );
 };
