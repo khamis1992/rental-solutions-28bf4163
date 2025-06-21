@@ -1,3 +1,4 @@
+
 import pdfMake from 'pdfmake/build/pdfmake';
 
 interface FontConfig {
@@ -85,30 +86,24 @@ async function loadFontScripts(): Promise<void> {
   });
 }
 
-// Default Arabic fonts configuration with fallbacks
-const getArabicFonts = (): FontDefinition => {
-  // If we have the base64 data, use it
-  if (AmiriRegularBase64 && AmiriBoldBase64) {
-    return {
-      Amiri: {
-        normal: AmiriRegularBase64,
-        bold: AmiriBoldBase64,
-        italics: AmiriRegularBase64,
-        bolditalics: AmiriBoldBase64
-      }
-    };
+// Initialize pdfMake virtual file system with fonts
+function initializePdfMakeVFS(): void {
+  if (!isBrowser) return;
+
+  // Initialize vfs if it doesn't exist
+  if (!(pdfMake as any).vfs) {
+    (pdfMake as any).vfs = {};
   }
 
-  // Fallback to TTF files in public directory
-  return {
-    Amiri: {
-      normal: '/Amiri-Regular.ttf',
-      bold: '/Amiri-Bold.ttf',
-      italics: '/Amiri-Regular.ttf',
-      bolditalics: '/Amiri-Bold.ttf'
-    }
-  };
-};
+  // Add fonts to virtual file system if available
+  if (AmiriRegularBase64 && AmiriBoldBase64) {
+    (pdfMake as any).vfs['Amiri-Regular.ttf'] = AmiriRegularBase64;
+    (pdfMake as any).vfs['Amiri-Bold.ttf'] = AmiriBoldBase64;
+    console.log('Amiri fonts added to pdfMake virtual file system');
+  } else {
+    console.warn('Amiri fonts not available, using Roboto fallback');
+  }
+}
 
 // Configure fonts with pdfMake
 export async function configurePdfMakeFonts(): Promise<void> {
@@ -116,7 +111,7 @@ export async function configurePdfMakeFonts(): Promise<void> {
     if (!isBrowser) {
       // Server-side: just set basic configuration
       pdfMake.fonts = {
-        Amiri: {
+        Roboto: {
           normal: 'Helvetica',
           bold: 'Helvetica-Bold',
           italics: 'Helvetica-Oblique',
@@ -129,31 +124,45 @@ export async function configurePdfMakeFonts(): Promise<void> {
     // Load font data first
     await loadFontData();
 
-    // Get font configuration
-    const fonts = getArabicFonts();
+    // Initialize virtual file system
+    initializePdfMakeVFS();
 
-    // Configure pdfMake fonts
-    if (pdfMake) {
-      pdfMake.fonts = fonts;
-      
-      // Also set on window object if needed
-      if ((window as any).pdfMake) {
-        (window as any).pdfMake.fonts = fonts;
+    // Configure font definitions
+    const fontDefinitions: FontDefinition = {
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
       }
+    };
+
+    // Add Amiri if available in VFS
+    if ((pdfMake as any).vfs && (pdfMake as any).vfs['Amiri-Regular.ttf'] && (pdfMake as any).vfs['Amiri-Bold.ttf']) {
+      fontDefinitions.Amiri = {
+        normal: 'Amiri-Regular.ttf',
+        bold: 'Amiri-Bold.ttf',
+        italics: 'Amiri-Regular.ttf',
+        bolditalics: 'Amiri-Bold.ttf'
+      };
+      console.log('Amiri font configuration added');
     }
 
+    // Set font definitions
+    pdfMake.fonts = fontDefinitions;
+    
     fontsInitialized = true;
-    console.log('Arabic fonts configured successfully');
+    console.log('PDF fonts configured successfully');
   } catch (error) {
     console.warn('Font configuration failed, using fallback:', error);
     
     // Fallback configuration
     pdfMake.fonts = {
-      Amiri: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
       }
     };
     
@@ -177,8 +186,24 @@ export function areFontsReady(): boolean {
   return fontsInitialized;
 }
 
-// Export font configuration
-export const ARABIC_FONTS = getArabicFonts();
+// Get available font name for PDF generation
+export function getAvailableFontName(): string {
+  if ((pdfMake as any).vfs && (pdfMake as any).vfs['Amiri-Regular.ttf'] && (pdfMake as any).vfs['Amiri-Bold.ttf']) {
+    return 'Amiri';
+  }
+  return 'Roboto';
+}
+
+// Initialize fonts with the best available method
+export const initializeFonts = async (): Promise<string> => {
+  try {
+    await configurePdfMakeFonts();
+    return getAvailableFontName();
+  } catch (error) {
+    console.error('Font initialization failed:', error);
+    return 'Roboto';
+  }
+};
 
 // Initialize fonts on module load if in browser
 if (isBrowser) {
@@ -188,238 +213,10 @@ if (isBrowser) {
   }, 100);
 }
 
-// Convert TTF file to base64 for pdfMake virtual file system
-const loadTTFToBase64 = async (url: string): Promise<string> => {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    
-    // Convert to base64
-    let binary = '';
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  } catch (error) {
-    console.error(`Failed to load font from ${url}:`, error);
-    throw error;
-  }
-};
-
-// Load Amiri fonts into pdfMake virtual file system
-export const loadAmiriFonts = async (): Promise<string> => {
-  try {
-    console.log('Loading Amiri fonts...');
-    
-    // تحديد مهلة زمنية للتحميل
-    const loadWithTimeout = (url: string, timeout = 3000) => {
-      return Promise.race([
-        loadTTFToBase64(url),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error(`Timeout loading ${url}`)), timeout)
-        )
-      ]);
-    };
-    
-    // Load both font files with timeout
-    const [regularBase64, boldBase64] = await Promise.all([
-      loadWithTimeout('/Amiri-Regular.ttf').catch(() => {
-        console.warn('Failed to load Amiri-Regular.ttf, creating fallback');
-        return 'fallback-regular';
-      }),
-      loadWithTimeout('/Amiri-Bold.ttf').catch(() => {
-        console.warn('Failed to load Amiri-Bold.ttf, creating fallback');
-        return 'fallback-bold';
-      })
-    ]);
-    
-    // إذا فشل تحميل أي من الملفات، استخدم Roboto
-    if (regularBase64 === 'fallback-regular' || boldBase64 === 'fallback-bold') {
-      console.log('Font files not available, using Roboto');
-      return 'Roboto';
-    }
-    
-    // Update pdfMake virtual file system
-    (pdfMake as any).vfs = {
-      ...(pdfMake as any).vfs,
-      'Amiri-Regular.ttf': regularBase64 as string,
-      'Amiri-Bold.ttf': boldBase64 as string
-    };
-    
-    // Configure font definitions
-    const fontDefinitions: FontDefinition = {
-      Amiri: {
-        normal: 'Amiri-Regular.ttf',
-        bold: 'Amiri-Bold.ttf',
-        italics: 'Amiri-Regular.ttf',
-        bolditalics: 'Amiri-Bold.ttf'
-      },
-      Roboto: {
-        normal: 'Roboto-Regular.ttf',
-        bold: 'Roboto-Medium.ttf',
-        italics: 'Roboto-Italic.ttf',
-        bolditalics: 'Roboto-MediumItalic.ttf'
-      }
-    };
-    
-    (pdfMake as any).fonts = fontDefinitions;
-    
-    console.log('Amiri fonts loaded successfully');
-    return 'Amiri';
-    
-  } catch (error) {
-    console.warn('Failed to load Amiri fonts, using Roboto fallback:', error);
-    return 'Roboto';
-  }
-};
-
-// Alternative method using preloaded fonts (if available from JS files)
-export const loadAmiriFontsFromJS = (): string => {
-  try {
-    if (typeof window !== 'undefined') {
-      // انتظار قصير للتأكد من تحميل الخطوط من ملفات JS
-      setTimeout(() => {
-        const amiriRegular = (window as any).AmiriRegular;
-        const amiriBold = (window as any).AmiriBold;
-        
-        if (amiriRegular && amiriBold && amiriRegular !== null && amiriBold !== null) {
-          console.log('Found Amiri fonts in window object');
-          
-          if (!(pdfMake as any).vfs) {
-            (pdfMake as any).vfs = {};
-          }
-          
-          (pdfMake as any).vfs = {
-            ...(pdfMake as any).vfs,
-            'Amiri-Regular.ttf': amiriRegular,
-            'Amiri-Bold.ttf': amiriBold
-          };
-          
-          (pdfMake as any).fonts = {
-            Amiri: {
-              normal: 'Amiri-Regular.ttf',
-              bold: 'Amiri-Bold.ttf',
-              italics: 'Amiri-Regular.ttf',
-              bolditalics: 'Amiri-Bold.ttf'
-            },
-            Roboto: {
-              normal: 'Roboto-Regular.ttf',
-              bold: 'Roboto-Medium.ttf',
-              italics: 'Roboto-Italic.ttf',
-              bolditalics: 'Roboto-MediumItalic.ttf'
-            }
-          };
-          
-          console.log('Amiri fonts configured successfully from JS files');
-        } else {
-          console.log('Amiri fonts not available in window object, using Roboto');
-        }
-      }, 1000);
-      
-      // فحص فوري للخطوط المحملة مسبقاً
-      const amiriRegular = (window as any).AmiriRegular;
-      const amiriBold = (window as any).AmiriBold;
-      
-      if (amiriRegular && amiriBold && amiriRegular !== null && amiriBold !== null) {
-        if (!(pdfMake as any).vfs) {
-          (pdfMake as any).vfs = {};
-        }
-        
-        (pdfMake as any).vfs = {
-          ...(pdfMake as any).vfs,
-          'Amiri-Regular.ttf': amiriRegular,
-          'Amiri-Bold.ttf': amiriBold
-        };
-        
-        (pdfMake as any).fonts = {
-          Amiri: {
-            normal: 'Amiri-Regular.ttf',
-            bold: 'Amiri-Bold.ttf',
-            italics: 'Amiri-Regular.ttf',
-            bolditalics: 'Amiri-Bold.ttf'
-          },
-          Roboto: {
-            normal: 'Roboto-Regular.ttf',
-            bold: 'Roboto-Medium.ttf',
-            italics: 'Roboto-Italic.ttf',
-            bolditalics: 'Roboto-MediumItalic.ttf'
-          }
-        };
-        
-        console.log('Amiri fonts loaded from JS files (immediate)');
-        return 'Amiri';
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to load Amiri fonts from JS files:', error);
-  }
-  
-  // Fallback to Roboto
-  console.log('Using Roboto font as fallback');
-  return 'Roboto';
-};
-
-// Initialize fonts with the best available method
-export const initializeFonts = async (): Promise<string> => {
-  try {
-    // تجربة تحميل الخطوط من ملفات JS أولاً
-    const jsFont = loadAmiriFontsFromJS();
-    if (jsFont === 'Amiri') {
-      // التحقق من أن الخطوط تم تحميلها فعلاً في vfs
-      if ((pdfMake as any).vfs && (pdfMake as any).vfs['Amiri-Regular.ttf'] && (pdfMake as any).vfs['Amiri-Bold.ttf']) {
-        console.log('Amiri fonts verified in vfs');
-        return 'Amiri';
-      }
-    }
-    
-    // محاولة تحميل من ملفات TTF
-    const ttfFont = await loadAmiriFonts();
-    if (ttfFont === 'Amiri') {
-      // التحقق مرة أخرى من وجود الخطوط في vfs
-      if ((pdfMake as any).vfs && (pdfMake as any).vfs['Amiri-Regular.ttf'] && (pdfMake as any).vfs['Amiri-Bold.ttf']) {
-        console.log('Amiri fonts verified in vfs from TTF');
-        return 'Amiri';
-      }
-    }
-    
-    // إذا فشل كل شيء، استخدم Roboto
-    console.warn('Failed to load Amiri fonts, configuring Roboto');
-    configureRobotoFont();
-    return 'Roboto';
-    
-  } catch (error) {
-    console.error('Font initialization failed:', error);
-    configureRobotoFont();
-    return 'Roboto';
-  }
-};
-
-// دالة لتكوين خط Roboto فقط
-const configureRobotoFont = () => {
-  if (!(pdfMake as any).vfs) {
-    (pdfMake as any).vfs = {};
-  }
-  
-  // تأكد من تكوين Roboto فقط
-  (pdfMake as any).fonts = {
-    Roboto: {
-      normal: 'Roboto-Regular.ttf',
-      bold: 'Roboto-Medium.ttf',
-      italics: 'Roboto-Italic.ttf',
-      bolditalics: 'Roboto-MediumItalic.ttf'
-    }
-  };
-  
-  console.log('Roboto font configured as fallback');
-};
-
 export default {
-  loadAmiriFonts,
-  loadAmiriFontsFromJS,
-  initializeFonts
+  initializeFonts,
+  configurePdfMakeFonts,
+  initializeFontsStatus,
+  areFontsReady,
+  getAvailableFontName
 };

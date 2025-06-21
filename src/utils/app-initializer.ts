@@ -1,3 +1,4 @@
+
 import { setupInvoiceTemplatesTable } from "./setupInvoiceTemplates";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -5,6 +6,7 @@ import { getSystemServicesStatus } from './service-availability';
 import { registerPaymentEventHandlers } from '@/events/payment-handlers';
 import { installmentBackgroundService } from '@/services/InstallmentBackgroundService';
 import { cacheService } from '@/services/CacheService';
+import { configurePdfMakeFonts } from './font-loader';
 
 interface SystemStatus {
   agreementImport?: boolean;
@@ -58,6 +60,16 @@ export const getSystemStatus = () => systemStatus;
 
 export const initializeApp = async () => {
   try {
+    // Initialize PDF fonts first
+    console.log("Initializing PDF fonts...");
+    try {
+      await configurePdfMakeFonts();
+      console.log("PDF fonts initialized successfully");
+    } catch (error) {
+      console.warn("PDF font initialization failed:", error);
+      // Don't fail the entire app initialization for font issues
+    }
+
     // Register event handlers
     registerPaymentEventHandlers();
 
