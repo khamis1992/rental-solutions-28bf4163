@@ -1,3 +1,5 @@
+
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,7 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import { ResponsiveMobileLayout } from "./components/layout/ResponsiveMobileLayout";
-import { useState, useEffect, lazy, Suspense } from "react";
 import { LoadingFallback } from "./components/ui/loading-fallback";
 import { ErrorBoundary } from "./components/ui/error-boundary";
 import { getRetryConfig } from "./lib/api/retry-utils";
