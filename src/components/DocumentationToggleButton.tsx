@@ -4,6 +4,7 @@ import { HelpCircle } from 'lucide-react';
 
 export function DocumentationToggleButton() {
   const { enabled, toggle } = useDocumentationMode();
+  
   return (
     <button
       onClick={toggle}

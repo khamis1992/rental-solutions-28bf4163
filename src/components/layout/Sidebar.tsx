@@ -18,7 +18,8 @@ import {
   Car,
   FileSpreadsheet,
   TrendingUp,
-  Receipt
+  Receipt,
+  Activity
 } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -283,31 +284,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               onClick={handleNavClick}
             />
             <NavLink
-              to="/legal/cases"
-              icon={<AlertTriangle className="h-4 w-4 flex-shrink-0" />}
-              label="القضايا القانونية"
-              isActive={isActive('/legal/cases')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/legal/compliance"
-              icon={<FileText className="h-4 w-4 flex-shrink-0" />}
-              label="الامتثال"
-              isActive={isActive('/legal/compliance')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/legal/calendar"
-              icon={<FileText className="h-4 w-4 flex-shrink-0" />}
-              label="التقويم القانوني"
-              isActive={isActive('/legal/calendar')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/legal/activity"
-              icon={<FileText className="h-4 w-4 flex-shrink-0" />}
+              to="/activity"
+              icon={<Activity className="h-4 w-4 flex-shrink-0" />}
               label="سجل النشاط"
-              isActive={isActive('/legal/activity')}
+              isActive={isActive('/activity')}
               onClick={handleNavClick}
             />
           </NavGroup>

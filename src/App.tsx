@@ -70,10 +70,7 @@ const EditAgreement = lazy(() => import("./pages/EditAgreement"));
 
 // Legal Management
 const Legal = lazy(() => import("./pages/Legal"));
-const NewLegalCasePage = lazy(() => import("./pages/NewLegalCasePage"));
-const LegalCasesPage = lazy(() => import("./pages/LegalCasesPage"));
 const LegalDocumentsPage = lazy(() => import("./pages/LegalDocumentsPage"));
-const LegalCalendarPage = lazy(() => import("./pages/LegalCalendarPage"));
 
 // Other Features
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
@@ -169,10 +166,7 @@ const AppContent = () => {
                 
                 {/* Legal Management */}
                 <Route path="/legal" element={withErrorBoundary(Legal)} />
-                <Route path="/legal/new-case" element={withErrorBoundary(NewLegalCasePage)} />
-                <Route path="/legal/cases" element={withErrorBoundary(LegalCasesPage)} />
                 <Route path="/legal/documents" element={withErrorBoundary(LegalDocumentsPage)} />
-                <Route path="/legal/calendar" element={withErrorBoundary(LegalCalendarPage)} />
                 
                 {/* Other Features */}
                 <Route path="/activity" element={withErrorBoundary(ActivityPage)} />

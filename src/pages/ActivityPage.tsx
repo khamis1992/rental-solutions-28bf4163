@@ -1,286 +1,332 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/ui/PageHeader';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Activity, 
-  Search, 
-  Filter, 
-  Calendar as CalendarIcon,
   Car, 
   CreditCard, 
   Wrench, 
   Gavel, 
   User, 
-  FileText,
   Clock,
-  AlertTriangle
+  CheckCircle,
+  XCircle,
+  Info,
+  AlertTriangle,
+  FileText,
+  Settings,
+  UserCheck
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import { ActivityService, SystemActivity } from '@/services/activity-service';
 
 const ActivityPage = () => {
-  const { language } = useLanguage();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const { toast } = useToast();
+  const [activities, setActivities] = useState<SystemActivity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalToday: 0,
+    errorsAndWarnings: 0,
+    activeUsers: 0
+  });
 
-  // Mock data - في التطبيق الحقيقي، ستأتي هذه البيانات من API
-  const activities = [
-    {
-      id: '1',
-      type: 'rental',
-      title: 'تأجير جديد',
-      description: 'أحمد محمد استأجر تويوتا كامري (أ ب ج 123)',
-      time: 'منذ ساعتين',
-      user: 'أحمد محمد',
-      metadata: { vehicleId: 'أ ب ج 123', amount: '2000 ر.ق' }
-    },
-    {
-      id: '2',
-      type: 'payment',
-      title: 'دفعة مستلمة',
-      description: '1500.00 ر.ق تم استلامها للعقد #LE-001',
-      time: 'منذ 3 ساعات',
-      user: 'فاطمة علي',
-      metadata: { amount: '1500 ر.ق', agreementId: 'LE-001' }
-    },
-    {
-      id: '3',
-      type: 'maintenance',
-      title: 'صيانة مجدولة',
-      description: 'هوندا أكورد (س ي ن 456) مجدولة لصيانة دورية',
-      time: 'منذ 5 ساعات',
-      user: 'محمد السيد',
-      metadata: { vehicleId: 'س ي ن 456', maintenanceType: 'صيانة دورية' }
-    },
-    {
-      id: '4',
-      type: 'legal',
-      title: 'قضية قانونية جديدة',
-      description: 'تم إنشاء قضية قانونية جديدة #LC-045',
-      time: 'منذ يوم واحد',
-      user: 'سارة أحمد',
-      metadata: { caseId: 'LC-045' }
-    },
-    {
-      id: '5',
-      type: 'vehicle',
-      title: 'مركبة جديدة',
-      description: 'تم إضافة مركبة جديدة نيسان التيما (ق و ر 789)',
-      time: 'منذ يومين',
-      user: 'خالد محمود',
-      metadata: { vehicleId: 'ق و ر 789' }
-    },
-    {
-      id: '6',
-      type: 'customer',
-      title: 'عميل جديد',
-      description: 'تم تسجيل عميل جديد علي حسن',
-      time: 'منذ 3 أيام',
-      user: 'منى صالح',
-      metadata: { customerName: 'علي حسن' }
+  useEffect(() => {
+    loadSystemActivities();
+    loadActivityStats();
+  }, []);
+
+  const loadSystemActivities = async () => {
+    setIsLoading(true);
+    try {
+      const realActivities = await ActivityService.getSystemActivities(50);
+      setActivities(realActivities);
+    } catch (error) {
+      console.error('Error loading system activities:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في تحميل سجل النشاط",
+        variant: "destructive",
+      });
+      // Fallback to empty array
+      setActivities([]);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  const loadActivityStats = async () => {
+    try {
+      const activityStats = await ActivityService.getActivityStats();
+      setStats(activityStats);
+    } catch (error) {
+      console.error('Error loading activity stats:', error);
+    }
+  };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'rental':
+      case 'customer':
+        return <User className="h-5 w-5" />;
+      case 'vehicle':
         return <Car className="h-5 w-5" />;
       case 'payment':
+      case 'financial':
         return <CreditCard className="h-5 w-5" />;
       case 'maintenance':
         return <Wrench className="h-5 w-5" />;
       case 'legal':
         return <Gavel className="h-5 w-5" />;
-      case 'vehicle':
-        return <Car className="h-5 w-5" />;
-      case 'customer':
-        return <User className="h-5 w-5" />;
-      default:
+      case 'agreement':
+        return <FileText className="h-5 w-5" />;
+      case 'admin':
+        return <Settings className="h-5 w-5" />;
+      case 'system':
         return <Activity className="h-5 w-5" />;
+      default:
+        return <Info className="h-5 w-5" />;
     }
   };
 
   const getActivityColor = (type: string) => {
     switch (type) {
-      case 'rental':
-        return 'bg-blue-100 text-blue-700';
-      case 'payment':
-        return 'bg-green-100 text-green-700';
-      case 'maintenance':
-        return 'bg-orange-100 text-orange-700';
-      case 'legal':
-        return 'bg-purple-100 text-purple-700';
-      case 'vehicle':
-        return 'bg-gray-100 text-gray-700';
       case 'customer':
-        return 'bg-cyan-100 text-cyan-700';
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'vehicle':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'payment':
+      case 'financial':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'maintenance':
+        return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'legal':
+        return 'bg-red-100 text-red-700 border-red-200';
+      case 'agreement':
+        return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      case 'admin':
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'system':
+        return 'bg-cyan-100 text-cyan-700 border-cyan-200';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <Info className="h-4 w-4 text-blue-600" />;
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'success':
+        return 'bg-green-50 border-green-200';
+      case 'warning':
+        return 'bg-yellow-50 border-yellow-200';
+      case 'error':
+        return 'bg-red-50 border-red-200';
+      default:
+        return 'bg-blue-50 border-blue-200';
     }
   };
 
   const getTypeLabel = (type: string) => {
     const labels: { [key: string]: string } = {
-      rental: 'التأجير',
+      customer: 'العملاء',
+      vehicle: 'المركبات',
       payment: 'المدفوعات',
+      financial: 'المالية',
       maintenance: 'الصيانة',
       legal: 'القانونية',
-      vehicle: 'المركبات',
-      customer: 'العملاء'
+      agreement: 'العقود',
+      admin: 'الإدارة',
+      system: 'النظام'
     };
     return labels[type] || type;
   };
 
-  const filteredActivities = activities.filter(activity => {
-    const matchesSearch = activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         activity.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || activity.type === filterType;
-    return matchesSearch && matchesType;
-  });
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const activityTime = new Date(timestamp);
+    const diffInMs = now.getTime() - activityTime.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInMinutes < 1) return 'الآن';
+    if (diffInMinutes < 60) return `منذ ${diffInMinutes} دقيقة`;
+    if (diffInHours < 24) return `منذ ${diffInHours} ساعة`;
+    return `منذ ${diffInDays} يوم`;
+  };
 
   return (
     <PageContainer
-      title="سجل النشاط"
-      description="عرض جميع أنشطة النظام والأحداث"
-
+      title="سجل النشاط الشامل"
+      description="مراقبة وتتبع جميع أنشطة النظام والمستخدمين"
     >
-      <div dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div dir="rtl">
         <PageHeader
-          title="سجل النشاط"
-          subtitle="تتبع جميع الأنشطة والأحداث في النظام"
+          title="سجل النشاط الشامل للنظام"
+          subtitle="مراقبة وتتبع جميع العمليات والتغييرات في النظام مع تفاصيل المستخدمين"
           icon={<Activity className="w-6 h-6 text-blue-500" />}
-          align={language === 'ar' ? 'right' : 'left'}
-          dir={language === 'ar' ? 'rtl' : 'ltr'}
+          align="right"
+          dir="rtl"
         />
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-right flex items-center gap-2 flex-row-reverse">
-              <Filter className="h-5 w-5" />
-              التصفية والبحث
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="البحث في الأنشطة..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10 text-right"
-                />
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">إجمالي الأنشطة</p>
+                  <p className="text-2xl font-bold">{activities.length}</p>
+                </div>
+                <Activity className="h-8 w-8 text-blue-500" />
               </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">أنشطة اليوم</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {stats.totalToday}
+                  </p>
+                </div>
+                <Clock className="h-8 w-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* Type Filter */}
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="text-right">
-                  <SelectValue placeholder="تصفية حسب النوع" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع الأنشطة</SelectItem>
-                  <SelectItem value="rental">التأجير</SelectItem>
-                  <SelectItem value="payment">المدفوعات</SelectItem>
-                  <SelectItem value="maintenance">الصيانة</SelectItem>
-                  <SelectItem value="legal">القانونية</SelectItem>
-                  <SelectItem value="vehicle">المركبات</SelectItem>
-                  <SelectItem value="customer">العملاء</SelectItem>
-                </SelectContent>
-              </Select>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">تحذيرات وأخطاء</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {stats.errorsAndWarnings}
+                  </p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-red-500" />
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* Date Range */}
-              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="text-right justify-start">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, 'LLL dd, y', { locale: ar })} -{' '}
-                          {format(dateRange.to, 'LLL dd, y', { locale: ar })}
-                        </>
-                      ) : (
-                        format(dateRange.from, 'LLL dd, y', { locale: ar })
-                      )
-                    ) : (
-                      'اختر التاريخ'
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange.from}
-                    selected={dateRange}
-                    onSelect={setDateRange}
-                    numberOfMonths={2}
-                    locale={ar}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">المستخدمين النشطين</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {stats.activeUsers}
+                  </p>
+                </div>
+                <UserCheck className="h-8 w-8 text-purple-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Activity List */}
         <Card>
           <CardHeader>
             <CardTitle className="text-right flex items-center justify-between flex-row-reverse">
-              <Badge variant="secondary" className="text-right">
-                {filteredActivities.length} نشاط
-              </Badge>
-              <span>الأنشطة الأخيرة</span>
+              <div className="flex items-center gap-2 flex-row-reverse">
+                <Badge variant="secondary" className="text-right">
+                  {activities.length} نشاط
+                </Badge>
+                <button
+                  onClick={() => {
+                    loadSystemActivities();
+                    loadActivityStats();
+                  }}
+                  disabled={isLoading}
+                  className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {isLoading ? "جاري التحديث..." : "تحديث"}
+                </button>
+              </div>
+              <span>سجل الأنشطة المفصل</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {filteredActivities.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  لا توجد أنشطة تطابق معايير البحث
-                </div>
-              ) : (
-                filteredActivities.map((activity) => (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <Activity className="h-8 w-8 animate-pulse mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">جاري تحميل سجل النشاط...</p>
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p>لا توجد أنشطة في النظام</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-start gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-row-reverse"
+                    className={`p-4 rounded-lg border transition-all hover:shadow-md ${getSeverityColor(activity.severity)}`}
                   >
-                    <div className="flex-1 text-right">
-                      <div className="flex items-center justify-between flex-row-reverse mb-2">
-                        <span className="text-sm text-muted-foreground">{activity.time}</span>
-                        <div className="flex items-center gap-2 flex-row-reverse">
-                          <h3 className="font-semibold text-right">{activity.title}</h3>
-                          <Badge variant="outline" className="text-xs">
-                            {getTypeLabel(activity.type)}
-                          </Badge>
+                    <div className="flex items-start gap-4 flex-row-reverse">
+                      {/* Main Content */}
+                      <div className="flex-1 text-right">
+                        {/* Header */}
+                        <div className="flex items-center justify-between flex-row-reverse mb-2">
+                          <span className="text-sm text-muted-foreground">
+                            {formatTimeAgo(activity.timestamp)} • {format(new Date(activity.timestamp), 'PPP p', { locale: ar })}
+                          </span>
+                          <div className="flex items-center gap-2 flex-row-reverse">
+                            {getSeverityIcon(activity.severity)}
+                            <Badge variant="outline" className={`text-xs ${getActivityColor(activity.type)}`}>
+                              {getTypeLabel(activity.type)}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <h3 className="font-semibold text-right mb-2">{activity.description}</h3>
+
+                        {/* Metadata */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          {/* User Info */}
+                          <div className="text-right">
+                            <span className="text-muted-foreground">المستخدم: </span>
+                            <span className="font-medium">{activity.user_name} ({activity.user_role})</span>
+                          </div>
+
+                          {/* Entity Info */}
+                          {activity.entity_id && (
+                            <div className="text-right">
+                              <span className="text-muted-foreground">المعرف: </span>
+                              <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{activity.entity_id}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <p className="text-muted-foreground mb-2 text-right">{activity.description}</p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-row-reverse">
-                        <span>{activity.user}</span>
-                        <span>•</span>
-                        <User className="h-3 w-3" />
+
+                      {/* Icon */}
+                      <div className={`p-3 rounded-full ${getActivityColor(activity.type)} flex-shrink-0`}>
+                        {getActivityIcon(activity.type)}
                       </div>
                     </div>
-                    <div className={`p-3 rounded-full flex-shrink-0 ${getActivityColor(activity.type)}`}>
-                      {getActivityIcon(activity.type)}
-                    </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

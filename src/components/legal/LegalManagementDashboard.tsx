@@ -42,6 +42,7 @@ import {
   UnpaidTrafficFine
 } from '@/services/LegalManagementService';
 import AILegalLetterGenerator from './AILegalLetterGenerator';
+import LegalCaseManagement from './LegalCaseManagement';
 import '@/styles/legal-rtl.css';
 import '@/styles/legal-rtl.css';
 import { supabase } from '@/lib/supabase';
@@ -787,18 +788,7 @@ const LegalManagementDashboard = () => {
 
         {/* Legal Cases Tab */}
         <TabsContent value="cases" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>القضايا القانونية النشطة</CardTitle>
-              <CardDescription>إدارة ومتابعة القضايا القانونية المفتوحة</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Gavel className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">ستتم إضافة إدارة القضايا في المرحلة التالية</p>
-              </div>
-            </CardContent>
-          </Card>
+          <LegalCaseManagement />
         </TabsContent>
 
         {/* Templates Tab */}
