@@ -104,41 +104,6 @@ import initializeApp from "./utils/app-initializer";
 import { DocumentationModeProvider } from '@/context/DocumentationModeContext';
 import { DocumentationToggleButton } from '@/components/DocumentationToggleButton';
 
-// Error Logger Component
-const ErrorLogger = () => {
-  useEffect(() => {
-    const originalError = console.error;
-    const originalWarn = console.warn;
-    
-    console.error = (...args) => {
-      const message = args.join(' ');
-      // تصفية التحذيرات المعروفة وغير المهمة
-      if (!message.includes('deprecated') && 
-          !message.includes('ViteJS') && 
-          !message.includes('next-themes') &&
-          !message.includes('annotation')) {
-        console.log('🔍 Console Error:', message);
-      }
-      originalError(...args);
-    };
-
-    console.warn = (...args) => {
-      const message = args.join(' ');
-      if (!message.includes('deprecated') && !message.includes('ViteJS')) {
-        console.log('⚠️ Console Warning:', message);
-      }
-      originalWarn(...args);
-    };
-
-    return () => {
-      console.error = originalError;
-      console.warn = originalWarn;
-    };
-  }, []);
-  
-  return null;
-};
-
 // Main App Content Component
 const AppContent = () => {
   const isMobile = useIsMobile();

@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,37 @@ const fetchRealTimeStats = async (): Promise<RealTimeStats> => {
   };
 };
 
+// Single metric card component matching Quick Actions design
+const MetricCard: React.FC<{
+  title: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  iconColor: string;
+  bgColor?: string;
+  isAlert?: boolean;
+}> = ({ title, value, icon: Icon, iconColor, bgColor = "bg-gray-100", isAlert = false }) => {
+  return (
+    <Card className={cn(
+      "p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+      isAlert && "border-red-200 bg-red-50"
+    )}>
+      <div className="flex items-center justify-between" dir="rtl">
+        <div className="text-right flex-1">
+          <p className="text-sm text-muted-foreground text-right mb-1">{title}</p>
+          <p className="text-2xl font-bold text-right">{value}</p>
+        </div>
+        <div className={cn(
+          "p-3 rounded-full shrink-0 mr-4",
+          bgColor,
+          iconColor
+        )}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+    </Card>
+  );
+};
+
 export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ className }) => {
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
 
@@ -83,76 +115,105 @@ export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ classNam
   });
 
   if (isLoading && !stats) {
-    return <div className="animate-pulse bg-gray-200 h-48 rounded"></div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between" dir="rtl">
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, index) => (
+            <div key={index} className="h-32 bg-gray-200 rounded animate-pulse"></div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <Card className={cn("border-0 shadow-md", className)}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between" dir="rtl">
-          <div className="flex items-center space-x-2 space-x-reverse">
-            <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isRefetching} className="h-8 w-8 p-0">
-              <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
-            </Button>
-            <Badge variant={isAutoRefresh ? "default" : "secondary"} className="cursor-pointer" onClick={() => setIsAutoRefresh(!isAutoRefresh)}>
-              <Activity className="h-3 w-3 ml-1" />
-              {isAutoRefresh ? 'مباشر' : 'متوقف'}
-            </Badge>
-          </div>
-          <div className="text-right">
-            <CardTitle className="text-lg font-medium text-right">الإحصائيات المباشرة</CardTitle>
-            {stats && <p className="text-sm text-muted-foreground text-right mt-1">آخر تحديث: {stats.lastUpdated.toLocaleTimeString('ar-QA')}</p>}
-          </div>
+    <div className={cn('space-y-6', className)}>
+      {/* Header matching Quick Actions style */}
+      <div className="flex items-center justify-between" dir="rtl">
+        <div className="flex items-center space-x-2 space-x-reverse">
+          <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isRefetching} className="h-8 w-8 p-0">
+            <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
+          </Button>
+          <Badge variant={isAutoRefresh ? "default" : "secondary"} className="cursor-pointer" onClick={() => setIsAutoRefresh(!isAutoRefresh)}>
+            <Activity className="h-3 w-3 ml-1" />
+            {isAutoRefresh ? 'مباشر' : 'متوقف'}
+          </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="pt-2">
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4" dir="rtl">
-            <Card className="p-4">
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">إيرادات اليوم</p>
-                <p className="text-2xl font-bold">{stats.todayRevenue.toLocaleString()} ر.ق</p>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">العقود النشطة</p>
-                <p className="text-2xl font-bold">{stats.activeContracts}</p>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">المركبات المتاحة</p>
-                <p className="text-2xl font-bold">{stats.availableVehicles}</p>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">دفعات اليوم</p>
-                <p className="text-2xl font-bold">{stats.todayPayments}</p>
-              </div>
-            </Card>
-            <Card className={cn("p-4", stats.pendingMaintenance > 5 && "border-red-200 bg-red-50")}>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">صيانة معلقة</p>
-                <p className="text-2xl font-bold">{stats.pendingMaintenance}</p>
-              </div>
-            </Card>
-            <Card className={cn("p-4", stats.overduePayments > 0 && "border-red-200 bg-red-50")}>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">دفعات متأخرة</p>
-                <p className="text-2xl font-bold">{stats.overduePayments}</p>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">عملاء جدد اليوم</p>
-                <p className="text-2xl font-bold">{stats.newCustomersToday}</p>
-              </div>
-            </Card>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <div className="text-right">
+          <h3 className="text-lg font-semibold text-right">الإحصائيات</h3>
+          {stats && <p className="text-sm text-muted-foreground text-right mt-1">آخر تحديث: {stats.lastUpdated.toLocaleTimeString('ar-QA')}</p>}
+        </div>
+      </div>
+
+      {/* Statistics cards matching Quick Actions design */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" dir="rtl">
+          <MetricCard
+            title="إيرادات اليوم"
+            value={`${stats.todayRevenue.toLocaleString()} ر.ق`}
+            icon={DollarSign}
+            iconColor="text-green-500"
+            bgColor="bg-green-100"
+          />
+          
+          <MetricCard
+            title="العقود النشطة"
+            value={stats.activeContracts.toString()}
+            icon={Activity}
+            iconColor="text-blue-500"
+            bgColor="bg-blue-100"
+          />
+          
+          <MetricCard
+            title="المركبات المتاحة"
+            value={stats.availableVehicles.toString()}
+            icon={Car}
+            iconColor="text-purple-500"
+            bgColor="bg-purple-100"
+          />
+          
+          <MetricCard
+            title="دفعات اليوم"
+            value={stats.todayPayments.toString()}
+            icon={DollarSign}
+            iconColor="text-orange-500"
+            bgColor="bg-orange-100"
+          />
+          
+          <MetricCard
+            title="صيانة معلقة"
+            value={stats.pendingMaintenance.toString()}
+            icon={AlertTriangle}
+            iconColor="text-yellow-500"
+            bgColor="bg-yellow-100"
+            isAlert={stats.pendingMaintenance > 5}
+          />
+          
+          <MetricCard
+            title="دفعات متأخرة"
+            value={stats.overduePayments.toString()}
+            icon={AlertTriangle}
+            iconColor="text-red-500"
+            bgColor="bg-red-100"
+            isAlert={stats.overduePayments > 0}
+          />
+          
+          <MetricCard
+            title="عملاء جدد اليوم"
+            value={stats.newCustomersToday.toString()}
+            icon={Users}
+            iconColor="text-indigo-500"
+            bgColor="bg-indigo-100"
+          />
+        </div>
+      )}
+    </div>
   );
 };
