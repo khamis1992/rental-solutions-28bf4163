@@ -1,171 +1,177 @@
 
-import React from 'react';
-import { format } from 'date-fns';
-import '@/styles/legal-rtl.css';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Agreement } from '@/types/agreement';
-import { User, Car, DollarSign, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { CalendarDays, DollarSign, User, Car } from 'lucide-react';
 
 interface AgreementOverviewCardProps {
-  agreement: Agreement;
+  agreement: any;
   duration: number;
   rentAmount: number | null;
   contractAmount: number | null;
 }
 
-// Helper function to format currency without unnecessary decimals
-const formatCurrency = (amount: number | null): string => {
-  if (!amount) return 'N/A';
-  const formatted = amount % 1 === 0 ? amount.toString() : amount.toFixed(2);
-  return `QAR ${formatted}`;
-};
-
 export function AgreementOverviewCard({ 
   agreement, 
   duration,
   rentAmount,
-  contractAmount
+  contractAmount 
 }: AgreementOverviewCardProps) {
+  const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+  const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+
   return (
-    <div className="space-y-6 legal-rtl" dir="rtl">
-      {/* Key Information Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Customer Info */}
+    <div className="space-y-6" dir="rtl">
+      {/* Header Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-row-reverse">
+            <div className="text-right">
+              <CardTitle className="text-xl font-bold">نظرة عامة على العقد</CardTitle>
+              <CardDescription className="text-right mt-1">
+                معلومات العقد الأساسية والتفاصيل المالية
+              </CardDescription>
+            </div>
+            <div className="flex gap-2 flex-row-reverse">
+              <Badge variant="outline" className="px-3 py-1">
+                {agreement.agreement_number || 'بدون رقم'}
+              </Badge>
+              <Badge 
+                variant={agreement.status === 'active' ? 'default' : 'secondary'}
+                className="px-3 py-1"
+              >
+                {agreement.status === 'active' ? 'نشط' : agreement.status}
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Main Information Grid */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Rental Period Card */}
         <Card>
-          <CardContent className="p-4 text-right">
-            <div className="flex items-center space-x-reverse space-x-3">
-              <div className="flex-1 text-right">
-                <p className="text-sm text-muted-foreground text-right">العميل</p>
-                <p className="font-semibold truncate text-right">
-                  {agreement.customers?.full_name || 'عميل غير معروف'}
-                </p>
-              </div>
-              <div className="bg-blue-500/10 rounded-full p-2">
-                <User className="h-5 w-5 text-blue-500" />
-              </div>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+              <CalendarDays className="h-5 w-5" />
+              فترة الإيجار
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">تاريخ البداية</p>
+              <p className="font-medium">{format(startDate, "dd/MM/yyyy")}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">تاريخ النهاية</p>
+              <p className="font-medium">{format(endDate, "dd/MM/yyyy")}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">المدة</p>
+              <p className="font-medium">
+                {duration} {duration === 1 ? 'شهر' : 'شهر'}
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Vehicle Info */}
+        {/* Financial Details Card */}
         <Card>
-          <CardContent className="p-4 text-right">
-            <div className="flex items-center space-x-reverse space-x-3">
-              <div className="flex-1 text-right">
-                <p className="text-sm text-muted-foreground text-right">المركبة</p>
-                <p className="font-semibold truncate text-right">
-                  {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'مركبة غير معروفة'}
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+              <DollarSign className="h-5 w-5" />
+              التفاصيل المالية
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">الإيجار الشهري</p>
+              <p className="font-medium text-lg">
+                {rentAmount ? `${rentAmount.toLocaleString()} ر.ق` : 'غير محدد'}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">إجمالي قيمة العقد</p>
+              <p className="font-medium text-lg">
+                {contractAmount ? `${contractAmount.toLocaleString()} ر.ق` : 'غير محدد'}
+              </p>
+            </div>
+            {agreement.deposit_amount && (
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">مبلغ التأمين</p>
+                <p className="font-medium">
+                  {agreement.deposit_amount.toLocaleString()} ر.ق
                 </p>
               </div>
-              <div className="bg-green-500/10 rounded-full p-2">
-                <Car className="h-5 w-5 text-green-500" />
-              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Customer Information Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+              <User className="h-5 w-5" />
+              معلومات العميل
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">الاسم</p>
+              <p className="font-medium">{agreement.customers?.full_name || 'غير متوفر'}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">البريد الإلكتروني</p>
+              <p className="font-medium">{agreement.customers?.email || 'غير متوفر'}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">رقم الهاتف</p>
+              <p className="font-medium">{agreement.customers?.phone_number || 'غير متوفر'}</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Duration */}
+        {/* Vehicle Information Card */}
         <Card>
-          <CardContent className="p-4 text-right">
-            <div className="flex items-center space-x-reverse space-x-3">
-              <div className="flex-1 text-right">
-                <p className="text-sm text-muted-foreground text-right">المدة</p>
-                <p className="font-semibold text-right">
-                  {duration} {duration === 1 ? 'شهر' : 'أشهر'}
-                </p>
-              </div>
-              <div className="bg-purple-500/10 rounded-full p-2">
-                <Clock className="h-5 w-5 text-purple-500" />
-              </div>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+              <Car className="h-5 w-5" />
+              معلومات المركبة
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">المركبة</p>
+              <p className="font-medium">
+                {agreement.vehicles ? 
+                  `${agreement.vehicles.year || ''} ${agreement.vehicles.make || ''} ${agreement.vehicles.model || ''}`.trim() || 'غير محدد'
+                  : 'لا توجد مركبة مخصصة'
+                }
+              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Monthly Amount */}
-        <Card>
-          <CardContent className="p-4 text-right">
-            <div className="flex items-center space-x-reverse space-x-3">
-              <div className="flex-1 text-right">
-                <p className="text-sm text-muted-foreground text-right">الإيجار الشهري</p>
-                <p className="font-semibold text-right">
-                  {rentAmount?.toLocaleString() || 0} ر.ق
-                </p>
-              </div>
-              <div className="bg-amber-500/10 rounded-full p-2">
-                <DollarSign className="h-5 w-5 text-amber-500" />
-              </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">رقم اللوحة</p>
+              <p className="font-medium">{agreement.vehicles?.license_plate || 'غير متوفر'}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">اللون</p>
+              <p className="font-medium">{agreement.vehicles?.color || 'غير متوفر'}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Combined Customer & Vehicle Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-right" dir="rtl">
-            <span>تفاصيل العميل والمركبة</span>
-            <User className="h-5 w-5" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-right" dir="rtl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Customer Information Section */}
-            <div className="space-y-4 text-right">
-              <h3 className="font-semibold text-lg flex items-center gap-2 text-right justify-end">
-                <span>معلومات العميل</span>
-                <User className="h-5 w-5 text-blue-500" />
-              </h3>
-              <div className="space-y-3">
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground text-right">الاسم الكامل</p>
-                  <p className="font-medium text-right">{agreement.customers?.full_name || 'غير متوفر'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground text-right">رقم الهوية</p>
-                  <p className="font-medium text-right">{agreement.customers?.driver_license || 'غير متوفر'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground text-right">رقم الهاتف</p>
-                  <p className="font-medium text-right">{agreement.customers?.phone_number || 'غير متوفر'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground text-right">العنوان</p>
-                  <p className="font-medium text-right">{agreement.customers?.address || 'غير متوفر'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Vehicle Information Section */}
-            <div className="space-y-4 text-right">
-              <h3 className="font-semibold text-lg flex items-center gap-2 text-right justify-end">
-                <span>معلومات المركبة</span>
-                <Car className="h-5 w-5 text-green-500" />
-              </h3>
-              <div className="space-y-3">
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground text-right">الماركة والموديل</p>
-                  <p className="font-medium text-right">
-                    {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'غير متوفر'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground text-right">رقم اللوحة</p>
-                  <p className="font-medium text-right">{agreement.vehicles?.license_plate || 'غير متوفر'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground text-right">سنة الصنع</p>
-                  <p className="font-medium text-right">{agreement.vehicles?.year || 'غير متوفر'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground text-right">اللون</p>
-                  <p className="font-medium text-right">{agreement.vehicles?.color || 'غير متوفر'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Additional Details Card */}
+      {agreement.notes && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-right">ملاحظات إضافية</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-right whitespace-pre-wrap">{agreement.notes}</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

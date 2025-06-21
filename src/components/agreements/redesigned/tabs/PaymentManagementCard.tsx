@@ -1,23 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import '@/styles/legal-rtl.css';
-import { Agreement } from '@/types/agreement';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { PaymentHistory } from '../../PaymentHistory';
+import { CreditCard, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { PaymentEntryDialog } from '../../PaymentEntryDialog';
 import { Payment } from '@/types/payment.types';
-import { PaymentHistorySection } from '@/components/payments/redesigned/PaymentHistorySection';
-import { PaymentAnalytics } from '@/components/payments/analytics/PaymentAnalytics';
-import { agreementPaymentService } from '@/services/AgreementPaymentService';
-import { toast } from 'sonner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 
 interface PaymentManagementCardProps {
-  agreement: Agreement;
+  agreement: any;
   payments: Payment[];
   isLoading: boolean;
   rentAmount: number | null;
   contractAmount: number | null;
   paymentMetrics: any;
-  onPaymentDeleted: (paymentId: string) => Promise<void>;
+  onPaymentDeleted: (paymentId: string) => void;
   onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
   onRecordPayment: (payment: Partial<Payment>) => Promise<void>;
   fetchPayments: () => void;
@@ -37,179 +34,127 @@ export function PaymentManagementCard({
   fetchPayments,
   getDateString
 }: PaymentManagementCardProps) {
-  const [isAutoCreating, setIsAutoCreating] = useState(false);
-  const [autoCreationStatus, setAutoCreationStatus] = useState<{
-    attempted: boolean;
-    success?: boolean;
-    message?: string;
-  }>({ attempted: false });
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
-  // Check if agreement has existing payments
-  const hasExistingPayments = payments && payments.length > 0;
-
-  // Automatic payment schedule creation
-  useEffect(() => {
-    const createPaymentScheduleAutomatically = async () => {
-      // Only attempt once per component mount
-      if (autoCreationStatus.attempted || isLoading || !agreement?.id) {
-        return;
-      }
-
-      // Mark as attempted to prevent multiple calls
-      setAutoCreationStatus({ attempted: true });
-
-      console.log('🔄 Checking payments and attempting automatic creation for agreement:', agreement.id);
-      setIsAutoCreating(true);
-
-      try {
-        // Check directly from database to ensure we have the latest data
-        const { data: existingPayments, error: paymentsError } = await supabase
-          .from('unified_payments')
-          .select('id')
-          .eq('lease_id', agreement.id)
-          .limit(1);
-
-        if (paymentsError) {
-          console.error('❌ Error checking existing payments:', paymentsError);
-          setAutoCreationStatus({
-            attempted: true,
-            success: false,
-            message: `خطأ في التحقق من المدفوعات: ${paymentsError.message}`
-          });
-          return;
-        }
-
-        const hasPayments = existingPayments && existingPayments.length > 0;
-        console.log(`📊 Found ${existingPayments?.length || 0} existing payments for agreement ${agreement.id}`);
-
-        if (hasPayments) {
-          console.log('ℹ️ Payments already exist, skipping automatic creation');
-          setAutoCreationStatus({
-            attempted: true,
-            success: true,
-            message: 'جدولة المدفوعات موجودة بالفعل'
-          });
-          return;
-        }
-
-        // No payments found, create them automatically
-        console.log('🚀 No payments found, creating payment schedule automatically...');
-        const result = await agreementPaymentService.createPaymentScheduleByAgreementId(agreement.id);
-
-        if (result.success && result.scheduleCount > 0) {
-          console.log('✅ Automatic payment schedule created successfully');
-          
-          setAutoCreationStatus({
-            attempted: true,
-            success: true,
-            message: `تم إنشاء ${result.scheduleCount} جدولة دفعات و ${result.paymentCount} دفعة تلقائياً`
-          });
-
-          // Show success notification
-          toast.success('تم إنشاء جدولة المدفوعات تلقائياً', {
-            description: `تم إنشاء ${result.scheduleCount} جدولة و ${result.paymentCount} دفعة`
-          });
-
-          // Refresh payments data
-          setTimeout(() => {
-            fetchPayments();
-          }, 1000);
-
-        } else if (result.success && result.scheduleCount === 0) {
-          console.log('ℹ️ Payment schedule creation returned 0 items');
-          setAutoCreationStatus({
-            attempted: true,
-            success: true,
-            message: 'لم يتم إنشاء مدفوعات - قد تكون موجودة بالفعل'
-          });
-        } else {
-          console.warn('⚠️ Failed to create payment schedule automatically:', result.error);
-          setAutoCreationStatus({
-            attempted: true,
-            success: false,
-            message: result.error || 'فشل في إنشاء جدولة المدفوعات تلقائياً'
-          });
-        }
-      } catch (error) {
-        console.error('❌ Error in automatic payment schedule creation:', error);
-        const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
-        
-        setAutoCreationStatus({
-          attempted: true,
-          success: false,
-          message: errorMessage
-        });
-
-        // Show error notification only for serious errors
-        toast.error('خطأ في إنشاء جدولة المدفوعات', {
-          description: errorMessage
-        });
-      } finally {
-        setIsAutoCreating(false);
-      }
+  const handleRecordNewPayment = async (amount: number, date: Date, notes: string, method: string, reference: string) => {
+    const payment: Partial<Payment> = {
+      amount,
+      payment_date: date.toISOString(),
+      description: notes,
+      payment_method: method,
+      reference_number: reference,
+      lease_id: agreement.id,
+      status: 'paid'
     };
-
-    // Run automatic creation after a small delay to ensure component is fully mounted
-    const timeoutId = setTimeout(createPaymentScheduleAutomatically, 500);
-    return () => clearTimeout(timeoutId);
-  }, [agreement?.id, isLoading, fetchPayments, autoCreationStatus.attempted]);
+    await onRecordPayment(payment);
+    setShowPaymentDialog(false);
+    return true;
+  };
 
   return (
-    <div className="space-y-6 legal-rtl" dir="rtl">
-      {/* Automatic Creation Status */}
-      {isAutoCreating && (
-        <Alert>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <AlertDescription className="text-right">
-            جاري إنشاء جدولة المدفوعات تلقائياً...
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Auto-creation result notification */}
-      {autoCreationStatus.attempted && !isAutoCreating && autoCreationStatus.message && (
-        <Alert variant={autoCreationStatus.success ? "default" : "destructive"}>
-          {autoCreationStatus.success ? (
-            <CheckCircle className="h-4 w-4" />
-          ) : (
-            <AlertTriangle className="h-4 w-4" />
-          )}
-          <AlertDescription className="text-right">
-            <div className="space-y-1">
-              <div className="font-medium">
-                {autoCreationStatus.success ? 'تم إنشاء جدولة المدفوعات' : 'تنبيه'}
-              </div>
-              <div className="text-sm">{autoCreationStatus.message}</div>
+    <div className="space-y-6" dir="rtl">
+      {/* Header Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-row-reverse">
+            <div className="text-right">
+              <CardTitle className="flex items-center gap-2 flex-row-reverse">
+                <CreditCard className="h-5 w-5" />
+                إدارة المدفوعات
+              </CardTitle>
+              <CardDescription className="text-right mt-1">
+                تتبع وإدارة جميع المدفوعات المتعلقة بهذا العقد
+              </CardDescription>
             </div>
-          </AlertDescription>
-        </Alert>
+            <Button 
+              onClick={() => setShowPaymentDialog(true)}
+              className="flex items-center gap-2 flex-row-reverse"
+            >
+              <Plus className="h-4 w-4" />
+              تسجيل دفعة
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Payment Summary Cards */}
+      {paymentMetrics && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">إجمالي المدفوع</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {paymentMetrics.totalPaid?.toLocaleString() || 0} ر.ق
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">المبلغ المتبقي</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {paymentMetrics.remainingAmount?.toLocaleString() || 0} ر.ق
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">عدد الدفعات</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {payments.length}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      {/* Enhanced Payment Analytics */}
-      <PaymentAnalytics
-        totalAmount={paymentMetrics.totalAmount}
-        amountPaid={paymentMetrics.amountPaid}
-        balance={paymentMetrics.balance}
-        lateFees={paymentMetrics.lateFees}
-        paidOnTime={paymentMetrics.paidOnTime}
-        paidLate={paymentMetrics.paidLate}
-        unpaid={paymentMetrics.unpaid}
-      />
+      {/* Payment History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-right">سجل المدفوعات</CardTitle>
+          <CardDescription className="text-right">
+            جميع المدفوعات المسجلة لهذا العقد
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PaymentHistory
+            payments={payments}
+            isLoading={isLoading}
+            rentAmount={rentAmount}
+            contractAmount={contractAmount}
+            onPaymentDeleted={onPaymentDeleted}
+            onPaymentUpdated={onPaymentUpdated}
+            onRecordPayment={onRecordPayment}
+            leaseStartDate={getDateString(agreement.start_date)}
+            leaseEndDate={getDateString(agreement.end_date)}
+            leaseId={agreement.id}
+            agreement={agreement}
+            fetchPayments={fetchPayments}
+          />
+        </CardContent>
+      </Card>
 
-      {/* Redesigned Payment History */}
-      <PaymentHistorySection 
-        payments={payments} 
-        isLoading={isLoading} 
-        rentAmount={rentAmount}
-        contractAmount={contractAmount}
-        leaseId={agreement.id}
-        onPaymentDeleted={onPaymentDeleted}
-        onRecordPayment={onRecordPayment}
-        onPaymentUpdated={onPaymentUpdated}
-        showAnalytics={true}
-        agreement={agreement}
-        fetchPayments={fetchPayments}
-      />
+      {/* Payment Entry Dialog */}
+      {showPaymentDialog && (
+        <PaymentEntryDialog
+          open={showPaymentDialog}
+          onOpenChange={setShowPaymentDialog}
+          onSubmit={handleRecordNewPayment}
+          defaultAmount={rentAmount || 0}
+          title="تسجيل دفعة جديدة"
+          description="إضافة دفعة جديدة لهذا العقد"
+          leaseId={agreement.id}
+          rentAmount={rentAmount}
+          selectedPayment={null}
+        />
+      )}
     </div>
   );
 }

@@ -1,11 +1,10 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { differenceInMonths } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
@@ -199,7 +198,10 @@ export function AgreementDetail({
   // Fix the type issue by making this function properly async and handle the case when onGenerateDocument is undefined
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      onGenerateDocument();
+      const result = onGenerateDocument();
+      if (result instanceof Promise) {
+        await result;
+      }
     } else {
       // Default behavior - generate Arabic contract
       await handleDownloadPdf();
