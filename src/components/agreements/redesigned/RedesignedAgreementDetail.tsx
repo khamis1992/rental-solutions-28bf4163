@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { generatePdfDocument } from '@/utils/agreementUtils';
+import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
 import { PaymentEntryDialog } from '../PaymentEntryDialog';
 import { AgreementDeletionDialog } from '../dialogs/AgreementDeletionDialog';
 import { Agreement } from '@/types/agreement';
@@ -96,14 +96,15 @@ export function RedesignedAgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF
+  // Download PDF - محدث للنظام الجديد
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
-        toast.info("Preparing agreement PDF document...");
+        toast.info("جاري تحضير ملف PDF للعقد...");
         
-        const agreementForPdf = {
+        // تحضير بيانات العقد للنظام الجديد
+        const agreementData = {
           ...agreement,
           start_date: ensureDate(agreement.start_date),
           end_date: ensureDate(agreement.end_date),
@@ -111,21 +112,22 @@ export function RedesignedAgreementDetail({
           updated_at: ensureDate(agreement.updated_at),
         };
         
-        const success = await generatePdfDocument(agreementForPdf as any);
+        // استخدام النظام الجديد المتطور
+        await generateModernAgreementPDF(
+          agreementData,
+          payments || [], // الدفعات
+          [] // المخالفات المرورية - يمكن إضافتها لاحقاً
+        );
         
-        if (success) {
-          toast.success("Agreement PDF generated successfully");
-        } else {
-          toast.error("Failed to generate PDF document");
-        }
+        toast.success("تم إنشاء ملف PDF بنجاح باستخدام النظام المتطور");
       } catch (error) {
-        console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF document");
+        console.error("خطأ في إنشاء ملف PDF:", error);
+        toast.error("فشل في إنشاء ملف PDF");
       } finally {
         setIdle('generatingPdf');
       }
     }
-  }, [agreement, setLoading, setIdle]);
+  }, [agreement, payments, setLoading, setIdle]);
 
   // Record payment
   const handleRecordPayment = useCallback(async (payment: Partial<Payment>) => {

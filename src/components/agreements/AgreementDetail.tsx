@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -6,7 +5,7 @@ import { differenceInMonths } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { generatePdfDocument } from '@/utils/agreementUtils';
+import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
 import { Payment } from '@/types/payment.types';
@@ -127,14 +126,15 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF - Fixed to return Promise<void>
+  // Download PDF - محدث للنظام الجديد
   const handleDownloadPdf = useCallback(async (): Promise<void> => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
-        toast.info("Preparing agreement PDF document...");
+        toast.info("جاري تحضير ملف PDF للعقد...");
         
-        const agreementForPdf = {
+        // تحضير بيانات العقد للنظام الجديد
+        const agreementData = {
           ...agreement,
           start_date: ensureDate(agreement.start_date),
           end_date: ensureDate(agreement.end_date),
@@ -142,21 +142,22 @@ export function AgreementDetail({
           updated_at: ensureDate(agreement.updated_at),
         };
         
-        const success = await generatePdfDocument(agreementForPdf as any);
+        // استخدام النظام الجديد المتطور
+        await generateModernAgreementPDF(
+          agreementData,
+          payments || [], // الدفعات
+          [] // المخالفات المرورية - يمكن إضافتها لاحقاً
+        );
         
-        if (success) {
-          toast.success("Agreement PDF generated successfully");
-        } else {
-          toast.error("Failed to generate PDF document");
-        }
+        toast.success("تم إنشاء ملف PDF بنجاح باستخدام النظام المتطور");
       } catch (error) {
-        console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF document");
+        console.error("خطأ في إنشاء ملف PDF:", error);
+        toast.error("فشل في إنشاء ملف PDF");
       } finally {
         setIdle('generatingPdf');
       }
     }
-  }, [agreement, setLoading, setIdle]);
+  }, [agreement, payments, setLoading, setIdle]);
 
   // Record payment
   const handleRecordPayment = useCallback(async (payment: Partial<Payment>) => {
@@ -200,7 +201,7 @@ export function AgreementDetail({
     if (onGenerateDocument) {
       await onGenerateDocument();
     } else {
-      // Default behavior - generate Arabic contract
+      // Default behavior - generate modern agreement PDF
       await handleDownloadPdf();
     }
   }, [onGenerateDocument, handleDownloadPdf]);

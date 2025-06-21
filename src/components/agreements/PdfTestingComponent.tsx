@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { FileText, Bug, CheckCircle, XCircle } from 'lucide-react';
-import { generateAgreementPdfAndUploadAndDownload } from '@/utils/generateAgreementPdf';
-import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
+import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
+import { generateModernLegalContractPDF } from '@/utils/modern-legal-contract-pdf';
 
 interface TestResult {
   test: string;
@@ -35,7 +35,7 @@ export function PdfTestingComponent() {
   };
 
   const sampleCustomer = {
-    id: 'customer-123',
+    id_number: 'ID123456789',
     full_name: 'أحمد محمد العلي',
     email: 'ahmed.ali@example.com',
     phone_number: '+974 5555 1234',
@@ -62,15 +62,19 @@ export function PdfTestingComponent() {
       id: 'payment-1',
       amount: 2000,
       payment_date: '2024-01-01',
+      due_date: '2024-01-01',
       status: 'paid',
-      payment_method: 'bank_transfer'
+      payment_method: 'bank_transfer',
+      description: 'دفعة شهر يناير'
     },
     {
       id: 'payment-2',
       amount: 2000,
       payment_date: '2024-02-01',
+      due_date: '2024-02-01',
       status: 'paid',
-      payment_method: 'cash'
+      payment_method: 'cash',
+      description: 'دفعة شهر فبراير'
     }
   ];
 
@@ -106,30 +110,28 @@ export function PdfTestingComponent() {
   };
 
   const testBasicPdfGeneration = async () => {
-    console.log('Testing basic PDF generation...');
-    await generateAgreementPdfAndUploadAndDownload({
-      agreement: sampleAgreement,
-      customer: sampleCustomer,
-      vehicle: sampleVehicle,
-      payment: samplePayment
-    });
-    toast.success('Basic PDF generation test completed');
-  };
-
-  const testReportGeneration = async () => {
-    console.log('Testing report PDF generation...');
-    await generateAgreementReportPdfmake(
+    console.log('Testing modern PDF generation...');
+    await generateModernAgreementPDF(
       sampleAgreement,
-      sampleAgreement.rent_amount,
-      sampleAgreement.total_amount,
       samplePayments,
       [] // No traffic fines for this test
     );
-    toast.success('Report PDF generation test completed');
+    toast.success('Modern PDF generation test completed');
+  };
+
+  const testReportGeneration = async () => {
+    console.log('Testing modern legal contract PDF generation...');
+    await generateModernLegalContractPDF(
+      sampleAgreement,
+      sampleCustomer,
+      sampleVehicle,
+      samplePayments
+    );
+    toast.success('Modern legal contract PDF generation test completed');
   };
 
   const testArabicTextRendering = async () => {
-    console.log('Testing Arabic text rendering...');
+    console.log('Testing modern Arabic text rendering...');
     // Test with Arabic-heavy content
     const arabicAgreement = {
       ...sampleAgreement,
@@ -142,34 +144,33 @@ export function PdfTestingComponent() {
       nationality: 'قطري الجنسية'
     };
 
-    await generateAgreementPdfAndUploadAndDownload({
-      agreement: arabicAgreement,
-      customer: arabicCustomer,
-      vehicle: sampleVehicle,
-      payment: samplePayment
-    });
-    toast.success('Arabic text rendering test completed');
+    await generateModernAgreementPDF(
+      arabicAgreement,
+      samplePayments,
+      []
+    );
+    toast.success('Modern Arabic text rendering test completed');
   };
 
   const testLargeDocuments = async () => {
-    console.log('Testing large document generation...');
+    console.log('Testing modern large document generation...');
     // Generate report with more data
     const largePayments = Array.from({ length: 12 }, (_, i) => ({
       id: `payment-${i + 1}`,
       amount: 2000 + (i * 100),
       payment_date: `2024-${String(i + 1).padStart(2, '0')}-01`,
+      due_date: `2024-${String(i + 1).padStart(2, '0')}-01`,
       status: i % 3 === 0 ? 'pending' : 'paid',
-      payment_method: ['cash', 'bank_transfer', 'credit_card'][i % 3]
+      payment_method: ['cash', 'bank_transfer', 'credit_card'][i % 3],
+      description: `دفعة شهر ${i + 1}`
     }));
 
-    await generateAgreementReportPdfmake(
+    await generateModernAgreementPDF(
       sampleAgreement,
-      sampleAgreement.rent_amount,
-      sampleAgreement.total_amount,
       largePayments,
       []
     );
-    toast.success('Large document test completed');
+    toast.success('Modern large document test completed');
   };
 
   const runAllTests = async () => {

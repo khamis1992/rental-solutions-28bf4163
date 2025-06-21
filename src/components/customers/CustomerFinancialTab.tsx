@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, Badge, Button, Progress, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui";
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
-import { generateCustomerFinancialReport } from '@/utils/customer-financial-report';
+import { generateModernCustomerFinancialPDF } from '@/utils/modern-customer-financial-pdf';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
@@ -391,7 +391,7 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
             description: language === 'ar' ? 'سيتم تحميل ملف PDF قريباً' : 'PDF file will be downloaded shortly'
           });
 
-          await generateCustomerFinancialReport(
+          await generateModernCustomerFinancialPDF(
             customerData,
             financialData,
             agreements,
