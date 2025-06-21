@@ -5,44 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/date-utils';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { addCompanyLogo, addFooterImage } from './report-utils';
-
-// Define our styles object manually instead of using createStyles from react-to-pdf
-const legalReportStyles = {
-  container: {
-    padding: '20px',
-    fontFamily: 'Helvetica',
-  },
-  header: {
-    fontSize: '24px',
-    fontWeight: 'bold',
-    marginBottom: '20px',
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: '15px',
-  },
-  sectionTitle: {
-    fontSize: '18px',
-    fontWeight: 'bold',
-    marginBottom: '10px',
-  },
-  field: {
-    marginBottom: '5px',
-  },
-  fieldLabel: {
-    fontWeight: 'bold',
-    marginRight: '5px',
-  },
-  fieldValue: {
-    fontSize: '14px',
-  },
-  footer: {
-    fontSize: '12px',
-    color: '#666',
-    marginTop: '20px',
-    textAlign: 'center',
-  },
-};
+import { waitForFontsReady } from './font-loader';
 
 export const generateLegalReportData = async (caseId: string): Promise<LegalCase | null> => {
   try {
@@ -86,7 +49,13 @@ export const generateLegalCustomerReport = async (
   customerId: string,
   customerName: string,
   obligations: CustomerObligation[]
-): Promise<jsPDF> => {  // Create a new PDF document
+): Promise<jsPDF> => {
+  // Ensure fonts are loaded before PDF generation
+  console.log('Ensuring fonts are ready for PDF generation...');
+  const availableFont = await waitForFontsReady();
+  console.log(`Using font: ${availableFont} for PDF generation`);
+  
+  // Create a new PDF document
   const doc = new jsPDF();
   
   // Add company logo
@@ -212,7 +181,8 @@ export const generateLegalCustomerReport = async (
     
     y += 10;
   });
-    // Add footer
+  
+  // Add footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,8 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate } from '@/lib/date-utils';
-import { AlertTriangle, Loader2, Plus, Gavel } from 'lucide-react';
+import { AlertTriangle, Loader2, Plus, Gavel, FileDown } from 'lucide-react';
 import { CustomerObligation, fetchCustomerObligations } from './CustomerLegalObligations';
+import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -22,6 +24,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
   const [error, setError] = useState<string | null>(null);
   const [showNewCaseDialog, setShowNewCaseDialog] = useState(false);
   const [isCreatingCase, setIsCreatingCase] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [newCaseForm, setNewCaseForm] = useState({
     case_type: '',
     priority: 'medium',
@@ -104,6 +107,39 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     }
   };
 
+  // Handle generating legal report
+  const handleGenerateReport = async () => {
+    if (obligations.length === 0) {
+      toast.error('لا توجد التزامات لإنشاء تقرير');
+      return;
+    }
+
+    setIsGeneratingReport(true);
+    try {
+      // Get customer name
+      const { data: customerData } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', customerId)
+        .single();
+      
+      const customerName = customerData?.full_name || 'Unknown Customer';
+      
+      console.log('Starting legal report generation...');
+      const pdf = await generateLegalCustomerReport(customerId, customerName, obligations);
+      
+      console.log('PDF generated successfully, downloading...');
+      pdf.save(`legal-obligations-report-${customerName.replace(/\s+/g, '-')}.pdf`);
+      
+      toast.success('تم إنشاء التقرير بنجاح');
+    } catch (error: any) {
+      console.error('Error generating legal report:', error);
+      toast.error('فشل في إنشاء التقرير: ' + (error.message || 'خطأ غير معروف'));
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -157,17 +193,37 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
       <Card className="shadow-sm">
         <CardHeader>
           <div className="flex justify-between items-center" dir="rtl">
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleGenerateReport}
+                disabled={isGeneratingReport || obligations.length === 0}
+                className="flex items-center gap-2"
+                variant="outline"
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    جاري إنشاء التقرير...
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="h-4 w-4" />
+                    تقرير PDF
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={() => setShowNewCaseDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <Gavel className="h-4 w-4" />
+                فتح قضية قانونية
+              </Button>
+            </div>
             <div>
               <CardTitle>الالتزامات القانونية</CardTitle>
               <CardDescription>الالتزامات القانونية والمالية الحالية للعميل</CardDescription>
             </div>
-            <Button 
-              onClick={() => setShowNewCaseDialog(true)}
-              className="flex items-center gap-2"
-            >
-              <Gavel className="h-4 w-4" />
-              فتح قضية قانونية
-            </Button>
           </div>
         </CardHeader>
         <CardContent>

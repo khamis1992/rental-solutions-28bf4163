@@ -14,121 +14,100 @@ interface FontDefinition {
 
 // Flag to track initialization
 let fontsInitialized = false;
+let fontLoadingPromise: Promise<void> | null = null;
 
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
-// Base64 encoded fonts from the JavaScript files
-let AmiriRegularBase64: string | null = null;
-let AmiriBoldBase64: string | null = null;
-
-// Function to load base64 font data from the JS files
-async function loadFontData(): Promise<void> {
-  if (!isBrowser) return;
-
+// Function to load font files directly as base64
+async function loadFontAsBase64(url: string): Promise<string | null> {
+  if (!isBrowser) return null;
+  
   try {
-    // Try to load the font data from global variables if available
-    if ((window as any).AmiriRegular) {
-      AmiriRegularBase64 = (window as any).AmiriRegular;
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.warn(`Font file not found: ${url}`);
+      return null;
     }
-    if ((window as any).AmiriBold) {
-      AmiriBoldBase64 = (window as any).AmiriBold;
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
-
-    // If not available globally, try to load from scripts
-    if (!AmiriRegularBase64 || !AmiriBoldBase64) {
-      await loadFontScripts();
-    }
+    return btoa(binary);
   } catch (error) {
-    console.warn('Failed to load font data:', error);
+    console.warn(`Failed to load font from ${url}:`, error);
+    return null;
   }
 }
 
-// Load font scripts dynamically
-async function loadFontScripts(): Promise<void> {
+// Load fonts with multiple fallback strategies
+async function loadFontsWithFallback(): Promise<void> {
   if (!isBrowser) return;
 
-  return new Promise((resolve, reject) => {
-    let scriptsLoaded = 0;
-    const totalScripts = 2;
+  let amiriRegularBase64: string | null = null;
+  let amiriBoldBase64: string | null = null;
 
-    const onScriptLoad = () => {
-      scriptsLoaded++;
-      if (scriptsLoaded === totalScripts) {
-        // Extract font data from global variables
-        AmiriRegularBase64 = (window as any).AmiriRegular || null;
-        AmiriBoldBase64 = (window as any).AmiriBold || null;
-        resolve();
-      }
-    };
+  // Strategy 1: Try to load from global variables (from JS files)
+  if ((window as any).AmiriRegular) {
+    amiriRegularBase64 = (window as any).AmiriRegular;
+    console.log('Loaded Amiri Regular from global variable');
+  }
+  
+  if ((window as any).AmiriBold) {
+    amiriBoldBase64 = (window as any).AmiriBold;
+    console.log('Loaded Amiri Bold from global variable');
+  }
 
-    const onScriptError = (error: any) => {
-      console.warn('Font script load failed:', error);
-      scriptsLoaded++;
-      if (scriptsLoaded === totalScripts) {
-        resolve(); // Continue even if some fonts fail
-      }
-    };
+  // Strategy 2: If not available, try direct TTF loading
+  if (!amiriRegularBase64) {
+    amiriRegularBase64 = await loadFontAsBase64('/Amiri-Regular.ttf');
+    if (amiriRegularBase64) {
+      console.log('Loaded Amiri Regular directly from TTF');
+    }
+  }
 
-    // Load Amiri Regular
-    const script1 = document.createElement('script');
-    script1.src = '/Amiri-Regular.js';
-    script1.onload = onScriptLoad;
-    script1.onerror = onScriptError;
-    document.head.appendChild(script1);
+  if (!amiriBoldBase64) {
+    amiriBoldBase64 = await loadFontAsBase64('/Amiri-Bold.ttf');
+    if (amiriBoldBase64) {
+      console.log('Loaded Amiri Bold directly from TTF');
+    }
+  }
 
-    // Load Amiri Bold
-    const script2 = document.createElement('script');
-    script2.src = '/Amiri-Bold.js';
-    script2.onload = onScriptLoad;
-    script2.onerror = onScriptError;
-    document.head.appendChild(script2);
-  });
-}
-
-// Initialize pdfMake virtual file system with fonts
-function initializePdfMakeVFS(): void {
-  if (!isBrowser) return;
-
-  // Initialize vfs if it doesn't exist
+  // Initialize pdfMake virtual file system
   if (!(pdfMake as any).vfs) {
     (pdfMake as any).vfs = {};
   }
 
   // Add fonts to virtual file system if available
-  if (AmiriRegularBase64 && AmiriBoldBase64) {
-    (pdfMake as any).vfs['Amiri-Regular.ttf'] = AmiriRegularBase64;
-    (pdfMake as any).vfs['Amiri-Bold.ttf'] = AmiriBoldBase64;
-    console.log('Amiri fonts added to pdfMake virtual file system');
+  if (amiriRegularBase64 && amiriBoldBase64) {
+    (pdfMake as any).vfs['Amiri-Regular.ttf'] = amiriRegularBase64;
+    (pdfMake as any).vfs['Amiri-Bold.ttf'] = amiriBoldBase64;
+    console.log('Added Amiri fonts to pdfMake virtual file system');
+    
+    // Configure font definitions with Amiri
+    pdfMake.fonts = {
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
+      },
+      Amiri: {
+        normal: 'Amiri-Regular.ttf',
+        bold: 'Amiri-Bold.ttf',
+        italics: 'Amiri-Regular.ttf',
+        bolditalics: 'Amiri-Bold.ttf'
+      }
+    };
   } else {
-    console.warn('Amiri fonts not available, using Roboto fallback');
-  }
-}
-
-// Configure fonts with pdfMake
-export async function configurePdfMakeFonts(): Promise<void> {
-  try {
-    if (!isBrowser) {
-      // Server-side: just set basic configuration
-      pdfMake.fonts = {
-        Roboto: {
-          normal: 'Helvetica',
-          bold: 'Helvetica-Bold',
-          italics: 'Helvetica-Oblique',
-          bolditalics: 'Helvetica-BoldOblique'
-        }
-      };
-      return;
-    }
-
-    // Load font data first
-    await loadFontData();
-
-    // Initialize virtual file system
-    initializePdfMakeVFS();
-
-    // Configure font definitions
-    const fontDefinitions: FontDefinition = {
+    console.warn('Could not load Amiri fonts, using Roboto fallback');
+    
+    // Fallback to Roboto only
+    pdfMake.fonts = {
       Roboto: {
         normal: 'Roboto-Regular.ttf',
         bold: 'Roboto-Medium.ttf',
@@ -136,27 +115,32 @@ export async function configurePdfMakeFonts(): Promise<void> {
         bolditalics: 'Roboto-MediumItalic.ttf'
       }
     };
+  }
 
-    // Add Amiri if available in VFS
-    if ((pdfMake as any).vfs && (pdfMake as any).vfs['Amiri-Regular.ttf'] && (pdfMake as any).vfs['Amiri-Bold.ttf']) {
-      fontDefinitions.Amiri = {
-        normal: 'Amiri-Regular.ttf',
-        bold: 'Amiri-Bold.ttf',
-        italics: 'Amiri-Regular.ttf',
-        bolditalics: 'Amiri-Bold.ttf'
-      };
-      console.log('Amiri font configuration added');
+  fontsInitialized = true;
+}
+
+// Configure pdfMake fonts with proper error handling
+export async function configurePdfMakeFonts(): Promise<void> {
+  if (fontLoadingPromise) {
+    // If already loading, wait for the existing promise
+    return fontLoadingPromise;
+  }
+
+  if (fontsInitialized) {
+    // Already initialized
+    return Promise.resolve();
+  }
+
+  // Create the loading promise
+  fontLoadingPromise = loadFontsWithFallback().catch(error => {
+    console.error('Font loading failed:', error);
+    
+    // Fallback configuration on error
+    if (!(pdfMake as any).vfs) {
+      (pdfMake as any).vfs = {};
     }
-
-    // Set font definitions
-    pdfMake.fonts = fontDefinitions;
     
-    fontsInitialized = true;
-    console.log('PDF fonts configured successfully');
-  } catch (error) {
-    console.warn('Font configuration failed, using fallback:', error);
-    
-    // Fallback configuration
     pdfMake.fonts = {
       Roboto: {
         normal: 'Roboto-Regular.ttf',
@@ -167,7 +151,9 @@ export async function configurePdfMakeFonts(): Promise<void> {
     };
     
     fontsInitialized = true;
-  }
+  });
+
+  return fontLoadingPromise;
 }
 
 // Initialize fonts and return success status
@@ -194,6 +180,12 @@ export function getAvailableFontName(): string {
   return 'Roboto';
 }
 
+// Wait for fonts to be ready before proceeding
+export async function waitForFontsReady(): Promise<string> {
+  await configurePdfMakeFonts();
+  return getAvailableFontName();
+}
+
 // Initialize fonts with the best available method
 export const initializeFonts = async (): Promise<string> => {
   try {
@@ -205,12 +197,10 @@ export const initializeFonts = async (): Promise<string> => {
   }
 };
 
-// Initialize fonts on module load if in browser
-if (isBrowser) {
-  // Don't block module loading, initialize in background
-  setTimeout(() => {
-    configurePdfMakeFonts().catch(console.warn);
-  }, 100);
+// Reset fonts for testing
+export function resetFonts(): void {
+  fontsInitialized = false;
+  fontLoadingPromise = null;
 }
 
 export default {
@@ -218,5 +208,7 @@ export default {
   configurePdfMakeFonts,
   initializeFontsStatus,
   areFontsReady,
-  getAvailableFontName
+  getAvailableFontName,
+  waitForFontsReady,
+  resetFonts
 };
