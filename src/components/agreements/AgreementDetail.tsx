@@ -25,7 +25,7 @@ interface AgreementDetailProps {
   onDelete: (id: string) => void;
   onPaymentDeleted: () => void;
   onDataRefresh: () => void;
-  onGenerateDocument?: () => void;
+  onGenerateDocument?: () => Promise<void>;
 }
 
 export function AgreementDetail({
@@ -198,11 +198,7 @@ export function AgreementDetail({
   // Fix the type issue by making this function properly async and handle the case when onGenerateDocument is undefined
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      // Convert to async if it's not already
-      const result = onGenerateDocument();
-      if (result instanceof Promise) {
-        await result;
-      }
+      await onGenerateDocument();
     } else {
       // Default behavior - generate Arabic contract
       await handleDownloadPdf();
