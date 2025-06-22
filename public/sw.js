@@ -1,716 +1,539 @@
-// Service Worker Version
-const SW_VERSION = '2.1.0';
-const CACHE_PREFIX = 'alaraf-rental';
-const CACHE_VERSION = 'v2.1';
+// Enhanced Service Worker for Al-Araf Rental System
+// Version 3.0.0 - Advanced PWA Implementation
 
-// Cache Names
-const CACHE_NAMES = {
-  STATIC: `${CACHE_PREFIX}-static-${CACHE_VERSION}`,
-  DYNAMIC: `${CACHE_PREFIX}-dynamic-${CACHE_VERSION}`,
-  API: `${CACHE_PREFIX}-api-${CACHE_VERSION}`,
-  IMAGES: `${CACHE_PREFIX}-images-${CACHE_VERSION}`,
-  DOCUMENTS: `${CACHE_PREFIX}-documents-${CACHE_VERSION}`,
-  FONTS: `${CACHE_PREFIX}-fonts-${CACHE_VERSION}`
+const CACHE_NAME = 'alaraf-rental-v3.0.0';
+const RUNTIME_CACHE = 'alaraf-runtime-v3.0.0';
+const DYNAMIC_CACHE = 'alaraf-dynamic-v3.0.0';
+const IMAGE_CACHE = 'alaraf-images-v3.0.0';
+const API_CACHE = 'alaraf-api-v3.0.0';
+
+// Cache duration settings
+const CACHE_DURATION = {
+  STATIC: 30 * 24 * 60 * 60 * 1000, // 30 days
+  API: 5 * 60 * 1000, // 5 minutes
+  IMAGES: 7 * 24 * 60 * 60 * 1000, // 7 days
+  DYNAMIC: 24 * 60 * 60 * 1000 // 1 day
 };
 
-// Assets to cache on install
+// Enhanced static assets for caching
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/offline.html',
-  '/src/main.tsx',
-  '/src/App.css',
-  '/Amiri-Regular.ttf',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/maskable-icon-192x192.png',
+  '/icons/maskable-icon-512x512.png',
   '/Amiri-Bold.ttf',
-  '/Amiri-Regular.js', 
   '/Amiri-Bold.js',
-  '/favicon.ico',
-  '/vfs_fonts.js'
-];
 
-// All application routes to pre-cache
-const APP_ROUTES = [
-  '/',
+  // Core routes
   '/dashboard',
-  '/vehicles',
   '/customers',
   '/agreements',
+  '/vehicles',
   '/payments',
   '/maintenance',
-  '/legal',
-  '/traffic-fines',
-  '/financials',
   '/reports',
-  '/settings',
-  '/user-settings',
-  '/documents',
-  '/activity',
-  '/field-ops'
+  '/legal',
+  '/financials',
+  
+  // Critical CSS and JS (will be automatically cached by Vite)
 ];
 
-// API endpoints to cache
-const API_CACHE_ROUTES = [
-  '/api/profiles',
-  '/api/vehicles', 
-  '/api/agreements',
-  '/api/payments',
-  '/api/customers',
-  '/api/maintenance',
-  '/api/traffic-fines',
-  '/api/legal-cases',
-  '/api/documents',
-  '/api/user/preferences',
-  '/api/user/settings',
-  '/rest/v1/profiles',
-  '/rest/v1/vehicles',
-  '/rest/v1/leases',
-  '/rest/v1/payments',
-  '/rest/v1/maintenance',
-  '/rest/v1/traffic_fines',
-  '/rest/v1/legal_cases',
-  '/rest/v1/unified_payments',
-  '/rest/v1/payment_schedules',
-  '/rest/v1/car_installment_contracts',
-  '/rest/v1/car_installment_payments',
-  '/rest/v1/vehicle_inspections'
+// API endpoints for intelligent caching
+const API_CACHE_PATTERNS = [
+  /\/api\/.*$/,
+  /\/rest\/v1\/profiles$/,
+  /\/rest\/v1\/customers$/,
+  /\/rest\/v1\/vehicles$/,
+  /\/rest\/v1\/leases$/,
+  /\/rest\/v1\/agreements$/,
+  /\/rest\/v1\/maintenance$/,
+  /\/rest\/v1\/payments$/,
+  /\/rest\/v1\/payment_schedules$/,
+  /\/rest\/v1\/vehicle_inspections$/
 ];
 
-// Network timeout for API calls
-const NETWORK_TIMEOUT = 5000;
+// Background sync tags
+const SYNC_TAGS = {
+  PAYMENT: 'sync-payment',
+  AGREEMENT: 'sync-agreement',
+  MAINTENANCE: 'sync-maintenance',
+  CUSTOMER: 'sync-customer',
+  VEHICLE: 'sync-vehicle',
+  DOCUMENT: 'sync-document'
+};
 
-// Maximum cache size in MB
-const MAX_CACHE_SIZE = 100;
+// Queue for offline operations
+let offlineQueue = [];
 
-// Install Event - Cache static assets
+// Install event - Cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker version:', SW_VERSION);
+  console.log('[SW] Installing service worker v3.0.0');
   
   event.waitUntil(
     Promise.all([
       // Cache static assets
-      caches.open(CACHE_NAMES.STATIC).then((cache) => {
+      caches.open(CACHE_NAME).then((cache) => {
         console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        return cache.addAll(STATIC_ASSETS.filter(asset => asset !== '/'));
       }),
-      // Pre-cache app routes
-      caches.open(CACHE_NAMES.DYNAMIC).then((cache) => {
-        console.log('[SW] Pre-caching app routes');
-        return cache.addAll(APP_ROUTES.map(route => new Request(route, { mode: 'no-cors' })));
-      })
-    ]).then(() => {
+      
       // Skip waiting to activate immediately
-      self.skipWaiting();
-    })
+      self.skipWaiting()
+    ])
   );
 });
 
-// Activate Event - Clean up old caches
+// Activate event - Clean old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker version:', SW_VERSION);
+  console.log('[SW] Activating service worker v3.0.0');
   
   event.waitUntil(
+    Promise.all([
+      // Clean old caches
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames
-          .filter(cacheName => cacheName.startsWith(CACHE_PREFIX))
-          .filter(cacheName => !Object.values(CACHE_NAMES).includes(cacheName))
-          .map(cacheName => {
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME && 
+                cacheName !== RUNTIME_CACHE && 
+                cacheName !== DYNAMIC_CACHE &&
+                cacheName !== IMAGE_CACHE &&
+                cacheName !== API_CACHE) {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
+            }
           })
-      );
-    }).then(() => {
-      // Take control of all pages immediately
-      return self.clients.claim();
-    })
+        );
+      }),
+      
+      // Claim all clients
+      self.clients.claim(),
+      
+      // Clean expired cache entries
+      cleanExpiredCaches()
+    ])
   );
 });
 
-// Fetch Event - Handle requests with appropriate strategies
+// Enhanced fetch event with intelligent caching strategies
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
+  // Skip non-GET requests for caching
   if (request.method !== 'GET') {
+    // Handle POST/PUT/DELETE for offline queue
+    if (!navigator.onLine) {
+      event.respondWith(handleOfflineRequest(request));
+    }
     return;
   }
 
-  // Skip chrome-extension and other non-http(s) requests
-  if (!request.url.startsWith('http')) {
-    return;
+  // Different strategies based on request type
+  if (isStaticAsset(url)) {
+    event.respondWith(cacheFirstStrategy(request, CACHE_NAME));
+  } else if (isAPIRequest(url)) {
+    event.respondWith(networkFirstWithTimeout(request, API_CACHE, 3000));
+  } else if (isImageRequest(url)) {
+    event.respondWith(cacheFirstStrategy(request, IMAGE_CACHE));
+  } else {
+    event.respondWith(staleWhileRevalidate(request, DYNAMIC_CACHE));
   }
-
-  // Handle Supabase API requests
-  if (url.pathname.includes('/rest/v1/') || url.pathname.includes('/auth/v1/')) {
-    event.respondWith(networkFirstStrategy(request, CACHE_NAMES.API));
-    return;
-  }
-
-  // Handle API requests with network-first strategy
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirstStrategy(request, CACHE_NAMES.API));
-    return;
-  }
-
-  // Handle font requests
-  if (/\.(ttf|woff|woff2|eot)$/i.test(url.pathname) || url.pathname.includes('fonts')) {
-    event.respondWith(cacheFirstStrategy(request, CACHE_NAMES.FONTS));
-    return;
-  }
-
-  // Handle image requests with cache-first strategy
-  if (request.destination === 'image' || /\.(jpg|jpeg|png|gif|webp|svg|ico)$/i.test(url.pathname)) {
-    event.respondWith(cacheFirstStrategy(request, CACHE_NAMES.IMAGES));
-    return;
-  }
-
-  // Handle document requests (PDFs, etc.) with cache-first strategy
-  if (/\.(pdf|doc|docx|xls|xlsx)$/i.test(url.pathname)) {
-    event.respondWith(cacheFirstStrategy(request, CACHE_NAMES.DOCUMENTS));
-    return;
-  }
-
-  // Handle static assets with cache-first strategy
-  if (STATIC_ASSETS.includes(url.pathname) || url.pathname.includes('/assets/')) {
-    event.respondWith(cacheFirstStrategy(request, CACHE_NAMES.STATIC));
-    return;
-  }
-
-  // Handle app navigation routes
-  if (request.mode === 'navigate') {
-    event.respondWith(networkFirstStrategy(request, CACHE_NAMES.DYNAMIC));
-    return;
-  }
-
-  // Default strategy: Network first with dynamic cache
-  event.respondWith(networkFirstStrategy(request, CACHE_NAMES.DYNAMIC));
 });
 
-// Cache-first strategy with background update
+// Background sync for offline operations
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Background sync triggered:', event.tag);
+  
+  switch (event.tag) {
+    case SYNC_TAGS.PAYMENT:
+      event.waitUntil(syncPayments());
+      break;
+    case SYNC_TAGS.AGREEMENT:
+      event.waitUntil(syncAgreements());
+      break;
+    case SYNC_TAGS.MAINTENANCE:
+      event.waitUntil(syncMaintenance());
+      break;
+    case SYNC_TAGS.CUSTOMER:
+      event.waitUntil(syncCustomers());
+      break;
+    case SYNC_TAGS.VEHICLE:
+      event.waitUntil(syncVehicles());
+      break;
+    case SYNC_TAGS.DOCUMENT:
+      event.waitUntil(syncDocuments());
+      break;
+    default:
+      console.log('[SW] Unknown sync tag:', event.tag);
+  }
+});
+
+// Push notification handling
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push notification received:', event);
+  
+  const options = {
+    body: 'لديك تحديث جديد في نظام العارف للتأجير',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/badge-72x72.png',
+    vibrate: [100, 50, 100],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1
+    },
+    actions: [
+      {
+        action: 'explore',
+        title: 'فتح التطبيق',
+        icon: '/icons/checkmark.png'
+      },
+      {
+        action: 'close',
+        title: 'إغلاق',
+        icon: '/icons/xmark.png'
+      }
+    ],
+    requireInteraction: true,
+    tag: 'rental-notification'
+  };
+  
+  if (event.data) {
+    const data = event.data.json();
+    options.body = data.body || options.body;
+    options.title = data.title || 'العارف للتأجير';
+  }
+  
+  event.waitUntil(
+    self.registration.showNotification('العارف للتأجير', options)
+  );
+});
+
+// Notification click handling
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event);
+  event.notification.close();
+  
+  if (event.action === 'explore') {
+    event.waitUntil(
+      clients.openWindow('/')
+    );
+  } else if (event.action === 'close') {
+    // Just close the notification
+    return;
+  } else {
+    // Default action - open app
+    event.waitUntil(
+      clients.matchAll().then((clientList) => {
+        if (clientList.length > 0) {
+          return clientList[0].focus();
+        }
+        return clients.openWindow('/');
+      })
+    );
+  }
+});
+
+// Message handling for cache updates
+self.addEventListener('message', (event) => {
+  console.log('[SW] Message received:', event.data);
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  } else if (event.data && event.data.type === 'CACHE_UPDATE') {
+    event.waitUntil(updateCaches());
+  } else if (event.data && event.data.type === 'CLEAR_CACHE') {
+    event.waitUntil(clearAllCaches());
+  }
+});
+
+// Caching strategies
 async function cacheFirstStrategy(request, cacheName) {
   try {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      // Update cache in background
-      fetchAndCache(request, cacheName);
+    const cache = await caches.open(cacheName);
+    const cachedResponse = await cache.match(request);
+    
+    if (cachedResponse && !isExpired(cachedResponse)) {
+      // Update in background
+      fetch(request).then(response => {
+        if (response.ok) {
+          cache.put(request, response.clone());
+        }
+      }).catch(() => {}); // Silent fail for background update
+      
       return cachedResponse;
     }
 
     const networkResponse = await fetch(request);
-    
     if (networkResponse.ok) {
-      const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
-    
     return networkResponse;
   } catch (error) {
-    console.error('[SW] Cache-first strategy failed:', error);
-    // Return offline page for navigation requests
-    if (request.mode === 'navigate') {
-      const cache = await caches.open(CACHE_NAMES.STATIC);
-      return cache.match('/offline.html');
-    }
-    throw error;
+    console.error('[SW] Cache first strategy failed:', error);
+    return new Response('Offline - Resource not available', { 
+      status: 503,
+      statusText: 'Service Unavailable'
+    });
   }
 }
 
-// Network-first strategy with timeout
-async function networkFirstStrategy(request, cacheName) {
+async function networkFirstWithTimeout(request, cacheName, timeout = 3000) {
   try {
+    const cache = await caches.open(cacheName);
+    
+    // Race between network and timeout
     const networkPromise = fetch(request);
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Network timeout')), NETWORK_TIMEOUT)
+      setTimeout(() => reject(new Error('Network timeout')), timeout)
     );
-
-    const networkResponse = await Promise.race([networkPromise, timeoutPromise]);
     
-    if (networkResponse.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    console.log('[SW] Network request failed, falling back to cache:', error);
-    
-    const cachedResponse = await caches.match(request);
+    try {
+      const response = await Promise.race([networkPromise, timeoutPromise]);
+      if (response.ok) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    } catch (networkError) {
+      console.log('[SW] Network failed, trying cache:', networkError.message);
+      const cachedResponse = await cache.match(request);
+      
     if (cachedResponse) {
       return cachedResponse;
     }
 
-    // Return offline page for navigation requests
-    if (request.mode === 'navigate') {
-      const cache = await caches.open(CACHE_NAMES.STATIC);
-      return cache.match('/offline.html');
+      throw new Error('No cache available');
     }
-    
-    // Return error response for API requests
-    if (request.url.includes('/api/') || request.url.includes('/rest/v1/')) {
+  } catch (error) {
+    console.error('[SW] Network first strategy failed:', error);
       return new Response(
         JSON.stringify({ 
-          error: 'Offline',
-          message: 'No internet connection. Data may be outdated.' 
+        error: 'Service temporarily unavailable',
+        message: 'سيتم تحديث البيانات عند عودة الاتصال',
+        offline: true 
         }),
         { 
           status: 503,
           headers: { 'Content-Type': 'application/json' }
         }
       );
-    }
-    
-    throw error;
   }
 }
 
-// Background fetch and cache update
-async function fetchAndCache(request, cacheName) {
+async function staleWhileRevalidate(request, cacheName) {
   try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
       const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
+    const cachedResponse = await cache.match(request);
+    
+    // Start fetch in background
+    const fetchPromise = fetch(request).then(response => {
+      if (response.ok) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    });
+    
+    // Return cached version immediately if available
+    if (cachedResponse) {
+      return cachedResponse;
     }
+    
+    // Otherwise wait for network
+    return await fetchPromise;
   } catch (error) {
-    // Silently fail - this is a background update
+    console.error('[SW] Stale while revalidate failed:', error);
+    return new Response('Offline', { status: 503 });
   }
 }
 
-// Background Sync for offline actions
-self.addEventListener('sync', async (event) => {
-  console.log('[SW] Background sync triggered:', event.tag);
+// Utility functions
+function isStaticAsset(url) {
+  return url.pathname.includes('/assets/') ||
+         url.pathname.includes('/icons/') ||
+         url.pathname.endsWith('.js') ||
+         url.pathname.endsWith('.css') ||
+         url.pathname.endsWith('.woff2') ||
+         url.pathname.endsWith('.ttf');
+}
 
-  if (event.tag === 'sync-payments') {
-    event.waitUntil(syncPayments());
-  } else if (event.tag === 'sync-agreements') {
-    event.waitUntil(syncAgreements());
-  } else if (event.tag === 'sync-maintenance') {
-    event.waitUntil(syncMaintenance());
-  } else if (event.tag === 'sync-traffic-fines') {
-    event.waitUntil(syncTrafficFines());
-  } else if (event.tag === 'sync-legal-cases') {
-    event.waitUntil(syncLegalCases());
-  } else if (event.tag === 'sync-documents') {
-    event.waitUntil(syncDocuments());
-  } else if (event.tag === 'sync-inspections') {
-    event.waitUntil(syncInspections());
+function isAPIRequest(url) {
+  return API_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname));
+}
+
+function isImageRequest(url) {
+  return url.pathname.match(/\.(jpg|jpeg|png|gif|webp|svg)$/);
+}
+
+function isExpired(response) {
+  const cachedTime = response.headers.get('sw-cache-time');
+  if (!cachedTime) return false;
+  
+  const age = Date.now() - parseInt(cachedTime);
+  return age > CACHE_DURATION.STATIC;
+}
+
+async function handleOfflineRequest(request) {
+  // Add to offline queue
+  const requestData = {
+    url: request.url,
+    method: request.method,
+    headers: [...request.headers.entries()],
+    body: request.method !== 'GET' ? await request.text() : null,
+    timestamp: Date.now()
+  };
+  
+  offlineQueue.push(requestData);
+  localStorage.setItem('offline-queue', JSON.stringify(offlineQueue));
+  
+  // Schedule background sync
+  if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+    const registration = await navigator.serviceWorker.ready;
+    await registration.sync.register('offline-sync');
   }
-});
+  
+  return new Response(
+    JSON.stringify({ 
+      success: true, 
+      message: 'تم حفظ العملية وسيتم تنفيذها عند عودة الاتصال',
+      queued: true 
+    }),
+    { 
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  );
+}
 
-// Sync offline payments
+// Background sync functions
 async function syncPayments() {
-  try {
-    const cache = await caches.open('offline-data');
-    const requests = await cache.keys();
-    
-    for (const request of requests) {
-      if (request.url.includes('/api/payments') || request.url.includes('/unified_payments')) {
-        const cachedResponse = await cache.match(request);
-        const data = await cachedResponse.json();
-        
-        const response = await fetch(request, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          await cache.delete(request);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[SW] Payment sync failed:', error);
-  }
+  console.log('[SW] Syncing payments...');
+  const queue = getOfflineQueue().filter(item => item.url.includes('/payments'));
+  await processQueue(queue, SYNC_TAGS.PAYMENT);
 }
 
-// Sync offline agreements
 async function syncAgreements() {
-  try {
-    const cache = await caches.open('offline-data');
-    const requests = await cache.keys();
-    
-    for (const request of requests) {
-      if (request.url.includes('/api/agreements') || request.url.includes('/leases')) {
-        const cachedResponse = await cache.match(request);
-        const data = await cachedResponse.json();
-        
-        const response = await fetch(request, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          await cache.delete(request);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[SW] Agreement sync failed:', error);
-  }
+  console.log('[SW] Syncing agreements...');
+  const queue = getOfflineQueue().filter(item => item.url.includes('/agreements') || item.url.includes('/leases'));
+  await processQueue(queue, SYNC_TAGS.AGREEMENT);
 }
 
-// Sync offline maintenance records
 async function syncMaintenance() {
-  try {
-    const cache = await caches.open('offline-data');
-    const requests = await cache.keys();
-    
-    for (const request of requests) {
-      if (request.url.includes('/api/maintenance') || request.url.includes('/maintenance')) {
-        const cachedResponse = await cache.match(request);
-        const data = await cachedResponse.json();
-        
-        const response = await fetch(request, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          await cache.delete(request);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[SW] Maintenance sync failed:', error);
-  }
+  console.log('[SW] Syncing maintenance...');
+  const queue = getOfflineQueue().filter(item => item.url.includes('/maintenance'));
+  await processQueue(queue, SYNC_TAGS.MAINTENANCE);
 }
 
-// Sync traffic fines
-async function syncTrafficFines() {
-  try {
-    const cache = await caches.open('offline-data');
-    const requests = await cache.keys();
-    
-    for (const request of requests) {
-      if (request.url.includes('/traffic_fines')) {
-        const cachedResponse = await cache.match(request);
-        const data = await cachedResponse.json();
-        
-        const response = await fetch(request, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          await cache.delete(request);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[SW] Traffic fines sync failed:', error);
-  }
+async function syncCustomers() {
+  console.log('[SW] Syncing customers...');
+  const queue = getOfflineQueue().filter(item => item.url.includes('/customers'));
+  await processQueue(queue, SYNC_TAGS.CUSTOMER);
 }
 
-// Sync legal cases
-async function syncLegalCases() {
-  try {
-    const cache = await caches.open('offline-data');
-    const requests = await cache.keys();
-    
-    for (const request of requests) {
-      if (request.url.includes('/legal_cases')) {
-        const cachedResponse = await cache.match(request);
-        const data = await cachedResponse.json();
-        
-        const response = await fetch(request, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          await cache.delete(request);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[SW] Legal cases sync failed:', error);
-  }
+async function syncVehicles() {
+  console.log('[SW] Syncing vehicles...');
+  const queue = getOfflineQueue().filter(item => item.url.includes('/vehicles'));
+  await processQueue(queue, SYNC_TAGS.VEHICLE);
 }
 
-// Sync documents
 async function syncDocuments() {
+  console.log('[SW] Syncing documents...');
+  const queue = getOfflineQueue().filter(item => item.url.includes('/documents'));
+  await processQueue(queue, SYNC_TAGS.DOCUMENT);
+}
+
+function getOfflineQueue() {
   try {
-    const cache = await caches.open('offline-data');
-    const requests = await cache.keys();
-    
-    for (const request of requests) {
-      if (request.url.includes('/documents')) {
-        const cachedResponse = await cache.match(request);
-        const data = await cachedResponse.json();
-        
-        const response = await fetch(request, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          await cache.delete(request);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[SW] Documents sync failed:', error);
+    return JSON.parse(localStorage.getItem('offline-queue') || '[]');
+  } catch {
+    return [];
   }
 }
 
-// Sync vehicle inspections
-async function syncInspections() {
-  try {
-    const cache = await caches.open('offline-data');
-    const requests = await cache.keys();
-    
-    for (const request of requests) {
-      if (request.url.includes('/vehicle_inspections')) {
-        const cachedResponse = await cache.match(request);
-        const data = await cachedResponse.json();
-        
-        const response = await fetch(request, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          await cache.delete(request);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[SW] Inspections sync failed:', error);
-  }
-}
-
-// Push Notification handling
-self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received');
+async function processQueue(queue, syncTag) {
+  const successes = [];
+  const failures = [];
   
-  let data = {
-    title: 'Al-Araf Rental',
-    body: 'You have a new notification',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png'
-  };
-
-  if (event.data) {
+  for (const item of queue) {
     try {
-      data = event.data.json();
-    } catch (e) {
-      data.body = event.data.text();
+      const response = await fetch(item.url, {
+        method: item.method,
+        headers: new Headers(item.headers),
+        body: item.body
+        });
+        
+        if (response.ok) {
+        successes.push(item);
+      } else {
+        failures.push(item);
+    }
+  } catch (error) {
+      console.error('[SW] Sync failed for item:', item, error);
+      failures.push(item);
     }
   }
-
-  const options = {
-    body: data.body,
-    icon: data.icon || '/icons/icon-192x192.png',
-    badge: data.badge || '/icons/badge-72x72.png',
-    vibrate: [200, 100, 200],
-    data: data.data || {},
-    actions: data.actions || [],
-    tag: data.tag || 'general',
-    requireInteraction: data.requireInteraction || false,
-    renotify: true,
-    silent: false
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
-});
-
-// Notification click handling
-self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.notification.tag);
-  event.notification.close();
-
-  const urlToOpen = event.notification.data?.url || '/';
   
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((windowClients) => {
-        // Check if there's already a window/tab open
-        for (const client of windowClients) {
-          if (client.url === urlToOpen && 'focus' in client) {
-            return client.focus();
-          }
-        }
-        // Open new window if needed
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
-        }
-      })
-  );
-});
-
-// Notification action handling
-self.addEventListener('notificationclick', (event) => {
-  const action = event.action;
-  
-  if (action === 'view') {
-    // Handle view action
-    clients.openWindow(event.notification.data.url);
-  } else if (action === 'remind-later') {
-    // Schedule a reminder for later
-    setTimeout(() => {
-      self.registration.showNotification(event.notification.title, {
-        ...event.notification,
-        tag: event.notification.tag + '-reminder'
+  // Update queue by removing successful items
+  if (successes.length > 0) {
+    offlineQueue = offlineQueue.filter(item => !successes.includes(item));
+    localStorage.setItem('offline-queue', JSON.stringify(offlineQueue));
+    
+    // Notify clients about successful sync
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'SYNC_SUCCESS',
+        tag: syncTag,
+        count: successes.length
       });
-    }, 60 * 60 * 1000); // 1 hour later
-  } else if (action === 'snooze') {
-    // Snooze for 30 minutes
-    setTimeout(() => {
-      self.registration.showNotification(event.notification.title, {
-        ...event.notification,
-        tag: event.notification.tag + '-snoozed'
-      });
-    }, 30 * 60 * 1000);
+    });
   }
   
-  event.notification.close();
-});
+  console.log(`[SW] Sync completed - Success: ${successes.length}, Failed: ${failures.length}`);
+}
 
-// Message handling for client communication
-self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
-  
-  if (event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  } else if (event.data.type === 'CACHE_URLS') {
-    event.waitUntil(
-      caches.open(CACHE_NAMES.DYNAMIC).then((cache) => {
-        return cache.addAll(event.data.urls);
-      })
-    );
-  } else if (event.data.type === 'CLEAR_CACHE') {
-    event.waitUntil(
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter(cacheName => cacheName.startsWith(CACHE_PREFIX))
-            .map(cacheName => caches.delete(cacheName))
-        );
-      })
-    );
-  } else if (event.data.type === 'CACHE_SIZE') {
-    event.waitUntil(
-      calculateCacheSize().then(size => {
-        event.ports[0].postMessage({ size });
-      })
-    );
-  }
-});
-
-// Calculate cache size
-async function calculateCacheSize() {
-  let totalSize = 0;
-  const cacheNames = await caches.keys();
+async function cleanExpiredCaches() {
+  const cacheNames = [API_CACHE, DYNAMIC_CACHE, IMAGE_CACHE];
   
   for (const cacheName of cacheNames) {
-    const cache = await caches.open(cacheName);
-    const requests = await cache.keys();
-    
-    for (const request of requests) {
-      const response = await cache.match(request);
-      if (response) {
-        const blob = await response.blob();
-        totalSize += blob.size;
-      }
-    }
-  }
-  
-  return totalSize;
-}
-
-// Periodic Background Sync (if supported)
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'update-data') {
-    event.waitUntil(updateCachedData());
-  } else if (event.tag === 'cleanup-cache') {
-    event.waitUntil(cleanupOldCache());
-  }
-});
-
-// Update cached data periodically
-async function updateCachedData() {
-  try {
-    const cache = await caches.open(CACHE_NAMES.API);
-    
-    for (const route of API_CACHE_ROUTES) {
-      try {
-        const response = await fetch(route);
-        if (response.ok) {
-          await cache.put(route, response);
-        }
-      } catch (error) {
-        console.error(`[SW] Failed to update ${route}:`, error);
-      }
-    }
-  } catch (error) {
-    console.error('[SW] Periodic data update failed:', error);
-  }
-}
-
-// Clean up old cache entries
-async function cleanupOldCache() {
-  try {
-    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-    const cacheNames = await caches.keys();
-    
-    for (const cacheName of cacheNames) {
+    try {
       const cache = await caches.open(cacheName);
       const requests = await cache.keys();
       
       for (const request of requests) {
         const response = await cache.match(request);
-        if (response) {
-          const dateHeader = response.headers.get('date');
-          if (dateHeader) {
-            const responseDate = new Date(dateHeader);
-            if (Date.now() - responseDate.getTime() > maxAge) {
+        if (response && isExpired(response)) {
               await cache.delete(request);
-            }
-          }
         }
       }
+    } catch (error) {
+      console.error('[SW] Error cleaning cache:', cacheName, error);
     }
-  } catch (error) {
-    console.error('[SW] Cache cleanup failed:', error);
   }
 }
 
-// Handle share target
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+async function updateCaches() {
+  console.log('[SW] Updating caches...');
   
-  if (url.pathname === '/share' && event.request.method === 'POST') {
-    event.respondWith(handleShare(event.request));
-  }
-});
-
-async function handleShare(request) {
-  const formData = await request.formData();
-  const title = formData.get('title');
-  const text = formData.get('text');
-  const url = formData.get('url');
-  const file = formData.get('file');
+  // Clear old caches
+  await clearAllCaches();
   
-  // Store shared data for processing
-  const cache = await caches.open('shared-data');
-  await cache.put('/shared-item', new Response(JSON.stringify({
-    title,
-    text,
-    url,
-    hasFile: !!file
-  })));
+  // Re-cache static assets
+  const cache = await caches.open(CACHE_NAME);
+  await cache.addAll(STATIC_ASSETS);
   
-  // Redirect to appropriate page
-  return Response.redirect('/documents?shared=true', 303);
+  console.log('[SW] Caches updated successfully');
 }
+
+async function clearAllCaches() {
+  const cacheNames = await caches.keys();
+  await Promise.all(cacheNames.map(name => caches.delete(name)));
+}
+
+// Performance monitoring
+console.log('[SW] Service Worker v3.0.0 loaded successfully');
+console.log('[SW] Cache strategy: Static (cache-first), API (network-first), Images (cache-first), Dynamic (stale-while-revalidate)');
+console.log('[SW] Background sync enabled for: payments, agreements, maintenance, customers, vehicles, documents');
+console.log('[SW] Push notifications enabled');
+console.log('[SW] Offline queue enabled');

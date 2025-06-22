@@ -25,7 +25,8 @@ import {
   MapPin,
   Clock,
   Shield,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LegalAIService, LegalLetterRequest } from '@/services/LegalAIService';
@@ -75,7 +76,7 @@ const AILegalLetterGenerator = () => {
   });
 
   // Hooks for data fetching
-  const { customers, isLoading: loadingCustomers } = useCustomers();
+  const { customers, isLoading: loadingCustomers, error, refreshCustomers } = useCustomers();
 
   // Legal AI Service
   const legalAIService = new LegalAIService();
@@ -595,33 +596,102 @@ const AILegalLetterGenerator = () => {
           </CardHeader>
           <CardContent className="space-y-4">
               <div className="space-y-2">
+                <div className="flex items-center justify-between">
                 <Label htmlFor="customer">العميل</Label>
-                <Select onValueChange={handleCustomerChange} disabled={loadingCustomers}>
-                  <SelectTrigger className="text-right" dir="rtl">
-                    <SelectValue placeholder={loadingCustomers ? "جاري التحميل..." : "اختر العميل"} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await refreshCustomers();
+                        toast.success('تم تحديث قائمة العملاء');
+                      } catch (error) {
+                        toast.error('فشل في تحديث قائمة العملاء');
+                      }
+                    }}
+                    disabled={loadingCustomers}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loadingCustomers ? 'animate-spin' : ''}`} />
+                    تحديث
+                  </Button>
+                </div>
+                
+                {/* Error State */}
+                {error && !loadingCustomers && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="text-sm font-medium">خطأ في تحميل العملاء</span>
+                    </div>
+                    <p className="text-sm text-red-600 mt-1">
+                      {error?.message || 'حدث خطأ غير معروف'}
+                    </p>
+                  </div>
+                )}
+
+                <Select 
+                  onValueChange={handleCustomerChange} 
+                  disabled={loadingCustomers}
+                  value={selectedCustomer?.id || ''}
+                >
+                  <SelectTrigger className="text-right h-12" dir="rtl">
+                    <SelectValue 
+                      placeholder={
+                        loadingCustomers 
+                          ? "جاري تحميل العملاء..." 
+                          : (!customers || customers.length === 0)
+                            ? "لا توجد عملاء متاحين - اضغط تحديث"
+                            : "اختر العميل من القائمة"
+                      } 
+                    />
                   </SelectTrigger>
-                  <SelectContent className="text-right" dir="rtl">
-                    {customers?.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id || ''} className="text-right">
-                        <div className="flex flex-col text-right">
-                          <span className="text-right">{customer.full_name || 'اسم غير محدد'}</span>
-                          <span className="text-sm text-gray-500 text-right phone-number">
+                  <SelectContent className="text-right max-h-60" dir="rtl">
+                    {customers && customers.length > 0 ? (
+                      customers.map((customer) => (
+                        <SelectItem 
+                          key={customer.id || Math.random()} 
+                          value={customer.id || ''} 
+                          className="text-right cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex flex-col text-right w-full py-1">
+                            <span className="font-medium text-gray-900">
+                              {customer.full_name || 'اسم غير محدد'}
+                            </span>
+                            <span className="text-sm text-gray-500 ltr-text" dir="ltr">
                             {customer.phone || 'رقم غير محدد'}
                           </span>
+                            {customer.email && (
+                              <span className="text-xs text-gray-400 ltr-text" dir="ltr">
+                                {customer.email}
+                              </span>
+                            )}
                         </div>
                       </SelectItem>
-                    ))}
+                      ))
+                    ) : !loadingCustomers ? (
+                      <SelectItem value="no-customers" disabled>
+                        لا توجد عملاء متاحين
+                      </SelectItem>
+                    ) : null}
                   </SelectContent>
                 </Select>
-                {customers && customers.length > 0 && (
-                  <p className="text-sm text-green-600 text-right">
-                    تم العثور على {customers.length} عميل
-                  </p>
-                )}
+
+                {/* Loading State */}
                 {loadingCustomers && (
-                  <p className="text-sm text-blue-600 text-right">
+                  <div className="flex items-center gap-2 text-blue-600 text-sm">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
                     جاري تحميل العملاء...
-                  </p>
+                  </div>
+                )}
+
+                {/* Success State */}
+                {customers && customers.length > 0 && !loadingCustomers && !error && (
+                  <div className="flex items-center gap-2 text-green-600 text-sm">
+                    <CheckCircle className="h-4 w-4" />
+                    تم العثور على {customers.length} عميل
+                  </div>
                 )}
               </div>
 

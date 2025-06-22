@@ -246,9 +246,9 @@ const ActivityPage = () => {
           <CardHeader>
             <CardTitle className="text-right flex items-center justify-between flex-row-reverse">
               <div className="flex items-center gap-2 flex-row-reverse">
-                <Badge variant="secondary" className="text-right">
-                  {activities.length} نشاط
-                </Badge>
+              <Badge variant="secondary" className="text-right">
+                {activities.length} نشاط
+              </Badge>
                 <button
                   onClick={() => {
                     loadSystemActivities();

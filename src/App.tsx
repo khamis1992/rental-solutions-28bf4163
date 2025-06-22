@@ -13,9 +13,7 @@ import { getRetryConfig } from "./lib/api/retry-utils";
 import { useIsMobile } from "./hooks/use-mobile";
 
 // PWA Components
-import { InstallPrompt } from "./components/pwa/InstallPrompt";
-import { OfflineIndicator } from "./components/pwa/OfflineIndicator";
-import { UpdatePrompt } from "./components/pwa/UpdatePrompt";
+import { PWAController } from "./components/pwa/PWAController";
 
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
@@ -235,9 +233,14 @@ function App() {
                   <NotificationProvider>
                     <TooltipProvider>
                       {/* PWA Components */}
-                      <OfflineIndicator />
-                      <InstallPrompt />
-                      <UpdatePrompt />
+                      <PWAController 
+                        enableSmartBanner={true}
+                        enableEnhancedPrompt={true}
+                        bannerPosition="top"
+                        bannerTheme="premium"
+                        enableNotifications={true}
+                        enableOfflineSync={true}
+                      />
                       
                       <Toaster />
                       <Sonner />

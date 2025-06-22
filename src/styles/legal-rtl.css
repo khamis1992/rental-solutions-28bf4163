@@ -270,10 +270,13 @@
 /* تنسيق أرقام الهواتف - يجب أن تكون LTR */
 .legal-rtl .phone-number,
 .legal-rtl [data-phone],
-.legal-rtl .customer-phone {
+.legal-rtl .customer-phone,
+.ltr-text {
   direction: ltr !important;
   unicode-bidi: embed;
-  text-align: right;
+  text-align: left !important;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
 }
 
 /* تنسيق أرقام اللوحات والأرقام الأخرى */
