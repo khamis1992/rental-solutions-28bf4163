@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -255,7 +254,6 @@ function App() {
             </AuthProvider>
           </LanguageProvider>
         </BrowserRouter>
-        <DocumentationToggleButton />
       </QueryClientProvider>
     </DocumentationModeProvider>
   );
