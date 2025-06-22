@@ -232,10 +232,11 @@ function App() {
                 <SettingsProvider>
                   <NotificationProvider>
                     <TooltipProvider>
-                      {/* PWA Components */}
+                      {/* Enhanced PWA Components */}
                       <PWAController 
                         enableSmartBanner={true}
                         enableEnhancedPrompt={true}
+                        enableUpdatePrompt={true}
                         bannerPosition="top"
                         bannerTheme="premium"
                         enableNotifications={true}

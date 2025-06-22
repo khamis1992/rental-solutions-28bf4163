@@ -1,51 +1,62 @@
 
 import React from 'react';
-import { Menu, X } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
-import { useLanguage } from '@/contexts/LanguageContext';
+import { Bell, Settings, User, Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { InstallButton } from '@/components/pwa/InstallButton';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
-  onToggleSidebar?: () => void;
-  isSidebarOpen?: boolean;
+  onMenuClick?: () => void;
+  showMenuButton?: boolean;
 }
 
-const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
-  const isMobile = useIsMobile();
-  const { language } = useLanguage();
+export const Header: React.FC<HeaderProps> = ({
+  onMenuClick,
+  showMenuButton = false
+}) => {
+  const { user } = useAuth();
 
   return (
-    <header className="w-full h-16 px-4 md:px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
-      {/* Mobile menu button - left side */}
-      {isMobile && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="md:hidden" 
-          onClick={onToggleSidebar}
-        >
-          {isSidebarOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
+    <header className="bg-white border-b border-gray-200 px-4 py-3" dir="rtl">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {showMenuButton && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onMenuClick}
+              className="md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
           )}
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
-      )}
+          
+          <h1 className="text-xl font-bold text-gray-900">
+            نظام العارف للتأجير
+          </h1>
+        </div>
 
-      {/* Spacer for mobile */}
-      <div className="flex-1 md:hidden" />
-
-      {/* Branding - always on the far right */}
-      <div className="flex items-center gap-2" dir="ltr">
-        <div className="font-medium text-lg">Rental Solutions</div>
-        <div className="h-10 w-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-semibold text-xl">
-          RS
+        <div className="flex items-center gap-2">
+          {/* PWA Install Button */}
+          <InstallButton 
+            variant="outline" 
+            size="sm"
+            className="hidden sm:flex"
+          />
+          
+          <Button variant="ghost" size="sm">
+            <Bell className="h-5 w-5" />
+          </Button>
+          
+          <Button variant="ghost" size="sm">
+            <Settings className="h-5 w-5" />
+          </Button>
+          
+          <Button variant="ghost" size="sm">
+            <User className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     </header>
   );
 };
-
-export default Header;
