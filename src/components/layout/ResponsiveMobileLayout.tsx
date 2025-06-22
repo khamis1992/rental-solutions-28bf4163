@@ -69,43 +69,6 @@ export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
     return location.pathname.startsWith(path);
   };
 
-  const MobileHeader = () => (
-    <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-      <div 
-        className="flex items-center justify-between px-4 py-3"
-        style={{ paddingTop: 'calc(12px + var(--safe-area-top, 0px))' }}
-      >
-        <div className="flex items-center gap-3">
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/20 touch-friendly"
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-80 p-0" dir="rtl">
-              <MobileSidebar />
-            </SheetContent>
-          </Sheet>
-          
-          <div className="text-right">
-            <h1 className="text-lg font-bold">نظام العارف</h1>
-            <p className="text-xs text-blue-100">إدارة تأجير السيارات</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">
-            {breakpoint}
-          </Badge>
-        </div>
-      </div>
-    </header>
-  );
-
   const MobileSidebar = () => (
     <div className="flex flex-col h-full bg-white" dir="rtl">
       <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
@@ -189,17 +152,34 @@ export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
     </nav>
   );
 
-  // Mobile layout
-  if (isMobile) {
+  // Mobile layout - NO HEADER, only content and bottom nav
+  if (isMobile || breakpoint === 'tablet') {
     return (
       <div className="min-h-screen bg-gray-50">
-        <MobileHeader />
+        {/* Hidden sidebar that can be opened via floating menu button */}
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <div className="fixed top-4 right-4 z-50">
+            <SheetTrigger asChild>
+              <Button
+                variant="default"
+                size="sm"
+                className="rounded-full shadow-lg bg-blue-600 hover:bg-blue-700"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+          </div>
+          <SheetContent side="right" className="w-80 p-0" dir="rtl">
+            <MobileSidebar />
+          </SheetContent>
+        </Sheet>
         
         <main 
           className="px-4 py-4"
           style={{ 
             paddingBottom: showBottomNav ? 'calc(80px + var(--safe-area-bottom, 0px))' : 'var(--safe-area-bottom, 0px)',
-            minHeight: 'calc(100vh - 70px)'
+            paddingTop: 'calc(16px + var(--safe-area-top, 0px))',
+            minHeight: '100vh'
           }}
         >
           <div className="max-w-full mx-auto">
@@ -212,7 +192,7 @@ export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
     );
   }
 
-  // Desktop layout
+  // Desktop layout - keep headers
   return (
     <div className="min-h-screen bg-gray-50">
       {header}
@@ -289,4 +269,4 @@ export const ResponsiveContainer: React.FC<{
       {children}
     </div>
   );
-}; 
+};
