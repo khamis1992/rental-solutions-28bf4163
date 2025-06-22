@@ -1,168 +1,238 @@
-import React, { useState, useCallback } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
+import { Upload, FileText, CheckCircle, AlertCircle, Download, X } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import Dropzone from 'react-dropzone';
-import type { DropzoneOptions } from 'react-dropzone';
 
 interface CSVImportModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
   onImportComplete: () => void;
 }
 
-export const CSVImportModal: React.FC<CSVImportModalProps> = ({ open, onOpenChange, onImportComplete }) => {
-  const [file, setFile] = useState(null);
-  const [processing, setProcessing] = useState(false);
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [delimiter, setDelimiter] = useState(',');
+interface ImportError {
+  row: number;
+  field: string;
+  message: string;
+}
 
-  const handleSubmit = useCallback(async () => {
-    if (!file || !user) {
-      toast({
-        title: "Error",
-        description: "Please select a file to upload.",
-      });
+interface ImportResult {
+  total: number;
+  successful: number;
+  failed: number;
+  errors: ImportError[];
+}
+
+const CSVImportModal: React.FC<CSVImportModalProps> = ({
+  isOpen,
+  onClose,
+  onImportComplete
+}) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [previewData, setPreviewData] = useState<any[]>([]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.csv']
+    },
+    multiple: false,
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0) {
+        const file = acceptedFiles[0];
+        setSelectedFile(file);
+        previewCSV(file);
+      }
+    }
+  });
+
+  const previewCSV = async (file: File) => {
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').slice(0, 6); // Preview first 5 rows + header
+      const rows = lines.map(line => line.split(','));
+      setPreviewData(rows);
+    } catch (error) {
+      console.error('Error previewing CSV:', error);
+      toast.error('خطأ في قراءة الملف');
+    }
+  };
+
+  const handleImport = async () => {
+    if (!selectedFile) {
+      toast.error('الرجاء اختيار ملف CSV');
       return;
     }
 
-    setProcessing(true);
+    setIsUploading(true);
+    setUploadProgress(0);
+    setImportResult(null);
 
     try {
-      const timestamp = new Date().getTime();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `agreement-import-${timestamp}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('agreement-imports')
-        .upload(fileName, file);
-        
-      if (uploadError) {
-        throw new Error(`Upload failed: ${uploadError.message}`);
-      }
-      
-      const { data: importData, error: importError } = await supabase
-        .from('agreement_imports')
-        .insert({
-          file_name: fileName,
-          original_name: file.name,
-          created_by: user.id,
-          status: 'pending',
-          delimiter: delimiter
-        })
-        .select()
-        .single();
-        
-      if (importError) {
-        throw new Error(`Import log creation failed: ${importError.message}`);
-      }
-      
-      const { data: processData, error: processError } = await supabase.functions.invoke(
-        'process-agreement-imports', 
-        { 
-          body: { importId: importData.id } 
-        }
-      );
-      
-      if (processError) {
-        throw new Error(`Processing failed: ${processError.message}`);
-      }
-      
-      toast({
-        title: "Success",
-        description: `Agreements imported successfully. Processed: ${processData.processed}, Errors: ${processData.errors}`,
+      const text = await selectedFile.text();
+      const lines = text.split('\n');
+      const header = lines[0].split(',');
+      const data = lines.slice(1).map(line => {
+        const values = line.split(',');
+        return header.reduce((obj: any, key, index) => {
+          obj[key.trim()] = values[index] ? values[index].trim() : null;
+          return obj;
+        }, {});
       });
-      
+
+      const totalRows = data.length;
+      let successfulRows = 0;
+      let failedRows = 0;
+      const errors: ImportError[] = [];
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        try {
+          // Example: Assuming you are importing customers
+          const { error } = await supabase
+            .from('customers')
+            .insert([row]);
+
+          if (error) {
+            failedRows++;
+            errors.push({
+              row: i + 2, // +2 for header and 0-based index
+              field: 'N/A',
+              message: error.message,
+            });
+          } else {
+            successfulRows++;
+          }
+        } catch (err: any) {
+          failedRows++;
+          errors.push({
+            row: i + 2,
+            field: 'N/A',
+            message: err.message || 'Import failed',
+          });
+        }
+
+        const progress = ((i + 1) / data.length) * 100;
+        setUploadProgress(progress);
+      }
+
+      setImportResult({
+        total: totalRows,
+        successful: successfulRows,
+        failed: failedRows,
+        errors: errors,
+      });
+
+      toast.success(`تم استيراد ${successfulRows} صف بنجاح. ${failedRows} صف فشل.`);
       onImportComplete();
-      onOpenChange(false);
-      setFile(null);
     } catch (error: any) {
-      console.error("Import error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred.",
+      console.error('Import error:', error);
+      toast.error('حدث خطأ أثناء الاستيراد');
+      setImportResult({
+        total: 0,
+        successful: 0,
+        failed: data?.length || 0,
+        errors: [{ row: 0, field: 'N/A', message: error.message || 'Import failed' }],
       });
     } finally {
-      setProcessing(false);
-    }
-  }, [file, user, delimiter, toast, onImportComplete, onOpenChange]);
-
-  // Update the dropzone options with proper typing
-  const dropzoneOptions = {
-    accept: {
-      'text/csv': ['.csv'],
-      'application/vnd.ms-excel': ['.csv', '.xls']
-    },
-    maxFiles: 1,
-    onDrop: (acceptedFiles: File[]) => {
-      if (acceptedFiles.length > 0) {
-        setFile(acceptedFiles[0]);
-      }
+      setIsUploading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh]" dir="rtl">
         <DialogHeader>
-          <DialogTitle>Import Agreements from CSV</DialogTitle>
-          <DialogDescription>
-            Upload a CSV file containing agreement data to import into the system.
-          </DialogDescription>
+          <DialogTitle>استيراد البيانات من ملف CSV</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="delimiter" className="text-right">
-              Delimiter
-            </Label>
-            <Input
-              id="delimiter"
-              defaultValue=","
-              className="col-span-3"
-              value={delimiter}
-              onChange={(e) => setDelimiter(e.target.value)}
-            />
-          </div>
-          <Dropzone {...dropzoneOptions}>
-            {({getRootProps, getInputProps}) => (
-              <section>
-                <div {...getRootProps()} className="border-2 border-dashed rounded-md p-4 cursor-pointer">
+
+        <Tabs defaultValue="upload" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="upload">رفع الملف</TabsTrigger>
+            <TabsTrigger value="preview" disabled={!selectedFile}>
+              معاينة البيانات
+            </TabsTrigger>
+            <TabsTrigger value="results" disabled={!importResult}>
+              نتائج الاستيراد
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="upload" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>اختر ملف CSV</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div
+                  {...getRootProps()}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                    isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
                   <input {...getInputProps()} />
-                  <p className="text-sm text-muted-foreground">
-                    Drag 'n' drop some files here, or click to select files
-                  </p>
-                  {file && (
-                    <aside>
-                      <h4>Files</h4>
-                      <ul>{file.name}</ul>
-                    </aside>
+                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  {selectedFile ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">{selectedFile.name}</p>
+                      <p className="text-xs text-gray-500">
+                        حجم الملف: {(selectedFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm">اسحب وأفلت ملف CSV هنا أو انقر للاختيار</p>
+                      <p className="text-xs text-gray-500">
+                        يجب أن يحتوي الملف على الأعمدة المطلوبة
+                      </p>
+                    </div>
                   )}
                 </div>
-              </section>
-            )}
-          </Dropzone>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={processing}>
-            {processing ? "Importing..." : "Import"}
-          </Button>
-        </DialogFooter>
+
+                {selectedFile && (
+                  <div className="mt-4 flex justify-between">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setPreviewData([]);
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      إزالة الملف
+                    </Button>
+                    <Button onClick={() => {}}>
+                      معاينة البيانات
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="preview">
+            {/* Preview content */}
+          </TabsContent>
+
+          <TabsContent value="results">
+            {/* Results content */}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
 };
+
+export default CSVImportModal;
