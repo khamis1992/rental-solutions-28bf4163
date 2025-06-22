@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Download, Smartphone } from 'lucide-react';
+import { Download, Smartphone, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -63,21 +63,17 @@ export const InstallButton: React.FC<InstallButtonProps> = ({
         const { outcome } = await deferredPrompt.userChoice;
         
         if (outcome === 'accepted') {
-          toast.success('تم تثبيت التطبيق بنجاح!');
+          toast.success('تم تثبيت التطبيق بنجاح!', {
+            description: 'يمكنك الآن الوصول للتطبيق من الشاشة الرئيسية'
+          });
           setCanInstall(false);
         } else {
           toast.info('تم إلغاء تثبيت التطبيق');
         }
         setDeferredPrompt(null);
       } else {
-        // Show manual installation instructions
-        const instructions = isIOS 
-          ? 'للتثبيت على iOS:\n\n1. اضغط على زر المشاركة (↑) في أسفل الشاشة\n2. مرر لأسفل واختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة" لإكمال التثبيت'
-          : 'للتثبيت على أندرويد:\n\n1. اضغط على قائمة المتصفح (⋮)\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة" لإكمال التثبيت';
-        
-        if (confirm(instructions + '\n\nهل تريد المتابعة؟')) {
-          toast.success('اتبع التعليمات لتثبيت التطبيق');
-        }
+        // Show manual installation instructions with better UX
+        showInstallInstructions();
       }
     } catch (error) {
       console.error('Install error:', error);
@@ -87,7 +83,38 @@ export const InstallButton: React.FC<InstallButtonProps> = ({
     }
   };
 
-  if (!canInstall || isStandalone) return null;
+  const showInstallInstructions = () => {
+    const instructions = isIOS 
+      ? 'للتثبيت على iOS:\n\n1. اضغط على زر المشاركة (↑) في أسفل الشاشة\n2. مرر لأسفل واختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة" لإكمال التثبيت'
+      : 'للتثبيت على أندرويد:\n\n1. اضغط على قائمة المتصفح (⋮)\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة" لإكمال التثبيت';
+    
+    // Use a more user-friendly approach than alert
+    toast.info('تعليمات التثبيت', {
+      description: instructions.replace(/\n/g, ' '),
+      duration: 8000,
+      action: {
+        label: "فهمت",
+        onClick: () => {}
+      }
+    });
+  };
+
+  // Don't show if already installed
+  if (isStandalone) {
+    return (
+      <Button
+        variant="outline"
+        size={size}
+        className={`${className} opacity-50 cursor-default`}
+        disabled
+      >
+        <CheckCircle className="w-4 h-4 ml-1 text-green-600" />
+        مثبت بالفعل
+      </Button>
+    );
+  }
+
+  if (!canInstall) return null;
 
   return (
     <Button

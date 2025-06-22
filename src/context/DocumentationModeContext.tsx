@@ -1,39 +1,34 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+
+import React, { createContext, useContext, useState } from 'react';
 
 interface DocumentationModeContextType {
-  enabled: boolean;
-  toggle: () => void;
+  isDocumentationMode: boolean;
+  toggleDocumentationMode: () => void;
 }
 
-const DocumentationModeContext = createContext<DocumentationModeContextType | undefined>(undefined);
+const DocumentationModeContext = createContext<DocumentationModeContextType>({
+  isDocumentationMode: false,
+  toggleDocumentationMode: () => {},
+});
 
-export const useDocumentationMode = (): DocumentationModeContextType => {
+export const useDocumentationMode = () => {
   const context = useContext(DocumentationModeContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useDocumentationMode must be used within a DocumentationModeProvider');
   }
   return context;
 };
 
-interface DocumentationModeProviderProps {
-  children: ReactNode;
-}
+export const DocumentationModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isDocumentationMode, setIsDocumentationMode] = useState(false);
 
-export const DocumentationModeProvider = ({ children }: DocumentationModeProviderProps) => {
-  const [enabled, setEnabled] = useState<boolean>(false);
-  
-  const toggle = () => {
-    setEnabled(prev => !prev);
-  };
-
-  const value: DocumentationModeContextType = {
-    enabled,
-    toggle,
+  const toggleDocumentationMode = () => {
+    setIsDocumentationMode(prev => !prev);
   };
 
   return (
-    <DocumentationModeContext.Provider value={value}>
+    <DocumentationModeContext.Provider value={{ isDocumentationMode, toggleDocumentationMode }}>
       {children}
     </DocumentationModeContext.Provider>
   );
-}; 
+};
