@@ -147,32 +147,32 @@ const InteractiveChart: React.FC<InteractiveChartProps> = ({
   };
   
   const renderControls = () => (
-    <div className="flex flex-wrap items-center gap-4 mb-4">
+    <div className="flex flex-wrap items-center gap-4 mb-4" dir="rtl">
       {allowedChartTypes.length > 1 && (
-        <div className="flex items-center space-x-2">
-          <Label>Chart Type</Label>
+        <div className="flex items-center space-x-2 flex-row-reverse">
+          <Label className="text-right">نوع المخطط</Label>
           <Select
             value={chartType}
             onValueChange={(value) => setChartType(value as ChartType)}
           >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Chart Type" />
+            <SelectTrigger className="w-[140px] text-right" dir="rtl">
+              <SelectValue placeholder="نوع المخطط" />
             </SelectTrigger>
             <SelectContent>
               {allowedChartTypes.includes('bar') && (
-                <SelectItem value="bar">Bar Chart</SelectItem>
+                <SelectItem value="bar" className="text-right">مخطط الأعمدة</SelectItem>
               )}
               {allowedChartTypes.includes('line') && (
-                <SelectItem value="line">Line Chart</SelectItem>
+                <SelectItem value="line" className="text-right">مخطط الخطوط</SelectItem>
               )}
               {allowedChartTypes.includes('area') && (
-                <SelectItem value="area">Area Chart</SelectItem>
+                <SelectItem value="area" className="text-right">مخطط المساحة</SelectItem>
               )}
               {allowedChartTypes.includes('pie') && (
-                <SelectItem value="pie">Pie Chart</SelectItem>
+                <SelectItem value="pie" className="text-right">مخطط دائري</SelectItem>
               )}
               {allowedChartTypes.includes('radialBar') && (
-                <SelectItem value="radialBar">Radial Bar</SelectItem>
+                <SelectItem value="radialBar" className="text-right">مخطط شعاعي</SelectItem>
               )}
             </SelectContent>
           </Select>
@@ -180,33 +180,33 @@ const InteractiveChart: React.FC<InteractiveChartProps> = ({
       )}
       
       {(chartType === 'bar' || chartType === 'area' || chartType === 'line') && (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-row-reverse">
           <Switch
             checked={stackedView}
             onCheckedChange={setStackedView}
             id="stacked-mode"
           />
-          <Label htmlFor="stacked-mode">Stacked</Label>
+          <Label htmlFor="stacked-mode" className="text-right">مكدس</Label>
         </div>
       )}
       
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 flex-row-reverse">
         <Switch
           checked={showLegend}
           onCheckedChange={setShowLegend}
           id="show-legend"
         />
-        <Label htmlFor="show-legend">Show Legend</Label>
+        <Label htmlFor="show-legend" className="text-right">إظهار الوصف</Label>
       </div>
       
       {chartType === 'pie' && (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-row-reverse">
           <Switch
             checked={showPercentages}
             onCheckedChange={setShowPercentages}
             id="show-percentages"
           />
-          <Label htmlFor="show-percentages">Show Percentages</Label>
+          <Label htmlFor="show-percentages" className="text-right">إظهار النسب المئوية</Label>
         </div>
       )}
     </div>
@@ -214,21 +214,21 @@ const InteractiveChart: React.FC<InteractiveChartProps> = ({
   
   const renderFilters = () => (
     filters.length > 0 && (
-      <div className="flex flex-wrap items-center gap-4 mb-4">
+      <div className="flex flex-wrap items-center gap-4 mb-4" dir="rtl">
         {filters.map((filter) => (
-          <div key={filter.key} className="flex items-center space-x-2">
-            <Label>{filter.name}</Label>
+          <div key={filter.key} className="flex items-center space-x-2 flex-row-reverse">
+            <Label className="text-right">{filter.name}</Label>
             <Select
               value={selectedFilters[filter.key] || 'all'}
               onValueChange={(value) => handleFilterChange(filter.key, value)}
             >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder={`Select ${filter.name}`} />
+              <SelectTrigger className="w-[160px] text-right" dir="rtl">
+                <SelectValue placeholder={`اختر ${filter.name}`} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all" className="text-right">الكل</SelectItem>
                 {filter.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="text-right">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -438,22 +438,22 @@ const InteractiveChart: React.FC<InteractiveChartProps> = ({
     if (!showDataTable || filteredData.length === 0) return null;
     
     return (
-      <div className="mt-6 overflow-x-auto">
+      <div className="mt-6 overflow-x-auto" dir="rtl">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-muted">
-              <th className="p-2 text-left">{xAxisKey}</th>
+              <th className="p-2 text-right">{xAxisKey}</th>
               {series.map(s => (
-                <th key={s.key} className="p-2 text-left">{s.name}</th>
+                <th key={s.key} className="p-2 text-right">{s.name}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filteredData.map((item, index) => (
               <tr key={index} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
-                <td className="p-2 border-t">{item[xAxisKey]}</td>
+                <td className="p-2 border-t text-right">{item[xAxisKey]}</td>
                 {series.map(s => (
-                  <td key={s.key} className="p-2 border-t">
+                  <td key={s.key} className="p-2 border-t text-right">
                     {formatValue(s.key, item[s.key])}
                   </td>
                 ))}
@@ -466,10 +466,10 @@ const InteractiveChart: React.FC<InteractiveChartProps> = ({
   };
   
   return (
-    <Card>
+    <Card dir="rtl">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+        <CardTitle className="text-right">{title}</CardTitle>
+        {description && <CardDescription className="text-right">{description}</CardDescription>}
       </CardHeader>
       <CardContent>
         {renderControls()}
@@ -480,8 +480,8 @@ const InteractiveChart: React.FC<InteractiveChartProps> = ({
             {renderDataTable()}
           </>
         ) : (
-          <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-            No data available for the selected filters
+          <div className="flex items-center justify-center h-[400px] text-muted-foreground text-right" dir="rtl">
+            لا توجد بيانات متاحة للمرشحات المحددة
           </div>
         )}
       </CardContent>

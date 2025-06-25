@@ -11,9 +11,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const MaintenanceReport = () => {
   const { getAllRecords } = useMaintenance();
-  const [maintenanceData, setMaintenanceData] = useState([]);
+  const [maintenanceData, setMaintenanceData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -90,16 +90,16 @@ const MaintenanceReport = () => {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
   return (
-    <Card>
+    <Card dir="rtl">
       <CardHeader>
-        <CardTitle>Maintenance Analysis</CardTitle>
+        <CardTitle className="text-right">تحليل الصيانة</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="status">
+        <Tabs defaultValue="status" dir="rtl">
           <TabsList className="mb-4">
-            <TabsTrigger value="status">Status Distribution</TabsTrigger>
-            <TabsTrigger value="type">Maintenance Types</TabsTrigger>
-            <TabsTrigger value="cost">Cost Analysis</TabsTrigger>
+            <TabsTrigger value="status">توزيع الحالات</TabsTrigger>
+            <TabsTrigger value="type">أنواع الصيانة</TabsTrigger>
+            <TabsTrigger value="cost">تحليل التكاليف</TabsTrigger>
           </TabsList>
           
           <TabsContent value="status" className="space-y-4">
@@ -121,13 +121,13 @@ const MaintenanceReport = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`${value} records`, 'Count']} />
+                    <Tooltip formatter={(value) => [`${value} سجل`, 'العدد']} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No maintenance data available
+                  لا توجد بيانات صيانة متاحة
                 </div>
               )}
             </div>
@@ -149,14 +149,14 @@ const MaintenanceReport = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip formatter={(value) => [`${value}`, 'عدد السجلات']} />
                     <Legend />
-                    <Bar dataKey="count" fill="#8884d8" name="Number of Records" />
+                    <Bar dataKey="count" fill="#8884d8" name="عدد السجلات" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No maintenance data available
+                  لا توجد بيانات صيانة متاحة
                 </div>
               )}
             </div>
@@ -180,28 +180,27 @@ const MaintenanceReport = () => {
                     <YAxis />
                     <Tooltip 
                       formatter={(value) => {
-                        // Ensure value is a number before calling toFixed
-                        return [`$${typeof value === 'number' ? value.toFixed(2) : value}`, 'Cost'];
+                        return [`${typeof value === 'number' ? value.toFixed(2) : value} ر.ق`, 'التكلفة'];
                       }} 
                     />
                     <Legend />
-                    <Bar dataKey="cost" fill="#82ca9d" name="Total Cost" />
+                    <Bar dataKey="cost" fill="#82ca9d" name="إجمالي التكلفة" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No cost data available
+                  لا توجد بيانات تكلفة متاحة
                 </div>
               )}
             </div>
           </TabsContent>
         </Tabs>
         
-        <div className="mt-4 text-sm text-muted-foreground">
-          Total Records: {maintenanceData.length} | 
-          Completed: {maintenanceData.filter(item => item.status === MaintenanceStatus.COMPLETED).length} | 
-          In Progress: {maintenanceData.filter(item => item.status === MaintenanceStatus.IN_PROGRESS).length} | 
-          Scheduled: {maintenanceData.filter(item => item.status === MaintenanceStatus.SCHEDULED).length}
+        <div className="mt-4 text-sm text-muted-foreground text-right">
+          إجمالي السجلات: {maintenanceData.length} | 
+          مكتملة: {maintenanceData.filter(item => item.status === MaintenanceStatus.COMPLETED).length} | 
+          قيد التنفيذ: {maintenanceData.filter(item => item.status === MaintenanceStatus.IN_PROGRESS).length} | 
+          مجدولة: {maintenanceData.filter(item => item.status === MaintenanceStatus.SCHEDULED).length}
         </div>
       </CardContent>
     </Card>

@@ -48,10 +48,10 @@ const TrafficFineReport = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-6">
+      <div className="flex justify-center items-center p-6" dir="rtl">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading traffic fines data...</p>
+          <p className="text-sm text-muted-foreground">جاري تحميل بيانات المخالفات المرورية...</p>
         </div>
       </div>
     );
@@ -161,15 +161,15 @@ const TrafficFineReport = () => {
   const unassignedFinesList = finesToDisplay.filter(fine => !fine.customerId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Fines</p>
-                <h3 className="text-2xl font-bold mt-1">{totalFines}</h3>
+                <p className="text-sm font-medium text-muted-foreground text-right">إجمالي المخالفات</p>
+                <h3 className="text-2xl font-bold mt-1 text-right">{totalFines}</h3>
               </div>
               <AlertTriangle className="h-8 w-8 text-yellow-500" />
             </div>
@@ -179,8 +179,8 @@ const TrafficFineReport = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
-                <h3 className="text-2xl font-bold mt-1">{formatCurrency(totalAmount)}</h3>
+                <p className="text-sm font-medium text-muted-foreground text-right">إجمالي المبلغ</p>
+                <h3 className="text-2xl font-bold mt-1 text-right">{formatCurrency(totalAmount)}</h3>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
             </div>
@@ -190,8 +190,8 @@ const TrafficFineReport = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Assigned Fines</p>
-                <h3 className="text-2xl font-bold mt-1">{assignedFines}</h3>
+                <p className="text-sm font-medium text-muted-foreground text-right">مخالفات محددة</p>
+                <h3 className="text-2xl font-bold mt-1 text-right">{assignedFines}</h3>
               </div>
               <UserCheck className="h-8 w-8 text-blue-500" />
             </div>
@@ -201,8 +201,8 @@ const TrafficFineReport = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Unassigned Fines</p>
-                <h3 className="text-2xl font-bold mt-1">{unassignedFines}</h3>
+                <p className="text-sm font-medium text-muted-foreground text-right">مخالفات غير محددة</p>
+                <h3 className="text-2xl font-bold mt-1 text-right">{unassignedFines}</h3>
               </div>
               <User className="h-8 w-8 text-gray-500" />
             </div>
@@ -283,10 +283,10 @@ const TrafficFineReport = () => {
       {/* Traffic Fines Report */}
       <Card>
         <CardHeader>
-          <CardTitle>Traffic Fines Report</CardTitle>
-          <CardDescription>
-            {totalFines === 0 ? "No traffic fines found" : 
-            `Showing ${totalFines} traffic fine${totalFines !== 1 ? 's' : ''}`}
+          <CardTitle className="text-right">تقرير المخالفات المرورية</CardTitle>
+          <CardDescription className="text-right">
+            {totalFines === 0 ? "لم يتم العثور على مخالفات مرورية" : 
+            `عرض ${totalFines} مخالفة مرورية`}
           </CardDescription>
         </CardHeader>
         <CardContent>

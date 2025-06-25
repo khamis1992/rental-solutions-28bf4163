@@ -138,7 +138,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                     </DropdownMenu>
                   </TableCell>
                   <TableCell>{getStatusBadge(customer.status)}</TableCell>
-                  <TableCell>{customer.created_at ? new Date(customer.created_at).toLocaleDateString('ar-SA') : 'غير متوفر'}</TableCell>
+                  <TableCell>{customer.created_at && customer.created_at.trim() !== '' ? new Date(customer.created_at).toLocaleDateString('ar-QA') : 'غير متوفر'}</TableCell>
                   <TableCell><span className="phone-number-ltr" dir="ltr">{customer.phone_number || customer.phone || 'غير متوفر'}</span></TableCell>
                   <TableCell className="font-medium text-right">
                     <Link 

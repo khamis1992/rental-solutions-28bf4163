@@ -74,7 +74,7 @@ export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
       <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
         <div className="flex items-center justify-between">
           <div className="text-right">
-            <h2 className="text-xl font-bold">نظام العارف</h2>
+            <h2 className="text-xl font-bold">نظام العراف</h2>
             <p className="text-sm text-blue-100">إدارة شاملة</p>
           </div>
           <Button

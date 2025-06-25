@@ -1,9 +1,8 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { SmartInstallBanner } from './SmartInstallBanner';
-import { UpdatePrompt } from './UpdatePrompt';
 import { EnhancedInstallPrompt } from './EnhancedInstallPrompt';
-import { PWABanner } from './PWABanner';
+import { UpdatePrompt } from './UpdatePrompt';
+import { OfflineIndicator } from './OfflineIndicator';
 
 interface PWAControllerProps {
   enableSmartBanner?: boolean;
@@ -24,14 +23,29 @@ export const PWAController: React.FC<PWAControllerProps> = ({
   bannerPosition = 'top',
   bannerTheme = 'premium'
 }) => {
+  const [isBrowser, setIsBrowser] = useState(false);
+
+  useEffect(() => {
+    // Only run PWA features in browser environment
+    setIsBrowser(typeof window !== 'undefined');
+  }, []);
+
+  // Don't render PWA components during SSR
+  if (!isBrowser) {
+    return null;
+  }
+
   return (
     <>
-      {/* Smart Install Banner - Main PWA installation prompt */}
+      {/* Offline Indicator - Always show */}
+      <OfflineIndicator />
+
+      {/* Smart Install Banner - Main PWA installation prompt for mobile */}
       {enableSmartBanner && (
         <SmartInstallBanner 
           position={bannerPosition}
           theme={bannerTheme}
-          minEngagementScore={10}
+          minEngagementScore={1} // Very low threshold for immediate showing
         />
       )}
 
@@ -39,9 +53,6 @@ export const PWAController: React.FC<PWAControllerProps> = ({
       {enableEnhancedPrompt && (
         <EnhancedInstallPrompt />
       )}
-
-      {/* Simple PWA Banner - Fallback */}
-      <PWABanner />
 
       {/* Update Prompt - Handle app updates */}
       {enableUpdatePrompt && (

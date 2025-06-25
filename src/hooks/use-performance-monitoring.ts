@@ -28,7 +28,7 @@ export const usePerformanceMonitoring = (componentName: string) => {
     }
     
     // Send metrics to analytics in production
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       // Analytics service call here
       sendPerformanceMetric(metric);
     }

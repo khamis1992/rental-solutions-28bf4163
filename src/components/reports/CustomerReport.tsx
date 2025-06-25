@@ -100,7 +100,7 @@ const CustomerReport = () => {
   };
   
   if (isLoading) {
-    return <div className="flex justify-center items-center h-64">Loading customer data...</div>;
+    return <div className="flex justify-center items-center h-64" dir="rtl">جاري تحميل بيانات العملاء...</div>;
   }
 
   const CustomerStatusBadge = ({ status }: { status: string }) => {
@@ -110,17 +110,28 @@ const CustomerReport = () => {
       'blacklisted': 'bg-red-100 text-red-800',
       'pending_review': 'bg-purple-100 text-purple-800'
     };
+    
+    const getArabicStatus = (status: string) => {
+      switch (status) {
+        case 'active': return 'نشط';
+        case 'inactive': return 'غير نشط';
+        case 'blacklisted': return 'محظور';
+        case 'pending_review': return 'قيد المراجعة';
+        default: return status.replace('_', ' ');
+      }
+    };
+    
     return (
       <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
-        {status.replace('_', ' ')}
+        {getArabicStatus(status)}
       </Badge>
     );
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" dir="rtl">
       <div className="flex items-center mb-6">
-        <h2 className="text-xl font-bold">Customer Analytics Dashboard</h2>
+        <h2 className="text-xl font-bold text-right">لوحة تحليلات العملاء</h2>
       </div>
       
       <div className="mb-6">
@@ -129,34 +140,34 @@ const CustomerReport = () => {
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
-          title="Total Customers" 
+          title="إجمالي العملاء" 
           value={totalCustomers.toString()} 
           trend={newCustomers} 
-          trendLabel="new this month" 
+          trendLabel="جديد هذا الشهر" 
           icon={Users} 
           iconColor="text-blue-500" 
         />
         <StatCard 
-          title="New Customers" 
+          title="عملاء جدد" 
           value={newCustomers.toString()} 
           trend={Math.round(newCustomers / (totalCustomers || 1) * 100)} 
-          trendLabel="% of total" 
+          trendLabel="% من الإجمالي" 
           icon={UserPlus} 
           iconColor="text-green-500" 
         />
         <StatCard 
-          title="Active Customers" 
+          title="عملاء نشطون" 
           value={`${activeCustomers}`} 
           trend={Math.round(activeCustomers / (totalCustomers || 1) * 100)} 
-          trendLabel="% of total" 
+          trendLabel="% من الإجمالي" 
           icon={StarIcon} 
           iconColor="text-amber-500" 
         />
         <StatCard 
-          title="Retention Rate" 
+          title="معدل الاحتفاظ" 
           value={`${Math.round(activeCustomers / (totalCustomers || 1) * 100)}%`} 
           trend={5} 
-          trendLabel="vs last month" 
+          trendLabel="مقارنة بالشهر الماضي" 
           icon={Repeat2} 
           iconColor="text-indigo-500" 
         />
@@ -165,7 +176,7 @@ const CustomerReport = () => {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Customer Segments</CardTitle>
+            <CardTitle className="text-right">شرائح العملاء</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-80 flex items-center justify-center">
@@ -186,12 +197,12 @@ const CustomerReport = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`${value} customers`, 'Count']} />
+                    <Tooltip formatter={(value) => [`${value} عميل`, 'العدد']} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center text-gray-500">No segment data available</div>
+                <div className="text-center text-gray-500">لا توجد بيانات شرائح متاحة</div>
               )}
             </div>
           </CardContent>
@@ -199,7 +210,7 @@ const CustomerReport = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Rental Duration Distribution</CardTitle>
+            <CardTitle className="text-right">توزيع مدة الإيجار</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-80 flex items-center justify-center">
@@ -219,7 +230,7 @@ const CustomerReport = () => {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`${value} rentals`, 'Count']} />
+                  <Tooltip formatter={(value) => [`${value} إيجار`, 'العدد']} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -230,38 +241,38 @@ const CustomerReport = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Top Customers</CardTitle>
+          <CardTitle className="text-right">أفضل العملاء</CardTitle>
         </CardHeader>
         <CardContent>
           {topCustomers.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total Rentals</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead>Last Rental</TableHead>
-                  <TableHead>Rating</TableHead>
+                  <TableHead className="text-right">العميل</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
+                  <TableHead className="text-right">إجمالي الإيجارات</TableHead>
+                  <TableHead className="text-right">إجمالي الإنفاق</TableHead>
+                  <TableHead className="text-right">آخر إيجار</TableHead>
+                  <TableHead className="text-right">التقييم</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {topCustomers.map(customer => (
                   <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium text-right">{customer.name}</TableCell>
+                    <TableCell className="text-right">
                       <CustomerStatusBadge status={customer.status} />
                     </TableCell>
-                    <TableCell>{customer.totalRentals}</TableCell>
-                    <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
-                    <TableCell>{formatArabicDate(customer.lastRental, false)}</TableCell>
-                    <TableCell>{customer.rating}/5</TableCell>
+                    <TableCell className="text-right">{customer.totalRentals}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(customer.totalSpent)}</TableCell>
+                    <TableCell className="text-right">{formatArabicDate(customer.lastRental)}</TableCell>
+                    <TableCell className="text-right">{customer.rating}/5</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-4 text-gray-500">No customer data available</div>
+            <div className="text-center py-4 text-gray-500">لا توجد بيانات عملاء متاحة</div>
           )}
         </CardContent>
       </Card>

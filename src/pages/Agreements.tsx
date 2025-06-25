@@ -3,7 +3,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/ui/PageHeader';
 
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
-import { CSVImportModal } from '@/components/agreements/CSVImportModal';
+import CSVImportModal from '@/components/agreements/CSVImportModal';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 
 import { toast } from 'sonner';
@@ -118,7 +118,7 @@ const Agreements = () => {
       setSearchParams({});
     } else if (
       value === 'active' ||
-      value === 'closed' ||
+      value === 'completed' ||
       value === 'cancelled'
     ) {
       setSearchParams({ statuses: [value] });
@@ -246,7 +246,7 @@ const Agreements = () => {
               <TabsList className="justify-start">
                 <TabsTrigger value="agreements" className="text-right">جميع العقود</TabsTrigger>
                 <TabsTrigger value="active" className="text-right">نشطة</TabsTrigger>
-                <TabsTrigger value="closed" className="text-right">مغلقة</TabsTrigger>
+                <TabsTrigger value="completed" className="text-right">مكتملة</TabsTrigger>
                 <TabsTrigger value="cancelled" className="text-right">ملغاة</TabsTrigger>
                 <TabsTrigger value="history" className="text-right">سجل الاستيراد</TabsTrigger>
               </TabsList>
@@ -267,7 +267,7 @@ const Agreements = () => {
                 loadingText=""
               />
               <AgreementTabPanel
-                value="closed"
+                value="completed"
                 viewMode={viewMode}
                 agreements={agreements}
                 isLoading={isLoading}
@@ -297,8 +297,8 @@ const Agreements = () => {
       </div>
       
       <CSVImportModal 
-        open={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
         onImportComplete={handleImportComplete}
       />
     </PageContainer>

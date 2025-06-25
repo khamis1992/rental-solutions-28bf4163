@@ -5,12 +5,19 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 export const OfflineIndicator: React.FC = () => {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(true); // Default to online for SSR
   const [isRetrying, setIsRetrying] = useState(false);
   const [showReconnected, setShowReconnected] = useState(false);
+  const [isBrowser, setIsBrowser] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined') return;
+    
+    setIsBrowser(true);
+    setIsOnline(navigator.onLine);
+
     const handleOnline = () => {
       setIsOnline(true);
       setShowReconnected(true);
@@ -81,8 +88,8 @@ export const OfflineIndicator: React.FC = () => {
     }
   };
 
-  // Don't show anything if online and not showing reconnected message
-  if (isOnline && !showReconnected) {
+  // Don't render anything during SSR or if online and not showing reconnected message
+  if (!isBrowser || (isOnline && !showReconnected)) {
     return null;
   }
 

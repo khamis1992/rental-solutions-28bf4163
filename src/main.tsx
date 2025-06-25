@@ -87,7 +87,7 @@ const initPWAFeatures = () => {
     // Show success message
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('تم التثبيت بنجاح!', {
-        body: 'تطبيق العارف للتأجير متوفر الآن على شاشتك الرئيسية.',
+        body: 'تطبيق العراف للتأجير متوفر الآن على شاشتك الرئيسية.',
         icon: '/icons/icon-192x192.png'
       });
     }

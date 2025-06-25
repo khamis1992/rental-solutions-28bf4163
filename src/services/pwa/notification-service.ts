@@ -20,7 +20,7 @@ export interface NotificationOptions {
 export class NotificationService {
   private static instance: NotificationService;
   private permission: NotificationPermission = 'default';
-  private vapidPublicKey = process.env.VITE_VAPID_PUBLIC_KEY || '';
+  private vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
   private constructor() {
     this.permission = Notification.permission;

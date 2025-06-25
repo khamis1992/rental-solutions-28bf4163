@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Bell, Settings, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           
           <h1 className="text-xl font-bold text-gray-900">
-            نظام العارف للتأجير
+            نظام العراف للتأجير
           </h1>
         </div>
 

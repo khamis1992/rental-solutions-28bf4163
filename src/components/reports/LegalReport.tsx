@@ -92,11 +92,11 @@ const LegalReport = () => {
     .slice(0, 5);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Legal Case Status Distribution</CardTitle>
+            <CardTitle className="text-right">توزيع حالات القضايا القانونية</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-72">
@@ -116,7 +116,7 @@ const LegalReport = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value) => [`${value} قضية`, 'العدد']} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -126,7 +126,7 @@ const LegalReport = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Case Type Distribution</CardTitle>
+            <CardTitle className="text-right">توزيع أنواع القضايا</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-72">
@@ -135,9 +135,9 @@ const LegalReport = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip formatter={(value) => [`${value}`, 'عدد القضايا']} />
                   <Legend />
-                  <Bar dataKey="value" fill="#6366F1" name="Number of Cases" />
+                  <Bar dataKey="value" fill="#6366F1" name="عدد القضايا" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -147,44 +147,44 @@ const LegalReport = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Legal Cases</CardTitle>
+          <CardTitle className="text-right">القضايا القانونية الأخيرة</CardTitle>
         </CardHeader>
         <CardContent>
           {recentCases.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Case Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">العميل</TableHead>
+                  <TableHead className="text-right">نوع القضية</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
+                  <TableHead className="text-right">المبلغ</TableHead>
+                  <TableHead className="text-right">تاريخ الإنشاء</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentCases.map((item) => {
-                  const customerName = item.profiles?.full_name || 'Unknown Customer';
+                  const customerName = item.profiles?.full_name || 'عميل غير معروف';
                   const createdAt = new Date(item.created_at);
                   const timeAgo = formatDistance(createdAt, new Date(), { addSuffix: true });
                   
                   return (
                     <TableRow key={item.id}>
-                      <TableCell>{customerName}</TableCell>
-                      <TableCell>{item.case_type}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">{customerName}</TableCell>
+                      <TableCell className="text-right">{item.case_type}</TableCell>
+                      <TableCell className="text-right">
                         <StatusBadge status={item.status} />
                       </TableCell>
-                      <TableCell>
-                        {item.amount_owed ? formatCurrency(item.amount_owed) : 'N/A'}
+                      <TableCell className="text-right">
+                        {item.amount_owed ? formatCurrency(item.amount_owed) : 'غير محدد'}
                       </TableCell>
-                      <TableCell>{timeAgo}</TableCell>
+                      <TableCell className="text-right">{timeAgo}</TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-6 text-muted-foreground">No legal cases found</div>
+            <div className="text-center py-6 text-muted-foreground">لم يتم العثور على قضايا قانونية</div>
           )}
         </CardContent>
       </Card>

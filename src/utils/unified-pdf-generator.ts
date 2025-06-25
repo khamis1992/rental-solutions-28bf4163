@@ -493,11 +493,21 @@ export function createInfoCard(title: string, fields: { label: string; value: st
   `;
 }
 
-export function createSummaryCard(title: string, amount: number, type: 'positive' | 'negative' | 'warning' | 'neutral' = 'neutral'): string {
+export function createSummaryCard(title: string, amount: number, type: 'positive' | 'negative' | 'warning' | 'neutral' = 'neutral', isPercentage: boolean = false, isCount: boolean = false): string {
+  let displayAmount = '';
+  
+  if (isPercentage) {
+    displayAmount = `${amount.toFixed(1)}%`;
+  } else if (isCount) {
+    displayAmount = amount.toLocaleString();
+  } else {
+    displayAmount = `${formatCurrency(amount)} ر.ق`;
+  }
+  
   return `
     <div class="summary-card ${type}">
       <h4>${title}</h4>
-      <div class="amount">${formatCurrency(amount)} ر.ق</div>
+      <div class="amount">${displayAmount}</div>
     </div>
   `;
 }

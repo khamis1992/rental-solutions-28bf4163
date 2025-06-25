@@ -176,7 +176,7 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received:', event);
   
   const options = {
-    body: 'لديك تحديث جديد في نظام العارف للتأجير',
+    body: 'لديك تحديث جديد في نظام العراف للتأجير',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/badge-72x72.png',
     vibrate: [100, 50, 100],
@@ -203,11 +203,11 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     const data = event.data.json();
     options.body = data.body || options.body;
-    options.title = data.title || 'العارف للتأجير';
+    options.title = data.title || 'العراف للتأجير';
   }
   
   event.waitUntil(
-    self.registration.showNotification('العارف للتأجير', options)
+    self.registration.showNotification('العراف للتأجير', options)
   );
 });
 

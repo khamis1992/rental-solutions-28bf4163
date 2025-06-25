@@ -73,7 +73,7 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
       calendar: 'gregory' // ميلادي format
     };
     
-    return date.toLocaleDateString('ar-SA', options);
+    return date.toLocaleDateString('ar-QA', options);
   };
 
   const getStatusBadge = (status: string) => {
@@ -223,7 +223,7 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
                   <div className="flex items-center justify-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <span className="text-sm">
-                      {formatArabicDate(customer.created_at)}
+                      {customer.created_at ? formatArabicDate(customer.created_at) : 'غير محدد'}
                     </span>
                   </div>
                 </TableCell>

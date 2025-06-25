@@ -21,7 +21,7 @@ export const createVehicleKey = (vehicle: any, index: number): string => {
 
 // Helper function to suppress key warnings in development
 export const suppressKeyWarnings = () => {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     const originalWarn = console.warn;
     console.warn = (...args) => {
       // Suppress specific React key warnings

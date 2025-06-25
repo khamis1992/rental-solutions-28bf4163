@@ -43,14 +43,12 @@ interface MaintenanceScheduleItem {
   scheduled_date: string;
   description: string;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-  priority: 'low' | 'medium' | 'high';
   estimated_cost: number;
   service_provider?: string;
   notes?: string;
 }
 
 type StatusType = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-type PriorityType = 'low' | 'medium' | 'high';
 
 const MaintenanceSchedule = () => {
   const { language } = useLanguage();
@@ -63,7 +61,6 @@ const MaintenanceSchedule = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   
   // Form state
@@ -72,7 +69,6 @@ const MaintenanceSchedule = () => {
     maintenance_type: '',
     scheduled_date: new Date(),
     description: '',
-    priority: 'medium' as PriorityType,
     estimated_cost: 0,
     service_provider: '',
     notes: ''
@@ -106,7 +102,6 @@ const MaintenanceSchedule = () => {
               scheduled_date: record.scheduled_date || record.date_scheduled || '',
               description: record.description || '',
               status: (record.status as StatusType) || 'pending',
-              priority: (record.priority as PriorityType) || 'medium',
               estimated_cost: record.cost || 0,
               service_provider: record.service_provider || '',
               notes: record.notes || ''
@@ -147,12 +142,8 @@ const MaintenanceSchedule = () => {
       filtered = filtered.filter(item => item.status === statusFilter);
     }
     
-    if (priorityFilter !== 'all') {
-      filtered = filtered.filter(item => item.priority === priorityFilter);
-    }
-    
     setFilteredItems(filtered);
-  }, [searchTerm, statusFilter, priorityFilter, scheduleItems]);
+  }, [searchTerm, statusFilter, scheduleItems]);
 
   const handleAddSchedule = async () => {
     try {
@@ -180,7 +171,6 @@ const MaintenanceSchedule = () => {
         maintenance_type: '',
         scheduled_date: new Date(),
         description: '',
-        priority: 'medium',
         estimated_cost: 0,
         service_provider: '',
         notes: ''
@@ -210,7 +200,6 @@ const MaintenanceSchedule = () => {
                 scheduled_date: record.scheduled_date || record.date_scheduled || '',
                 description: record.description || '',
                 status: (record.status as StatusType) || 'pending',
-                priority: (record.priority as PriorityType) || 'medium',
                 estimated_cost: record.cost || 0,
                 service_provider: record.service_provider || '',
                 notes: record.notes || ''
@@ -238,22 +227,22 @@ const MaintenanceSchedule = () => {
       scheduled: { 
         label: language === 'ar' ? 'مجدول' : 'Scheduled', 
         variant: 'secondary',
-        icon: <Clock className="w-3 h-3" />
+        icon: <Clock className="w-2 h-2" />
       },
       in_progress: { 
         label: language === 'ar' ? 'قيد التنفيذ' : 'In Progress', 
         variant: 'default',
-        icon: <AlertCircle className="w-3 h-3" />
+        icon: <AlertCircle className="w-2 h-2" />
       },
       completed: { 
         label: language === 'ar' ? 'مكتمل' : 'Completed', 
         variant: 'default',
-        icon: <CheckCircle className="w-3 h-3" />
+        icon: <CheckCircle className="w-2 h-2" />
       },
       cancelled: { 
         label: language === 'ar' ? 'ملغي' : 'Cancelled', 
         variant: 'destructive',
-        icon: <XCircle className="w-3 h-3" />
+        icon: <XCircle className="w-2 h-2" />
       }
     };
     
@@ -261,7 +250,7 @@ const MaintenanceSchedule = () => {
     
     return (
       <Badge variant={config.variant} className={cn(
-        "flex items-center gap-1",
+        "flex items-center gap-1 text-xs px-2 py-1",
         language === 'ar' ? 'flex-row-reverse' : 'flex-row'
       )}>
         {language === 'ar' && config.icon}
@@ -271,41 +260,25 @@ const MaintenanceSchedule = () => {
     );
   };
 
-  const getPriorityBadge = (priority: PriorityType) => {
-    const priorityConfig: Record<PriorityType, { label: string; color: string }> = {
-      low: { label: language === 'ar' ? 'منخفض' : 'Low', color: 'bg-green-100 text-green-800' },
-      medium: { label: language === 'ar' ? 'متوسط' : 'Medium', color: 'bg-yellow-100 text-yellow-800' },
-      high: { label: language === 'ar' ? 'عالي' : 'High', color: 'bg-red-100 text-red-800' }
-    };
-    
-    const config = priorityConfig[priority];
-    
-    return (
-      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", config.color)}>
-        {config.label}
-      </span>
-    );
-  };
-
   return (
     <PageContainer systemDate={new Date()}>
       <PageHeader
         title={language === 'ar' ? 'جدولة الصيانة' : 'Maintenance Scheduling'}
         subtitle={language === 'ar' ? 'إدارة وتخطيط جدولة صيانة المركبات' : 'Manage and plan vehicle maintenance schedules'}
-        icon={<CalendarIcon className="w-6 h-6 text-blue-500" />}
+        icon={<CalendarIcon className="w-5 h-5 text-blue-500" />}
         align={language === 'ar' ? 'right' : 'left'}
         dir={language === 'ar' ? 'rtl' : 'ltr'}
       />
 
       {/* Filters and Actions */}
       <div className={cn(
-        "flex flex-col md:flex-row gap-4 mb-6",
+        "flex flex-col md:flex-row gap-3 mb-5",
         language === 'ar' ? 'md:flex-row-reverse' : ''
       )} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <div className="flex-1 flex gap-4">
+        <div className="flex-1 flex gap-3">
           <div className="relative flex-1">
             <Search className={cn(
-              "absolute top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400",
+              "absolute top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400",
               language === 'ar' ? 'right-3' : 'left-3'
             )} />
             <Input
@@ -313,14 +286,15 @@ const MaintenanceSchedule = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={cn(
-                language === 'ar' ? 'pr-10 text-right' : 'pl-10'
+                "h-10 text-sm",
+                language === 'ar' ? 'pr-9 text-right' : 'pl-9'
               )}
               dir={language === 'ar' ? 'rtl' : 'ltr'}
             />
           </div>
           
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+            <SelectTrigger className="w-36 h-10 text-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
               <SelectValue placeholder={language === 'ar' ? 'الحالة' : 'Status'} />
             </SelectTrigger>
             <SelectContent align={language === 'ar' ? 'start' : 'end'}>
@@ -331,47 +305,35 @@ const MaintenanceSchedule = () => {
               <SelectItem value="cancelled">{language === 'ar' ? 'ملغي' : 'Cancelled'}</SelectItem>
             </SelectContent>
           </Select>
-          
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-40" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-              <SelectValue placeholder={language === 'ar' ? 'الأولوية' : 'Priority'} />
-            </SelectTrigger>
-            <SelectContent align={language === 'ar' ? 'start' : 'end'}>
-              <SelectItem value="all">{language === 'ar' ? 'جميع الأولويات' : 'All Priorities'}</SelectItem>
-              <SelectItem value="high">{language === 'ar' ? 'عالي' : 'High'}</SelectItem>
-              <SelectItem value="medium">{language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
-              <SelectItem value="low">{language === 'ar' ? 'منخفض' : 'Low'}</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
         
-        <Button onClick={() => setShowAddForm(true)}>
-          <Plus className={cn("h-4 w-4", language === 'ar' ? 'ml-2' : 'mr-2')} />
+        <Button onClick={() => setShowAddForm(true)} className="h-10">
+          <Plus className={cn("h-3 w-3", language === 'ar' ? 'ml-2' : 'mr-2')} />
           {language === 'ar' ? 'إضافة جدولة' : 'Add Schedule'}
         </Button>
       </div>
 
       {/* Add Schedule Form */}
       {showAddForm && (
-        <Card className="mb-6">
+        <Card className="mb-5">
           <CardHeader>
             <CardTitle className={cn(
-              "flex items-center gap-2",
+              "flex items-center gap-2 text-lg",
               language === 'ar' ? 'flex-row-reverse text-right' : 'flex-row text-left'
             )} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-              {language === 'ar' && <Plus className="h-5 w-5" />}
+              {language === 'ar' && <Plus className="h-4 w-4" />}
               {language === 'ar' ? 'إضافة جدولة صيانة جديدة' : 'Add New Maintenance Schedule'}
-              {language !== 'ar' && <Plus className="h-5 w-5" />}
+              {language !== 'ar' && <Plus className="h-4 w-4" />}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3" dir={language === 'ar' ? 'rtl' : 'ltr'}>
               <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <Label className={cn("text-sm", language === 'ar' ? 'text-right' : 'text-left')}>
                   {language === 'ar' ? 'المركبة' : 'Vehicle'}
                 </Label>
                 <Select value={formData.vehicle_id} onValueChange={(value) => setFormData({ ...formData, vehicle_id: value })}>
-                  <SelectTrigger dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                  <SelectTrigger className="h-10 text-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                     <SelectValue placeholder={language === 'ar' ? 'اختر المركبة' : 'Select Vehicle'} />
                   </SelectTrigger>
                   <SelectContent align={language === 'ar' ? 'start' : 'end'}>
@@ -385,11 +347,11 @@ const MaintenanceSchedule = () => {
               </div>
               
               <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <Label className={cn("text-sm", language === 'ar' ? 'text-right' : 'text-left')}>
                   {language === 'ar' ? 'نوع الصيانة' : 'Maintenance Type'}
                 </Label>
                 <Select value={formData.maintenance_type} onValueChange={(value) => setFormData({ ...formData, maintenance_type: value })}>
-                  <SelectTrigger dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                  <SelectTrigger className="h-10 text-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                     <SelectValue placeholder={language === 'ar' ? 'اختر نوع الصيانة' : 'Select Type'} />
                   </SelectTrigger>
                   <SelectContent align={language === 'ar' ? 'start' : 'end'}>
@@ -403,20 +365,20 @@ const MaintenanceSchedule = () => {
               </div>
               
               <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <Label className={cn("text-sm", language === 'ar' ? 'text-right' : 'text-left')}>
                   {language === 'ar' ? 'التاريخ المجدول' : 'Scheduled Date'}
                 </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal h-10 text-sm",
                       language === 'ar' ? 'flex-row-reverse text-right' : 'flex-row text-left'
                     )} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                      {language === 'ar' && <CalendarIcon className="ml-2 h-4 w-4" />}
+                      {language === 'ar' && <CalendarIcon className="ml-2 h-3 w-3" />}
                       {formData.scheduled_date ? format(formData.scheduled_date, 'PPP', { locale: language === 'ar' ? ar : undefined }) : (
                         <span>{language === 'ar' ? 'اختر التاريخ' : 'Pick a date'}</span>
                       )}
-                      {language !== 'ar' && <CalendarIcon className="mr-2 h-4 w-4" />}
+                      {language !== 'ar' && <CalendarIcon className="mr-2 h-3 w-3" />}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align={language === 'ar' ? 'start' : 'end'}>
@@ -431,82 +393,66 @@ const MaintenanceSchedule = () => {
               </div>
               
               <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right' : 'text-left'}>
-                  {language === 'ar' ? 'الأولوية' : 'Priority'}
-                </Label>
-                <Select value={formData.priority} onValueChange={(value: PriorityType) => setFormData({ ...formData, priority: value })}>
-                  <SelectTrigger dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent align={language === 'ar' ? 'start' : 'end'}>
-                    <SelectItem value="low">{language === 'ar' ? 'منخفض' : 'Low'}</SelectItem>
-                    <SelectItem value="medium">{language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
-                    <SelectItem value="high">{language === 'ar' ? 'عالي' : 'High'}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <Label className={cn("text-sm", language === 'ar' ? 'text-right' : 'text-left')}>
                   {language === 'ar' ? 'التكلفة المقدرة (ريال)' : 'Estimated Cost (QAR)'}
                 </Label>
                 <Input
                   type="number"
                   value={formData.estimated_cost}
                   onChange={(e) => setFormData({ ...formData, estimated_cost: parseFloat(e.target.value) || 0 })}
-                  className={language === 'ar' ? 'text-right' : 'text-left'}
+                  className={cn("h-10 text-sm", language === 'ar' ? 'text-right' : 'text-left')}
                   dir={language === 'ar' ? 'rtl' : 'ltr'}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <Label className={cn("text-sm", language === 'ar' ? 'text-right' : 'text-left')}>
                   {language === 'ar' ? 'مقدم الخدمة' : 'Service Provider'}
                 </Label>
                 <Input
                   value={formData.service_provider}
                   onChange={(e) => setFormData({ ...formData, service_provider: e.target.value })}
                   placeholder={language === 'ar' ? 'اسم مقدم الخدمة' : 'Service provider name'}
-                  className={language === 'ar' ? 'text-right' : 'text-left'}
+                  className={cn("h-10 text-sm", language === 'ar' ? 'text-right' : 'text-left')}
                   dir={language === 'ar' ? 'rtl' : 'ltr'}
                 />
               </div>
               
               <div className="md:col-span-2 space-y-2">
-                <Label className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <Label className={cn("text-sm", language === 'ar' ? 'text-right' : 'text-left')}>
                   {language === 'ar' ? 'الوصف' : 'Description'}
                 </Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder={language === 'ar' ? 'تفاصيل الصيانة المطلوبة' : 'Details of required maintenance'}
-                  className={language === 'ar' ? 'text-right' : 'text-left'}
+                  className={cn("text-sm", language === 'ar' ? 'text-right' : 'text-left')}
                   dir={language === 'ar' ? 'rtl' : 'ltr'}
                 />
               </div>
               
               <div className="md:col-span-2 space-y-2">
-                <Label className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <Label className={cn("text-sm", language === 'ar' ? 'text-right' : 'text-left')}>
                   {language === 'ar' ? 'ملاحظات' : 'Notes'}
                 </Label>
                 <Textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder={language === 'ar' ? 'ملاحظات إضافية' : 'Additional notes'}
-                  className={language === 'ar' ? 'text-right' : 'text-left'}
+                  className={cn("text-sm", language === 'ar' ? 'text-right' : 'text-left')}
                   dir={language === 'ar' ? 'rtl' : 'ltr'}
                 />
               </div>
             </div>
             
             <div className={cn(
-              "flex gap-2 mt-6",
+              "flex gap-2 mt-5",
               language === 'ar' ? 'flex-row-reverse' : 'flex-row'
             )}>
-              <Button onClick={handleAddSchedule}>
+              <Button onClick={handleAddSchedule} className="h-10 text-sm">
                 {language === 'ar' ? 'حفظ' : 'Save'}
               </Button>
-              <Button variant="outline" onClick={() => setShowAddForm(false)}>
+              <Button variant="outline" onClick={() => setShowAddForm(false)} className="h-10 text-sm">
                 {language === 'ar' ? 'إلغاء' : 'Cancel'}
               </Button>
             </div>
@@ -515,94 +461,93 @@ const MaintenanceSchedule = () => {
       )}
 
       {/* Schedule Items */}
-      <div className="grid gap-4">
+      <div className="grid gap-3">
         {isLoading ? (
-          <div className="text-center py-8">
-            <div className="text-gray-500">
+          <div className="text-center py-6">
+            <div className="text-gray-500 text-sm">
               {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
             </div>
           </div>
         ) : filteredItems.length === 0 ? (
-          <Card className="p-8 text-center">
-            <CalendarIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <Card className="p-6 text-center">
+            <CalendarIcon className="mx-auto h-10 w-10 text-gray-400 mb-3" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {language === 'ar' ? 'لا توجد جدولة صيانة' : 'No maintenance schedules'}
             </h3>
-            <p className="text-gray-500">
+            <p className="text-gray-500 text-sm">
               {language === 'ar' ? 'لم يتم العثور على أي جدولة صيانة. أضف جدولة جديدة للبدء.' : 'No maintenance schedules found. Add a new schedule to get started.'}
             </p>
           </Card>
         ) : (
           filteredItems.map((item) => (
-            <Card key={item.id} className="p-4">
+            <Card key={item.id} className="p-3">
               <div className={cn(
                 "flex items-start justify-between",
                 language === 'ar' ? 'flex-row-reverse' : 'flex-row'
               )} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                 <div className="flex-1">
                   <div className={cn(
-                    "flex items-center gap-3 mb-2",
+                    "flex items-center gap-2 mb-2",
                     language === 'ar' ? 'flex-row-reverse' : 'flex-row'
                   )}>
-                    {language === 'ar' && <Car className="h-5 w-5 text-blue-500" />}
+                    {language === 'ar' && <Car className="h-4 w-4 text-blue-500" />}
                     <h3 className={cn(
-                      "font-semibold text-lg",
+                      "font-semibold text-sm",
                       language === 'ar' ? 'text-right' : 'text-left'
                     )}>
                       {item.vehicle_make} {item.vehicle_model}
                     </h3>
-                    {language !== 'ar' && <Car className="h-5 w-5 text-blue-500" />}
-                    <Badge variant="outline">{item.license_plate}</Badge>
+                    {language !== 'ar' && <Car className="h-4 w-4 text-blue-500" />}
+                    <Badge variant="outline" className="text-xs px-2 py-1">{item.license_plate}</Badge>
                   </div>
                   
                   <div className={cn(
-                    "flex items-center gap-4 mb-3 text-sm text-gray-600",
+                    "flex items-center gap-3 mb-2 text-xs text-gray-600",
                     language === 'ar' ? 'flex-row-reverse' : 'flex-row'
                   )}>
                     <div className={cn(
                       "flex items-center gap-1",
                       language === 'ar' ? 'flex-row-reverse' : 'flex-row'
                     )}>
-                      {language === 'ar' && <Wrench className="h-4 w-4" />}
+                      {language === 'ar' && <Wrench className="h-3 w-3" />}
                       <span>{item.maintenance_type}</span>
-                      {language !== 'ar' && <Wrench className="h-4 w-4" />}
+                      {language !== 'ar' && <Wrench className="h-3 w-3" />}
                     </div>
                     
                     <div className={cn(
                       "flex items-center gap-1",
                       language === 'ar' ? 'flex-row-reverse' : 'flex-row'
                     )}>
-                      {language === 'ar' && <CalendarIcon className="h-4 w-4" />}
+                      {language === 'ar' && <CalendarIcon className="h-3 w-3" />}
                       <span>
                         {format(new Date(item.scheduled_date), 'PPP', { 
                           locale: language === 'ar' ? ar : undefined 
                         })}
                       </span>
-                      {language !== 'ar' && <CalendarIcon className="h-4 w-4" />}
+                      {language !== 'ar' && <CalendarIcon className="h-3 w-3" />}
                     </div>
                   </div>
                   
                   <p className={cn(
-                    "text-gray-700 mb-3",
+                    "text-gray-700 mb-2 text-xs",
                     language === 'ar' ? 'text-right' : 'text-left'
                   )}>
                     {item.description}
                   </p>
                   
                   <div className={cn(
-                    "flex items-center gap-3",
+                    "flex items-center gap-2",
                     language === 'ar' ? 'flex-row-reverse' : 'flex-row'
                   )}>
                     {getStatusBadge(item.status)}
-                    {getPriorityBadge(item.priority)}
-                    <span className="text-lg font-semibold text-green-600">
+                    <span className="text-sm font-semibold text-green-600">
                       {item.estimated_cost} {language === 'ar' ? 'ريال' : 'QAR'}
                     </span>
                   </div>
                   
                   {item.service_provider && (
                     <p className={cn(
-                      "text-sm text-gray-500 mt-2",
+                      "text-xs text-gray-500 mt-1",
                       language === 'ar' ? 'text-right' : 'text-left'
                     )}>
                       {language === 'ar' ? 'مقدم الخدمة: ' : 'Service Provider: '}

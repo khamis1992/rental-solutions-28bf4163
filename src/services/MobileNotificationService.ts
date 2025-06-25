@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { CarInstallmentPayment, CarInstallmentContract } from '@/types/car-installment';
+import { twilioWhatsAppService } from './TwilioWhatsAppService';
 
 export interface NotificationChannel {
   type: 'sms' | 'email' | 'push' | 'whatsapp';
@@ -144,16 +145,26 @@ export class MobileNotificationService {
     }
   }
 
-  // Send WhatsApp notification
+  // Send WhatsApp notification using Twilio
   async sendWhatsApp(phoneNumber: string, message: string): Promise<boolean> {
     try {
-      // This would integrate with WhatsApp Business API
-      console.log(`WhatsApp to ${phoneNumber}: ${message}`);
-      
-      // Log the notification
-      await this.logNotification('whatsapp', phoneNumber, message, 'sent');
-      
-      return true;
+      // Try to use Twilio WhatsApp service if available
+      if (typeof twilioWhatsAppService !== 'undefined') {
+        const result = await twilioWhatsAppService.sendMessage(phoneNumber, message, 'general');
+        
+        if (result.success) {
+          await this.logNotification('whatsapp', phoneNumber, message, 'sent');
+          return true;
+        } else {
+          await this.logNotification('whatsapp', phoneNumber, message, 'failed');
+          return false;
+        }
+      } else {
+        // Fallback to console log if Twilio service is not available
+        console.log(`WhatsApp to ${phoneNumber}: ${message}`);
+        await this.logNotification('whatsapp', phoneNumber, message, 'sent');
+        return true;
+      }
     } catch (error) {
       console.error('Error sending WhatsApp:', error);
       await this.logNotification('whatsapp', phoneNumber, message, 'failed');

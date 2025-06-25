@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -63,9 +62,9 @@ const CrossReportAnalytics = () => {
   
   if (isLoading) {
     return (
-      <Card>
+      <Card dir="rtl">
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-right">
             <Skeleton className="h-8 w-64" />
           </CardTitle>
         </CardHeader>
@@ -78,10 +77,10 @@ const CrossReportAnalytics = () => {
   
   if (error) {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" dir="rtl">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Failed to load cross-report analytics data. Please try again later.
+        <AlertDescription className="text-right">
+          فشل في تحميل بيانات التحليلات متعددة المجالات. يرجى المحاولة مرة أخرى لاحقاً.
         </AlertDescription>
       </Alert>
     );
@@ -106,19 +105,19 @@ const CrossReportAnalytics = () => {
   const vehicleTypeData = processVehicleTypeData(vehicleUtilizationData);
   
   return (
-    <Card>
+    <Card dir="rtl">
       <CardHeader>
-        <CardTitle>Cross-Domain Analytics</CardTitle>
-        <CardDescription>
-          Analyze relationships between different aspects of your rental business
+        <CardTitle className="text-right">التحليلات متعددة المجالات</CardTitle>
+        <CardDescription className="text-right">
+          تحليل العلاقات بين الجوانب المختلفة لأعمال التأجير الخاصة بك
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="vehicle-performance">
+        <Tabs defaultValue="vehicle-performance" dir="rtl">
           <TabsList className="mb-4">
-            <TabsTrigger value="vehicle-performance">Vehicle Performance</TabsTrigger>
-            <TabsTrigger value="financial-trends">Financial Trends</TabsTrigger>
-            <TabsTrigger value="vehicle-types">Vehicle Type Analysis</TabsTrigger>
+            <TabsTrigger value="vehicle-performance">أداء المركبات</TabsTrigger>
+            <TabsTrigger value="financial-trends">الاتجاهات المالية</TabsTrigger>
+            <TabsTrigger value="vehicle-types">تحليل أنواع المركبات</TabsTrigger>
           </TabsList>
           
           <TabsContent value="vehicle-performance">

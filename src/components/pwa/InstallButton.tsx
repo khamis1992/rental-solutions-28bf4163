@@ -27,14 +27,23 @@ export const InstallButton: React.FC<InstallButtonProps> = ({
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [isBrowser, setIsBrowser] = useState(false);
 
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                      (window.navigator as any).standalone === true;
+  // Browser environment check
+  const isIOS = isBrowser && (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+  const isStandalone = isBrowser && (window.matchMedia('(display-mode: standalone)').matches ||
+                      (window.navigator as any).standalone === true);
 
   useEffect(() => {
-    if (isStandalone) return;
+    // Set browser environment
+    if (typeof window !== 'undefined') {
+      setIsBrowser(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isBrowser || isStandalone) return;
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -50,7 +59,7 @@ export const InstallButton: React.FC<InstallButtonProps> = ({
     }
 
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, [isStandalone, deferredPrompt, isIOS]);
+  }, [isBrowser, isStandalone, deferredPrompt, isIOS]);
 
   const handleInstall = async () => {
     if (isInstalling) return;
@@ -98,6 +107,9 @@ export const InstallButton: React.FC<InstallButtonProps> = ({
       }
     });
   };
+
+  // Don't render during SSR
+  if (!isBrowser) return null;
 
   // Don't show if already installed
   if (isStandalone) {

@@ -95,40 +95,40 @@ const UserManagement = () => {
             variant="default"
             onClick={() => toast('تم إرسال دعوة المستخدم')}
           >
-            <UserPlus className="h-4 w-4 ml-2" />
+            <UserPlus className="h-3 w-3 ml-2" />
             دعوة مستخدم
           </CustomButton>
         }
       />
-      <div className="space-y-6" dir="rtl">
+      <div className="space-y-5" dir="rtl">
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="grid w-full md:w-auto grid-cols-3 md:inline-flex">
-            <TabsTrigger value="users" className="flex items-center space-x-reverse space-x-2">
-              <Users className="h-4 w-4 ml-2" />
+            <TabsTrigger value="users" className="flex items-center space-x-reverse space-x-2 text-sm">
+              <Users className="h-3 w-3 ml-2" />
               المستخدمون
             </TabsTrigger>
-            <TabsTrigger value="permissions" className="flex items-center space-x-reverse space-x-2">
-              <Shield className="h-4 w-4 ml-2" />
+            <TabsTrigger value="permissions" className="flex items-center space-x-reverse space-x-2 text-sm">
+              <Shield className="h-3 w-3 ml-2" />
               الصلاحيات
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center space-x-reverse space-x-2">
-              <ShieldCheck className="h-4 w-4 ml-2" />
+            <TabsTrigger value="security" className="flex items-center space-x-reverse space-x-2 text-sm">
+              <ShieldCheck className="h-3 w-3 ml-2" />
               الأمان
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="users" className="mt-6">
+          <TabsContent value="users" className="mt-5">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-right">المستخدمون</CardTitle>
-                <CardDescription className="text-right">قائمة المستخدمين وأدوارهم</CardDescription>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-right text-lg">المستخدمون</CardTitle>
+                <CardDescription className="text-right text-sm">قائمة المستخدمين وأدوارهم</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                   <div className="relative w-full md:w-1/3">
-                    <Search className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute right-2 top-2.5 h-3 w-3 text-muted-foreground" />
                     <Input
                       placeholder="البحث في المستخدمين بالاسم أو البريد الإلكتروني..."
-                      className="pr-8 text-right"
+                      className="pr-8 text-right h-9 text-sm"
                       value={search}
                       onChange={e => setSearch(e.target.value)}
                       dir="rtl"
@@ -136,7 +136,7 @@ const UserManagement = () => {
                   </div>
                   <div className="flex gap-2 w-full md:w-auto flex-row-reverse">
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                      <SelectTrigger className="w-[150px]">
+                      <SelectTrigger className="w-[140px] h-9 text-sm">
                         <SelectValue placeholder="تصفية حسب الدور" />
                       </SelectTrigger>
                       <SelectContent>
@@ -145,7 +145,7 @@ const UserManagement = () => {
                         <SelectItem value="staff">موظف</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
+                    <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading} className="h-9 text-sm">
                       تحديث
                     </Button>
                   </div>
@@ -154,30 +154,30 @@ const UserManagement = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
-                        <th className="px-4 py-2 text-right font-semibold">الاسم</th>
-                        <th className="px-4 py-2 text-right font-semibold">البريد الإلكتروني</th>
-                        <th className="px-4 py-2 text-right font-semibold">الدور</th>
-                        <th className="px-4 py-2 text-right font-semibold">الحالة</th>
-                        <th className="px-4 py-2 text-right font-semibold">تاريخ الانضمام</th>
+                        <th className="px-3 py-2 text-right font-semibold text-sm">الاسم</th>
+                        <th className="px-3 py-2 text-right font-semibold text-sm">البريد الإلكتروني</th>
+                        <th className="px-3 py-2 text-right font-semibold text-sm">الدور</th>
+                        <th className="px-3 py-2 text-right font-semibold text-sm">الحالة</th>
+                        <th className="px-3 py-2 text-right font-semibold text-sm">تاريخ الانضمام</th>
                       </tr>
                     </thead>
                     <tbody>
                       {loading ? (
-                        <tr><td colSpan={5} className="text-center py-8">جاري تحميل المستخدمين...</td></tr>
+                        <tr><td colSpan={5} className="text-center py-6 text-sm">جاري تحميل المستخدمين...</td></tr>
                       ) : filteredUsers.length === 0 ? (
-                        <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">لم يتم العثور على مستخدمين.</td></tr>
+                        <tr><td colSpan={5} className="text-center py-6 text-muted-foreground text-sm">لم يتم العثور على مستخدمين.</td></tr>
                       ) : (
                         filteredUsers.map(user => (
                           <tr key={user.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                            <td className="px-4 py-2 font-medium text-right">{user.full_name || 'غير متوفر'}</td>
-                            <td className="px-4 py-2 text-right">{user.email}</td>
-                            <td className="px-4 py-2">
+                            <td className="px-3 py-2 font-medium text-right text-sm">{user.full_name || 'غير متوفر'}</td>
+                            <td className="px-3 py-2 text-right text-sm">{user.email}</td>
+                            <td className="px-3 py-2">
                               <Select
                                 value={user.role}
                                 onValueChange={val => handleRoleChange(user.id, val)}
                                 disabled={profile?.id === user.id || updatingId === user.id}
                               >
-                                <SelectTrigger className="w-[130px] h-8">
+                                <SelectTrigger className="w-[120px] h-8 text-sm">
                                   <SelectValue placeholder="اختر الدور" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -186,13 +186,13 @@ const UserManagement = () => {
                                 </SelectContent>
                               </Select>
                             </td>
-                            <td className="px-4 py-2 capitalize text-right">
+                            <td className="px-3 py-2 capitalize text-right text-sm">
                               {user.status === 'active' ? 'نشط' : 
                                user.status === 'inactive' ? 'غير نشط' : 
                                user.status === 'pending' ? 'معلق' : 
                                user.status || 'غير متوفر'}
                             </td>
-                            <td className="px-4 py-2 text-right">{user.created_at ? new Date(user.created_at).toLocaleDateString('ar-QA') : 'غير متوفر'}</td>
+                            <td className="px-3 py-2 text-right text-sm">{user.created_at ? new Date(user.created_at).toLocaleDateString('ar-QA') : 'غير متوفر'}</td>
                           </tr>
                         ))
                       )}
@@ -202,11 +202,11 @@ const UserManagement = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="permissions" className="mt-6">
+          <TabsContent value="permissions" className="mt-5">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-right">صلاحيات الأدوار</CardTitle>
-                <CardDescription className="text-right">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-right text-lg">صلاحيات الأدوار</CardTitle>
+                <CardDescription className="text-right text-sm">
                   تحديد ما يمكن لكل دور الوصول إليه في النظام
                 </CardDescription>
               </CardHeader>
@@ -215,7 +215,7 @@ const UserManagement = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="security" className="mt-6">
+          <TabsContent value="security" className="mt-5">
             <SecurityPreferences />
           </TabsContent>
         </Tabs>

@@ -1,188 +1,109 @@
 import React from 'react';
-import { Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { jsPDF } from 'jspdf';
+import { Download, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
-import { generateStandardReport, addCompanyLogo, addFooterImage } from '@/utils/report-utils';
+import { 
+  generateUnifiedPDF, 
+  createInfoCard, 
+  createDataTable, 
+  createSummaryCard,
+  createHighlightBox,
+  PDFConfig,
+  PDFStyles 
+} from '@/utils/unified-pdf-generator';
 
 export interface ReportDownloadOptionsProps {
   reportType: string;
   getReportData: () => any[];
 }
 
-const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
-  reportType,
-  getReportData
-}) => {
-  const handleDownloadPDF = () => {
-    try {
-      let data = getReportData();
+/**
+ * إنشاء تقرير PDF متطور لكل نوع تقرير
+ */
+async function generateModernReportPDF(reportType: string, data: any[]): Promise<void> {
       if (!data || data.length === 0) {
         toast.error('لا توجد بيانات للتصدير');
         return;
       }
       
-      if (reportType === 'traffic') {
-        data = data.map(fine => ({
-          violationNumber: fine.violationNumber || 'N/A',
-          licensePlate: fine.licensePlate || 'N/A',
-          violationDate: fine.violationDate ? formatDate(fine.violationDate) : 'N/A',
-          customerName: fine.customerName || 'Unassigned',
-          fineAmount: formatCurrency(fine.fineAmount || 0)
-        }));
-        
-        const doc = generateStandardReport(
-          'تقرير المخالفات المرورية',
-          { from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), to: new Date() },
-          (doc, startY) => {
-            let y = startY;
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const marginBottom = 30; // Space to reserve for footer
-            
-            const totalAmount = data.reduce((sum, item) => {
-              const amount = typeof item.fineAmount === 'string' ? 
-                parseFloat(item.fineAmount.replace(/[^\d.-]/g, '')) : 
-                (item.fineAmount || 0);
-              return sum + (isNaN(amount) ? 0 : amount);
-            }, 0);
-            
-            doc.setFillColor(240, 240, 240);
-            doc.rect(15, y, pageWidth - 30, 20, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.setTextColor(44, 62, 80);
-            doc.text(`إجمالي المخالفات: ${data.length}`, 20, y + 12);
-            doc.text(`إجمالي المبلغ: ${formatCurrency(totalAmount)}`, pageWidth - 40, y + 12, { align: 'right' });
-            
-            y += 30;
-            
-            const customerGroups: Record<string, any[]> = {};
-            data.forEach(fine => {
-              const customerName = fine.customerName || 'Unassigned';
-              if (!customerGroups[customerName]) customerGroups[customerName] = [];
-              customerGroups[customerName].push(fine);
-            });
-            
-            Object.entries(customerGroups).forEach(([customerName, customerFines], groupIndex) => {
-              // Check if we need a new page for this customer group
-              const estimatedGroupHeight = 12 + (customerFines.length * 10) + 30;
-              if (y + estimatedGroupHeight > pageHeight - marginBottom && groupIndex > 0) {
-                doc.addPage();
-                y = startY; // Reset Y position for the new page
-              }
-              
-              doc.setFillColor(52, 73, 94);
-              doc.rect(15, y - 8, pageWidth - 30, 12, 'F');
-              doc.setTextColor(255, 255, 255);
-              doc.setFontSize(12);
-              doc.text(customerName, 20, y);
-              
-              y += 12;
-              
-              const headers = ['رقم المخالفة', 'لوحة الترخيص', 'تاريخ المخالفة', 'المبلغ'];
-              const columnWidths = [50, 50, 40, 40];
-              const tableStartX = 15;
-              
-              doc.setFillColor(240, 240, 240);
-              doc.rect(tableStartX, y, pageWidth - 30, 10, 'F');
-              
-              doc.setFont('helvetica', 'bold');
-              doc.setTextColor(44, 62, 80);
-              doc.setFontSize(10);
-              
-              let x = tableStartX + 5;
-              headers.forEach((header, i) => {
-                doc.text(header, x, y + 8);
-                x += columnWidths[i];
-              });
-              
-              y += 15;
-              
-              doc.setFont('helvetica', 'normal');
-              doc.setTextColor(70, 70, 70);
-              
-              customerFines.forEach((fine, index) => {
-                // Check if we need a new page for this row
-                if (y > pageHeight - marginBottom - 10) {
-                  doc.addPage();
-                  y = startY; // Reset Y position for the new page
-                  
-                  // Redraw the headers on the new page
-                  doc.setFillColor(240, 240, 240);
-                  doc.rect(tableStartX, y, pageWidth - 30, 10, 'F');
-                  
-                  doc.setFont('helvetica', 'bold');
-                  doc.setTextColor(44, 62, 80);
-                  doc.setFontSize(10);
-                  
-                  x = tableStartX + 5;
-                  headers.forEach((header, i) => {
-                    doc.text(header, x, y + 8);
-                    x += columnWidths[i];
-                  });
-                  
-                  y += 15;
-                  doc.setFont('helvetica', 'normal');
-                  doc.setTextColor(70, 70, 70);
-                }
-                
-                x = tableStartX + 5;
-                
-                if (index % 2 === 1) {
-                  doc.setFillColor(248, 248, 248);
-                  doc.rect(tableStartX, y - 5, pageWidth - 30, 10, 'F');
-                }
-                
-                doc.text(fine.violationNumber, x, y);
-                x += columnWidths[0];
-                
-                doc.text(fine.licensePlate, x, y);
-                x += columnWidths[1];
-                
-                doc.text(fine.violationDate, x, y);
-                x += columnWidths[2];
-                
-                doc.text(fine.fineAmount, x, y);
-                
-                y += 10;
-              });
-              
-              y += 10;
-            });
-            
-            return y;
-          }
-        );
-        
-        doc.save('تقرير-المخالفات-المرورية.pdf');
-        toast.success('تم تنزيل تقرير PDF بنجاح');
-      } else {        // Handle other report types with proper pagination
-        const pdf = new jsPDF();
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const marginBottom = 30;
-        
-        // Add company logo
-        addCompanyLogo(pdf);
-        
-        pdf.setFontSize(20);
-        pdf.setTextColor(44, 62, 80);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(`تقرير ${reportType.toUpperCase()}`, 105, 20, { align: 'center' });
-        
-        pdf.setFontSize(12);
-        pdf.setTextColor(100, 100, 100);
-        pdf.setFont('helvetica', 'normal');
-        const date = formatDate(new Date());
-        pdf.text(`تم الإنشاء في: ${date}`, 105, 30, { align: 'center' });
-        
-        let y = 40;
-        
-        if (reportType === 'traffic') {
+  let content = '';
+  let title = '';
+  let styles: PDFStyles = {
+    primaryColor: '#1e3a8a',
+    secondaryColor: '#64748b',
+    backgroundColor: '#f1f5f9'
+  };
+
+  switch (reportType) {
+    case 'traffic':
+      content = await generateTrafficReportContent(data);
+      title = 'تقرير المخالفات المرورية الشامل';
+      styles.primaryColor = '#dc2626';
+      styles.backgroundColor = '#fef2f2';
+      break;
+    
+    case 'fleet':
+      content = await generateFleetReportContent(data);
+      title = 'تقرير الأسطول والمركبات';
+      styles.primaryColor = '#059669';
+      styles.backgroundColor = '#f0fdf4';
+      break;
+    
+    case 'financial':
+      content = await generateFinancialReportContent(data);
+      title = 'التقرير المالي الشامل';
+      styles.primaryColor = '#7c3aed';
+      styles.backgroundColor = '#faf5ff';
+      break;
+    
+    case 'customers':
+      content = await generateCustomersReportContent(data);
+      title = 'تقرير العملاء والاشتراكات';
+      styles.primaryColor = '#ea580c';
+      styles.backgroundColor = '#fff7ed';
+      break;
+    
+    case 'maintenance':
+      content = await generateMaintenanceReportContent(data);
+      title = 'تقرير الصيانة والأعطال';
+      styles.primaryColor = '#0891b2';
+      styles.backgroundColor = '#f0f9ff';
+      break;
+    
+    case 'legal':
+      content = await generateLegalReportContent(data);
+      title = 'التقرير القانوني والقضايا';
+      styles.primaryColor = '#be123c';
+      styles.backgroundColor = '#fdf2f8';
+      break;
+    
+    default:
+      content = await generateGenericReportContent(data, reportType);
+      title = `تقرير ${reportType.toUpperCase()}`;
+  }
+
+  const config: PDFConfig = {
+    title,
+    filename: `تقرير-${reportType}-${formatDate(new Date())}`,
+    rtl: true,
+    companyInfo: true,
+    includeFooter: true
+  };
+
+  await generateUnifiedPDF({
+    config,
+    content,
+    styles
+  });
+}
+
+/**
+ * إنشاء محتوى تقرير المخالفات المرورية
+ */
+async function generateTrafficReportContent(data: any[]): Promise<string> {
           const totalAmount = data.reduce((sum, item) => {
             const amount = typeof item.fineAmount === 'string' 
               ? parseFloat(item.fineAmount.replace(/[^\d.-]/g, ''))
@@ -190,231 +111,464 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
             return sum + (isNaN(amount) ? 0 : amount);
           }, 0);
           
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('ملخص التقرير', 20, 45);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(`إجمالي المخالفات: ${data.length}`, 20, 55);
-          pdf.text(`إجمالي المبلغ: ${formatCurrency(totalAmount)}`, 20, 62);
-        }
-        
-        if (reportType === 'traffic') {
-          const groupedData: Record<string, any[]> = {};
-          
-          data.forEach(item => {
-            let month = 'Unknown Date';
-            
-            if (item.violationDate) {
-              if (item.violationDate instanceof Date) {
-                month = item.violationDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-              } else if (typeof item.violationDate === 'string') {
-                try {
-                  const dateObj = new Date(item.violationDate);
-                  month = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
-                } catch (e) {
-                  month = 'Unknown Date';
-                }
-              }
-            }
-            
-            if (!groupedData[month]) {
-              groupedData[month] = [];
-            }
-            groupedData[month].push(item);
-          });
-          
-          const headers = ['رقم المخالفة', 'لوحة الترخيص', 'تاريخ المخالفة', 'المخالف', 'المبلغ'];
-          const columnWidths = [40, 30, 30, 50, 30];
-          
-          Object.entries(groupedData).forEach(([month, monthData]) => {
-            // Check if we need a new page for this month group
-            if (y > pageHeight - marginBottom - 40) {
-              pdf.addPage();
-              y = 20;
-            }
-            
-            pdf.setFont('helvetica', 'bold');
-            pdf.setTextColor(44, 62, 80);
-            pdf.text(month, 20, y);
-            y += 10;
-            
-            const startX = 20;
-            
-            pdf.setFillColor(240, 240, 240);
-            pdf.rect(startX, y - 5, pdf.internal.pageSize.width - 40, 7, 'F');
-            
-            let x = startX;
-            headers.forEach((header, i) => {
-              pdf.text(header, x, y);
-              x += columnWidths[i];
-            });
-            y += 7;
-            
-            pdf.setFont('helvetica', 'normal');
-            pdf.setTextColor(0, 0, 0);
-            
-            let monthTotal = 0;
-            
-            monthData.forEach((row, rowIndex) => {
-              if (typeof row.fineAmount === 'string') {
-                const numericValue = parseFloat(row.fineAmount.replace(/[^\d.-]/g, ''));
-                if (!isNaN(numericValue)) {
-                  monthTotal += numericValue;
-                }
-              } else if (typeof row.fineAmount === 'number') {
-                monthTotal += row.fineAmount;
-              }
-              
-              // Check if we need a new page for this row
-              if (y > pageHeight - marginBottom) {
-                pdf.addPage();
-                y = 20;
-                
-                pdf.setFont('helvetica', 'bold');
-                pdf.setFillColor(240, 240, 240);
-                pdf.rect(startX, y - 5, pdf.internal.pageSize.width - 40, 7, 'F');
-                
-                x = startX;
-                headers.forEach((header, i) => {
-                  pdf.text(header, x, y);
-                  x += columnWidths[i];
-                });
-                y += 7;
-                pdf.setFont('helvetica', 'normal');
-              }
-              
-              if (rowIndex % 2 === 1) {
-                pdf.setFillColor(248, 248, 248);
-                pdf.rect(startX, y - 5, pdf.internal.pageSize.width - 40, 7, 'F');
-              }
-              
-              x = startX;
-              
-              pdf.text(String(row.violationNumber).substring(0, 15), x, y);
-              x += columnWidths[0];
-              
-              pdf.text(String(row.licensePlate).substring(0, 12), x, y);
-              x += columnWidths[1];
-              
-              pdf.text(String(row.violationDate).substring(0, 12), x, y);
-              x += columnWidths[2];
-              
-              pdf.text(String(row.customerName).substring(0, 25), x, y);
-              x += columnWidths[3];
-              
-              pdf.text(String(row.fineAmount), x, y);
-              
-              y += 7;
-            });
-            
-            pdf.setFont('helvetica', 'bold');
-            pdf.text(`إجمالي الشهر: ${formatCurrency(monthTotal)}`, pdf.internal.pageSize.width - 60, y);
-            y += 15;
-          });
+  const totalFines = data.length;
+  const paidFines = data.filter(fine => fine.status === 'paid').length;
+  const pendingFines = totalFines - paidFines;
+
+  // إحصائيات سريعة
+  const summaryCards = `
+    <div class="summary-cards">
+      ${createSummaryCard('إجمالي المخالفات', totalFines, 'neutral', false, true)}
+      ${createSummaryCard('المخالفات المدفوعة', paidFines, 'positive', false, true)}
+      ${createSummaryCard('المخالفات المعلقة', pendingFines, 'warning', false, true)}
+      ${createSummaryCard('إجمالي المبلغ', totalAmount, 'neutral')}
+    </div>
+  `;
+
+  // تجميع المخالفات حسب العميل
+  const customerGroups: Record<string, any[]> = {};
+  data.forEach(fine => {
+    const customerName = fine.customerName || 'غير محدد';
+    if (!customerGroups[customerName]) {
+      customerGroups[customerName] = [];
+    }
+    customerGroups[customerName].push(fine);
+  });
+
+  // جداول المخالفات لكل عميل
+  let customerTables = '';
+  Object.entries(customerGroups).forEach(([customerName, customerFines]) => {
+    const customerTotal = customerFines.reduce((sum, fine) => {
+      const amount = typeof fine.fineAmount === 'string' 
+        ? parseFloat(fine.fineAmount.replace(/[^\d.-]/g, ''))
+        : (fine.fineAmount || 0);
+      return sum + (isNaN(amount) ? 0 : amount);
+    }, 0);
+
+    customerTables += `
+      <h3 class="section-header" style="background: #dc2626; color: white; padding: 12px; border-radius: 8px; margin-top: 30px;">
+        ${customerName} - المجموع: ${formatCurrency(customerTotal)} ر.ق
+      </h3>
+    `;
+
+    const headers = ['رقم المخالفة', 'لوحة الترخيص', 'تاريخ المخالفة', 'نوع المخالفة', 'المبلغ', 'الحالة'];
+    const rows = customerFines.map(fine => [
+      fine.violationNumber || 'غير محدد',
+      fine.licensePlate || 'غير محدد',
+      fine.violationDate ? formatDate(fine.violationDate) : 'غير محدد',
+      fine.violationType || 'غير محدد',
+      formatCurrency(fine.fineAmount || 0) + ' ر.ق',
+      fine.status === 'paid' ? '✅ مدفوعة' : '⏳ معلقة'
+    ]);
+
+    customerTables += createDataTable(headers, rows);
+  });
+
+  // تنبيهات هامة
+  const alerts = createHighlightBox(
+    `
+      <h4>🚨 تنبيهات مهمة:</h4>
+      <ul style="padding-right: 20px; line-height: 1.8;">
+        <li><strong>المخالفات المعلقة:</strong> يجب سداد ${pendingFines} مخالفة لتجنب المشاكل القانونية</li>
+        <li><strong>إجمالي المبلغ المطلوب:</strong> ${formatCurrency(totalAmount)} ريال قطري</li>
+        <li><strong>تاريخ التقرير:</strong> ${formatDate(new Date())}</li>
+        <li><strong>صالح لمدة:</strong> 30 يوماً من تاريخ الإصدار</li>
+      </ul>
+    `,
+    'alert'
+  );
+
+  return `
+    ${summaryCards}
+    
+    <h2 class="section-header">📊 ملخص التحليل</h2>
+    <div style="background: #fef2f2; border: 2px solid #dc2626; border-radius: 10px; padding: 20px; margin: 20px 0;">
+      <p style="margin: 0; font-size: 16px; line-height: 1.8;">
+        يحتوي هذا التقرير على <strong style="color: #dc2626;">${totalFines} مخالفة مرورية</strong> 
+        بإجمالي قيمة <strong style="color: #dc2626;">${formatCurrency(totalAmount)} ريال قطري</strong>. 
+        تم سداد <strong style="color: #16a34a;">${paidFines} مخالفة</strong> ولا يزال هناك 
+        <strong style="color: #f59e0b;">${pendingFines} مخالفة معلقة</strong> تحتاج إلى سداد.
+      </p>
+    </div>
+    
+    ${alerts}
+    
+    <h2 class="section-header">📋 تفاصيل المخالفات حسب العميل</h2>
+    ${customerTables}
+  `;
+}
+
+/**
+ * إنشاء محتوى تقرير الأسطول
+ */
+async function generateFleetReportContent(data: any[]): Promise<string> {
+  const totalVehicles = data.length;
+  const availableVehicles = data.filter(v => v.status === 'available').length;
+  const rentedVehicles = data.filter(v => v.status === 'rented').length;
+  const maintenanceVehicles = data.filter(v => v.status === 'maintenance').length;
+
+  const summaryCards = `
+    <div class="summary-cards">
+      ${createSummaryCard('إجمالي المركبات', totalVehicles, 'neutral', false, true)}
+      ${createSummaryCard('المركبات المتاحة', availableVehicles, 'positive', false, true)}
+      ${createSummaryCard('المركبات المؤجرة', rentedVehicles, 'warning', false, true)}
+      ${createSummaryCard('في الصيانة', maintenanceVehicles, 'negative', false, true)}
+    </div>
+  `;
+
+  const headers = ['الماركة والموديل', 'لوحة الترخيص', 'سنة الصنع', 'الحالة', 'السعر اليومي', 'آخر صيانة'];
+  const rows = data.map(vehicle => [
+    `${vehicle.make || ''} ${vehicle.model || ''}`.trim() || 'غير محدد',
+    vehicle.license_plate || 'غير محدد',
+    vehicle.year?.toString() || 'غير محدد',
+    vehicle.status === 'available' ? '✅ متاحة' :
+    vehicle.status === 'rented' ? '🚗 مؤجرة' : 
+    vehicle.status === 'maintenance' ? '🔧 صيانة' : 'غير محدد',
+    vehicle.daily_rate ? formatCurrency(vehicle.daily_rate) + ' ر.ق' : 'غير محدد',
+    vehicle.last_maintenance ? formatDate(vehicle.last_maintenance) : 'غير محدد'
+  ]);
+
+  return `
+    ${summaryCards}
+    
+    <h2 class="section-header">🚗 تفاصيل الأسطول</h2>
+    ${createDataTable(headers, rows)}
+    
+    ${createHighlightBox(
+      `
+        <h4>📈 تحليل الأداء:</h4>
+        <p>معدل الاستغلال: ${((rentedVehicles / totalVehicles) * 100).toFixed(1)}%</p>
+        <p>معدل الصيانة: ${((maintenanceVehicles / totalVehicles) * 100).toFixed(1)}%</p>
+        <p>معدل التوفر: ${((availableVehicles / totalVehicles) * 100).toFixed(1)}%</p>
+      `,
+      'success'
+    )}
+  `;
+}
+
+/**
+ * إنشاء محتوى التقرير المالي
+ */
+async function generateFinancialReportContent(data: any[]): Promise<string> {
+  console.log('بيانات التقرير المالي:', data);
+  
+  // التأكد من وجود البيانات
+  if (!data || data.length === 0) {
+    return createHighlightBox(
+      `
+        <h4>📊 لا توجد بيانات مالية</h4>
+        <p>لا توجد معاملات مالية متاحة لإنشاء التقرير. يرجى:</p>
+        <ul style="padding-right: 20px; line-height: 1.8;">
+          <li>التأكد من وجود معاملات مالية في النظام</li>
+          <li>فحص إعدادات قاعدة البيانات</li>
+          <li>التأكد من صحة البيانات المدخلة</li>
+        </ul>
+      `,
+      'warning'
+    );
+  }
+  
+  // فصل الإيرادات والمصروفات
+  const incomeTransactions = data.filter(item => item.type === 'income');
+  const expenseTransactions = data.filter(item => item.type === 'expense');
+  
+  const totalIncome = incomeTransactions.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const totalExpenses = expenseTransactions.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const netRevenue = totalIncome - totalExpenses;
+  
+  // حساب البيانات حسب الحالة
+  const completedTransactions = data.filter(item => item.status === 'completed');
+  const pendingTransactions = data.filter(item => item.status === 'pending');
+  const failedTransactions = data.filter(item => item.status === 'failed');
+  
+  const completedAmount = completedTransactions.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const pendingAmount = pendingTransactions.reduce((sum, item) => sum + (item.amount || 0), 0);
+  
+  const summaryCards = `
+    <div class="summary-cards">
+      ${createSummaryCard('إجمالي الإيرادات', totalIncome, 'positive')}
+      ${createSummaryCard('إجمالي المصروفات', totalExpenses, 'negative')}
+      ${createSummaryCard('صافي الدخل', netRevenue, netRevenue >= 0 ? 'positive' : 'negative')}
+      ${createSummaryCard('المبالغ المكتملة', completedAmount, 'positive')}
+      ${createSummaryCard('المبالغ المعلقة', pendingAmount, 'warning')}
+      ${createSummaryCard('نسبة التحصيل', totalIncome > 0 ? (completedAmount / totalIncome * 100) : 0, 'neutral', true)}
+    </div>
+  `;
+
+  // إحصائيات التحليل
+  const analysisSection = `
+    <h2 class="section-header">📊 تحليل الأداء المالي</h2>
+    <div style="background: #f8fafc; border: 2px solid #64748b; border-radius: 10px; padding: 20px; margin: 20px 0;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div style="text-align: center;">
+          <h4 style="color: #16a34a; margin: 0 0 5px 0;">الإيرادات</h4>
+          <p style="font-size: 24px; font-weight: bold; color: #16a34a; margin: 0;">${formatCurrency(totalIncome)} ر.ق</p>
+          <small style="color: #64748b;">${incomeTransactions.length} معاملة</small>
+        </div>
+        <div style="text-align: center;">
+          <h4 style="color: #dc2626; margin: 0 0 5px 0;">المصروفات</h4>
+          <p style="font-size: 24px; font-weight: bold; color: #dc2626; margin: 0;">${formatCurrency(totalExpenses)} ر.ق</p>
+          <small style="color: #64748b;">${expenseTransactions.length} معاملة</small>
+        </div>
+        <div style="text-align: center;">
+          <h4 style="color: ${netRevenue >= 0 ? '#16a34a' : '#dc2626'}; margin: 0 0 5px 0;">صافي الدخل</h4>
+          <p style="font-size: 24px; font-weight: bold; color: ${netRevenue >= 0 ? '#16a34a' : '#dc2626'}; margin: 0;">${formatCurrency(netRevenue)} ر.ق</p>
+          <small style="color: #64748b;">${netRevenue >= 0 ? 'ربح' : 'خسارة'}</small>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // جدول الإيرادات
+  let incomeSection = '';
+  if (incomeTransactions.length > 0) {
+    const incomeHeaders = ['التاريخ', 'الوصف', 'المبلغ', 'الحالة', 'طريقة الدفع', 'المرجع'];
+    const incomeRows = incomeTransactions.map(item => [
+      item.date ? formatDate(item.date) : 'غير محدد',
+      item.description || 'غير محدد',
+      formatCurrency(item.amount || 0) + ' ر.ق',
+      item.status === 'completed' ? '✅ مكتمل' : 
+      item.status === 'pending' ? '⏳ معلق' : 
+      item.status === 'failed' ? '❌ فاشل' : 'غير محدد',
+      item.paymentMethod || 'غير محدد',
+      item.reference || 'غير محدد'
+    ]);
+
+    incomeSection = `
+      <h2 class="section-header" style="background: #16a34a; color: white; padding: 12px; border-radius: 8px;">💰 الإيرادات</h2>
+      ${createDataTable(incomeHeaders, incomeRows)}
+    `;
+  } else {
+    incomeSection = createHighlightBox(
+      '<h4>💰 لا توجد إيرادات</h4><p>لم يتم العثور على أي معاملات إيرادات في الفترة المحددة.</p>',
+      'warning'
+    );
+  }
+
+  // جدول المصروفات  
+  let expenseSection = '';
+  if (expenseTransactions.length > 0) {
+    const expenseHeaders = ['التاريخ', 'الوصف', 'المبلغ', 'الحالة', 'طريقة الدفع', 'الفئة'];
+    const expenseRows = expenseTransactions.map(item => [
+      item.date ? formatDate(item.date) : 'غير محدد',
+      item.description || 'غير محدد',
+      formatCurrency(item.amount || 0) + ' ر.ق',
+      item.status === 'completed' ? '✅ مكتمل' : 
+      item.status === 'pending' ? '⏳ معلق' : 
+      item.status === 'failed' ? '❌ فاشل' : 'غير محدد',
+      item.paymentMethod || 'غير محدد',
+      item.category || 'غير محدد'
+    ]);
+
+    expenseSection = `
+      <h2 class="section-header" style="background: #dc2626; color: white; padding: 12px; border-radius: 8px;">💸 المصروفات</h2>
+      ${createDataTable(expenseHeaders, expenseRows)}
+    `;
         } else {
-          const headers = Object.keys(data[0]);
-          const rows = data.map(item => Object.values(item));
-          
-          // Calculate column widths based on content
-          const columnWidths = headers.map((header, i) => {
-            const headerLength = header.length;
-            const maxContentLength = Math.max(...rows.map(row => String(row[i] || '').length));
-            const maxLength = Math.max(headerLength, maxContentLength);
-            const widthFactor = header.includes('customer') ? 3.5 : 3;
-            return Math.min(40, Math.max(10, maxLength * widthFactor));
-          });
-          
-          let y = 35;
-          
-          // Draw headers
-          let x = 20;
-          pdf.setFont('helvetica', 'bold');
-          headers.forEach((header, i) => {
-            const displayHeader = header
-              .split('_')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ');
-            
-            const width = columnWidths[i];
-            pdf.text(displayHeader, x, y);
-            x += width;
-            if (x > 190) {
-              x = 20;
-              y += 10;
-            }
-          });
-          
-          y += 8;
-          
-          // Draw rows
-          pdf.setFont('helvetica', 'normal');
-          rows.forEach((row, rowIndex) => {
-            // Check if we need a new page for this row
-            if (y > pageHeight - marginBottom) {
-              pdf.addPage();
-              y = 20;
-              
-              // Redraw headers on new page
-              x = 20;
-              pdf.setFont('helvetica', 'bold');
-              headers.forEach((header, i) => {
-                const displayHeader = header
-                  .split('_')
-                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(' ');
-                
-                const width = columnWidths[i];
-                pdf.text(displayHeader, x, y);
-                x += width;
-                if (x > 190) {
-                  x = 20;
-                  y += 10;
-                }
-              });
-              y += 8;
-              pdf.setFont('helvetica', 'normal');
-            }
-            
-            x = 20;
-            row.forEach((cell, i) => {
-              const width = columnWidths[i];
-              let displayValue = String(cell || '');
-              
-              if (typeof cell === 'boolean') {
-                displayValue = cell ? 'نعم' : 'لا';
-              }
-              
-              if (displayValue.length > 30 && !headers[i].includes('customer')) {
-                displayValue = displayValue.substring(0, 27) + '...';
-              }
-              
-              pdf.text(displayValue, x, y);
-              x += width;
-              if (x > 190) {
-                x = 20;
-                y += 6;
-              }
-            });
-            y += 8;
-          });
-        }
-          // Add page numbers and footer to each page
-        const pageCount = pdf.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-          pdf.setPage(i);
-          
-          // Add footer image
-          addFooterImage(pdf);
-          
-          pdf.setFont('helvetica', 'italic');
-          pdf.setFontSize(10);
-          pdf.setTextColor(150, 150, 150);
-          pdf.text(`صفحة ${i} من ${pageCount}`, 105, 260, { align: 'center' });
-          pdf.text('CONFIDENTIAL - ALARAF CAR RENTAL', 105, 287, { align: 'center' });
-        }
-        
-        pdf.save(`تقرير-${reportType}-${formatDate(new Date())}.pdf`);
-        toast.success('تم تنزيل تقرير PDF بنجاح');
+    expenseSection = createHighlightBox(
+      '<h4>💸 لا توجد مصروفات</h4><p>لم يتم العثور على أي معاملات مصروفات في الفترة المحددة.</p>',
+      'warning'
+    );
+  }
+
+  // تنبيهات
+  let alertsSection = '';
+  if (pendingTransactions.length > 0 || failedTransactions.length > 0 || netRevenue < 0) {
+    alertsSection = createHighlightBox(
+      `
+        <h4>⚠️ تنبيهات مالية مهمة:</h4>
+        <ul style="padding-right: 20px; line-height: 1.8;">
+          ${pendingTransactions.length > 0 ? `<li><strong>معاملات معلقة:</strong> ${pendingTransactions.length} معاملة بقيمة ${formatCurrency(pendingAmount)} ر.ق</li>` : ''}
+          ${failedTransactions.length > 0 ? `<li><strong>معاملات فاشلة:</strong> ${failedTransactions.length} معاملة تحتاج مراجعة</li>` : ''}
+          ${netRevenue < 0 ? `<li><strong>خسارة مالية:</strong> صافي الدخل سالب بقيمة ${formatCurrency(Math.abs(netRevenue))} ر.ق</li>` : ''}
+          <li><strong>تاريخ التقرير:</strong> ${formatDate(new Date())}</li>
+        </ul>
+      `,
+      netRevenue < 0 ? 'alert' : 'warning'
+    );
+  }
+
+  // إضافة تحليل إضافي للفئات
+  const categoryAnalysis = (() => {
+    const categories: Record<string, { income: number; expense: number; count: number }> = {};
+    
+    data.forEach(item => {
+      const category = item.category || 'غير محدد';
+      if (!categories[category]) {
+        categories[category] = { income: 0, expense: 0, count: 0 };
       }
+      
+      categories[category].count += 1;
+      if (item.type === 'income') {
+        categories[category].income += item.amount || 0;
+      } else {
+        categories[category].expense += item.amount || 0;
+      }
+    });
+
+    if (Object.keys(categories).length === 0) {
+      return '';
+    }
+
+    const categoryHeaders = ['الفئة', 'عدد المعاملات', 'الإيرادات', 'المصروفات', 'الصافي'];
+    const categoryRows = Object.entries(categories).map(([category, categoryData]) => [
+      category,
+      categoryData.count.toString(),
+      formatCurrency(categoryData.income) + ' ر.ق',
+      formatCurrency(categoryData.expense) + ' ر.ق',
+      formatCurrency(categoryData.income - categoryData.expense) + ' ر.ق'
+    ]);
+
+    return `
+      <h2 class="section-header">📊 تحليل الفئات</h2>
+      ${createDataTable(categoryHeaders, categoryRows)}
+    `;
+  })();
+
+  return `
+    ${summaryCards}
+    
+    ${analysisSection}
+    
+    ${alertsSection}
+    
+    ${categoryAnalysis}
+    
+    ${incomeSection}
+    
+    ${expenseSection}
+  `;
+}
+
+/**
+ * إنشاء محتوى تقرير العملاء
+ */
+async function generateCustomersReportContent(data: any[]): Promise<string> {
+  const totalCustomers = data.length;
+  const activeCustomers = data.filter(c => c.status === 'active').length;
+  const inactiveCustomers = data.filter(c => c.status === 'inactive').length;
+
+  const summaryCards = `
+    <div class="summary-cards">
+      ${createSummaryCard('إجمالي العملاء', totalCustomers, 'neutral', false, true)}
+      ${createSummaryCard('العملاء النشطون', activeCustomers, 'positive', false, true)}
+      ${createSummaryCard('العملاء غير النشطين', inactiveCustomers, 'warning', false, true)}
+      ${createSummaryCard('معدل النشاط', totalCustomers > 0 ? (activeCustomers / totalCustomers * 100) : 0, 'neutral', true)}
+    </div>
+  `;
+
+  const headers = ['الاسم الكامل', 'رقم الهاتف', 'الجنسية', 'رخصة القيادة', 'الحالة'];
+  const rows = data.map(customer => [
+    customer.full_name || 'غير محدد',
+    customer.phone_number || 'غير محدد',
+    customer.nationality || 'غير محدد',
+    customer.driver_license || 'غير محدد',
+    customer.status === 'active' ? '✅ نشط' : '❌ غير نشط'
+  ]);
+
+  return `
+    ${summaryCards}
+    
+    <h2 class="section-header">👥 قائمة العملاء</h2>
+    ${createDataTable(headers, rows)}
+  `;
+}
+
+/**
+ * إنشاء محتوى تقرير الصيانة
+ */
+async function generateMaintenanceReportContent(data: any[]): Promise<string> {
+  const totalRecords = data.length;
+  const completedRecords = data.filter(m => m.status === 'completed').length;
+  const pendingRecords = data.filter(m => m.status === 'pending').length;
+  const totalCost = data.reduce((sum, item) => sum + (item.cost || 0), 0);
+
+  const summaryCards = `
+    <div class="summary-cards">
+      ${createSummaryCard('إجمالي أعمال الصيانة', totalRecords, 'neutral', false, true)}
+      ${createSummaryCard('الأعمال المكتملة', completedRecords, 'positive', false, true)}
+      ${createSummaryCard('الأعمال المعلقة', pendingRecords, 'warning', false, true)}
+      ${createSummaryCard('إجمالي التكلفة', totalCost, 'neutral')}
+    </div>
+  `;
+
+  const headers = ['المركبة', 'نوع الصيانة', 'التاريخ', 'التكلفة', 'الحالة'];
+  const rows = data.map(maintenance => [
+    maintenance.vehicle_info || 'غير محدد',
+    maintenance.maintenance_type || 'غير محدد',
+    maintenance.date ? formatDate(maintenance.date) : 'غير محدد',
+    formatCurrency(maintenance.cost || 0) + ' ر.ق',
+    maintenance.status === 'completed' ? '✅ مكتمل' : '⏳ معلق'
+  ]);
+
+  return `
+    ${summaryCards}
+    
+    <h2 class="section-header">🔧 سجل الصيانة</h2>
+    ${createDataTable(headers, rows)}
+  `;
+}
+
+/**
+ * إنشاء محتوى التقرير القانوني
+ */
+async function generateLegalReportContent(data: any[]): Promise<string> {
+  const totalCases = data.length;
+  const activeCases = data.filter(c => c.status === 'active').length;
+  const closedCases = data.filter(c => c.status === 'closed').length;
+
+  const summaryCards = `
+    <div class="summary-cards">
+      ${createSummaryCard('إجمالي القضايا', totalCases, 'neutral', false, true)}
+      ${createSummaryCard('القضايا النشطة', activeCases, 'warning', false, true)}
+      ${createSummaryCard('القضايا المغلقة', closedCases, 'positive', false, true)}
+      ${createSummaryCard('نسبة الإنجاز', totalCases > 0 ? (closedCases / totalCases * 100) : 0, 'neutral', true)}
+    </div>
+  `;
+
+  const headers = ['رقم القضية', 'نوع القضية', 'العميل', 'تاريخ الفتح', 'الحالة'];
+  const rows = data.map(legalCase => [
+    legalCase.case_number || 'غير محدد',
+    legalCase.case_type || 'غير محدد',
+    legalCase.customer_name || 'غير محدد',
+    legalCase.created_date ? formatDate(legalCase.created_date) : 'غير محدد',
+    legalCase.status === 'active' ? '🟡 نشطة' : '✅ مغلقة'
+  ]);
+
+  return `
+    ${summaryCards}
+    
+    <h2 class="section-header">⚖️ القضايا القانونية</h2>
+    ${createDataTable(headers, rows)}
+  `;
+}
+
+/**
+ * إنشاء محتوى تقرير عام
+ */
+async function generateGenericReportContent(data: any[], reportType: string): Promise<string> {
+  if (data.length === 0) {
+    return createHighlightBox('لا توجد بيانات متاحة لهذا التقرير', 'warning');
+  }
+
+  const headers = Object.keys(data[0]);
+  const rows = data.map(item => Object.values(item).map(value => String(value || 'غير محدد')));
+
+  return `
+    <h2 class="section-header">📊 بيانات التقرير</h2>
+    ${createDataTable(headers, rows)}
+  `;
+}
+
+const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
+  reportType,
+  getReportData
+}) => {
+  const handleDownloadPDF = async () => {
+    try {
+      const data = getReportData();
+      await generateModernReportPDF(reportType, data);
+      toast.success('تم إنشاء التقرير بنجاح - يمكنك طباعته أو حفظه كـ PDF');
     } catch (error) {
       console.error('خطأ في إنشاء PDF:', error);
       toast.error('خطأ في إنشاء ملف PDF');
@@ -487,7 +641,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
     <div className="flex gap-2 mb-4 flex-row-reverse" dir="rtl">
       <Button variant="outline" onClick={handleDownloadPDF}>
         <Download className="ml-2 h-4 w-4" />
-        تصدير كـ PDF
+        تصدير كـ PDF متطور
       </Button>
       <Button variant="outline" onClick={handleDownloadExcel}>
         <FileText className="ml-2 h-4 w-4" />

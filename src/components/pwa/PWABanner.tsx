@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Download, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -77,7 +76,7 @@ export const PWABanner: React.FC = () => {
               <Smartphone className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-sm">تطبيق العارف للتأجير</p>
+              <p className="font-semibold text-sm">تطبيق العراف للتأجير</p>
               <p className="text-xs text-blue-100">للحصول على تجربة أفضل، ثبت التطبيق</p>
             </div>
           </div>

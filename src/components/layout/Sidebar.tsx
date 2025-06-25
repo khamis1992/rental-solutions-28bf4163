@@ -19,7 +19,8 @@ import {
   FileSpreadsheet,
   TrendingUp,
   Receipt,
-  Activity
+  Activity,
+  MessageCircle
 } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -232,6 +233,13 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               icon={<Receipt className="h-4 w-4 flex-shrink-0" />}
               label="المدفوعات"
               isActive={isActive('/payments')}
+              onClick={handleNavClick}
+            />
+            <NavLink
+              to="/whatsapp-notifications"
+              icon={<MessageCircle className="h-4 w-4 flex-shrink-0" />}
+              label="تذكيرات الواتساب"
+              isActive={isActive('/whatsapp-notifications')}
               onClick={handleNavClick}
             />
           </NavGroup>

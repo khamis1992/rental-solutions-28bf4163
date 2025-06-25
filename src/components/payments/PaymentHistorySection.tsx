@@ -8,7 +8,7 @@ import { Payment } from '@/types/payment.types';
 import { Agreement } from '@/types/agreement';
 import { useAgreementPaymentSync } from '@/hooks/payment/use-agreement-payment-sync';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -314,6 +314,9 @@ export function PaymentHistorySection({
         <DialogContent dir="rtl">
           <DialogHeader className="text-right">
             <DialogTitle>تعديل رسوم التأخير</DialogTitle>
+            <DialogDescription className="text-right">
+              قم بتحديث مبلغ رسوم التأخير لهذه الدفعة
+            </DialogDescription>
           </DialogHeader>
           <form
             onSubmit={async (e) => {

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import InteractiveChart from './InteractiveChart';
 import { MonthlyTrendData } from '@/utils/cross-report-data-processors';
@@ -11,16 +10,16 @@ interface FinancialTrendsChartProps {
 const FinancialTrendsChart: React.FC<FinancialTrendsChartProps> = ({ data }) => {
   return (
     <InteractiveChart
-      title="Revenue vs. Maintenance Costs"
-      description="Monthly comparison of revenue and maintenance costs"
+      title="اتجاهات الأداء المالي الشهرية"
+      description="تتبع الإيرادات والتكاليف والأرباح عبر آخر 12 شهر"
       data={data}
       defaultChartType="line"
-      allowedChartTypes={['bar', 'line', 'area']}
+      allowedChartTypes={['line', 'area', 'bar']}
       xAxisKey="month"
       series={[
-        { key: 'revenue', name: 'Revenue', color: '#22c55e' },
-        { key: 'maintenanceCosts', name: 'Maintenance Costs', color: '#ef4444' },
-        { key: 'profit', name: 'Profit', color: '#3b82f6' },
+        { key: 'revenue', name: 'الإيرادات', color: '#22c55e' },
+        { key: 'maintenanceCosts', name: 'تكاليف الصيانة', color: '#ef4444' },
+        { key: 'profit', name: 'الربح الصافي', color: '#3b82f6' },
       ]}
       formatters={{
         revenue: formatCurrency,

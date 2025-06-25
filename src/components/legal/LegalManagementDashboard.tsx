@@ -559,12 +559,7 @@ const LegalManagementDashboard = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-green-100 text-green-800 border-green-200';
-    }
+    return "bg-white";
   };
 
   const getStatusColor = (status: string) => {
@@ -597,23 +592,23 @@ const LegalManagementDashboard = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading legal management data...</p>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-3"></div>
+          <p className="text-muted-foreground text-sm">Loading legal management data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 legal-rtl" dir="rtl">
+    <div className="space-y-5 legal-rtl" dir="rtl">
       {/* Header */}
               <div className="flex justify-between items-center" dir="rtl">
           <div className="text-right">
-            <h1 className="text-3xl font-bold text-right">إدارة الشؤون القانونية</h1>
-            <p className="text-muted-foreground text-right">الكشف التلقائي والإدارة الشاملة للحالات القانونية</p>
+            <h1 className="text-2xl font-bold text-right">إدارة الشؤون القانونية</h1>
+            <p className="text-muted-foreground text-right text-sm">الكشف التلقائي والإدارة الشاملة للحالات القانونية</p>
           </div>
         <div className="flex gap-2" dir="rtl">
-          <Button onClick={loadDashboardData} variant="outline">
+          <Button onClick={loadDashboardData} variant="outline" className="h-9 text-sm">
             تحديث البيانات
           </Button>
         </div>
@@ -623,14 +618,14 @@ const LegalManagementDashboard = () => {
 
       {/* Dashboard Statistics */}
       {dashboardStats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4" dir="rtl">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3" dir="rtl">
           <Card className="text-right">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" dir="rtl">
               <CardTitle className="text-sm font-medium text-right">المرشحون للإجراءات القانونية</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
             <CardContent className="text-right">
-              <div className="text-2xl font-bold text-right">{dashboardStats.total_candidates}</div>
+              <div className="text-xl font-bold text-right">{dashboardStats.total_candidates}</div>
               <p className="text-xs text-muted-foreground text-right">عميل يحتاج متابعة</p>
             </CardContent>
           </Card>
@@ -638,10 +633,10 @@ const LegalManagementDashboard = () => {
           <Card className="text-right">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" dir="rtl">
               <CardTitle className="text-sm font-medium text-right">القضايا النشطة</CardTitle>
-              <Gavel className="h-4 w-4 text-muted-foreground" />
+              <Gavel className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
             <CardContent className="text-right">
-              <div className="text-2xl font-bold text-right">{dashboardStats.total_cases}</div>
+              <div className="text-xl font-bold text-right">{dashboardStats.total_cases}</div>
               <p className="text-xs text-muted-foreground text-right">قضية مفتوحة</p>
             </CardContent>
           </Card>
@@ -649,10 +644,10 @@ const LegalManagementDashboard = () => {
           <Card className="text-right">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" dir="rtl">
               <CardTitle className="text-sm font-medium text-right">المبلغ المعرض للخطر</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
             <CardContent className="text-right">
-              <div className="text-2xl font-bold text-right">
+              <div className="text-xl font-bold text-right">
                 {dashboardStats.total_amount_at_risk.toLocaleString()} ر.ق
               </div>
               <p className="text-xs text-muted-foreground text-right">إجمالي المبالغ المستحقة</p>
@@ -662,10 +657,10 @@ const LegalManagementDashboard = () => {
           <Card className="text-right">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" dir="rtl">
               <CardTitle className="text-sm font-medium text-right">القوالب النشطة</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileText className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
             <CardContent className="text-right">
-              <div className="text-2xl font-bold text-right">{legalTemplates.length}</div>
+              <div className="text-xl font-bold text-right">{legalTemplates.length}</div>
               <p className="text-xs text-muted-foreground text-right">قالب متاح</p>
             </CardContent>
           </Card>
@@ -673,21 +668,21 @@ const LegalManagementDashboard = () => {
       )}
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="candidates" className="space-y-4">
+      <Tabs defaultValue="candidates" className="space-y-3">
         <TabsList className="grid w-full grid-cols-3" dir="rtl">
-          <TabsTrigger value="candidates">المرشحون للإجراءات القانونية</TabsTrigger>
-          <TabsTrigger value="cases">القضايا النشطة</TabsTrigger>
-          <TabsTrigger value="templates">مولد الخطابات الذكي</TabsTrigger>
+          <TabsTrigger value="candidates" className="text-sm">المرشحون للإجراءات القانونية</TabsTrigger>
+          <TabsTrigger value="cases" className="text-sm">القضايا النشطة</TabsTrigger>
+          <TabsTrigger value="templates" className="text-sm">مولد الخطابات الذكي</TabsTrigger>
         </TabsList>
 
         {/* Legal Candidates Tab */}
-        <TabsContent value="candidates" className="space-y-4">
+        <TabsContent value="candidates" className="space-y-3">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex justify-between items-center" dir="rtl">
                 <div className="text-right">
-                  <CardTitle className="text-right">الكشف التلقائي - المرشحون للإجراءات القانونية</CardTitle>
-                  <CardDescription className="text-right">
+                  <CardTitle className="text-right text-lg">الكشف التلقائي - المرشحون للإجراءات القانونية</CardTitle>
+                  <CardDescription className="text-right text-sm">
                     العملاء الذين لديهم التزامات مالية متأخرة تستدعي اتخاذ إجراءات قانونية
                   </CardDescription>
                 </div>
@@ -696,65 +691,53 @@ const LegalManagementDashboard = () => {
                     placeholder="البحث عن عميل..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64 text-right"
+                    className="w-60 text-right h-9 text-sm"
                   />
-                  <Search className="w-4 h-4 text-muted-foreground" />
+                  <Search className="w-3 h-3 text-muted-foreground" />
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               {filteredCandidates.length === 0 ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">لا توجد حالات تستدعي إجراءات قانونية حالياً</p>
+                <div className="text-center py-6">
+                  <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground text-sm">لا توجد حالات تستدعي إجراءات قانونية حالياً</p>
                 </div>
               ) : (
                 <Table dir="rtl" className="text-right">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-right">العميل</TableHead>
-                      <TableHead className="text-right">النوع</TableHead>
-                      <TableHead className="text-right">المبلغ المستحق</TableHead>
-                      <TableHead className="text-right">نقاط الأولوية</TableHead>
-                      <TableHead className="text-right">الإجراء المقترح</TableHead>
-                      <TableHead className="text-right">الإجراءات</TableHead>
+                      <TableHead className="text-right text-sm">العميل</TableHead>
+                      <TableHead className="text-right text-sm">النوع</TableHead>
+                      <TableHead className="text-right text-sm">المبلغ المستحق</TableHead>
+                      <TableHead className="text-right text-sm">الإجراء المقترح</TableHead>
+                      <TableHead className="text-right text-sm">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCandidates.map((candidate) => (
                       <TableRow key={candidate.id}>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right py-2">
                           <div>
-                            <p className="font-medium">{candidate.customer_name}</p>
+                            <p className="font-medium text-sm">{candidate.customer_name}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline">
+                        <TableCell className="text-right py-2">
+                          <Badge variant="outline" className="text-xs px-2 py-1">
                             {candidate.type === 'unpaid_agreement' && 'إيجار متأخر'}
                             {candidate.type === 'unpaid_traffic_fine' && 'مخالفات مرورية'}
                             {candidate.type === 'combined' && 'مختلط'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <span className="font-bold text-red-600">
+                        <TableCell className="text-right py-2">
+                          <span className="font-bold text-red-600 text-sm">
                             {candidate.total_amount_owed.toLocaleString()} ر.ق
                           </span>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center gap-2 justify-end" dir="rtl">
-                            <span className="text-sm font-medium">{candidate.priority_score}/100</span>
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-red-500 h-2 rounded-full" 
-                                style={{ width: `${candidate.priority_score}%` }}
-                              ></div>
-                            </div>
-                          </div>
+                        <TableCell className="text-right py-2">
+                          <p className="text-xs">{candidate.recommended_action}</p>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <p className="text-sm">{candidate.recommended_action}</p>
-                        </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right py-2">
                           <div className="flex gap-2 justify-end" dir="rtl">
                             <Button
                               size="sm"
@@ -763,16 +746,18 @@ const LegalManagementDashboard = () => {
                                 setSelectedCandidate(candidate);
                                 setShowCaseDialog(true);
                               }}
+                              className="h-8 text-xs"
                             >
-                              <Gavel className="w-4 h-4 ml-1" />
+                              <Gavel className="w-3 h-3 ml-1" />
                               فتح قضية
                             </Button>
                             <Button 
                               size="sm" 
                               variant="outline"
                               onClick={() => handleViewDetails(candidate)}
+                              className="h-8 text-xs"
                             >
-                              <Eye className="w-4 h-4 ml-1" />
+                              <Eye className="w-3 h-3 ml-1" />
                               عرض التفاصيل
                             </Button>
                           </div>
@@ -787,12 +772,12 @@ const LegalManagementDashboard = () => {
         </TabsContent>
 
         {/* Legal Cases Tab */}
-        <TabsContent value="cases" className="space-y-4">
+        <TabsContent value="cases" className="space-y-3">
           <LegalCaseManagement />
         </TabsContent>
 
         {/* Templates Tab */}
-        <TabsContent value="templates" className="space-y-4">
+        <TabsContent value="templates" className="space-y-3">
           <AILegalLetterGenerator />
         </TabsContent>
       </Tabs>
@@ -801,25 +786,25 @@ const LegalManagementDashboard = () => {
       <Dialog open={showCaseDialog} onOpenChange={setShowCaseDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>فتح قضية قانونية جديدة</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg">فتح قضية قانونية جديدة</DialogTitle>
+            <DialogDescription className="text-sm">
               فتح قضية قانونية ضد العميل: {selectedCandidate?.customer_name}
             </DialogDescription>
           </DialogHeader>
           {selectedCandidate && (
-            <div className="space-y-4">
-              <div className="bg-muted p-4 rounded-lg">
-                <h4 className="font-medium mb-2">تفاصيل العميل:</h4>
-                <p>الاسم: {selectedCandidate.customer_name}</p>
-                <p>المبلغ المستحق: {selectedCandidate.total_amount_owed.toLocaleString()} ر.ق</p>
-                <p>الإجراء المقترح: {selectedCandidate.recommended_action}</p>
+            <div className="space-y-3">
+              <div className="bg-muted p-3 rounded-lg">
+                <h4 className="font-medium mb-2 text-sm">تفاصيل العميل:</h4>
+                <p className="text-sm">الاسم: {selectedCandidate.customer_name}</p>
+                <p className="text-sm">المبلغ المستحق: {selectedCandidate.total_amount_owed.toLocaleString()} ر.ق</p>
+                <p className="text-sm">الإجراء المقترح: {selectedCandidate.recommended_action}</p>
               </div>
               
               <Select
                 value={newCaseForm.case_type}
                 onValueChange={(value: any) => setNewCaseForm(prev => ({ ...prev, case_type: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="نوع القضية" />
                 </SelectTrigger>
                 <SelectContent>
@@ -834,13 +819,14 @@ const LegalManagementDashboard = () => {
                 placeholder="ملاحظات إضافية..."
                 value={newCaseForm.notes}
                 onChange={(e) => setNewCaseForm(prev => ({ ...prev, notes: e.target.value }))}
+                className="text-sm"
               />
               
               <div className="flex justify-end gap-2" dir="rtl">
-                <Button onClick={handleCreateCase}>
+                <Button onClick={handleCreateCase} className="h-9 text-sm">
                   فتح القضية
                 </Button>
-                <Button variant="outline" onClick={() => setShowCaseDialog(false)}>
+                <Button variant="outline" onClick={() => setShowCaseDialog(false)} className="h-9 text-sm">
                   إلغاء
                 </Button>
               </div>
@@ -855,8 +841,8 @@ const LegalManagementDashboard = () => {
           <DialogHeader>
             <div className="flex justify-between items-center">
               <div>
-                <DialogTitle>تفاصيل العميل - {selectedCandidate?.customer_name}</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-lg">تفاصيل العميل - {selectedCandidate?.customer_name}</DialogTitle>
+                <DialogDescription className="text-sm">
                   معلومات شاملة عن الالتزامات المالية المتأخرة
                 </DialogDescription>
               </div>
@@ -865,38 +851,28 @@ const LegalManagementDashboard = () => {
                 disabled={isExporting}
                 variant="outline"
                 size="sm"
+                className="h-9 text-sm"
               >
                 {isExporting ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary ml-2"></div>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary ml-2"></div>
                 ) : (
-                  <Download className="w-4 h-4 ml-2" />
+                  <Download className="w-3 h-3 ml-2" />
                 )}
                 تصدير PDF للمحكمة
               </Button>
             </div>
           </DialogHeader>
           {selectedCandidate && (
-            <div className="space-y-6" ref={detailsContentRef}>
+            <div className="space-y-5" ref={detailsContentRef}>
               {/* Customer Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">إجمالي المبلغ المستحق</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-red-600">
+                    <div className="text-xl font-bold text-red-600">
                       {selectedCandidate.total_amount_owed.toLocaleString()} ر.ق
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">نقاط الأولوية</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {selectedCandidate.priority_score}/100
                     </div>
                   </CardContent>
                 </Card>
@@ -917,9 +893,9 @@ const LegalManagementDashboard = () => {
 
               {/* Recommended Action */}
               <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>الإجراء المقترح</AlertTitle>
-                <AlertDescription>
+                <AlertTriangle className="h-3 w-3" />
+                <AlertTitle className="text-sm">الإجراء المقترح</AlertTitle>
+                <AlertDescription className="text-sm">
                   {selectedCandidate.recommended_action}
                 </AlertDescription>
               </Alert>
@@ -927,9 +903,9 @@ const LegalManagementDashboard = () => {
               {/* Unpaid Agreements */}
               {selectedCandidate.unpaid_agreements.length > 0 && (
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Car className="h-5 w-5" />
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Car className="h-4 w-4" />
                       عقود الإيجار المتأخرة ({selectedCandidate.unpaid_agreements.length})
                     </CardTitle>
                   </CardHeader>
@@ -937,33 +913,33 @@ const LegalManagementDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>رقم اللوحة</TableHead>
-                          <TableHead>مبلغ الإيجار</TableHead>
-                          <TableHead>إجمالي الغرامات المتأخرة</TableHead>
-                          <TableHead>الأشهر المعلقة غير المدفوعة</TableHead>
+                          <TableHead className="text-sm">رقم اللوحة</TableHead>
+                          <TableHead className="text-sm">مبلغ الإيجار</TableHead>
+                          <TableHead className="text-sm">إجمالي الغرامات المتأخرة</TableHead>
+                          <TableHead className="text-sm">الأشهر المعلقة غير المدفوعة</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {selectedCandidate.unpaid_agreements.map((agreement) => (
                           <TableRow key={agreement.id}>
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium text-sm py-2">
                               {agreement.vehicle_license_plate}
                             </TableCell>
-                            <TableCell>
-                              <span className="font-bold text-red-600">
+                            <TableCell className="py-2">
+                              <span className="font-bold text-red-600 text-sm">
                                 {agreement.amount_owed.toLocaleString()} ر.ق
                               </span>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                {agreement.days_overdue * 10} ر.ق
+                            <TableCell className="py-2">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{agreement.days_overdue * 10} ر.ق</span>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                {Math.ceil(agreement.days_overdue / 30)} شهر
+                            <TableCell className="py-2">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{Math.ceil(agreement.days_overdue / 30)} شهر</span>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -977,9 +953,9 @@ const LegalManagementDashboard = () => {
               {/* Unpaid Traffic Fines */}
               {selectedCandidate.unpaid_traffic_fines.length > 0 && (
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5" />
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <AlertTriangle className="h-4 w-4" />
                       المخالفات المرورية المتأخرة ({selectedCandidate.unpaid_traffic_fines.length})
                     </CardTitle>
                   </CardHeader>
@@ -987,35 +963,35 @@ const LegalManagementDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>رقم المخالفة</TableHead>
-                          <TableHead>رقم اللوحة</TableHead>
-                          <TableHead>مبلغ الغرامة</TableHead>
-                          <TableHead>تاريخ المخالفة</TableHead>
-                          <TableHead>إجمالي الغرامات المتأخرة</TableHead>
+                          <TableHead className="text-sm">رقم المخالفة</TableHead>
+                          <TableHead className="text-sm">رقم اللوحة</TableHead>
+                          <TableHead className="text-sm">مبلغ الغرامة</TableHead>
+                          <TableHead className="text-sm">تاريخ المخالفة</TableHead>
+                          <TableHead className="text-sm">إجمالي الغرامات المتأخرة</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {selectedCandidate.unpaid_traffic_fines.map((fine) => (
                           <TableRow key={fine.id}>
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium text-sm py-2">
                               {fine.violation_number}
                             </TableCell>
-                            <TableCell>{fine.license_plate}</TableCell>
-                            <TableCell>
-                              <span className="font-bold text-red-600">
+                            <TableCell className="text-sm py-2">{fine.license_plate}</TableCell>
+                            <TableCell className="py-2">
+                              <span className="font-bold text-red-600 text-sm">
                                 {fine.fine_amount.toLocaleString()} ر.ق
                               </span>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                {formatDate(fine.violation_date)}
+                            <TableCell className="py-2">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{formatDate(fine.violation_date)}</span>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                {fine.days_overdue * 5} ر.ق
+                            <TableCell className="py-2">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{fine.days_overdue * 5} ر.ق</span>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -1027,8 +1003,8 @@ const LegalManagementDashboard = () => {
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <Button variant="outline" onClick={() => setShowDetailsDialog(false)} className="h-9 text-sm">
                   إغلاق
                 </Button>
                 <Button 
@@ -1036,8 +1012,9 @@ const LegalManagementDashboard = () => {
                     setShowDetailsDialog(false);
                     setShowCaseDialog(true);
                   }}
+                  className="h-9 text-sm"
                 >
-                  <Gavel className="w-4 h-4 mr-2" />
+                  <Gavel className="w-3 h-3 mr-2" />
                   فتح قضية قانونية
                 </Button>
               </div>

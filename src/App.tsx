@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
+﻿import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -73,6 +73,7 @@ const LegalDocumentsPage = lazy(() => import("./pages/LegalDocumentsPage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const TrafficFines = lazy(() => import("./pages/TrafficFines"));
 const Financials = lazy(() => import("./pages/Financials"));
+const Payments = lazy(() => import("./pages/Payments"));
 
 // Maintenance Management
 const Maintenance = lazy(() => import("./pages/Maintenance"));
@@ -88,6 +89,8 @@ const ScheduledReports = lazy(() => import("./pages/ScheduledReports"));
 const ReportBuilder = lazy(() => import("./pages/ReportBuilder"));
 const DocumentsPage = lazy(() => import("./pages/DocumentsPage"));
 const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
+const WhatsAppNotifications = lazy(() => import("./pages/WhatsAppNotifications"));
+const WhatsAppTest = lazy(() => import("./pages/WhatsAppTest"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Mobile Field Operations
@@ -169,6 +172,7 @@ const AppContent = () => {
                 <Route path="/activity" element={withErrorBoundary(ActivityPage)} />
                 <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
                 <Route path="/financials" element={withErrorBoundary(Financials)} />
+                <Route path="/payments" element={withErrorBoundary(Payments)} />
                 
                 {/* Maintenance Management */}
                 <Route path="/maintenance" element={withErrorBoundary(Maintenance)} />
@@ -185,6 +189,8 @@ const AppContent = () => {
                 <Route path="/reports/scheduled" element={withErrorBoundary(ScheduledReports)} />
                 <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
                 <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />
+                <Route path="/whatsapp-notifications" element={withErrorBoundary(WhatsAppNotifications)} />
+                <Route path="/whatsapp-test" element={withErrorBoundary(WhatsAppTest)} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/system" element={<Navigate to="/settings" replace />} />
                 <Route path="/users" element={withErrorBoundary(UserManagement)} />

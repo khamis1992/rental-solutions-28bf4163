@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, Badge, Button, Progress, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui";
+import { Card, CardContent, Badge, Button, Progress, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui";
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
 import { generateModernCustomerFinancialPDF } from '@/utils/modern-customer-financial-pdf';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -714,6 +714,12 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
             <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
               {language === 'ar' ? 'إرسال تذكير دفع' : 'Send Payment Reminder'}
             </DialogTitle>
+            <DialogDescription className={language === 'ar' ? 'text-right' : 'text-left'}>
+              {language === 'ar' 
+                ? 'إرسال تذكير للعميل بالدفعات المستحقة' 
+                : 'Send a reminder to the customer about due payments'
+              }
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <p className={`text-gray-600 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
@@ -761,6 +767,12 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
             <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
               {language === 'ar' ? 'سجل الدفعات' : 'Payment History'}
             </DialogTitle>
+            <DialogDescription className={language === 'ar' ? 'text-right' : 'text-left'}>
+              {language === 'ar' 
+                ? 'عرض جميع الدفعات والمعاملات المالية لهذا العميل' 
+                : 'View all payments and financial transactions for this customer'
+              }
+            </DialogDescription>
           </DialogHeader>
           <div className="overflow-y-auto max-h-96">
             {allPayments.length > 0 ? (

@@ -23,7 +23,7 @@ const FinancialReport = () => {
   } = useFinancials();
 
   if (isLoadingSummary || isLoadingTransactions) {
-    return <div>Loading financial data...</div>;
+    return <div dir="rtl" className="text-center py-10">جاري تحميل البيانات المالية...</div>;
   }
 
   const categoryTotals = (transactions || []).reduce<Record<string, CategoryTotal>>((acc, transaction) => {
@@ -60,37 +60,37 @@ const FinancialReport = () => {
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" dir="rtl">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
-          title="Total Income" 
+          title="إجمالي الإيرادات" 
           value={formatCurrency(financialSummary?.totalIncome || 0)} 
           trend={2.5}
-          trendLabel="vs last month"
+          trendLabel="مقارنة بالشهر الماضي"
           icon={TrendingUp}
           iconColor="text-green-500"
         />
         <StatCard 
-          title="Total Expenses" 
+          title="إجمالي المصاريف" 
           value={formatCurrency(financialSummary?.totalExpenses || 0)} 
           trend={-1.2}
-          trendLabel="vs last month"
+          trendLabel="مقارنة بالشهر الماضي"
           icon={TrendingDown}
           iconColor="text-red-500"
         />
         <StatCard 
-          title="Net Revenue" 
+          title="صافي الإيرادات" 
           value={formatCurrency(financialSummary?.netRevenue || 0)} 
           trend={3.4}
-          trendLabel="vs last month"
+          trendLabel="مقارنة بالشهر الماضي"
           icon={CircleDollarSign}
           iconColor="text-blue-500"
         />
         <StatCard 
-          title="Overdue Expenses" 
+          title="المصاريف المتأخرة" 
           value={formatCurrency(financialSummary?.overdueExpenses ?? 0)} 
           trend={(financialSummary?.overdueExpenses ?? 0) > 0 ? 100 : 0}
-          trendLabel="requires attention"
+          trendLabel="تحتاج انتباه"
           icon={AlertTriangle}
           iconColor="text-red-600"
         />
@@ -100,27 +100,27 @@ const FinancialReport = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Income by Category</CardTitle>
+          <CardTitle className="text-right">الإيرادات حسب الفئة</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead>Total Income</TableHead>
-                <TableHead>Total Expenses</TableHead>
-                <TableHead>Net</TableHead>
-                <TableHead>% of Total Income</TableHead>
+                <TableHead className="text-right">الفئة</TableHead>
+                <TableHead className="text-right">إجمالي الإيرادات</TableHead>
+                <TableHead className="text-right">إجمالي المصاريف</TableHead>
+                <TableHead className="text-right">الصافي</TableHead>
+                <TableHead className="text-right">% من إجمالي الإيرادات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {categoryAnalytics.length > 0 ? (
                 categoryAnalytics.map((category, index) => (
                   <TableRow key={index}>
-                    <TableCell className="font-medium">{category.category}</TableCell>
-                    <TableCell className="text-green-600">{formatCurrency(category.incomeAmount)}</TableCell>
-                    <TableCell className="text-red-600">{formatCurrency(category.expenseAmount)}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium text-right">{category.category}</TableCell>
+                    <TableCell className="text-green-600 text-right">{formatCurrency(category.incomeAmount)}</TableCell>
+                    <TableCell className="text-red-600 text-right">{formatCurrency(category.expenseAmount)}</TableCell>
+                    <TableCell className="text-right">
                       <Badge 
                         className={
                           category.incomeAmount - category.expenseAmount > 0 
@@ -131,12 +131,12 @@ const FinancialReport = () => {
                         {formatCurrency(category.incomeAmount - category.expenseAmount)}
                       </Badge>
                     </TableCell>
-                    <TableCell>{category.percentageOfTotal}%</TableCell>
+                    <TableCell className="text-right">{category.percentageOfTotal}%</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">No financial data available</TableCell>
+                  <TableCell colSpan={5} className="text-center">لا توجد بيانات مالية متاحة</TableCell>
                 </TableRow>
               )}
             </TableBody>

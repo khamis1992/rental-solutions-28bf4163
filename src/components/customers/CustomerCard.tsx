@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +38,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'غير متوفر';
-    return new Date(dateString).toLocaleDateString('ar-SA');
+    return new Date(dateString).toLocaleDateString('ar-QA');
   };
 
   const handleCardClick = () => {

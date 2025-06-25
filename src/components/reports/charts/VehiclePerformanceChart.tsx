@@ -1,4 +1,3 @@
-
 import React from 'react';
 import InteractiveChart from './InteractiveChart';
 import { VehicleUtilizationData } from '@/utils/cross-report-data-processors';
@@ -11,16 +10,16 @@ interface VehiclePerformanceChartProps {
 const VehiclePerformanceChart: React.FC<VehiclePerformanceChartProps> = ({ data }) => {
   return (
     <InteractiveChart
-      title="Vehicle Performance Analysis"
-      description="Compare revenue, maintenance costs, and utilization across vehicles"
+      title="تحليل أداء المركبات"
+      description="مقارنة الإيرادات وتكاليف الصيانة ومعدل الاستغلال عبر المركبات"
       data={data}
       defaultChartType="bar"
       allowedChartTypes={['bar', 'line']}
       xAxisKey="name"
       series={[
-        { key: 'revenue', name: 'Revenue', color: '#22c55e' },
-        { key: 'maintenanceCosts', name: 'Maintenance Costs', color: '#ef4444' },
-        { key: 'profit', name: 'Profit', color: '#3b82f6' },
+        { key: 'revenue', name: 'الإيرادات', color: '#22c55e' },
+        { key: 'maintenanceCosts', name: 'تكاليف الصيانة', color: '#ef4444' },
+        { key: 'profit', name: 'الربح', color: '#3b82f6' },
       ]}
       formatters={{
         revenue: formatCurrency,
@@ -31,17 +30,17 @@ const VehiclePerformanceChart: React.FC<VehiclePerformanceChartProps> = ({ data 
       filters={[
         {
           key: 'status',
-          name: 'Vehicle Status',
+          name: 'حالة المركبة',
           options: [
-            { label: 'Available', value: 'available' },
-            { label: 'Rented', value: 'rented' },
-            { label: 'Maintenance', value: 'maintenance' },
-            { label: 'Out of Service', value: 'out_of_service' }
+            { label: 'متاحة', value: 'available' },
+            { label: 'مؤجرة', value: 'rented' },
+            { label: 'في الصيانة', value: 'maintenance' },
+            { label: 'خارج الخدمة', value: 'out_of_service' }
           ]
         },
         {
           key: 'vehicleType',
-          name: 'Vehicle Type',
+          name: 'نوع المركبة',
           options: [
             ...new Set(data.map(v => v.vehicleType))
           ].filter(Boolean).map(type => ({ label: String(type), value: String(type) }))

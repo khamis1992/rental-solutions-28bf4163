@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import Header from './Header';
+import { Header } from './Header';
 import Sidebar from './Sidebar';
 import { WifiOff } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
@@ -61,10 +61,13 @@ const PageContainer: React.FC<PageContainerProps> = ({
         "flex-1 transition-all duration-300 ease-in-out",
         isMobile ? "w-full" : "md:pr-64" // Always right padding for right-positioned sidebar
       )}>
+        {/* Only show Header on desktop - hidden on mobile and tablet */}
+        {!isMobile && (
         <Header 
-          onToggleSidebar={toggleSidebar} 
-          isSidebarOpen={sidebarOpen} 
+            onMenuClick={toggleSidebar} 
+            showMenuButton={false} 
         />
+        )}
         
         {!isOnline && (
           <Alert variant="warning" className="mx-4 mt-2">
