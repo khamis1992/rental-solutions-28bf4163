@@ -122,16 +122,36 @@ export class TwilioWhatsAppService {
 
       if (error) {
         console.error('Supabase function error:', error);
+        
+        // Handle specific error cases with user-friendly messages
+        if (error.message?.includes('Edge Function returned a non-2xx status code')) {
+          throw new Error('خدمة الواتساب غير متاحة حالياً. تحقق من إعدادات Twilio في Supabase.');
+        }
+        
         throw new Error(`Function invocation failed: ${error.message}`);
       }
       
       if (!data) {
-        throw new Error('No response data from function');
+        throw new Error('لم يتم استلام رد من خدمة الواتساب');
       }
 
       if (!data.success) {
         console.error('Function returned error:', data);
-        throw new Error(data.error || 'Unknown function error');
+        
+        // Handle common Twilio errors with Arabic messages
+        if (data.error?.includes('Twilio secrets not configured')) {
+          throw new Error('لم يتم تكوين بيانات Twilio في Supabase. يرجى إعداد الـ Function Secrets.');
+        }
+        
+        if (data.error?.includes('21211')) {
+          throw new Error('رقم الهاتف غير صحيح. تأكد من الصيغة الدولية.');
+        }
+        
+        if (data.error?.includes('21614')) {
+          throw new Error('رقم الواتساب غير مفعل أو غير مشترك في الخدمة.');
+        }
+        
+        throw new Error(data.error || 'خطأ غير معروف في خدمة الواتساب');
       }
       
       // Log success for client-side UI statistics
@@ -141,10 +161,17 @@ export class TwilioWhatsAppService {
 
     } catch (err: any) {
       console.error('Error invoking send-whatsapp function:', err);
+      
       // Log failure for client-side UI statistics
       await this.logMessageToDB(formattedTo, body, messageType, 'failed', '', err.message);
       
-      return { success: false, error: err.message };
+      // Return user-friendly error messages
+      let userError = err.message;
+      if (err.message?.includes('FunctionsHttpError')) {
+        userError = 'خدمة الواتساب غير متاحة حالياً. تحقق من إعدادات النظام.';
+      }
+      
+      return { success: false, error: userError };
     }
   }
 
@@ -205,22 +232,48 @@ export class TwilioWhatsAppService {
       });
       
       if (error) {
+        // Handle different types of errors gracefully
+        if (error.message?.includes('Edge Function returned a non-2xx status code')) {
+          return {
+            available: false,
+            error: 'خدمة الواتساب غير مكونة. يرجى إعداد Twilio Secrets في Supabase.'
+          };
+        }
+        
+        if (error.message?.includes('FunctionsHttpError')) {
+          return {
+            available: false,
+            error: 'وظيفة الواتساب غير متاحة في Supabase.'
+          };
+        }
+        
         throw new Error(error.message);
       }
       
       if (data && !data.success && data.error?.includes('credentials')) {
-        throw new Error(data.error);
+        return {
+          available: false,
+          error: 'بيانات Twilio غير مكونة في الخادم.'
+        };
       }
 
       return { available: true };
 
     } catch (err: any) {
-      console.error("Service status check failed:", err.message);
+      console.warn("WhatsApp service status check failed:", err.message);
+      
+      // Return user-friendly error messages instead of throwing
+      let errorMessage = 'خدمة الواتساب غير متاحة حالياً';
+      
+      if (err.message?.includes('credentials')) {
+        errorMessage = 'بيانات Twilio غير مكونة في النظام';
+      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        errorMessage = 'مشكلة في الاتصال بخدمة الواتساب';
+      }
+      
       return {
         available: false,
-        error: err.message.includes('credentials') 
-          ? 'Twilio secrets not configured on the server.'
-          : 'Service connection failed.',
+        error: errorMessage
       };
     }
   }
