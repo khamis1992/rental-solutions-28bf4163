@@ -279,3 +279,196 @@
     display: none !important;
   }
 }
+
+/* ===== تحسينات صفحة المدفوعات للجوال ===== */
+
+/* تحسين container المدفوعات */
+.payments-page-container {
+  padding: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .payments-page-container {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .payments-page-container {
+    padding: 1.5rem;
+  }
+}
+
+/* تحسين شبكة الإحصائيات للمدفوعات */
+.payments-stats-mobile {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+@media (min-width: 1024px) {
+  .payments-stats-mobile {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* تحسين بطاقات الإحصائيات */
+.payments-stat-card {
+  padding: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .payments-stat-card {
+    padding: 1rem;
+  }
+}
+
+.payments-stat-text {
+  font-size: 0.75rem;
+  color: rgb(107 114 128);
+}
+
+@media (min-width: 640px) {
+  .payments-stat-text {
+    font-size: 0.875rem;
+  }
+}
+
+.payments-stat-number {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+@media (min-width: 640px) {
+  .payments-stat-number {
+    font-size: 1.5rem;
+  }
+}
+
+.payments-stat-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .payments-stat-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
+/* تحسين أزرار الإجراءات في المدفوعات */
+.payments-actions-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .payments-actions-mobile {
+    flex-direction: row;
+    width: auto;
+  }
+}
+
+.payments-action-btn {
+  min-height: 44px;
+  font-size: 0.75rem;
+  padding: 0.5rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .payments-action-btn {
+    font-size: 0.875rem;
+  }
+}
+
+/* تحسين البحث في المدفوعات */
+.payments-search-mobile {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.payments-search-input-mobile {
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+  text-align: right;
+  direction: rtl;
+}
+
+/* إصلاح iOS Safari للمدفوعات */
+@supports (-webkit-touch-callout: none) {
+  .payments-search-input-mobile {
+    font-size: 16px; /* منع التكبير في iOS */
+  }
+}
+
+/* تحسين التبويبات في المدفوعات */
+.payments-tabs-mobile {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.payments-tabs-mobile::-webkit-scrollbar {
+  display: none;
+}
+
+/* إخفاء تبويبات في الجوال */
+@media (max-width: 639px) {
+  .payments-tab-hide-mobile {
+    display: none !important;
+  }
+}
+
+/* تحسين قائمة المدفوعات */
+.payments-list-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .payments-list-mobile {
+    gap: 1rem;
+  }
+}
+
+/* تحسين بطاقة المدفوعة */
+.payment-card-mobile {
+  border-right-width: 4px;
+  border-right-color: rgb(59 130 246);
+  transition: box-shadow 0.2s ease;
+}
+
+.payment-card-mobile:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* تحسينات للشاشات الصغيرة جداً */
+@media (max-width: 375px) {
+  .payments-page-container {
+    padding: 0.25rem;
+  }
+  
+  .payments-stats-mobile {
+    gap: 0.25rem;
+  }
+  
+  .payments-stat-card {
+    padding: 0.5rem;
+  }
+  
+  .payments-stat-number {
+    font-size: 1rem;
+  }
+  
+  .payments-stat-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}

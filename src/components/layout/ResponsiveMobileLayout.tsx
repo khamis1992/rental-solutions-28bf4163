@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge';
 
 interface ResponsiveMobileLayoutProps {
   children: React.ReactNode;
-  sidebar?: React.ReactNode;
-  header?: React.ReactNode;
-  showBottomNav?: boolean;
+  className?: string;
+  dir?: 'ltr' | 'rtl';
+  variant?: 'default' | 'payments' | 'customers' | 'dashboard';
 }
 
 const mobileNavItems = [
@@ -34,12 +34,12 @@ const allNavItems = [
   { icon: Scale, label: 'القانونية', path: '/legal' },
 ];
 
-export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
-  children,
-  sidebar,
-  header,
-  showBottomNav = true
-}) => {
+export function ResponsiveMobileLayout({ 
+  children, 
+  className, 
+  dir = 'rtl',
+  variant = 'default'
+}: ResponsiveMobileLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const breakpoint = useBreakpoint();
@@ -152,10 +152,40 @@ export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
     </nav>
   );
 
+  const layoutClasses = cn(
+    // Base responsive classes
+    'w-full min-h-screen',
+    'px-2 sm:px-4 md:px-6 lg:px-8',
+    'py-2 sm:py-4 md:py-6',
+    
+    // Variant-specific classes
+    {
+      // Default layout
+      'max-w-7xl mx-auto': variant === 'default',
+      
+      // Payments-specific layout
+      'max-w-full payments-page-container': variant === 'payments',
+      
+      // Customers-specific layout  
+      'max-w-full customer-container': variant === 'customers',
+      
+      // Dashboard-specific layout
+      'max-w-full dashboard-container': variant === 'dashboard',
+    },
+    
+    // RTL/LTR support
+    {
+      'text-right': dir === 'rtl',
+      'text-left': dir === 'ltr',
+    },
+    
+    className
+  );
+
   // Mobile layout - NO HEADER, only content and bottom nav
   if (isMobile || breakpoint === 'tablet') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className={layoutClasses} dir={dir}>
         {/* Hidden sidebar that can be opened via floating menu button */}
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <div className="fixed top-4 right-4 z-50">
@@ -177,96 +207,213 @@ export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
         <main 
           className="px-4 py-4"
           style={{ 
-            paddingBottom: showBottomNav ? 'calc(80px + var(--safe-area-bottom, 0px))' : 'var(--safe-area-bottom, 0px)',
+            paddingBottom: 'calc(80px + var(--safe-area-bottom, 0px))',
             paddingTop: 'calc(16px + var(--safe-area-top, 0px))',
             minHeight: '100vh'
           }}
         >
-          <div className="max-w-full mx-auto">
+          <div className={cn(
+            'space-y-4 sm:space-y-6 md:space-y-8',
+            {
+              // Payments-specific spacing
+              'space-y-3 sm:space-y-4': variant === 'payments',
+              
+              // Customers-specific spacing
+              'space-y-4 sm:space-y-6': variant === 'customers',
+            }
+          )}>
             {children}
           </div>
         </main>
 
-        {showBottomNav && <BottomNavigation />}
+        {variant === 'payments' && <BottomNavigation />}
       </div>
     );
   }
 
   // Desktop layout - keep headers
   return (
-    <div className="min-h-screen bg-gray-50">
-      {header}
-      
+    <div className={layoutClasses} dir={dir}>
       <div className="flex">
-        {sidebar && (
-          <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:bg-white lg:border-r lg:border-gray-200">
-            {sidebar}
-          </aside>
-        )}
+        {/* Sidebar */}
+        <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:bg-white lg:border-r lg:border-gray-200">
+          {/* Sidebar content */}
+        </aside>
         
         <main className={cn(
           "flex-1 min-h-screen",
-          sidebar && "lg:ml-64"
+          "lg:ml-64"
         )}>
           <div className="px-4 sm:px-6 lg:px-8 py-6">
-            {children}
+            <div className={cn(
+              'space-y-4 sm:space-y-6 md:space-y-8',
+              {
+                // Payments-specific spacing
+                'space-y-3 sm:space-y-4': variant === 'payments',
+                
+                // Customers-specific spacing
+                'space-y-4 sm:space-y-6': variant === 'customers',
+              }
+            )}>
+              {children}
+            </div>
           </div>
         </main>
       </div>
     </div>
   );
-};
+}
 
-// Hook for responsive layout management
-export const useResponsiveLayout = () => {
-  const isMobile = useIsMobile();
-  const breakpoint = useBreakpoint();
-  
-  const [layoutConfig, setLayoutConfig] = useState({
-    showSidebar: !isMobile,
-    showBottomNav: isMobile,
-    columns: isMobile ? 1 : 2,
-    cardLayout: isMobile,
-    compactMode: isMobile
-  });
+// Specialized components for different sections
 
-  useEffect(() => {
-    setLayoutConfig({
-      showSidebar: !isMobile,
-      showBottomNav: isMobile,
-      columns: isMobile ? 1 : breakpoint === 'tablet' ? 2 : 3,
-      cardLayout: isMobile || breakpoint === 'tablet',
-      compactMode: isMobile
-    });
-  }, [isMobile, breakpoint]);
+export function PaymentsMobileLayout({ children, className }: { 
+  children: React.ReactNode; 
+  className?: string; 
+}) {
+  return (
+    <ResponsiveMobileLayout 
+      variant="payments" 
+      dir="rtl" 
+      className={className}
+    >
+      {children}
+    </ResponsiveMobileLayout>
+  );
+}
 
-  return layoutConfig;
-};
+export function CustomersMobileLayout({ children, className }: { 
+  children: React.ReactNode; 
+  className?: string; 
+}) {
+  return (
+    <ResponsiveMobileLayout 
+      variant="customers" 
+      dir="rtl" 
+      className={className}
+    >
+      {children}
+    </ResponsiveMobileLayout>
+  );
+}
 
-// Responsive container component
-export const ResponsiveContainer: React.FC<{
+export function DashboardMobileLayout({ children, className }: { 
+  children: React.ReactNode; 
+  className?: string; 
+}) {
+  return (
+    <ResponsiveMobileLayout 
+      variant="dashboard" 
+      dir="rtl" 
+      className={className}
+    >
+      {children}
+    </ResponsiveMobileLayout>
+  );
+}
+
+// Mobile-specific helper components
+
+export function MobileStatsGrid({ children, className }: {
   children: React.ReactNode;
   className?: string;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
-  padding?: boolean;
-}> = ({ children, className, maxWidth = 'full', padding = true }) => {
-  const maxWidthClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md', 
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    '2xl': 'max-w-2xl',
-    full: 'max-w-full'
-  };
-
+}) {
   return (
     <div className={cn(
-      'w-full mx-auto',
-      maxWidthClasses[maxWidth],
-      padding && 'px-4 sm:px-6',
+      'grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4',
+      'payments-stats-mobile',
       className
     )}>
       {children}
     </div>
   );
+}
+
+export function MobileActionButtons({ children, className }: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn(
+      'flex flex-col sm:flex-row gap-2 w-full sm:w-auto',
+      'payments-actions-mobile',
+      className
+    )}>
+      {children}
+    </div>
+  );
+}
+
+export function MobileSearchContainer({ children, className }: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn(
+      'relative w-full payments-search-mobile',
+      className
+    )}>
+      {children}
+    </div>
+  );
+}
+
+export function MobileTabsContainer({ children, className }: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn(
+      'overflow-x-auto payments-tabs-mobile',
+      'scrollbar-none -ms-overflow-style-none',
+      className
+    )}>
+      <style jsx>{`
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+      {children}
+    </div>
+  );
+}
+
+export function MobileCardsList({ children, className }: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn(
+      'space-y-3 sm:space-y-4 payments-list-mobile',
+      className
+    )}>
+      {children}
+    </div>
+  );
+}
+
+// Responsive breakpoint utilities
+export const useResponsiveBreakpoint = () => {
+  const [breakpoint, setBreakpoint] = React.useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 640) {
+        setBreakpoint('mobile');
+      } else if (width < 1024) {
+        setBreakpoint('tablet');
+      } else {
+        setBreakpoint('desktop');
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return breakpoint;
 };
+
+export default ResponsiveMobileLayout;
