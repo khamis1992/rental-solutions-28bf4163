@@ -1,5 +1,4 @@
 import { createRoot } from 'react-dom/client';
-import ReactDOMLegacy from 'react-dom';
 import App from './App.tsx';
 import './index.css';
 
@@ -15,51 +14,10 @@ if (import.meta.env.DEV) {
 // Initialize monitoring before app starts
 initializeMonitoring();
 
-// PWA Service Worker Registration
-const registerServiceWorker = async () => {
-  if ('serviceWorker' in navigator) {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
-      });
-      
-      console.log('Service worker registered successfully:', registration);
-      
-      // Check for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('New content is available; please refresh.');
-              // You can show an update notification here
-              if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('تحديث متوفر', {
-                  body: 'إصدار جديد من التطبيق متوفر. يرجى التحديث.',
-                  icon: '/icons/icon-192x192.png'
-                });
-              }
-            }
-          });
-        }
-      });
-      
-      // Check for existing service worker updates
-      if (registration.waiting) {
-        console.log('Service worker update available');
-      }
-      
-      return registration;
-    } catch (error) {
-      console.error('Service worker registration failed:', error);
-    }
-  } else {
-    console.log('Service workers are not supported.');
-  }
-};
-
 // PWA Install Helper
 const initPWAFeatures = () => {
+  console.log('[PWA] Using Vite PWA plugin for service worker management');
+  
   // Store install prompt event
   let deferredPrompt: any = null;
   
@@ -105,6 +63,14 @@ const initPWAFeatures = () => {
     console.log('App is running in standalone mode');
     (window as any).isPWAInstalled = true;
   }
+  
+  // Service worker is handled by Vite PWA plugin
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('[PWA] Service Worker controller changed - reloading');
+      window.location.reload();
+    });
+  }
 };
 
 // Global PWA install function
@@ -147,10 +113,7 @@ const initPWAFeatures = () => {
 
 // Initialize app
 const initApp = async () => {
-  // Register service worker
-  await registerServiceWorker();
-  
-  // Initialize PWA features
+  // Initialize PWA features (service worker handled by Vite PWA plugin)
   initPWAFeatures();
   
   // Mount React app
@@ -164,4 +127,4 @@ const initApp = async () => {
 };
 
 // Start the app
-initApp();
+initApp(); 

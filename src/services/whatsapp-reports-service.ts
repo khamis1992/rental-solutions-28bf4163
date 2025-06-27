@@ -220,4 +220,8 @@ class WhatsAppReportsService {
   }
 }
 
+// Create service instance for named export
+export const whatsAppReportsService = new WhatsAppReportsService();
+
+// Default export for compatibility
 export default WhatsAppReportsService; 
