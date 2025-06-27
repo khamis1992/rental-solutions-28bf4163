@@ -405,7 +405,7 @@ const WhatsAppTest: React.FC = () => {
           result = await twilioWhatsAppService.sendOverduePaymentAlert(
             selectedCustomer.phone,
             selectedCustomer.full_name,
-            amount,
+        amount,
             daysOverdue,
             contractType
           );
@@ -441,7 +441,7 @@ const WhatsAppTest: React.FC = () => {
       toast.error('خطأ في إرسال الرسالة');
       console.error(error);
     }
-    setIsLoading(false);
+      setIsLoading(false);
   };
 
   const getMessageTypeName = (type: string) => {
@@ -585,7 +585,7 @@ const WhatsAppTest: React.FC = () => {
                           <SelectItem key={customerData.id} value={customerData.id!}>
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4" />
-                              <div>
+            <div>
                                 <div className="font-medium">{customerData.full_name || 'عميل'}</div>
                                 <div className="text-xs text-gray-500">
                                   {formatPhoneNumber(customerData.phone || customerData.phone_number || '')}
@@ -598,8 +598,8 @@ const WhatsAppTest: React.FC = () => {
                     )}
                   </SelectContent>
                 </Select>
-              </div>
-              
+            </div>
+            
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -721,17 +721,17 @@ const WhatsAppTest: React.FC = () => {
                 )}
               </Card>
             )}
-
+            
             <div>
               <Label htmlFor="amount">المبلغ (ريال قطري)</Label>
               <div className="flex gap-2 items-center">
-                <Input
-                  id="amount"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  placeholder="500"
-                />
+              <Input
+                id="amount"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                placeholder="500"
+              />
                 {nextPayment && (
                   <Button
                     variant="outline"
@@ -776,22 +776,22 @@ const WhatsAppTest: React.FC = () => {
                   </div>
                 )}
               </Button>
-              
-              <Button 
+            
+            <Button
                 onClick={() => sendMessage('overdue')}
                 disabled={isLoading || !selectedCustomer}
                 className="bg-red-600 hover:bg-red-700 h-16"
-              >
-                {isLoading ? (
+            >
+              {isLoading ? (
                   <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <div className="flex flex-col items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
                     <span>دفعة متأخرة</span>
-                  </div>
-                )}
-              </Button>
-              
+                </div>
+              )}
+            </Button>
+            
               <Button 
                 onClick={() => sendMessage('confirmation')}
                 disabled={isLoading || !selectedCustomer}

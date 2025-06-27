@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/ui/PageHeader';
-import { Receipt, CreditCard, DollarSign, Calendar, Filter, Plus, Download, Loader2, Search } from 'lucide-react';
-import '@/styles/payments-mobile.css';
+import { Receipt, CreditCard, DollarSign, Calendar, Filter, Plus, Download, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +40,7 @@ const Payments = () => {
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     return (
-      <Badge className={`${config.color} text-xs`}>
+      <Badge className={config.color}>
         {config.label}
       </Badge>
     );
@@ -74,12 +73,12 @@ const Payments = () => {
 
   if (error) {
     return (
-      <PageContainer className="max-w-full px-2 sm:px-4" dir="rtl">
+      <PageContainer className="max-w-full" dir="rtl">
         <div className="text-center py-8">
           <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">خطأ في تحميل البيانات</h3>
-          <p className="text-gray-600 mb-4 text-sm">حدث خطأ أثناء تحميل المدفوعات: {error.message}</p>
-          <Button onClick={() => refetch()} size="sm">
+          <p className="text-gray-600 mb-4">حدث خطأ أثناء تحميل المدفوعات: {error.message}</p>
+          <Button onClick={() => refetch()}>
             إعادة المحاولة
           </Button>
         </div>
@@ -89,160 +88,134 @@ const Payments = () => {
 
   return (
     <PageContainer 
-      className="max-w-full px-2 sm:px-4 md:px-6"
+      className="max-w-full"
       dir="rtl"
     >
       <PageHeader
         title="المدفوعات"
         subtitle="إدارة ومتابعة جميع المدفوعات والدفعات المالية"
-        icon={<Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />}
+        icon={<Receipt className="w-6 h-6 text-blue-500" />}
         align="right"
         dir="rtl"
-        className="mb-4 sm:mb-6"
       />
       
-      {/* Statistics Cards - محسنة للجوال */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6" dir="rtl">
-        <Card className="border-r-4 border-r-blue-500">
-          <CardContent className="p-3 sm:p-4">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" dir="rtl">
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-muted-foreground">إجمالي</p>
-                <p className="text-lg sm:text-2xl font-bold">{stats.total}</p>
+                <p className="text-sm text-muted-foreground">إجمالي المدفوعات</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
               </div>
-              <Receipt className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+              <Receipt className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="border-r-4 border-r-green-500">
-          <CardContent className="p-3 sm:p-4">
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-muted-foreground">مدفوعة</p>
-                <p className="text-lg sm:text-2xl font-bold text-green-600">{stats.completed}</p>
+                <p className="text-sm text-muted-foreground">مدفوعة</p>
+                <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
               </div>
-              <CreditCard className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+              <CreditCard className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="border-r-4 border-r-yellow-500">
-          <CardContent className="p-3 sm:p-4">
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-muted-foreground">معلقة</p>
-                <p className="text-lg sm:text-2xl font-bold text-yellow-600">{stats.pending}</p>
+                <p className="text-sm text-muted-foreground">معلقة</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
               </div>
-              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
+              <Calendar className="h-8 w-8 text-yellow-500" />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="border-r-4 border-r-red-500">
-          <CardContent className="p-3 sm:p-4">
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-muted-foreground">متأخرة</p>
-                <p className="text-lg sm:text-2xl font-bold text-red-600">{stats.overdue}</p>
+                <p className="text-sm text-muted-foreground">متأخرة</p>
+                <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
               </div>
-              <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
+              <DollarSign className="h-8 w-8 text-red-500" />
             </div>
           </CardContent>
         </Card>
       </div>
       
-      <div className="flex flex-col gap-4 sm:gap-6" dir="rtl">
+      <div className="flex flex-col gap-6" dir="rtl">
         {/* Main Content */}
         <Card>
-          <CardHeader className="pb-3 sm:pb-6">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row-reverse justify-between items-start gap-3 sm:gap-4">
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
-                  إدارة المدفوعات
-                </CardTitle>
-                
-                {/* أزرار الإجراءات - محسنة للجوال */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                  <Button size="sm" className="flex items-center justify-center gap-2 text-xs sm:text-sm">
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                    تسجيل دفعة جديدة
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex items-center justify-center gap-2 text-xs sm:text-sm">
-                    <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-                    تصدير
-                  </Button>
-                </div>
-              </div>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row-reverse justify-between items-start md:items-center gap-4">
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                إدارة المدفوعات
+              </CardTitle>
               
-              {/* Filters and Search - محسن للجوال */}
-              <div className="flex flex-col gap-3">
-                <div className="relative">
-                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="البحث في المدفوعات..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="text-right pr-10 text-sm"
-                    dir="rtl"
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => refetch()}
-                    className="flex items-center gap-2 text-xs"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Filter className="h-3 w-3" />
-                    )}
-                    تحديث
-                  </Button>
-                </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" className="flex-row-reverse">
+                  <Plus className="h-4 w-4 mr-2" />
+                  تسجيل دفعة جديدة
+                </Button>
+                <Button variant="outline" size="sm" className="flex-row-reverse">
+                  <Download className="h-4 w-4 mr-2" />
+                  تصدير
+                </Button>
               </div>
             </div>
           </CardHeader>
           
-          <CardContent className="pt-0">
-            {/* Payment Tabs - محسنة للجوال */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-              <div className="overflow-x-auto mb-4">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 min-w-max">
-                  <TabsTrigger value="all" className="text-xs sm:text-sm px-2 sm:px-4">
-                    الكل
-                  </TabsTrigger>
-                  <TabsTrigger value="paid" className="text-xs sm:text-sm px-2 sm:px-4">
-                    مدفوعة
-                  </TabsTrigger>
-                  <TabsTrigger value="pending" className="text-xs sm:text-sm px-2 sm:px-4">
-                    معلقة
-                  </TabsTrigger>
-                  <TabsTrigger value="overdue" className="text-xs sm:text-sm px-2 sm:px-4 hidden sm:block">
-                    متأخرة
-                  </TabsTrigger>
-                  <TabsTrigger value="cancelled" className="text-xs sm:text-sm px-2 sm:px-4 hidden sm:block">
-                    ملغية
-                  </TabsTrigger>
-                </TabsList>
-              </div>10
+          <CardContent>
+            {/* Filters and Search */}
+            <div className="flex flex-col md:flex-row-reverse gap-4 mb-6">
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  placeholder="البحث في المدفوعات (اسم العميل، رقم العقد، رقم اللوحة)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="text-right"
+                  dir="rtl"
+                />
+              </div>
               
-              <TabsContent value={activeTab} className="mt-4 sm:mt-6">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />}
+                  تحديث
+                </Button>
+              </div>
+            </div>
+
+            {/* Payment Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="all">جميع المدفوعات</TabsTrigger>
+                <TabsTrigger value="paid">مدفوعة</TabsTrigger>
+                <TabsTrigger value="pending">معلقة</TabsTrigger>
+                <TabsTrigger value="overdue">متأخرة</TabsTrigger>
+                <TabsTrigger value="cancelled">ملغية</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value={activeTab} className="mt-6">
                 {isLoading ? (
                   <div className="text-center py-8">
-                    <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 text-blue-500 mx-auto mb-4 animate-spin" />
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">جاري تحميل المدفوعات...</h3>
-                    <p className="text-gray-600 text-sm">يرجى الانتظار</p>
+                    <Loader2 className="h-12 w-12 text-blue-500 mx-auto mb-4 animate-spin" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">جاري تحميل المدفوعات...</h3>
+                    <p className="text-gray-600">يرجى الانتظار</p>
                   </div>
                 ) : filteredPayments.length === 0 ? (
                   <div className="text-center py-8">
-                    <Receipt className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">لا توجد مدفوعات</h3>
-                    <p className="text-gray-600 text-sm">
+                    <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد مدفوعات</h3>
+                    <p className="text-gray-600">
                       {activeTab === 'all' 
                         ? 'لم يتم العثور على مدفوعات مطابقة لمعايير البحث'
                         : `لا توجد مدفوعات بحالة "${activeTab === 'paid' ? 'مدفوع' : activeTab === 'pending' ? 'معلق' : activeTab === 'overdue' ? 'متأخر' : 'ملغي'}"`
@@ -250,57 +223,48 @@ const Payments = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3 sm:space-y-4">
+                  <div className="space-y-4">
                     {filteredPayments.map((payment: any) => (
-                      <Card key={payment.id} className="border-r-4 border-r-blue-500 hover:shadow-md transition-shadow">
-                        <CardContent className="p-3 sm:p-4">
-                          {/* تخطيط محسن للجوال */}
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-                            {/* معلومات أساسية */}
-                            <div className="flex items-start gap-3 flex-row-reverse">
-                              <div className="bg-blue-100 p-2 sm:p-3 rounded-full flex-shrink-0">
-                                <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                      <Card key={payment.id} className="border-r-4 border-r-blue-500">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-row-reverse">
+                              <div className="bg-blue-100 p-3 rounded-full">
+                                <CreditCard className="h-5 w-5 text-blue-600" />
                               </div>
                               
-                              <div className="text-right flex-1 min-w-0">
-                                <h3 className="font-semibold text-sm sm:text-lg truncate">{payment.customer_name}</h3>
-                                <p className="text-xs sm:text-sm text-muted-foreground">
-                                  عقد: {payment.agreement_number || 'غير محدد'}
+                              <div className="text-right">
+                                <h3 className="font-semibold text-lg">{payment.customer_name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  عقد رقم: {payment.agreement_number || 'غير محدد'}
                                 </p>
-                                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                                <p className="text-sm text-muted-foreground">
                                   {payment.vehicle_info}
                                 </p>
-                                
-                                {/* تفاصيل التواريخ في الجوال */}
-                                <div className="mt-2 space-y-1">
-                                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    استحقاق: {formatDate(payment.original_due_date)}
+                                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  تاريخ الاستحقاق: {formatDate(payment.original_due_date)}
+                                </p>
+                                {payment.payment_date && (
+                                  <p className="text-sm text-green-600 flex items-center gap-1">
+                                    تاريخ الدفع: {formatDate(payment.payment_date)}
                                   </p>
-                                  {payment.payment_date && (
-                                    <p className="text-xs text-green-600 flex items-center gap-1">
-                                      دفع: {formatDate(payment.payment_date)}
-                                    </p>
-                                  )}
-                                </div>
+                                )}
                               </div>
                             </div>
                             
-                            {/* المبلغ والحالة */}
-                            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-3 sm:text-left">
-                              <div className="text-xl sm:text-2xl font-bold text-blue-600">
+                            <div className="text-left">
+                              <div className="text-2xl font-bold text-blue-600">
                                 {formatCurrency(payment.amount)} ر.ق
                               </div>
-                              
-                              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-2">
+                              <div className="flex items-center gap-2 mt-2">
                                 {getStatusBadge(payment.status)}
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline">
                                   {getPaymentMethodLabel(payment.payment_method)}
                                 </Badge>
                               </div>
-                              
                               {payment.description && (
-                                <p className="text-xs text-muted-foreground mt-1 max-w-xs truncate hidden sm:block">
+                                <p className="text-xs text-muted-foreground mt-1 max-w-xs truncate">
                                   {payment.description}
                                 </p>
                               )}
