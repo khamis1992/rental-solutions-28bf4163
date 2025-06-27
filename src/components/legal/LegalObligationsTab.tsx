@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -190,67 +189,84 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
 
   return (
     <>
-      <Card className="shadow-sm">
+      <Card className="shadow-sm" dir="rtl">
         <CardHeader>
-          <div className="flex justify-between items-center" dir="rtl">
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <CardTitle className="text-lg font-semibold text-left flex items-center gap-2 flex-row-reverse">
+                <Gavel className="w-5 h-5" />
+                الالتزامات القانونية
+              </CardTitle>
+              <CardDescription className="text-left mt-1">
+                الالتزامات القانونية والمالية الحالية للعميل
+              </CardDescription>
+            </div>
+            <div className="flex gap-2 flex-row-reverse">
               <Button 
                 onClick={handleGenerateReport}
                 disabled={isGeneratingReport || obligations.length === 0}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-row-reverse"
                 variant="outline"
               >
                 {isGeneratingReport ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     جاري إنشاء التقرير...
                   </>
                 ) : (
                   <>
-                    <FileDown className="h-4 w-4" />
+                    <FileDown className="w-4 h-4" />
                     تقرير PDF
                   </>
                 )}
               </Button>
               <Button 
                 onClick={() => setShowNewCaseDialog(true)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-row-reverse"
               >
-                <Gavel className="h-4 w-4" />
+                <Gavel className="w-4 h-4" />
                 فتح قضية قانونية
               </Button>
-            </div>
-            <div>
-              <CardTitle>الالتزامات القانونية</CardTitle>
-              <CardDescription>الالتزامات القانونية والمالية الحالية للعميل</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
         {obligations.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الوصف</TableHead>
-                <TableHead>تاريخ الاستحقاق</TableHead>
-                <TableHead>الحالة</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {obligations.map((obligation) => (
-                <TableRow key={obligation.id}>
-                  <TableCell>{obligation.description}</TableCell>
-                  <TableCell>
-                    {obligation.dueDate ? formatDate(obligation.dueDate) : 'غير متوفر'}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(obligation.status)}</TableCell>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-muted-foreground mb-3 text-left">
+              قائمة الالتزامات القانونية
+            </h4>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">الوصف</TableHead>
+                  <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {obligations.map((obligation) => (
+                  <TableRow key={obligation.id}>
+                    <TableCell className="text-right">{obligation.description}</TableCell>
+                    <TableCell className="text-right">
+                      {obligation.dueDate ? formatDate(obligation.dueDate) : 'غير متوفر'}
+                    </TableCell>
+                    <TableCell className="text-right">{getStatusBadge(obligation.status)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            لا توجد التزامات قانونية لهذا العميل
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <div className="text-center">
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                لا توجد التزامات قانونية لهذا العميل
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                عند وجود التزامات قانونية أو مالية، ستظهر هنا مع تفاصيلها الكاملة
+              </p>
+            </div>
           </div>
         )}
       </CardContent>

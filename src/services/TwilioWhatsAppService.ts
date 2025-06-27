@@ -240,19 +240,19 @@ export class TwilioWhatsAppService {
       const { data, error } = await supabase.functions.invoke('send-whatsapp', {
         body: { test: true }
       });
-      
+
       if (error) {
         // Handle different types of errors gracefully
         if (error.message?.includes('Edge Function returned a non-2xx status code')) {
-          return {
-            available: false,
+      return {
+        available: false,
             error: 'خدمة الواتساب غير مكونة. يرجى إعداد Twilio Secrets في Supabase.'
-          };
-        }
-        
+      };
+    }
+
         if (error.message?.includes('FunctionsHttpError')) {
-          return {
-            available: false,
+      return {
+        available: false,
             error: 'وظيفة الواتساب غير متاحة في Supabase.'
           };
         }

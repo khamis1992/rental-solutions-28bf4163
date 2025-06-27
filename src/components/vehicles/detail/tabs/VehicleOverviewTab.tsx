@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -52,19 +51,32 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
   return (
     <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Status and Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-right' : ''}`}>
-              <Car className="h-5 w-5" />
-              {language === 'ar' ? 'حالة المركبة' : 'Vehicle Status'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge className={`${getStatusColor(vehicle.status)} px-3 py-1 text-sm font-medium`}>
-              {getStatusText(vehicle.status)}
-            </Badge>
-            <div className={`mt-4 space-y-2 ${language === 'ar' ? 'text-right' : ''}`}>
+      <Card dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className={language === 'ar' ? 'text-left' : ''}>
+              <CardTitle className={`text-lg font-semibold flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-left' : ''}`}>
+                <Car className="w-5 h-5" />
+                {language === 'ar' ? 'حالة المركبة' : 'Vehicle Status'}
+              </CardTitle>
+              <CardDescription className={`mt-1 ${language === 'ar' ? 'text-left' : ''}`}>
+                {language === 'ar' ? 'الحالة الحالية وإجراءات سريعة' : 'Current status and quick actions'}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className={`bg-gray-50 border border-gray-200 rounded-lg p-4 ${language === 'ar' ? 'text-right' : ''}`}>
+            <div className="mb-4">
+              <h4 className={`text-sm font-medium text-muted-foreground mb-2 ${language === 'ar' ? 'text-left' : ''}`}>
+                {language === 'ar' ? 'الحالة الحالية' : 'Current Status'}
+              </h4>
+              <Badge className={`${getStatusColor(vehicle.status)} px-3 py-1 text-sm font-medium`}>
+                {getStatusText(vehicle.status)}
+              </Badge>
+            </div>
+            
+            <div className="space-y-2">
               {isAvailable && (
                 <Button 
                   onClick={() => navigate(`/agreements/new?vehicle_id=${vehicle.id}`)}
@@ -94,30 +106,37 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
                 </Button>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-right' : ''}`}>
-              <DollarSign className="h-5 w-5" />
-              {language === 'ar' ? 'معلومات الإيجار' : 'Rental Information'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className={language === 'ar' ? 'text-right' : ''}>
-            <div className="space-y-2">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {language === 'ar' ? 'السعر اليومي' : 'Daily Rate'}
-                </p>
-                <p className="text-lg font-semibold">
-                  {vehicle.rent_amount ? `${formatCurrency(vehicle.rent_amount)} ${language === 'ar' ? 'ر.ق' : 'QAR'}` : (language === 'ar' ? 'غير محدد' : 'Not set')}
-                </p>
-              </div>
+      <Card dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className={language === 'ar' ? 'text-left' : ''}>
+              <CardTitle className={`text-lg font-semibold flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-left' : ''}`}>
+                <DollarSign className="w-5 h-5" />
+                {language === 'ar' ? 'معلومات الإيجار' : 'Rental Information'}
+              </CardTitle>
+              <CardDescription className={`mt-1 ${language === 'ar' ? 'text-left' : ''}`}>
+                {language === 'ar' ? 'تفاصيل الأسعار والإيجار' : 'Pricing and rental details'}
+              </CardDescription>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className={`bg-gray-50 border border-gray-200 rounded-lg p-4 ${language === 'ar' ? 'text-right' : ''}`}>
+            <div>
+              <h4 className={`text-sm font-medium text-muted-foreground mb-2 ${language === 'ar' ? 'text-left' : ''}`}>
+                {language === 'ar' ? 'السعر اليومي' : 'Daily Rate'}
+              </h4>
+              <p className="text-lg font-semibold">
+                {vehicle.rent_amount ? `${formatCurrency(vehicle.rent_amount)} ${language === 'ar' ? 'ر.ق' : 'QAR'}` : (language === 'ar' ? 'غير محدد' : 'Not set')}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Vehicle Information */}
       <Card>
@@ -161,50 +180,76 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
 
       {/* Additional Information */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card dir={language === 'ar' ? 'rtl' : 'ltr'}>
           <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-right' : ''}`}>
-              <MapPin className="h-5 w-5" />
-              {language === 'ar' ? 'معلومات إضافية' : 'Additional Information'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className={language === 'ar' ? 'text-right' : ''}>
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">{language === 'ar' ? 'عداد المسافة' : 'Mileage'}</p>
-                <p className="font-medium">
-                  {vehicle.mileage ? `${vehicle.mileage} ${language === 'ar' ? 'كم' : 'km'}` : (language === 'ar' ? 'غير مسجل' : 'Not recorded')}
-                </p>
+            <div className="flex items-center justify-between">
+              <div className={language === 'ar' ? 'text-left' : ''}>
+                <CardTitle className={`text-lg font-semibold flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-left' : ''}`}>
+                  <MapPin className="w-5 h-5" />
+                  {language === 'ar' ? 'معلومات إضافية' : 'Additional Information'}
+                </CardTitle>
+                <CardDescription className={`mt-1 ${language === 'ar' ? 'text-left' : ''}`}>
+                  {language === 'ar' ? 'بيانات تشغيل وصيانة المركبة' : 'Vehicle operation and maintenance data'}
+                </CardDescription>
               </div>
-              {vehicle.inspection_expiry && (
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className={`bg-gray-50 border border-gray-200 rounded-lg p-4 ${language === 'ar' ? 'text-right' : ''}`}>
+              <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">{language === 'ar' ? 'انتهاء الفحص' : 'Inspection Expiry'}</p>
-                  <p className="font-medium">{formatDate(vehicle.inspection_expiry)}</p>
+                  <h4 className={`text-sm font-medium text-muted-foreground mb-1 ${language === 'ar' ? 'text-left' : ''}`}>
+                    {language === 'ar' ? 'عداد المسافة' : 'Mileage'}
+                  </h4>
+                  <p className="font-medium">
+                    {vehicle.mileage ? `${vehicle.mileage} ${language === 'ar' ? 'كم' : 'km'}` : (language === 'ar' ? 'غير مسجل' : 'Not recorded')}
+                  </p>
                 </div>
-              )}
+                {vehicle.inspection_expiry && (
+                  <div>
+                    <h4 className={`text-sm font-medium text-muted-foreground mb-1 ${language === 'ar' ? 'text-left' : ''}`}>
+                      {language === 'ar' ? 'انتهاء الفحص' : 'Inspection Expiry'}
+                    </h4>
+                    <p className="font-medium">{formatDate(vehicle.inspection_expiry)}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card dir={language === 'ar' ? 'rtl' : 'ltr'}>
           <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-right' : ''}`}>
-              <Calendar className="h-5 w-5" />
-              {language === 'ar' ? 'تواريخ مهمة' : 'Important Dates'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className={language === 'ar' ? 'text-right' : ''}>
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">{language === 'ar' ? 'تاريخ الإنشاء' : 'Created'}</p>
-                <p className="font-medium">{formatDate(vehicle.created_at)}</p>
+            <div className="flex items-center justify-between">
+              <div className={language === 'ar' ? 'text-left' : ''}>
+                <CardTitle className={`text-lg font-semibold flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse text-left' : ''}`}>
+                  <Calendar className="w-5 h-5" />
+                  {language === 'ar' ? 'تواريخ مهمة' : 'Important Dates'}
+                </CardTitle>
+                <CardDescription className={`mt-1 ${language === 'ar' ? 'text-left' : ''}`}>
+                  {language === 'ar' ? 'تواريخ الإنشاء والتحديث' : 'Creation and update timestamps'}
+                </CardDescription>
               </div>
-              {vehicle.updated_at && (
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className={`bg-gray-50 border border-gray-200 rounded-lg p-4 ${language === 'ar' ? 'text-right' : ''}`}>
+              <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">{language === 'ar' ? 'آخر تحديث' : 'Last Updated'}</p>
-                  <p className="font-medium">{formatDate(vehicle.updated_at)}</p>
+                  <h4 className={`text-sm font-medium text-muted-foreground mb-1 ${language === 'ar' ? 'text-left' : ''}`}>
+                    {language === 'ar' ? 'تاريخ الإنشاء' : 'Created'}
+                  </h4>
+                  <p className="font-medium">{formatDate(vehicle.created_at)}</p>
                 </div>
-              )}
+                {vehicle.updated_at && (
+                  <div>
+                    <h4 className={`text-sm font-medium text-muted-foreground mb-1 ${language === 'ar' ? 'text-left' : ''}`}>
+                      {language === 'ar' ? 'آخر تحديث' : 'Last Updated'}
+                    </h4>
+                    <p className="font-medium">{formatDate(vehicle.updated_at)}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

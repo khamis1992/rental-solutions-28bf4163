@@ -32,46 +32,53 @@ export const CustomerPageToolbar: React.FC<CustomerPageToolbarProps> = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between gap-4" dir="rtl">
-      <div className="flex flex-wrap gap-2 flex-row-reverse">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          className="flex items-center gap-2 flex-row-reverse"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {t('common.refresh')}
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={onImportClick}
-          disabled={!isEdgeFunctionAvailable}
-          className="flex items-center gap-2 flex-row-reverse"
-        >
-          {!isEdgeFunctionAvailable && <AlertTriangle className="h-4 w-4 text-amber-500" />}
-          <Upload className="h-4 w-4" />
-          {t('common.import')} CSV
-        </Button>
+    <div className="flex flex-col gap-4" dir="rtl">
+      {/* أزرار الإجراءات - تتكيف مع الوضع المحمول */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-wrap gap-2 order-2 sm:order-1">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 flex-row-reverse flex-1 sm:flex-none"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {t('common.refresh')}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={onImportClick}
+            disabled={!isEdgeFunctionAvailable}
+            className="flex items-center gap-2 flex-row-reverse flex-1 sm:flex-none"
+          >
+            {!isEdgeFunctionAvailable && <AlertTriangle className="h-4 w-4 text-amber-500" />}
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('common.import')} CSV</span>
+            <span className="sm:hidden">استيراد</span>
+          </Button>
+        </div>
         
         <Button 
           onClick={handleAddCustomer}
           size="sm"
-          className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 flex-row-reverse"
+          className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 flex-row-reverse order-1 sm:order-2 w-full sm:w-auto"
         >
           <PlusCircle className="h-4 w-4" />
           {t('customer.add')}
         </Button>
       </div>
       
-      <CustomerListFilter 
-        onSearch={(query) => setFilters({ ...filters, search: query })} 
-        searchTerm={filters.search || ''}
-        onFilterChange={(filter) => setFilters({ ...filters, ...filter })}
-      />
+      {/* فلتر البحث - عرض كامل على الوضع المحمول */}
+      <div className="w-full">
+        <CustomerListFilter 
+          onSearch={(query) => setFilters({ ...filters, search: query })} 
+          searchTerm={filters.search || ''}
+          onFilterChange={(filter) => setFilters({ ...filters, ...filter })}
+        />
+      </div>
     </div>
   );
 };

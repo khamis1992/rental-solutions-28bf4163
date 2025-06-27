@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -25,14 +24,14 @@ export function AgreementOverviewCard({
       {/* Header Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between flex-row-reverse">
-            <div className="text-right">
-              <CardTitle className="text-xl font-bold">نظرة عامة على العقد</CardTitle>
-              <CardDescription className="text-right mt-1">
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <CardTitle className="text-xl font-bold text-left">نظرة عامة على العقد</CardTitle>
+              <CardDescription className="text-left mt-1">
                 معلومات العقد الأساسية والتفاصيل المالية
               </CardDescription>
             </div>
-            <div className="flex gap-2 flex-row-reverse">
+            <div className="flex gap-2">
               <Badge variant="outline" className="px-3 py-1">
                 {agreement.agreement_number || 'بدون رقم'}
               </Badge>
@@ -52,9 +51,9 @@ export function AgreementOverviewCard({
         {/* Rental Period Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+            <CardTitle className="flex items-center justify-between text-left">
+              <span className="text-left">فترة الإيجار</span>
               <CalendarDays className="h-5 w-5" />
-              فترة الإيجار
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -78,9 +77,9 @@ export function AgreementOverviewCard({
         {/* Financial Details Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+            <CardTitle className="flex items-center justify-between text-left">
+              <span className="text-left">التفاصيل المالية</span>
               <DollarSign className="h-5 w-5" />
-              التفاصيل المالية
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -110,9 +109,9 @@ export function AgreementOverviewCard({
         {/* Customer Information Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+            <CardTitle className="flex items-center justify-between text-left">
+              <span className="text-left">معلومات العميل</span>
               <User className="h-5 w-5" />
-              معلومات العميل
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -134,9 +133,9 @@ export function AgreementOverviewCard({
         {/* Vehicle Information Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+            <CardTitle className="flex items-center justify-between text-left">
+              <span className="text-left">معلومات المركبة</span>
               <Car className="h-5 w-5" />
-              معلومات المركبة
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

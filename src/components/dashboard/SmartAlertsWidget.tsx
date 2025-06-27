@@ -134,6 +134,12 @@ export const SmartAlertsWidget: React.FC<{ className?: string }> = ({ className 
     <Card className={cn("border-0 shadow-md", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between" dir="rtl">
+          <div className="text-left">
+            <CardTitle className="text-lg font-medium text-left">التنبيهات الذكية</CardTitle>
+            <p className="text-sm text-muted-foreground text-left mt-1">
+              {visibleAlerts.length} تنبيه نشط
+            </p>
+          </div>
           <div className="flex items-center space-x-2 space-x-reverse">
             <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-8 w-8 p-0">
               <Eye className="h-4 w-4" />
@@ -143,12 +149,6 @@ export const SmartAlertsWidget: React.FC<{ className?: string }> = ({ className 
                 {highPriorityCount} عاجل
               </Badge>
             )}
-          </div>
-          <div className="text-right">
-            <CardTitle className="text-lg font-medium text-right">التنبيهات الذكية</CardTitle>
-            <p className="text-sm text-muted-foreground text-right mt-1">
-              {visibleAlerts.length} تنبيه نشط
-            </p>
           </div>
         </div>
       </CardHeader>

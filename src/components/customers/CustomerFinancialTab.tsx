@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, Badge, Button, Progress, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui";
+import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
 import { generateModernCustomerFinancialPDF } from '@/utils/modern-customer-financial-pdf';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -659,38 +660,46 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
 
       {/* الدفعات الأخيرة */}
       {recentPayments.length > 0 && (
-        <Card>
-          <CardContent className="p-6">
-            <h3 className={`text-lg font-semibold mb-4 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-              {language === 'ar' ? 'الدفعات الأخيرة' : 'Recent Payments'}
-            </h3>
-            <div className="space-y-3">
-              {recentPayments.map((payment, index) => (
-                <div 
-                  key={payment.id || index}
-                  className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${language === 'ar' ? 'flex-row-reverse' : ''}`}
-                >
-                  <div className={`flex items-center gap-3 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <div className="p-2 bg-white rounded-full">
-                      <DollarSign className="w-4 h-4 text-gray-600" />
-                    </div>
-                    <div className={language === 'ar' ? 'text-right' : 'text-left'}>
-                      <p className="font-medium">{formatCurrency(payment.amount)}</p>
-                      <p className="text-sm text-gray-500">
-                        {language === 'ar' ? 'عقد:' : 'Contract:'} {payment.agreement_number}
-                      </p>
-                    </div>
+        <Card dir="rtl">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="text-left">
+                <CardTitle className="text-lg font-semibold text-left flex items-center gap-2 flex-row-reverse">
+                  <DollarSign className="w-5 h-5" />
+                  {language === 'ar' ? 'الدفعات الأخيرة' : 'Recent Payments'}
+                </CardTitle>
+                <CardDescription className="text-left mt-1">
+                  {language === 'ar' ? 'آخر الدفعات والمعاملات المالية المسجلة' : 'Latest recorded payments and financial transactions'}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {recentPayments.map((payment, index) => (
+              <div 
+                key={payment.id || index}
+                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-4 flex-row-reverse">
+                  <div className="p-3 bg-blue-50 rounded-full border border-blue-200">
+                    <DollarSign className="w-5 h-5 text-blue-600" />
                   </div>
-                  
-                  <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    {getPaymentStatusBadge(payment.status)}
-                    <p className="text-sm text-gray-500">
-                      {formatDate(payment.payment_date || payment.original_due_date)}
+                  <div className="text-left">
+                    <p className="font-semibold text-lg text-left">{formatCurrency(payment.amount)}</p>
+                    <p className="text-sm text-muted-foreground text-left">
+                      {language === 'ar' ? 'عقد:' : 'Contract:'} {payment.agreement_number}
                     </p>
                   </div>
                 </div>
-              ))}
-            </div>
+                
+                <div className="flex flex-col items-start gap-2">
+                  {getPaymentStatusBadge(payment.status)}
+                  <p className="text-sm text-muted-foreground text-left">
+                    {formatDate(payment.payment_date || payment.original_due_date)}
+                  </p>
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
@@ -798,12 +807,12 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
                     
                     <div className={`flex flex-col items-end gap-2 ${language === 'ar' ? 'items-start' : 'items-end'}`}>
                       <div className={`text-sm text-gray-500 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <div>
+                          <div>
                           <span className="text-blue-600 font-medium">
                             {language === 'ar' ? 'الاستحقاق: 1 من كل شهر' : 'Due: 1st of each month'}
-                          </span>
-                        </div>
-                      </div>
+                            </span>
+                          </div>
+                          </div>
                     </div>
                   </div>
                 ))}

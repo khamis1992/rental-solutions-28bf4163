@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Edit, Trash2, FileImage } from 'lucide-react';
@@ -27,14 +26,16 @@ export function DocumentsCard({
       {/* Header Card */}
       <Card>
         <CardHeader>
-          <div className="text-right">
-            <CardTitle className="flex items-center gap-2 flex-row-reverse">
-              <FileImage className="h-5 w-5" />
-              الوثائق والمستندات
-            </CardTitle>
-            <CardDescription className="text-right mt-1">
-              إدارة وثائق العقد والمستندات القانونية
-            </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <CardTitle className="flex items-center justify-between text-left">
+                <span className="text-left">الوثائق والمستندات</span>
+                <FileImage className="h-5 w-5" />
+              </CardTitle>
+              <CardDescription className="text-left mt-1">
+                إدارة وثائق العقد والمستندات القانونية
+              </CardDescription>
+            </div>
           </div>
         </CardHeader>
       </Card>

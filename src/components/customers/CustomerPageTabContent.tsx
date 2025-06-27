@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CustomerList } from './CustomerList';
@@ -34,116 +33,154 @@ export const CustomerPageTabContent: React.FC<CustomerPageTabContentProps> = ({
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex items-center justify-between">
-        <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
-          <div className="flex items-center justify-between mb-6">
-            <TabsList className="grid w-auto grid-cols-5 bg-gray-100">
-              <TabsTrigger value="blacklisted" className="flex items-center gap-2">
-                محظور ({getTabCount('blacklisted')})
+      <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
+        <div className="flex flex-col gap-4 mb-6">
+          {/* التبويبات الرئيسية - محسنة للوضع المحمول */}
+          <div className="w-full">
+            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 bg-gray-100 h-auto">
+              <TabsTrigger 
+                value="all" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <span>الكل</span>
+                <span className="text-xs bg-white rounded px-1">({getTabCount('all')})</span>
               </TabsTrigger>
-              <TabsTrigger value="pending_review" className="flex items-center gap-2">
-                قيد المراجعة ({getTabCount('pending_review')})
+              <TabsTrigger 
+                value="active" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <span>نشط</span>
+                <span className="text-xs bg-white rounded px-1">({getTabCount('active')})</span>
               </TabsTrigger>
-              <TabsTrigger value="inactive" className="flex items-center gap-2">
-                غير نشط ({getTabCount('inactive')})
+              <TabsTrigger 
+                value="inactive" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <span>غير نشط</span>
+                <span className="text-xs bg-white rounded px-1">({getTabCount('inactive')})</span>
               </TabsTrigger>
-              <TabsTrigger value="active" className="flex items-center gap-2">
-                نشط ({getTabCount('active')})
+              <TabsTrigger 
+                value="pending_review" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm col-span-3 sm:col-span-1"
+              >
+                <span className="sm:hidden">مراجعة</span>
+                <span className="hidden sm:inline">قيد المراجعة</span>
+                <span className="text-xs bg-white rounded px-1">({getTabCount('pending_review')})</span>
               </TabsTrigger>
-              <TabsTrigger value="all" className="flex items-center gap-2">
-                الكل ({getTabCount('all')})
+              <TabsTrigger 
+                value="blacklisted" 
+                className="hidden sm:flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <span>محظور</span>
+                <span className="text-xs bg-white rounded px-1">({getTabCount('blacklisted')})</span>
               </TabsTrigger>
             </TabsList>
-            
+          </div>
+          
+          {/* تبويبة محظور للوضع المحمول */}
+          <div className="block sm:hidden">
+            <TabsList className="grid w-full grid-cols-1 bg-gray-100">
+              <TabsTrigger 
+                value="blacklisted" 
+                className="flex items-center justify-center gap-2 p-3 text-sm"
+              >
+                <span>العملاء المحظورون</span>
+                <span className="text-xs bg-white rounded px-2">({getTabCount('blacklisted')})</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          
+          {/* مبدل العرض */}
+          <div className="flex justify-end">
             <CustomerViewToggle view={view} onViewChange={setView} />
           </div>
+        </div>
 
-          <TabsContent value="all" className="space-y-4">
-            {view === 'grid' ? (
-              <CustomerGridView
-                customers={getTabCustomers('all')}
-                isLoading={isLoading}
-                onCustomerSelect={onCustomerSelect}
-              />
-            ) : (
-              <CustomerList 
-                searchParams={{
-                  query: '',
-                  status: 'all'
-                }}
-              />
-            )}
-          </TabsContent>
+        <TabsContent value="all" className="space-y-4">
+          {view === 'grid' ? (
+            <CustomerGridView
+              customers={getTabCustomers('all')}
+              isLoading={isLoading}
+              onCustomerSelect={onCustomerSelect}
+            />
+          ) : (
+            <CustomerList 
+              searchParams={{
+                query: '',
+                status: 'all'
+              }}
+            />
+          )}
+        </TabsContent>
 
-          <TabsContent value="active" className="space-y-4">
-            {view === 'grid' ? (
-              <CustomerGridView
-                customers={getTabCustomers('active')}
-                isLoading={isLoading}
-                onCustomerSelect={onCustomerSelect}
-              />
-            ) : (
-              <CustomerList 
-                searchParams={{
-                  query: '',
-                  status: 'active'
-                }}
-              />
-            )}
-          </TabsContent>
+        <TabsContent value="active" className="space-y-4">
+          {view === 'grid' ? (
+            <CustomerGridView
+              customers={getTabCustomers('active')}
+              isLoading={isLoading}
+              onCustomerSelect={onCustomerSelect}
+            />
+          ) : (
+            <CustomerList 
+              searchParams={{
+                query: '',
+                status: 'active'
+              }}
+            />
+          )}
+        </TabsContent>
 
-          <TabsContent value="inactive" className="space-y-4">
-            {view === 'grid' ? (
-              <CustomerGridView
-                customers={getTabCustomers('inactive')}
-                isLoading={isLoading}
-                onCustomerSelect={onCustomerSelect}
-              />
-            ) : (
-              <CustomerList 
-                searchParams={{
-                  query: '',
-                  status: 'inactive'
-                }}
-              />
-            )}
-          </TabsContent>
+        <TabsContent value="inactive" className="space-y-4">
+          {view === 'grid' ? (
+            <CustomerGridView
+              customers={getTabCustomers('inactive')}
+              isLoading={isLoading}
+              onCustomerSelect={onCustomerSelect}
+            />
+          ) : (
+            <CustomerList 
+              searchParams={{
+                query: '',
+                status: 'inactive'
+              }}
+            />
+          )}
+        </TabsContent>
 
-          <TabsContent value="pending_review" className="space-y-4">
-            {view === 'grid' ? (
-              <CustomerGridView
-                customers={getTabCustomers('pending_review')}
-                isLoading={isLoading}
-                onCustomerSelect={onCustomerSelect}
-              />
-            ) : (
-              <CustomerList 
-                searchParams={{
-                  query: '',
-                  status: 'pending_review'
-                }}
-              />
-            )}
-          </TabsContent>
+        <TabsContent value="pending_review" className="space-y-4">
+          {view === 'grid' ? (
+            <CustomerGridView
+              customers={getTabCustomers('pending_review')}
+              isLoading={isLoading}
+              onCustomerSelect={onCustomerSelect}
+            />
+          ) : (
+            <CustomerList 
+              searchParams={{
+                query: '',
+                status: 'pending_review'
+              }}
+            />
+          )}
+        </TabsContent>
 
-          <TabsContent value="blacklisted" className="space-y-4">
-            {view === 'grid' ? (
-              <CustomerGridView
-                customers={getTabCustomers('blacklisted')}
-                isLoading={isLoading}
-                onCustomerSelect={onCustomerSelect}
-              />
-            ) : (
-              <CustomerList 
-                searchParams={{
-                  query: '',
-                  status: 'blacklisted'
-                }}
-              />
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="blacklisted" className="space-y-4">
+          {view === 'grid' ? (
+            <CustomerGridView
+              customers={getTabCustomers('blacklisted')}
+              isLoading={isLoading}
+              onCustomerSelect={onCustomerSelect}
+            />
+          ) : (
+            <CustomerList 
+              searchParams={{
+                query: '',
+                status: 'blacklisted'
+              }}
+            />
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -327,19 +327,19 @@ export function PaymentHistorySection({
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                                              <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-3 space-x-reverse">
-                            <h4 className="text-lg font-bold text-gray-900">
-                              {formatCurrency(payment.amount)} ر.ق
-                            </h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <h4 className="text-lg font-bold text-gray-900">
+                            {formatCurrency(payment.amount)} ر.ق
+                          </h4>
                           </div>
-                        </div>
+                      </div>
                       
                       <div className="space-y-1 text-sm text-gray-600">
                         <div className="flex items-center text-xs text-blue-600 font-medium">
-                          <Calendar className="h-4 w-4 ml-1" />
+                            <Calendar className="h-4 w-4 ml-1" />
                           <span>الاستحقاق: 1 من كل شهر</span>
-                        </div>
+                          </div>
                         
                         {payment.description && (
                           <div className="text-sm text-gray-600 mt-1">

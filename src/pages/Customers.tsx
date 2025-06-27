@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { CacheSynchronization } from '@/utils/cache-synchronization';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Users } from 'lucide-react';
+import '@/styles/customer-mobile.css';
 
 const Customers = () => {
   const { language } = useLanguage();

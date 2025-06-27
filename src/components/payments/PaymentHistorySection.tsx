@@ -197,7 +197,7 @@ export function PaymentHistorySection({
                     </div>
                     <div className="text-xs text-blue-600 mt-1 font-medium">
                       الاستحقاق: 1 من كل شهر
-                    </div>
+                      </div>
                     
                     {(() => {
                       // Show dynamic late fee for pending/overdue

@@ -4,7 +4,10 @@ import {
   Card, CardContent, 
   Badge, Button, 
   Tabs, TabsContent, TabsList, TabsTrigger,
-  Textarea
+  Textarea,
+  CardHeader,
+  CardTitle,
+  CardDescription
 } from "@/components/ui";
 import { FormField } from "@/components/ui/form-components";
 import { useToast } from "@/components/ui/use-toast";
@@ -439,31 +442,49 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         
         <TabsContent value="profile" className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${language === 'ar' ? 'text-right' : ''}`}>
           {/* Contact Information Card */}
-          <Card className="w-full">
-            <CardContent className="p-6">
-              <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                <Phone className="w-5 h-5" />
-                {language === 'ar' ? 'معلومات التواصل' : 'Contact Information'}
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-gray-500 mb-1">
+          <Card className="w-full" dir="rtl">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <CardTitle className="text-lg font-semibold text-left flex items-center gap-2 flex-row-reverse">
+                    <Phone className="w-5 h-5" />
+                    {language === 'ar' ? 'معلومات التواصل' : 'Contact Information'}
+                  </CardTitle>
+                  <CardDescription className="text-left mt-1">
+                    {language === 'ar' ? 'تفاصيل الاتصال والتواصل مع العميل' : 'Customer contact and communication details'}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <p className="text-sm text-muted-foreground text-left">
                     {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
                   </p>
-                  <p className="font-medium">{customer.email || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
+                  <p className="font-medium text-left">{customer.email || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
                 </div>
-                <div>
-                  <p className="text-gray-500 mb-1">
+                <Mail className="h-5 w-5 text-primary/60 flex-shrink-0" />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <p className="text-sm text-muted-foreground text-left">
                     {language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
                   </p>
-                  <p className="font-medium text-sm" dir="ltr">{formatQatarPhone(customer.phone_number)}</p>
+                  <p className="font-medium text-left text-sm" dir="ltr">{formatQatarPhone(customer.phone_number)}</p>
                 </div>
-                <div>
-                  <p className="text-gray-500 mb-1">
+                <Phone className="h-5 w-5 text-primary/60 flex-shrink-0" />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <p className="text-sm text-muted-foreground text-left">
                     {language === 'ar' ? 'العنوان' : 'Address'}
                   </p>
-                  <p className="font-medium">{customer.address || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
+                  <p className="font-medium text-left">{customer.address || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
                 </div>
+                <MapPin className="h-5 w-5 text-primary/60 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -507,29 +528,36 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           </Card>
           
           {/* Additional Notes with Edit Functionality */}
-          <Card className="w-full col-span-2">
-            <CardContent className="p-6">
-              <div className={`flex justify-between items-center mb-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                <h3 className="text-lg font-semibold">
-                  {language === 'ar' ? 'ملاحظات إضافية' : 'Additional Notes'}
-                </h3>
+          <Card className="w-full col-span-2" dir="rtl">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <CardTitle className="text-lg font-semibold text-left">
+                    {language === 'ar' ? 'ملاحظات إضافية' : 'Additional Notes'}
+                  </CardTitle>
+                  <CardDescription className="text-left mt-1">
+                    {language === 'ar' ? 'إدارة الملاحظات والتعليقات الخاصة بالعميل' : 'Manage customer notes and comments'}
+                  </CardDescription>
+                </div>
                 {!editingNotes ? (
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => setEditingNotes(true)}
+                    className="flex items-center gap-2 flex-row-reverse"
                   >
-                    <Edit className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                    <Edit className="h-4 w-4" />
                     {language === 'ar' ? 'تعديل الملاحظات' : 'Edit Notes'}
                   </Button>
                 ) : (
-                  <div className={`flex gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                  <div className="flex gap-2 flex-row-reverse">
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={handleCancelEditNotes}
+                      className="flex items-center gap-2 flex-row-reverse"
                     >
-                      <X className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                      <X className="h-4 w-4" />
                       {language === 'ar' ? 'إلغاء' : 'Cancel'}
                     </Button>
                     <Button 
@@ -537,18 +565,36 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                       size="sm" 
                       onClick={handleSaveNotes}
                       disabled={updateMutation.isPending}
+                      className="flex items-center gap-2 flex-row-reverse"
                     >
-                      <Save className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
+                      <Save className="h-4 w-4" />
                       {language === 'ar' ? 'حفظ' : 'Save'}
                     </Button>
                   </div>
                 )}
               </div>
-              
+            </CardHeader>
+            <CardContent>
               {!editingNotes ? (
-                <p className="text-gray-500 italic">
-                  {(customer as any).notes || (language === 'ar' ? 'لا توجد ملاحظات إضافية' : 'No additional notes')}
-                </p>
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="text-right">
+                    {(customer as any).notes ? (
+                      <>
+                        <h4 className="font-medium text-gray-900 text-sm mb-2">الملاحظات المحفوظة</h4>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {(customer as any).notes}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h4 className="font-medium text-gray-500 text-sm mb-1">لا توجد ملاحظات إضافية</h4>
+                        <p className="text-xs text-muted-foreground">
+                          لم يتم إضافة أي ملاحظات لهذا العميل بعد
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
               ) : (
                 <FormField
                   label={language === 'ar' ? 'ملاحظات العميل' : 'Customer Notes'}
@@ -559,8 +605,8 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                     placeholder={language === 'ar' ? 'أدخل ملاحظات حول العميل...' : 'Enter notes about the customer...'}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className={`min-h-[100px] ${language === 'ar' ? 'text-right' : 'text-left'}`}
-                    dir={language === 'ar' ? 'rtl' : 'ltr'}
+                    className="min-h-[100px] text-right"
+                    dir="rtl"
                   />
                 </FormField>
               )}

@@ -25,31 +25,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6" 
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
-      {/* Right side - Arabic title and description */}
-      <div className={`${language === 'ar' ? 'order-1 md:order-1 w-full md:w-auto' : 'order-2'}`}>
-        <div className={`flex items-center ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-          <div className={`p-2 rounded-md bg-primary/10 text-primary ${language === 'ar' ? 'ml-3' : 'mr-3'}`}>
-            <LayoutDashboard className="h-5 w-5" />
-          </div>
-          <div className="text-right">
-            <h2 
-              className="text-2xl font-bold tracking-tight"
-              style={{ textAlign: 'right', direction: 'rtl' }}
-            >
-              لوحة التحكم
-            </h2>
-            <p 
-              className="text-muted-foreground mt-1"
-              style={{ textAlign: 'right', direction: 'rtl' }}
-            >
-              لوحة التحكم
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Left side - Action buttons and system date */}
-      <div className={`flex flex-col gap-2 ${language === 'ar' ? 'order-2 md:order-2' : 'order-1'}`}>
+      <div className={`flex flex-col gap-2 ${language === 'ar' ? 'order-1 md:order-1' : 'order-2'}`}>
         <div className={`flex items-center gap-3 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
           <Button
             variant="outline"
@@ -67,6 +44,29 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <p className="text-sm text-muted-foreground">
           System Date: {currentDate}
         </p>
+      </div>
+
+      {/* Right side - Arabic title and description (now on the left) */}
+      <div className={`${language === 'ar' ? 'order-2 md:order-2 w-full md:w-auto' : 'order-1'}`}>
+        <div className={`flex items-center ${language === 'ar' ? 'justify-start' : 'justify-end'}`}>
+          <div className={`p-2 rounded-md bg-primary/10 text-primary ${language === 'ar' ? 'mr-3' : 'ml-3'}`}>
+            <LayoutDashboard className="h-5 w-5" />
+          </div>
+          <div className="text-left">
+            <h2 
+              className="text-2xl font-bold tracking-tight"
+              style={{ textAlign: 'left', direction: 'rtl' }}
+            >
+              لوحة التحكم
+            </h2>
+            <p 
+              className="text-muted-foreground mt-1"
+              style={{ textAlign: 'left', direction: 'rtl' }}
+            >
+              لوحة التحكم
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

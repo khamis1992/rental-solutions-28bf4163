@@ -348,21 +348,21 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
     <Card className='col-span-4 card-transition dashboard-card' dir='rtl'>
       <CardHeader className='pb-2'>
         <div className='flex items-center justify-between'>
+          <div className='text-left'>
+            <CardTitle className='text-left'>التنبيهات الذكية</CardTitle>
+            <p className='text-sm text-muted-foreground text-left mt-1'>
+              {visibleAlerts.length} تنبيه نشط
+            </p>
+          </div>
           <div className='flex items-center space-x-2 space-x-reverse'>
+            <Button variant='ghost' size='sm' onClick={() => refetch()} className='h-8 w-8 p-0'>
+              <Eye className='h-4 w-4' />
+            </Button>
             {highPriorityCount > 0 && (
               <Badge variant='destructive'>
                 {highPriorityCount} عاجل
               </Badge>
             )}
-            <Button variant='ghost' size='sm' onClick={() => refetch()} className='h-8 w-8 p-0'>
-              <Eye className='h-4 w-4' />
-            </Button>
-          </div>
-          <div className='text-right'>
-            <CardTitle className='text-right'>التنبيهات الذكية</CardTitle>
-            <p className='text-sm text-muted-foreground text-right mt-1'>
-              {visibleAlerts.length} تنبيه نشط
-            </p>
           </div>
         </div>
       </CardHeader>

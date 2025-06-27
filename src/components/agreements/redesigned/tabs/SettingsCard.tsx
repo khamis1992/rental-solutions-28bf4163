@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -26,14 +25,16 @@ export function SettingsCard({
       {/* Header Card */}
       <Card>
         <CardHeader>
-          <div className="text-right">
-            <CardTitle className="flex items-center gap-2 flex-row-reverse">
-              <Settings className="h-5 w-5" />
-              إعدادات العقد
-            </CardTitle>
-            <CardDescription className="text-right mt-1">
-              إدارة إعدادات العقد والتفضيلات
-            </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <CardTitle className="flex items-center justify-between text-left">
+                <span className="text-left">إعدادات العقد</span>
+                <Settings className="h-5 w-5" />
+              </CardTitle>
+              <CardDescription className="text-left mt-1">
+                إدارة إعدادات العقد والتفضيلات
+              </CardDescription>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -41,21 +42,21 @@ export function SettingsCard({
       {/* Notification Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+          <CardTitle className="flex items-center justify-between text-left">
+            <span className="text-left">إعدادات التنبيهات</span>
             <Bell className="h-5 w-5" />
-            إعدادات التنبيهات
           </CardTitle>
-          <CardDescription className="text-right">
+          <CardDescription className="text-left">
             إدارة التنبيهات والإشعارات الخاصة بهذا العقد
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between flex-row-reverse">
-            <div className="text-right">
-              <Label htmlFor="notifications" className="text-base font-medium">
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <Label htmlFor="notifications" className="text-base font-medium text-left">
                 تفعيل التنبيهات
               </Label>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-left">
                 استقبال تنبيهات حول المدفوعات والمواعيد المهمة
               </p>
             </div>
@@ -66,12 +67,12 @@ export function SettingsCard({
             />
           </div>
 
-          <div className="flex items-center justify-between flex-row-reverse">
-            <div className="text-right">
-              <Label htmlFor="email-reminders" className="text-base font-medium">
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <Label htmlFor="email-reminders" className="text-base font-medium text-left">
                 تذكير بالبريد الإلكتروني
               </Label>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-left">
                 إرسال تذكيرات بالبريد الإلكتروني للمدفوعات المستحقة
               </p>
             </div>
@@ -82,12 +83,12 @@ export function SettingsCard({
             />
           </div>
 
-          <div className="flex items-center justify-between flex-row-reverse">
-            <div className="text-right">
-              <Label htmlFor="auto-renewal" className="text-base font-medium">
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <Label htmlFor="auto-renewal" className="text-base font-medium text-left">
                 التجديد التلقائي
               </Label>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-left">
                 تجديد العقد تلقائياً عند انتهاء المدة
               </p>
             </div>
@@ -103,11 +104,11 @@ export function SettingsCard({
       {/* Security Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
+          <CardTitle className="flex items-center justify-between text-left">
+            <span className="text-left">إعدادات الأمان</span>
             <Shield className="h-5 w-5" />
-            إعدادات الأمان
           </CardTitle>
-          <CardDescription className="text-right">
+          <CardDescription className="text-left">
             إعدادات الأمان والخصوصية للعقد
           </CardDescription>
         </CardHeader>
@@ -135,8 +136,8 @@ export function SettingsCard({
       {/* Agreement Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-right">إجراءات العقد</CardTitle>
-          <CardDescription className="text-right">
+          <CardTitle className="text-left">إجراءات العقد</CardTitle>
+          <CardDescription className="text-left">
             الإجراءات المتاحة لإدارة هذا العقد
           </CardDescription>
         </CardHeader>
@@ -161,10 +162,10 @@ export function SettingsCard({
         </CardContent>
       </Card>
 
-      {/* Agreement Status */}
+      {/* System Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-right">معلومات النظام</CardTitle>
+          <CardTitle className="text-left">معلومات النظام</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">

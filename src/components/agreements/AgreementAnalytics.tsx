@@ -8,10 +8,10 @@ export function AgreementAnalytics() {
     <Card className="h-full" dir="rtl">
       <CardHeader className="pb-2">
         <div className="flex flex-row-reverse justify-between items-center">
-          <CardTitle className="text-md font-medium text-right">تحليلات العقود</CardTitle>
           <Button variant="ghost" size="sm">
             عرض الكل
           </Button>
+          <CardTitle className="text-md font-medium text-left">تحليلات العقود</CardTitle>
         </div>
         <CardDescription className="text-right">رؤى سريعة حول عقودك</CardDescription>
       </CardHeader>

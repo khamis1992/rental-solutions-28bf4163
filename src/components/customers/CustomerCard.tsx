@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -51,22 +51,23 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
     <Card 
       className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary/20 hover:border-l-primary cursor-pointer"
       onClick={handleCardClick}
+      dir="rtl"
     >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 space-x-reverse">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <h3 className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors">
-                  {customer.full_name || 'غير معروف'}
-                </h3>
-                <Avatar className="h-10 w-10 border-2 border-primary/10">
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
-                    {getInitials(customer.full_name || 'غير معروف')}
-                  </AvatarFallback>
-                </Avatar>
+            <Avatar className="h-12 w-12 border-2 border-primary/10 flex-shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                {getInitials(customer.full_name || 'غير معروف')}
+              </AvatarFallback>
+            </Avatar>
+            <div className="space-y-1 flex-1 min-w-0">
+              <CardTitle className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors truncate text-left">
+                {customer.full_name || 'غير معروف'}
+              </CardTitle>
+              <div className="text-left">
+                <CustomerStatusBadge status={customer.status} size="sm" />
               </div>
-              <CustomerStatusBadge status={customer.status} size="sm" />
             </div>
           </div>
           
@@ -78,19 +79,19 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-[160px] text-right">
               <DropdownMenuItem asChild>
-                <Link to={`/customers/${customer.id}`} className="flex items-center">
-                  <User className="h-4 w-4 ml-2" />
+                <Link to={`/customers/${customer.id}`} className="flex items-center flex-row-reverse">
+                  <User className="h-4 w-4 mr-2" />
                   عرض التفاصيل
                 </Link>
               </DropdownMenuItem>
               {onEdit && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(customer); }}>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(customer); }} className="text-left">
                   تعديل العميل
                 </DropdownMenuItem>
               )}
               {onDelete && (
                 <DropdownMenuItem 
-                  className="text-destructive focus:text-destructive"
+                  className="text-destructive focus:text-destructive text-left"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (window.confirm(`هل أنت متأكد من حذف ${customer.full_name}؟`)) {
@@ -104,33 +105,47 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </CardHeader>
 
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="flex items-center space-x-2 space-x-reverse text-sm text-gray-600">
-              <Mail className="h-4 w-4 text-primary/60" />
-              <span className="truncate">{customer.email || 'غير متوفر'}</span>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 gap-3">
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <p className="text-sm text-muted-foreground text-left">البريد الإلكتروني</p>
+              <p className="font-medium text-left truncate">{customer.email || 'غير متوفر'}</p>
             </div>
-            
-            <div className="flex items-center space-x-2 space-x-reverse text-sm text-gray-600">
-              <Phone className="h-4 w-4 text-primary/60" />
-              <span className="phone-number-ltr" dir="ltr">{customer.phone || customer.phone_number || 'غير متوفر'}</span>
-            </div>
+            <Mail className="h-4 w-4 text-primary/60 flex-shrink-0" />
           </div>
-
-          <div className="flex items-center space-x-2 space-x-reverse text-sm text-gray-600">
-            <Calendar className="h-4 w-4 text-primary/60" />
-            <span>تاريخ الإضافة: {formatDate(customer.created_at)}</span>
-          </div>
-
-          {customer.driver_license && (
-            <div className="pt-2 border-t border-gray-100">
-              <Badge variant="outline" className="text-xs">
-                رخصة القيادة: {customer.driver_license}
-              </Badge>
+          
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <p className="text-sm text-muted-foreground text-left">رقم الهاتف</p>
+              <p className="font-medium text-left phone-number-ltr" dir="ltr">{customer.phone || 'غير متوفر'}</p>
             </div>
-          )}
+            <Phone className="h-4 w-4 text-primary/60 flex-shrink-0" />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <p className="text-sm text-muted-foreground text-left">تاريخ الإضافة</p>
+              <p className="font-medium text-left">{formatDate(customer.created_at)}</p>
+            </div>
+            <Calendar className="h-4 w-4 text-primary/60 flex-shrink-0" />
+          </div>
         </div>
+
+        {customer.driver_license && (
+          <div className="pt-3 border-t border-gray-100">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-right">
+                <h4 className="font-medium text-blue-900 text-sm">رخصة القيادة</h4>
+                <p className="text-sm text-blue-700 mt-1 font-mono">
+                  {customer.driver_license}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

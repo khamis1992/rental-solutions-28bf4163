@@ -38,7 +38,7 @@ serve(async (req) => {
     };
 
     const contentSid = templateSids[messageType];
-
+    
     if (messageType !== 'general' && !contentSid) {
       throw new Error(`Message template for type '${messageType}' is not defined.`);
     }

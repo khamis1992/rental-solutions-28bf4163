@@ -36,7 +36,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   const isRTL = dir === 'rtl';
   
   const titleAlignClass = forceTitleLeft ? 'text-left' : (isRTL ? 'text-right' : 'text-left');
-
+  
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   
   // Force new component mount when key properties change

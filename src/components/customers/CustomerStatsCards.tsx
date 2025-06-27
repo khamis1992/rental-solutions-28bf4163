@@ -56,7 +56,7 @@ export const CustomerStatsCards: React.FC<CustomerStatsCardsProps> = ({ customer
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4" dir="rtl">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" dir="rtl">
       <Card className="border-r-4 border-r-blue-500">
         <CardHeader className="pb-2" style={{ textAlign: 'right', direction: 'rtl' }}>
           <CardDescription style={{ textAlign: 'right', direction: 'rtl' }}>

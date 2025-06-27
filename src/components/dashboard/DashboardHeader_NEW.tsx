@@ -25,7 +25,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       className={`flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`} 
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
-      <div className={`flex items-center gap-3 ${language === 'ar' ? 'flex-row-reverse justify-end md:justify-start' : ''}`}>
+      <div className={`flex items-center gap-3 ${language === 'ar' ? 'flex-row-reverse justify-start md:justify-end' : ''}`}>
         <Button
           variant="outline"
           size="sm"
@@ -46,25 +46,23 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           الإعدادات
         </Button>
       </div>
-      <div className={`${language === 'ar' ? 'text-right w-full md:w-auto' : 'text-left'}`}>
-        <div className={`flex items-center ${language === 'ar' ? 'justify-end md:justify-start' : ''}`}>
-          <div className={`p-2 rounded-md bg-primary/10 text-primary ${language === 'ar' ? 'ml-3' : 'mr-3'}`}>
-            <LayoutDashboard className="h-5 w-5" />
-          </div>
-          <div className={`${language === 'ar' ? 'text-right' : 'text-left'}`}>
-            <h2 
-              className={`text-2xl font-bold tracking-tight ${language === 'ar' ? 'text-right arabic-title' : ''}`}
-              style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
-            >
-              لوحة التحكم
-            </h2>
-            <p 
-              className={`text-muted-foreground mt-1 ${language === 'ar' ? 'text-right arabic-subtitle' : ''}`}
-              style={language === 'ar' ? { textAlign: 'right', direction: 'rtl' } : {}}
-            >
-              نظرة شاملة على عمليات التأجير • {currentDate}
-            </p>
-          </div>
+      <div className={`flex items-center ${language === 'ar' ? 'justify-start md:justify-start' : ''}`}>
+        <div className={`p-2 rounded-md bg-primary/10 text-primary ${language === 'ar' ? 'mr-3' : 'ml-3'}`}>
+          <LayoutDashboard className="h-5 w-5" />
+        </div>
+        <div className={`${language === 'ar' ? 'text-left' : 'text-right'}`}>
+          <h2 
+            className={`text-2xl font-bold tracking-tight ${language === 'ar' ? 'text-left arabic-title' : ''}`}
+            style={language === 'ar' ? { textAlign: 'left', direction: 'rtl' } : {}}
+          >
+            لوحة التحكم
+          </h2>
+          <p 
+            className={`text-muted-foreground mt-1 ${language === 'ar' ? 'text-left arabic-subtitle' : ''}`}
+            style={language === 'ar' ? { textAlign: 'left', direction: 'rtl' } : {}}
+          >
+            نظرة شاملة على عمليات التأجير • {currentDate}
+          </p>
         </div>
       </div>
     </div>
