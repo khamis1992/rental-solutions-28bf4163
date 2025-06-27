@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useIsMobile, useBreakpoint } from '@/hooks/use-mobile';
-import { Menu, X, Home, Users, Car, FileText, CreditCard, Scale, AlertTriangle, Settings, BarChart3 } from 'lucide-react';
+import { Menu, X, Home, Users, Car, FileText, CreditCard, Scale, AlertTriangle, Settings, BarChart3, Wrench, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
@@ -22,16 +22,16 @@ const mobileNavItems = [
   { icon: CreditCard, label: 'المدفوعات', path: '/payments' },
 ];
 
+// Updated to match PC sidebar exactly
 const allNavItems = [
   { icon: Home, label: 'لوحة التحكم', path: '/dashboard' },
-  { icon: FileText, label: 'العقود', path: '/agreements' },
   { icon: Users, label: 'العملاء', path: '/customers' },
+  { icon: FileText, label: 'العقود', path: '/agreements' },
   { icon: Car, label: 'المركبات', path: '/vehicles' },
-  { icon: CreditCard, label: 'المدفوعات', path: '/payments' },
-  { icon: Scale, label: 'القانونية', path: '/legal' },
-  { icon: AlertTriangle, label: 'المخالفات', path: '/traffic-fines' },
+  { icon: Wrench, label: 'إدارة الصيانة', path: '/maintenance' },
+  { icon: DollarSign, label: 'الماليات', path: '/financials' },
   { icon: BarChart3, label: 'التقارير', path: '/reports' },
-  { icon: Settings, label: 'الإعدادات', path: '/settings' },
+  { icon: Scale, label: 'القانونية', path: '/legal' },
 ];
 
 export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
