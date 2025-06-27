@@ -327,35 +327,19 @@ export function PaymentHistorySection({
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-3 space-x-reverse">
-                          <h4 className="text-lg font-bold text-gray-900">
-                            {formatCurrency(payment.amount)} ر.ق
-                          </h4>
-                          <Badge variant={getStatusColor(payment.status)} className="text-xs">
-                            {payment.status === 'paid' ? 'مدفوع' : 
-                             payment.status === 'pending' ? 'معلق' : 
-                             payment.status === 'overdue' ? 'متأخر' : 
-                             payment.status === 'completed' ? 'مكتمل' : 
-                             payment.status === 'partially_paid' ? 'مدفوع جزئياً' :
-                             payment.status === 'cancelled' ? 'ملغي' : 'غير محدد'}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {payment.payment_method === 'cash' ? 'نقدي' :
-                             payment.payment_method === 'credit_card' ? 'بطاقة ائتمان' :
-                             payment.payment_method === 'bank_transfer' ? 'تحويل بنكي' :
-                             payment.payment_method || 'غير محدد'}
-                          </Badge>
+                                              <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-3 space-x-reverse">
+                            <h4 className="text-lg font-bold text-gray-900">
+                              {formatCurrency(payment.amount)} ر.ق
+                            </h4>
+                          </div>
                         </div>
-                      </div>
                       
                       <div className="space-y-1 text-sm text-gray-600">
-                        {payment.payment_date && (
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <Calendar className="h-4 w-4 ml-1" />
-                            <span>تاريخ الدفع: {format(new Date(payment.payment_date), 'd MMMM yyyy', { locale: undefined })}</span>
-                          </div>
-                        )}
+                        <div className="flex items-center text-xs text-blue-600 font-medium">
+                          <Calendar className="h-4 w-4 ml-1" />
+                          <span>الاستحقاق: 1 من كل شهر</span>
+                        </div>
                         
                         {payment.description && (
                           <div className="text-sm text-gray-600 mt-1">

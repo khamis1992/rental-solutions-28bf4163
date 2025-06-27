@@ -88,20 +88,20 @@ export async function generateModernAgreementPDF(
   // معلومات العميل
   const customerInfo = createInfoCard('معلومات العميل', [
     { label: 'الاسم الكامل', value: agreement.customers?.full_name || 'غير محدد' },
-    { label: 'رقم الهوية', value: agreement.customers?.id_number || 'غير محدد' },
-    { label: 'رقم الهاتف', value: agreement.customers?.phone_number || 'غير محدد' },
-    { label: 'البريد الإلكتروني', value: agreement.customers?.email || 'غير محدد' },
+    { label: 'رقم الهوية', value: agreement.customers?.id_number ? `<span dir="ltr">${agreement.customers.id_number}</span>` : 'غير محدد' },
+    { label: 'رقم الهاتف', value: agreement.customers?.phone_number ? `<span dir="ltr">${agreement.customers.phone_number}</span>` : 'غير محدد' },
+    { label: 'البريد الإلكتروني', value: agreement.customers?.email ? `<span dir="ltr">${agreement.customers.email}</span>` : 'غير محدد' },
     { label: 'الجنسية', value: agreement.customers?.nationality || 'غير محدد' },
-    { label: 'رخصة القيادة', value: agreement.customers?.driver_license || 'غير محدد' }
+    { label: 'رخصة القيادة', value: agreement.customers?.driver_license ? `<span dir="ltr">${agreement.customers.driver_license}</span>` : 'غير محدد' }
   ]);
 
   // معلومات المركبة
   const vehicleInfo = createInfoCard('معلومات المركبة', [
     { label: 'الماركة والموديل', value: `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || 'غير محدد' },
     { label: 'سنة الصنع', value: agreement.vehicles?.year?.toString() || 'غير محدد' },
-    { label: 'رقم اللوحة', value: agreement.vehicles?.license_plate || 'غير محدد' },
+    { label: 'رقم اللوحة', value: agreement.vehicles?.license_plate ? `<span dir="ltr">${agreement.vehicles.license_plate}</span>` : 'غير محدد' },
     { label: 'اللون', value: agreement.vehicles?.color || 'غير محدد' },
-    { label: 'رقم الهيكل', value: agreement.vehicles?.vin || 'غير محدد' }
+    { label: 'رقم الهيكل', value: agreement.vehicles?.vin ? `<span dir="ltr">${agreement.vehicles.vin}</span>` : 'غير محدد' }
   ]);
 
   // معلومات العقد
@@ -114,33 +114,22 @@ export async function generateModernAgreementPDF(
     { label: 'حالة العقد', value: getStatusText(agreement.status) }
   ]);
 
-  // الملخص المالي
-  const financialSummary = `
-    <div class="summary-cards">
-      ${createSummaryCard('إجمالي العقد', agreement.total_amount, 'neutral')}
-      ${createSummaryCard('المبلغ المدفوع', totalPaid, 'positive')}
-      ${createSummaryCard('المبلغ المعلق', totalPending, 'warning')}
-      ${createSummaryCard('المتأخرات', totalOverdue, 'negative')}
-      ${createSummaryCard('المخالفات المرورية', totalFines, totalFines > 0 ? 'negative' : 'neutral')}
-      ${createSummaryCard('نسبة الإنجاز', progress, 'neutral')}
-    </div>
-  `;
+  // تم حذف الملخص المالي بناءً على طلب المستخدم
 
   // جدول الدفعات
   let paymentsSection = '';
   if (payments.length > 0) {
-    const paymentHeaders = ['تاريخ الاستحقاق', 'تاريخ الدفع', 'المبلغ', 'طريقة الدفع', 'الحالة', 'الوصف'];
+    const paymentHeaders = ['المبلغ', 'الوصف'];
     const paymentRows = payments.map(payment => [
-      formatDate(payment.due_date),
-      payment.payment_date ? formatDate(payment.payment_date) : 'لم يدفع بعد',
       formatCurrency(payment.amount) + ' ر.ق',
-      payment.payment_method || 'غير محدد',
-      getPaymentStatusText(payment.status),
-      payment.description || 'دفعة عقد إيجار'
+      payment.description || 'دفعة عقد إيجار - الاستحقاق: 1 من كل شهر'
     ]);
 
     paymentsSection = `
       <h2 class="section-header">سجل الدفعات</h2>
+      <div class="info-note" style="background: #e0f2fe; padding: 15px; border-radius: 8px; margin: 15px 0; border-right: 4px solid #0288d1;">
+        <p style="margin: 0; color: #0277bd; font-weight: bold;">📅 ملاحظة: جميع الدفعات مستحقة في اليوم الأول من كل شهر</p>
+      </div>
       ${createDataTable(paymentHeaders, paymentRows)}
     `;
   }
@@ -168,19 +157,7 @@ export async function generateModernAgreementPDF(
     `;
   }
 
-  // تحليل الوضع المالي
-  const financialAnalysis = createHighlightBox(
-    `
-      <h4>📊 تحليل الوضع المالي:</h4>
-      <ul style="margin: 10px 0; padding-right: 20px;">
-        <li><strong>نسبة الإنجاز:</strong> ${progress.toFixed(1)}% من إجمالي العقد</li>
-        <li><strong>المبلغ المتبقي:</strong> ${formatCurrency(agreement.total_amount - totalPaid)} ر.ق</li>
-        <li><strong>الالتزام بالدفع:</strong> ${totalOverdue === 0 ? '✅ ممتاز - لا توجد متأخرات' : '⚠️ يوجد متأخرات تحتاج متابعة'}</li>
-        <li><strong>المخالفات:</strong> ${totalFines === 0 ? '✅ لا توجد مخالفات مرورية' : `⚠️ يوجد مخالفات بقيمة ${formatCurrency(totalFines)} ر.ق`}</li>
-      </ul>
-    `,
-    totalOverdue > 0 || totalFines > 0 ? 'warning' : 'success'
-  );
+  // تم حذف قسم تحليل الوضع المالي بناءً على طلب المستخدم
 
   // البنود القانونية الشاملة للعقد
   const legalTerms = `
@@ -357,10 +334,6 @@ export async function generateModernAgreementPDF(
 
   // محتوى التقرير
   const content = `
-    ${financialSummary}
-    
-    ${financialAnalysis}
-    
     <h2 class="section-header">معلومات أطراف العقد</h2>
     <div class="info-grid">
       ${customerInfo}
@@ -382,8 +355,8 @@ export async function generateModernAgreementPDF(
 
   // تكوين PDF
   const config: PDFConfig = {
-    title: `تقرير عقد الإيجار رقم ${agreement.agreement_number}`,
-    filename: `تقرير-عقد-${agreement.agreement_number}-${new Date().toISOString().split('T')[0]}`,
+    title: `عقد الإيجار رقم ${agreement.agreement_number}`,
+    filename: `عقد-${agreement.agreement_number}-${new Date().toISOString().split('T')[0]}`,
     rtl: true,
     companyInfo: true,
     includeFooter: true

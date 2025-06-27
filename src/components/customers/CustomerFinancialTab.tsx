@@ -793,41 +793,16 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
                         <p className="text-sm text-gray-600">
                           {language === 'ar' ? 'عقد:' : 'Contract:'} {payment.agreement_number}
                         </p>
-                        {payment.payment_method && (
-                          <p className="text-xs text-gray-500">
-                            {language === 'ar' ? 'طريقة الدفع:' : 'Payment method:'} {payment.payment_method}
-                          </p>
-                        )}
                       </div>
                     </div>
                     
                     <div className={`flex flex-col items-end gap-2 ${language === 'ar' ? 'items-start' : 'items-end'}`}>
-                      <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                        {getPaymentStatusBadge(payment.status)}
-                      </div>
-                      
                       <div className={`text-sm text-gray-500 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        {payment.payment_date ? (
-                          <div>
-                            <span className="text-green-600 font-medium">
-                              {language === 'ar' ? 'تم الدفع:' : 'Paid:'} {formatDate(payment.payment_date)}
-                            </span>
-                          </div>
-                        ) : (
-                          <div>
-                            <span className="text-orange-600">
-                              {language === 'ar' ? 'لم يتم الدفع بعد' : 'Not paid yet'}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {payment.original_due_date && (
-                          <div className="mt-1">
-                            <span className="text-gray-500">
-                              {language === 'ar' ? 'الاستحقاق:' : 'Due:'} {formatDate(payment.original_due_date)}
-                            </span>
-                          </div>
-                        )}
+                        <div>
+                          <span className="text-blue-600 font-medium">
+                            {language === 'ar' ? 'الاستحقاق: 1 من كل شهر' : 'Due: 1st of each month'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>

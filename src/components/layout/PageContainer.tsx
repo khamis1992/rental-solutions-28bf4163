@@ -17,6 +17,7 @@ interface PageContainerProps {
   actions?: React.ReactNode;
   systemDate?: Date;
   dir?: 'ltr' | 'rtl';
+  forceTitleLeft?: boolean;
 }
 
 const PageContainer: React.FC<PageContainerProps> = ({ 
@@ -26,13 +27,16 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description,
   actions,
   systemDate = new Date(),
-  dir = 'ltr'
+  dir = 'ltr',
+  forceTitleLeft = false
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { isOnline } = useNetworkStatus();
   const isRTL = dir === 'rtl';
   
+  const titleAlignClass = forceTitleLeft ? 'text-left' : (isRTL ? 'text-right' : 'text-left');
+
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   
   // Force new component mount when key properties change
@@ -90,12 +94,12 @@ const PageContainer: React.FC<PageContainerProps> = ({
           
           <div className={cn(
             "mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0",
-            isRTL && "sm:flex-row-reverse"
+            isRTL && !forceTitleLeft && "sm:flex-row-reverse"
           )}>
-            <div className={isRTL ? "text-right" : "text-left"}>
-              {title && <h1 className={cn("text-xl md:text-2xl font-bold tracking-tight", isRTL ? "text-right" : "text-left")}>{title}</h1>}
-              {description && <p className={cn("text-muted-foreground mt-1 text-sm md:text-base", isRTL ? "text-right" : "text-left")}>{description}</p>}
-              <p className={cn("text-xs text-muted-foreground mt-1", isRTL ? "text-right" : "text-left")}>
+            <div className={titleAlignClass}>
+              {title && <h1 className={cn("text-xl md:text-2xl font-bold tracking-tight", titleAlignClass)}>{title}</h1>}
+              {description && <p className={cn("text-muted-foreground mt-1 text-sm md:text-base", titleAlignClass)}>{description}</p>}
+              <p className={cn("text-xs text-muted-foreground mt-1", titleAlignClass)}>
                 {isRTL ? `تاريخ النظام: ${formatDate(systemDate)}` : `System Date: ${formatDate(systemDate)}`}
               </p>
             </div>

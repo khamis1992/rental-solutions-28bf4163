@@ -80,8 +80,8 @@ const AddAgreement = () => {
     <PageContainer
       title="إنشاء اتفاقية إيجار جديدة مع جدولة دفعات تلقائية"
       description="إنشاء اتفاقية إيجار جديدة مع جدولة دفعات تلقائية"
-
       dir="rtl"
+      forceTitleLeft={true}
     >
       <div className="max-w-4xl mx-auto space-y-6" dir="rtl">
         {/* Information Cards */}

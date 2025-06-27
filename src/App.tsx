@@ -85,6 +85,7 @@ const FinancialInstallments = lazy(() => import("./pages/FinancialInstallments")
 const InstallmentAnalytics = lazy(() => import("./pages/InstallmentAnalytics"));
 const CollectionReports = lazy(() => import("./pages/CollectionReports"));
 const Reports = lazy(() => import("./pages/Reports"));
+const QuickReports = lazy(() => import("./pages/QuickReports"));
 const ScheduledReports = lazy(() => import("./pages/ScheduledReports"));
 const ReportBuilder = lazy(() => import("./pages/ReportBuilder"));
 const DocumentsPage = lazy(() => import("./pages/DocumentsPage"));
@@ -186,6 +187,7 @@ const AppContent = () => {
                 <Route path="/reports" element={withErrorBoundary(Reports)} />
                 <Route path="/reports/financial" element={withErrorBoundary(Reports)} />
                 <Route path="/reports/operational" element={withErrorBoundary(Reports)} />
+                <Route path="/reports/quick" element={withErrorBoundary(QuickReports)} />
                 <Route path="/reports/scheduled" element={withErrorBoundary(ScheduledReports)} />
                 <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
                 <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />

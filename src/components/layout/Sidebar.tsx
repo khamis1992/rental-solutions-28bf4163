@@ -257,24 +257,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               onClick={handleNavClick}
             />
             <NavLink
-              to="/reports/agreements"
-              icon={<FileText className="h-4 w-4 flex-shrink-0" />}
-              label="تقارير العقود"
-              isActive={isActive('/reports/agreements')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/reports/payments"
-              icon={<DollarSign className="h-4 w-4 flex-shrink-0" />}
-              label="تقارير الدفعات"
-              isActive={isActive('/reports/payments')}
-              onClick={handleNavClick}
-            />
-            <NavLink
-              to="/reports/financial"
+              to="/reports/quick"
               icon={<TrendingUp className="h-4 w-4 flex-shrink-0" />}
-              label="التقارير المالية"
-              isActive={isActive('/reports/financial')}
+              label="التقارير السريعة"
+              isActive={isActive('/reports/quick')}
               onClick={handleNavClick}
             />
           </NavGroup>

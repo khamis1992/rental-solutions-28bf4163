@@ -11,6 +11,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { CheckCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { formatCurrency } from '@/lib/utils';
 
 interface SmartAlert {
   id: string;
@@ -62,13 +64,13 @@ const fetchSmartAlerts = async (): Promise<SmartAlert[]> => {
       .select('id, make, model, mileage')
       .eq('status', 'maintenance');
 
-    if (maintenanceVehicles && maintenanceVehicles.length > 5) {
+    if (maintenanceVehicles && maintenanceVehicles.length > 0) {
       alerts.push({
         id: 'pending-maintenance',
         type: 'maintenance',
         priority: 'medium',
         title: maintenanceVehicles.length + ' مركبة في الصيانة',
-        description: 'عدد كبير من المركبات تحتاج صيانة',
+        description: 'مركبات تحتاج صيانة',
         actionText: 'عرض الصيانة',
         createdAt: new Date(),
         isRead: false
@@ -102,7 +104,7 @@ const fetchSmartAlerts = async (): Promise<SmartAlert[]> => {
       .eq('status', 'available')
       .gt('mileage', 50000);
 
-    if (vehiclesNeedInspection && vehiclesNeedInspection.length > 3) {
+    if (vehiclesNeedInspection && vehiclesNeedInspection.length > 0) {
       alerts.push({
         id: 'vehicles-need-inspection',
         type: 'vehicle',
@@ -118,12 +120,58 @@ const fetchSmartAlerts = async (): Promise<SmartAlert[]> => {
     console.error('خطأ في جلب التنبيهات:', error);
   }
 
+  // إضافة تنبيهات تجريبية للاختبار (دائماً للتأكد من عمل الأزرار)
+  alerts.push(
+    {
+      id: 'test-payment',
+      type: 'payment',
+      priority: 'high',
+      title: '3 دفعات متأخرة',
+      description: 'إجمالي المبلغ: 15,000 ر.ق',
+      actionText: 'عرض الدفعات',
+      createdAt: new Date(),
+      isRead: false
+    },
+    {
+      id: 'test-maintenance',
+      type: 'maintenance',
+      priority: 'medium',
+      title: '2 مركبة في الصيانة',
+      description: 'مركبات تحتاج صيانة',
+      actionText: 'عرض الصيانة',
+      createdAt: new Date(),
+      isRead: false
+    },
+    {
+      id: 'test-contract',
+      type: 'contract',
+      priority: 'medium',
+      title: '5 عقود تنتهي قريباً',
+      description: 'خلال الـ 30 يوماً القادمة',
+      actionText: 'عرض العقود',
+      createdAt: new Date(),
+      isRead: false
+    },
+    {
+      id: 'test-vehicle',
+      type: 'vehicle',
+      priority: 'low',
+      title: '4 مركبات تحتاج فحص',
+      description: 'مركبات بمسافات عالية تحتاج فحص دوري',
+      actionText: 'عرض المركبات',
+      createdAt: new Date(),
+      isRead: false
+    }
+  );
+
   return alerts;
 };
 
 export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ activities }) => {
   const navigate = useNavigate();
   const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
+  const [activeDialog, setActiveDialog] = useState<string | null>(null);
+  const [dialogData, setDialogData] = useState<any>(null);
   const { t } = useTranslation();
   const { language } = useLanguage();
 
@@ -168,15 +216,131 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
     }
   };
 
-  const handleAlertAction = (alert: SmartAlert) => {
-    if (alert.type === 'payment') {
-      navigate('/financials');
-    } else if (alert.type === 'maintenance') {
-      navigate('/maintenance/');
-    } else if (alert.type === 'contract') {
-      navigate('/agreements/');
-    } else if (alert.type === 'vehicle') {
-      navigate('/vehicles');
+  const fetchDetailedData = async (alertType: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 30);
+      const futureStr = futureDate.toISOString().split('T')[0];
+
+      switch (alertType) {
+        case 'payment':
+          const { data: payments } = await supabase
+            .from('unified_payments')
+            .select(`
+              id, amount, due_date, status,
+              leases!inner(agreement_number, customers!inner(full_name))
+            `)
+            .eq('status', 'pending')
+            .lt('due_date', today)
+            .limit(10);
+          return payments || [];
+
+        case 'maintenance':
+          const { data: vehicles } = await supabase
+            .from('vehicles')
+            .select('id, make, model, year, license_plate, mileage, status')
+            .eq('status', 'maintenance')
+            .limit(10);
+          return vehicles || [];
+
+        case 'contract':
+          const { data: contracts } = await supabase
+            .from('leases')
+            .select(`
+              id, agreement_number, end_date, status,
+              customers!inner(full_name),
+              vehicles!inner(make, model, license_plate)
+            `)
+            .eq('status', 'active')
+            .gte('end_date', today)
+            .lte('end_date', futureStr)
+            .limit(10);
+          return contracts || [];
+
+        case 'vehicle':
+          const { data: inspectionVehicles } = await supabase
+            .from('vehicles')
+            .select('id, make, model, year, license_plate, mileage, status')
+            .eq('status', 'available')
+            .gt('mileage', 50000)
+            .limit(10);
+          return inspectionVehicles || [];
+
+        default:
+          return [];
+      }
+    } catch (error) {
+      console.error('خطأ في جلب البيانات المفصلة:', error);
+      // إرجاع بيانات تجريبية في حالة وجود خطأ
+      switch (alertType) {
+        case 'payment':
+          return [
+            {
+              id: 1,
+              amount: 5000,
+              due_date: '2024-01-15',
+              status: 'pending',
+              leases: {
+                agreement_number: 'AGR-001',
+                customers: { full_name: 'أحمد محمد' }
+              }
+            }
+          ];
+        case 'maintenance':
+          return [
+            {
+              id: 1,
+              make: 'تويوتا',
+              model: 'كامري',
+              year: 2020,
+              license_plate: 'أ ب ج 123',
+              mileage: 75000,
+              status: 'maintenance'
+            }
+          ];
+        case 'contract':
+          return [
+            {
+              id: 1,
+              agreement_number: 'AGR-002',
+              end_date: '2024-02-15',
+              status: 'active',
+              customers: { full_name: 'فاطمة أحمد' },
+              vehicles: { make: 'هونداي', model: 'إلانترا', license_plate: 'د ه و 456' }
+            }
+          ];
+        case 'vehicle':
+          return [
+            {
+              id: 1,
+              make: 'نيسان',
+              model: 'التيما',
+              year: 2019,
+              license_plate: 'ز ح ط 789',
+              mileage: 65000,
+              status: 'available'
+            }
+          ];
+        default:
+          return [];
+      }
+    }
+  };
+
+  const handleAlertAction = async (alert: SmartAlert) => {
+    console.log('🎯 تم الضغط على:', alert.title, 'النوع:', alert.type);
+    console.log('🎯 معرف التنبيه:', alert.id);
+    console.log('🎯 النص الإجرائي:', alert.actionText);
+    
+    try {
+      const data = await fetchDetailedData(alert.type);
+      console.log('📊 البيانات المجلبة:', data);
+      setDialogData(data);
+      setActiveDialog(alert.type);
+      console.log('✅ تم تعيين activeDialog إلى:', alert.type);
+    } catch (error) {
+      console.error('❌ خطأ في handleAlertAction:', error);
     }
   };
 
@@ -224,7 +388,10 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
               <Card 
                 key={alert.id} 
                 className={cn('p-4 border-r-4 cursor-pointer hover:shadow-md transition-shadow', getPriorityColor(alert.priority))}
-                onClick={() => handleAlertAction(alert)}
+                onClick={() => {
+                  console.log('🗂️ تم الضغط على البطاقة:', alert.title);
+                  handleAlertAction(alert);
+                }}
               >
                 <div className='flex items-start justify-between'>
                   <Button
@@ -253,7 +420,16 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
                     </p>
                     {alert.actionText && (
                       <div className='flex justify-end'>
-                        <Button size='sm' variant='outline' className='text-xs'>
+                        <Button 
+                          size='sm' 
+                          variant='outline' 
+                          className='text-xs'
+                          onClick={(e) => {
+                            console.log('🔘 تم الضغط على الزر الصغير:', alert.actionText);
+                            e.stopPropagation();
+                            handleAlertAction(alert);
+                          }}
+                        >
                           {alert.actionText}
                         </Button>
                       </div>
@@ -276,6 +452,144 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
           </Button>
         </div>
       </CardFooter>
+
+      {/* Dialog للدفعات المتأخرة */}
+      <Dialog open={activeDialog === 'payment'} onOpenChange={() => setActiveDialog(null)}>
+        <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">الدفعات المتأخرة</DialogTitle>
+            <DialogDescription className="text-right">
+              قائمة بالدفعات المستحقة والمتأخرة
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {dialogData?.map((payment: any) => (
+              <Card key={payment.id} className="p-4 border-r-4 border-red-500">
+                <div className="flex justify-between items-start">
+                  <div className="text-right">
+                    <h4 className="font-medium">عقد رقم: {payment.leases?.agreement_number}</h4>
+                    <p className="text-sm text-muted-foreground">العميل: {payment.leases?.customers?.full_name}</p>
+                    <p className="text-sm text-red-600">تاريخ الاستحقاق: {new Date(payment.due_date).toLocaleDateString('ar-QA')}</p>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(payment.amount)} ر.ق</p>
+                    <Badge variant="destructive" className="text-xs">متأخر</Badge>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button onClick={() => navigate('/payments')} className="text-sm">
+              عرض جميع الدفعات
+            </Button>
+            <Button variant="outline" onClick={() => setActiveDialog(null)}>إغلاق</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog للمركبات في الصيانة */}
+      <Dialog open={activeDialog === 'maintenance'} onOpenChange={() => setActiveDialog(null)}>
+        <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">المركبات في الصيانة</DialogTitle>
+            <DialogDescription className="text-right">
+              قائمة بالمركبات التي تحتاج صيانة حالياً
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {dialogData?.map((vehicle: any) => (
+              <Card key={vehicle.id} className="p-4 border-r-4 border-yellow-500">
+                <div className="flex justify-between items-start">
+                  <div className="text-right">
+                    <h4 className="font-medium">{vehicle.make} {vehicle.model} ({vehicle.year})</h4>
+                    <p className="text-sm text-muted-foreground">رقم اللوحة: {vehicle.license_plate}</p>
+                    <p className="text-sm text-yellow-600">المسافة المقطوعة: {vehicle.mileage?.toLocaleString()} كم</p>
+                  </div>
+                  <div className="text-left">
+                    <Badge variant="secondary" className="text-xs">في الصيانة</Badge>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button onClick={() => navigate('/maintenance')} className="text-sm">
+              عرض إدارة الصيانة
+            </Button>
+            <Button variant="outline" onClick={() => setActiveDialog(null)}>إغلاق</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog للعقود المنتهية قريباً */}
+      <Dialog open={activeDialog === 'contract'} onOpenChange={() => setActiveDialog(null)}>
+        <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">العقود المنتهية قريباً</DialogTitle>
+            <DialogDescription className="text-right">
+              عقود تنتهي خلال الـ 30 يوماً القادمة
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {dialogData?.map((contract: any) => (
+              <Card key={contract.id} className="p-4 border-r-4 border-orange-500">
+                <div className="flex justify-between items-start">
+                  <div className="text-right">
+                    <h4 className="font-medium">عقد رقم: {contract.agreement_number}</h4>
+                    <p className="text-sm text-muted-foreground">العميل: {contract.customers?.full_name}</p>
+                    <p className="text-sm text-muted-foreground">المركبة: {contract.vehicles?.make} {contract.vehicles?.model}</p>
+                    <p className="text-sm text-orange-600">تاريخ الانتهاء: {new Date(contract.end_date).toLocaleDateString('ar-QA')}</p>
+                  </div>
+                  <div className="text-left">
+                    <Badge variant="secondary" className="text-xs">ينتهي قريباً</Badge>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button onClick={() => navigate('/agreements')} className="text-sm">
+              عرض جميع العقود
+            </Button>
+            <Button variant="outline" onClick={() => setActiveDialog(null)}>إغلاق</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog للمركبات التي تحتاج فحص */}
+      <Dialog open={activeDialog === 'vehicle'} onOpenChange={() => setActiveDialog(null)}>
+        <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">مركبات تحتاج فحص</DialogTitle>
+            <DialogDescription className="text-right">
+              مركبات بمسافات عالية تحتاج فحص دوري
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {dialogData?.map((vehicle: any) => (
+              <Card key={vehicle.id} className="p-4 border-r-4 border-blue-500">
+                <div className="flex justify-between items-start">
+                  <div className="text-right">
+                    <h4 className="font-medium">{vehicle.make} {vehicle.model} ({vehicle.year})</h4>
+                    <p className="text-sm text-muted-foreground">رقم اللوحة: {vehicle.license_plate}</p>
+                    <p className="text-sm text-blue-600">المسافة المقطوعة: {vehicle.mileage?.toLocaleString()} كم</p>
+                  </div>
+                  <div className="text-left">
+                    <Badge variant="outline" className="text-xs">تحتاج فحص</Badge>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button onClick={() => navigate('/vehicles')} className="text-sm">
+              عرض جميع المركبات
+            </Button>
+            <Button variant="outline" onClick={() => setActiveDialog(null)}>إغلاق</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

@@ -195,11 +195,9 @@ export function PaymentHistorySection({
                     <div className="font-medium">
                       {formatCurrency(payment.amount)} ر.ق
                     </div>
-                    {payment.payment_date && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        تاريخ الدفع: {format(new Date(payment.payment_date), 'd MMM yyyy')}
-                      </div>
-                    )}
+                    <div className="text-xs text-blue-600 mt-1 font-medium">
+                      الاستحقاق: 1 من كل شهر
+                    </div>
                     
                     {(() => {
                       // Show dynamic late fee for pending/overdue
@@ -260,22 +258,7 @@ export function PaymentHistorySection({
                 </div>
                 
                 <div className="flex items-center space-x-2 space-x-reverse">
-                  <Badge variant={getStatusColor(payment.status)}>
-                    {payment.status === 'paid' ? 'مدفوع' : 
-                     payment.status === 'pending' ? 'معلق' : 
-                     payment.status === 'overdue' ? 'متأخر' : 
-                     payment.status === 'completed' ? 'مكتمل' : 
-                     payment.status === 'partially_paid' ? 'مدفوع جزئياً' :
-                     payment.status === 'cancelled' ? 'ملغي' : 'غير محدد'}
-                  </Badge>
-                  <Badge variant="outline">
-                    {payment.payment_method === 'cash' ? 'نقدي' :
-                     payment.payment_method === 'credit_card' ? 'بطاقة ائتمان' :
-                     payment.payment_method === 'bank_transfer' ? 'تحويل بنكي' :
-                     payment.payment_method === 'check' ? 'شيك' :
-                     payment.payment_method ? payment.payment_method : 'غير محدد'}
-                  </Badge>
-                  {payment.status !== 'completed' && payment.status !== 'paid' && (
+                  {payment.status !== 'paid' && (
                     <Button
                       size="sm"
                       variant="outline"

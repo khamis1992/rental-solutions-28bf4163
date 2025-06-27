@@ -41,7 +41,7 @@ export const QuickActions = () => {
       title: "تقارير سريعة",
       description: "تحليلات وتقارير فورية",
       icon: <TrendingUp className="h-5 w-5" />,
-      href: "/reports",
+      href: "/reports/quick",
       bgColor: "bg-orange-500"
     }
   ];

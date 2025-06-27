@@ -52,7 +52,7 @@ export class TwilioWhatsAppService {
   // --- PUBLIC API METHODS ---
 
   /**
-   * Sends a pre-defined payment reminder message.
+   * Sends a pre-defined payment reminder message using a WhatsApp template.
    */
   async sendPaymentReminder(
     customerPhone: string,
@@ -61,8 +61,15 @@ export class TwilioWhatsAppService {
     dueDate: string,
     contractType: string
   ): Promise<WhatsAppMessageResult> {
-    const body = this.getPaymentReminderText(customerName, amount, dueDate, contractType);
-    return this.sendMessage(customerPhone, body, 'payment_reminder');
+    const variables = {
+      '1': customerName,
+      '2': String(amount),
+      '3': dueDate,
+      '4': contractType,
+    };
+    // The 'body' is now just for logging purposes, the server will use the template.
+    const logBody = `Payment reminder for ${customerName}, Amount: ${amount}`;
+    return this.sendMessage(customerPhone, logBody, 'payment_reminder', variables);
   }
 
   /**
@@ -97,24 +104,27 @@ export class TwilioWhatsAppService {
   /**
    * Core method to securely invoke the Supabase Edge Function.
    * This is the only method that communicates with the backend.
+   * It now supports sending template variables.
    */
   async sendMessage(
     to: string,
-    body: string,
-    messageType: string = 'general'
+    body: string, // Kept for logging purposes
+    messageType: string = 'general',
+    variables?: Record<string, string>
   ): Promise<WhatsAppMessageResult> {
     const formattedTo = this.formatQatarPhone(to);
 
     try {
-      console.log('Calling send-whatsapp function with:', { to: formattedTo, messageType });
+      console.log('Calling send-whatsapp function with:', { to: formattedTo, messageType, variables });
 
       // Securely call the serverless function.
       // Credentials are now stored as secrets on the server-side for production.
       const { data, error } = await supabase.functions.invoke('send-whatsapp', {
         body: { 
           to: formattedTo, 
-          body, 
+          body, // Sent for logging and backward compatibility
           messageType,
+          variables, // The template variables
         },
       });
 
@@ -318,10 +328,6 @@ export class TwilioWhatsAppService {
   }
 
   // --- MESSAGE TEMPLATE GENERATORS ---
-
-  private getPaymentReminderText(name: string, amount: number, dueDate: string, type: string): string {
-    return `*تذكير دفعة - شركة العراف للتأجير*\n\nالسلام عليكم ${name},\n\nنذكركم بأن دفعة بقيمة *${amount} ريال قطري* مستحقة بتاريخ *${dueDate}* لعقد ${type}.\n\nيرجى المبادرة بالسداد لتجنب أي رسوم إضافية.\n\nشكراً لكم,\n*شركة العراف للتأجير*`;
-  }
 
   private getOverduePaymentAlertText(name: string, amount: number, days: number, type: string): string {
     const urgency = days > 30 ? '*عاجل جداً*' : '*مهم*';

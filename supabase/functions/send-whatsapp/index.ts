@@ -24,12 +24,30 @@ serve(async (req) => {
       })
     }
 
-    const { to, body, messageType } = requestBody
+    const { to, body, messageType, variables } = requestBody
     console.log(`Received request to send to: ${to}, type: ${messageType}`)
 
-    if (!to || !body) {
-      throw new Error("Missing 'to' or 'body' in request.")
+    if (!to) {
+      throw new Error("Missing 'to' in request.")
     }
+
+    // --- Template-based sending ---
+    const templateSids = {
+      'payment_reminder': 'HX9096bf6d24b0c82817f99b3af0803d95',
+      // TODO: Add SIDs for 'overdue_payment' and 'payment_received' when approved
+    };
+
+    const contentSid = templateSids[messageType];
+
+    if (messageType !== 'general' && !contentSid) {
+      throw new Error(`Message template for type '${messageType}' is not defined.`);
+    }
+
+    if (contentSid && !variables) {
+      throw new Error(`Variables are required for template message type '${messageType}'.`);
+    }
+    // --- End of template logic ---
+
 
     // Get credentials from server-side environment variables (secrets)
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
@@ -61,7 +79,17 @@ serve(async (req) => {
     const formData = new URLSearchParams()
     formData.append('From', fromNumber)
     formData.append('To', formattedTo)
-    formData.append('Body', body)
+
+    // Use Content API for templates, or Body for general messages
+    if (contentSid) {
+      console.log(`Sending with Template SID: ${contentSid}`);
+      formData.append('ContentSid', contentSid);
+      formData.append('ContentVariables', JSON.stringify(variables));
+    } else {
+      console.log("Sending with freeform body.");
+      if (!body) throw new Error("Missing 'body' for general message.");
+      formData.append('Body', body);
+    }
 
     const response = await fetch(twilioUrl, {
       method: 'POST',

@@ -160,11 +160,11 @@ export const ArabicDashboard: React.FC<ArabicDashboardProps> = ({
       onClick: () => navigate('/vehicles/add')
     },
     {
-      title: 'عرض التقارير',
+      title: 'التقارير السريعة',
       description: 'الوصول إلى التقارير والإحصائيات',
       icon: Activity,
       color: 'bg-amber-500',
-      onClick: () => navigate('/reports')
+      onClick: () => navigate('/reports/quick')
     }
   ];
 
