@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CustomerCard } from './CustomerCard';
 import { Customer } from '@/lib/validation-schemas/customer';
@@ -23,13 +22,13 @@ export const CustomerGridView: React.FC<CustomerGridViewProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <GridLayout columns={{ base: 1, md: 2, xl: 3 }} gap="lg">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="border rounded-lg p-6 space-y-4 bg-white shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="border rounded-lg p-6 space-y-4 bg-white shadow-sm h-full">
             <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-4 space-x-reverse">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
+              <div className="flex items-center gap-4 flex-row-reverse">
+                <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
+                <div className="space-y-2 flex-1">
                   <Skeleton className="h-5 w-32" />
                   <Skeleton className="h-4 w-20" />
                 </div>
@@ -42,13 +41,13 @@ export const CustomerGridView: React.FC<CustomerGridViewProps> = ({
             </div>
           </div>
         ))}
-      </GridLayout>
+      </div>
     );
   }
 
   if (!customers || customers.length === 0) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-12" dir="rtl">
         <Users className="mx-auto h-12 w-12 text-gray-400" />
         <h3 className="mt-2 text-sm font-medium text-gray-900">
           لا توجد عملاء
@@ -61,7 +60,13 @@ export const CustomerGridView: React.FC<CustomerGridViewProps> = ({
   }
 
   return (
-    <GridLayout columns={{ base: 1, md: 2, xl: 3 }} gap="lg" className="animate-fade-in">
+    <div 
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 auto-rows-fr animate-fade-in"
+      dir="rtl"
+      style={{
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))'
+      }}
+    >
       {customers.map((customer) => (
         <CustomerCard
           key={customer.id}
@@ -71,6 +76,6 @@ export const CustomerGridView: React.FC<CustomerGridViewProps> = ({
           onDelete={onDelete}
         />
       ))}
-    </GridLayout>
+    </div>
   );
 };

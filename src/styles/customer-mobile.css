@@ -1,4 +1,59 @@
-/* تحسينات الوضع المحمول لصفحة العملاء */
+/* تحسينات الوضع المحمول والحاسوب لصفحة العملاء */
+
+/* تحسينات عامة للبطاقات */
+.customer-card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  grid-auto-rows: 1fr;
+}
+
+/* تحسينات للحاسوب والشاشات الكبيرة */
+@media (min-width: 1024px) {
+  .customer-card-container {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+  }
+  
+  .customer-card {
+    transition: all 0.3s ease;
+    min-height: 280px;
+  }
+  
+  .customer-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+  
+  .customer-card-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .customer-card-header {
+    padding: 1.5rem 1.5rem 1rem;
+  }
+  
+  .customer-card-body {
+    flex: 1;
+    padding: 0 1.5rem 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .customer-card-container {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.75rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .customer-card-container {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+}
 
 /* البطاقات الإحصائية */
 @media (max-width: 640px) {
@@ -19,6 +74,18 @@
 @media (min-width: 640px) and (max-width: 768px) {
   .customer-stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .customer-stats-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .customer-stats-card {
+    padding: 1.5rem;
+    border-radius: 0.75rem;
   }
 }
 
@@ -45,6 +112,17 @@
   }
 }
 
+@media (min-width: 1024px) {
+  .customer-toolbar {
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+  }
+  
+  .customer-toolbar-buttons {
+    gap: 1rem;
+  }
+}
+
 /* التبويبات */
 @media (max-width: 640px) {
   .customer-tabs-container {
@@ -66,6 +144,23 @@
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
     white-space: nowrap;
+  }
+}
+
+@media (min-width: 1024px) {
+  .customer-tabs-container {
+    margin-bottom: 2rem;
+  }
+  
+  .customer-tabs-list {
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+  }
+  
+  .customer-tab-trigger {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+    border-radius: 0.5rem;
   }
 }
 
@@ -106,76 +201,45 @@
   }
 }
 
-/* تحسين النصوص العربية في الوضع المحمول */
-@media (max-width: 640px) {
-  .customer-page-title {
-    font-size: 1.5rem;
-    line-height: 2rem;
+/* تحسين النصوص العربية في جميع الأوضاع */
+.phone-number-ltr {
+  direction: ltr;
+  text-align: left;
+  font-family: 'Courier New', monospace;
+}
+
+/* تحسين الـ RTL للعناصر المختلطة */
+[dir="rtl"] .flex-row-reverse {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .gap-3 > * + * {
+  margin-right: 0.75rem;
+  margin-left: 0;
+}
+
+/* تحسين الـ hover effects للحاسوب */
+@media (min-width: 1024px) {
+  .customer-card .customer-card-actions {
+    opacity: 0;
+    transition: opacity 0.2s ease;
   }
   
-  .customer-page-subtitle {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
+  .customer-card:hover .customer-card-actions {
+    opacity: 1;
+  }
+  
+  .customer-stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
 }
 
-/* تحسين المسافات والحشو */
-@media (max-width: 640px) {
-  .customer-page-container {
-    padding: 1rem;
-  }
-  
-  .customer-section-spacing {
-    margin-bottom: 1.5rem;
-  }
-}
-
-/* تحسين الأزرار في الوضع المحمول */
-@media (max-width: 640px) {
-  .customer-action-button {
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .customer-action-button-icon {
-    margin-left: 0.5rem;
-  }
-}
-
-/* تحسين القوائم المنسدلة */
-@media (max-width: 640px) {
-  .customer-dropdown-content {
-    width: 100vw;
-    max-width: calc(100vw - 2rem);
-    left: 1rem;
-    right: 1rem;
-  }
-}
-
-/* تحسين فلتر البحث */
-@media (max-width: 640px) {
-  .customer-search-input {
-    width: 100%;
-    font-size: 1rem;
-    padding: 0.75rem;
-  }
-  
-  .customer-filter-dropdown {
-    width: 100%;
-    margin-top: 0.5rem;
-  }
-}
-
-/* رسوم متحركة للوضع المحمول */
-@media (max-width: 640px) {
-  .customer-card-hover {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  .customer-card-hover:active {
-    transform: scale(0.98);
+/* تحسين العرض للشاشات الواسعة جداً */
+@media (min-width: 1920px) {
+  .customer-card-container {
+    max-width: 1600px;
+    margin: 0 auto;
   }
 }
 
@@ -214,4 +278,4 @@
   .customer-mobile-only {
     display: none !important;
   }
-} 
+}

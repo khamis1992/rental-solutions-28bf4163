@@ -1,164 +1,166 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from "sonner";
-import PageContainer from '@/components/layout/PageContainer';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import React, { useState } from "react";
+import PageContainer from "@/components/layout/PageContainer";
+import { useScheduledReports } from "@/hooks/useScheduledReports";
+import { 
+  Calendar, 
+  Clock, 
+  Plus, 
+  Trash2, 
+  Mail, 
+  FileText, 
+  Users,
+  Car, 
+  CreditCard,
+  Gavel,
+  PlayCircle,
+  PauseCircle,
+  Search,
+  MoreVertical,
+  Send,
+  CheckCircle,
+  XCircle,
+  RotateCcw,
+  TrendingUp,
+  BarChart3,
+  PieChart,
+  Loader2,
+  Eye,
+  Play,
+  Pause,
+  Filter,
+  Download,
+  MessageCircle,
+  Settings
+} from "lucide-react";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WhatsAppReportsSettings } from '@/components/reports/WhatsAppReportsSettings';
-import {
-  Calendar,
-  Clock,
-  FileText,
-  Search,
-  Plus,
-  Play,
-  Pause,
-  Download,
-  MoreVertical,
-  Trash2,
-  CheckCircle,
-  PlayCircle,
-  PauseCircle,
-  XCircle,
-  MessageCircle,
-  Loader2,
-  DollarSign,
-  Car,
-  Users,
-  Wrench,
-  Scale,
-} from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { useScheduledReports } from '@/hooks/useScheduledReports';
-
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "يجب أن يكون اسم التقرير حرفين على الأقل.",
-  }),
-  type: z.string({
-    required_error: "الرجاء اختيار نوع التقرير.",
-  }),
-  frequency: z.string({
-    required_error: "الرجاء اختيار تكرار التقرير.",
-  }),
-  recipients: z.string().min(1, {
-    message: "الرجاء إدخال رقم واتساب واحد على الأقل.",
-  }),
-  format: z.string().default("pdf"),
-});
+import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from "react-router-dom";
 
 const reportTypeIcons = {
   fleet: Car,
-  financial: DollarSign,
+  financial: CreditCard,
   customers: Users,
-  maintenance: Wrench,
-  legal: Scale,
+  maintenance: Clock,
+  legal: Gavel
 };
 
 const reportTypeNames = {
-  fleet: 'تقرير الأسطول',
-  financial: 'التقرير المالي',
-  customers: 'تقرير العملاء',
-  maintenance: 'تقرير الصيانة',
-  legal: 'التقرير القانوني',
+  fleet: "تقرير الأسطول",
+  financial: "التقرير المالي",
+  customers: "تقرير العملاء",
+  maintenance: "تقرير الصيانة",
+  legal: "التقرير القانوني"
 };
 
 const frequencyNames = {
-  daily: 'يومي',
-  weekly: 'أسبوعي',
-  monthly: 'شهري',
-  quarterly: 'ربع سنوي',
+  daily: "يومي",
+  weekly: "أسبوعي",
+  monthly: "شهري",
+  quarterly: "ربع سنوي"
 };
 
 const statusNames = {
-  active: 'نشط',
-  paused: 'متوقف',
+  active: "نشط",
+  paused: "متوقف"
 };
 
-const ScheduledReports = () => {
-  const [open, setOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [runDialogOpen, setRunDialogOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<any>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterType, setFilterType] = useState('all');
-  const [isRunningReport, setIsRunningReport] = useState(false);
+const formSchema = z.object({
+  name: z.string().min(3, { message: "يجب أن يكون اسم التقرير 3 أحرف على الأقل" }),
+  type: z.string(),
+  frequency: z.string(),
+  recipients: z.string().min(1, { message: "يرجى إدخال بريد إلكتروني صحيح" }),
+  format: z.string(),
+});
 
+const ScheduledReports = () => {
+  const navigate = useNavigate();
   const { 
     reports, 
     isLoading, 
-    createReport, 
+    runReportNow, 
     updateReportStatus, 
     deleteReport, 
-    runReportNow,
-    refreshReports 
+    createReport 
   } = useScheduledReports();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [runDialogOpen, setRunDialogOpen] = useState(false);
+  const [isRunningReport, setIsRunningReport] = useState(false);
+
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      type: "",
-      frequency: "",
-      recipients: "+97466707063, +97470598989", // أرقام الواتساب الافتراضية
+      type: "fleet",
+      frequency: "monthly",
+      recipients: "",
       format: "pdf",
     },
   });
 
-  useEffect(() => {
-    refreshReports();
-  }, [refreshReports]);
-
+  // تطبيق الفلاتر والبحث
   const filteredReports = reports.filter(report => {
-    const matchesSearch = report.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || report.status === filterStatus;
-    const matchesType = filterType === 'all' || report.type === filterType;
+    const matchesSearch = report.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         reportTypeNames[report.type as keyof typeof reportTypeNames].includes(searchQuery);
+    const matchesStatus = filterStatus === "all" || report.status === filterStatus;
+    const matchesType = filterType === "all" || report.type === filterType;
+    
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  const activeReports = reports.filter(r => r.status === 'active').length;
-  const pausedReports = reports.filter(r => r.status === 'paused').length;
+  // إحصائيات محدثة
+  const activeReports = reports.filter(r => r.status === "active").length;
+  const pausedReports = reports.filter(r => r.status === "paused").length;
 
+  // وظائف التحكم في التقارير
   const handleToggleStatus = async (reportId: string) => {
     const report = reports.find(r => r.id === reportId);
     if (report) {
-      const newStatus = report.status === 'active' ? 'paused' : 'active';
+      const newStatus = report.status === "active" ? "paused" : "active";
       await updateReportStatus(reportId, newStatus);
     }
   };
@@ -190,7 +192,7 @@ const ScheduledReports = () => {
   const handleCreateReport = async (data: any) => {
     const reportData = {
       ...data,
-      recipients: data.recipients.split(',').map((phone: string) => phone.trim()), // أرقام الواتساب
+      recipients: data.recipients.split(',').map((email: string) => email.trim()),
       status: 'active' as const,
       nextRunDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // أسبوع من الآن
     };
@@ -204,7 +206,7 @@ const ScheduledReports = () => {
 
   if (isLoading) {
     return (
-      <div dir="ltr" className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+      <div dir="rtl" className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
         <PageContainer className="py-8">
           <div className="flex items-center justify-center h-64">
             <div className="flex flex-col items-center gap-4">
@@ -218,7 +220,7 @@ const ScheduledReports = () => {
   }
 
   return (
-    <div dir="ltr" className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
       <PageContainer className="py-8">
         {/* Header Section */}
         <div className="mb-8">
@@ -229,7 +231,7 @@ const ScheduledReports = () => {
                   <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg">
                     <Calendar className="h-8 w-8 text-white" />
                   </div>
-                  <div className="absolute -top-1 -left-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
@@ -321,12 +323,12 @@ const ScheduledReports = () => {
                 <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-4">
                   <div className="flex-1 w-full lg:max-w-md">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                       <Input
                         placeholder="البحث في التقارير..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 text-left h-12 border-2 bg-white/90 focus:bg-white transition-colors"
+                        className="pr-10 h-12 border-2 bg-white/90 focus:bg-white transition-colors"
                       />
                     </div>
                   </div>
@@ -360,51 +362,32 @@ const ScheduledReports = () => {
                     <Dialog open={open} onOpenChange={setOpen}>
                       <DialogTrigger asChild>
                         <Button className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
-                          <Plus className="h-4 w-4 ml-2" />
+                          <Plus className="h-4 w-4 mr-2" />
                           إنشاء تقرير جديد
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl" dir="ltr">
+                      <DialogContent className="max-w-2xl" dir="rtl">
                         <DialogHeader>
-                          <DialogTitle className="text-left text-2xl">إنشاء تقرير مجدول جديد</DialogTitle>
-                          <DialogDescription className="text-left">
-                            إعداد تقرير تلقائي ليتم إنشاؤه وإرسال إشعارات واتساب للأرقام المحددة وفقاً لجدولة متكررة
+                          <DialogTitle className="text-right text-2xl">إنشاء تقرير مجدول جديد</DialogTitle>
+                          <DialogDescription className="text-right">
+                            إعداد تقرير تلقائي ليتم إنشاؤه وتسليمه وفقاً لجدولة متكررة
                           </DialogDescription>
                         </DialogHeader>
                         
                         <Form {...form}>
                           <form onSubmit={form.handleSubmit(handleCreateReport)} className="space-y-6">
-                            {/* ملاحظة الواتساب */}
-                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                              <div className="flex items-center gap-2 text-green-800 mb-2">
-                                <MessageCircle className="h-5 w-5" />
-                                <span className="font-medium">إشعارات الواتساب</span>
-                              </div>
-                              <p className="text-sm text-green-700 mb-3">
-                                سيتم إرسال إشعار واتساب تلقائياً إلى الأرقام المحددة عند تشغيل هذا التقرير
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-mono">
-                                  +97466707063
-                                </span>
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-mono">
-                                  +97470598989
-                                </span>
-                              </div>
-                            </div>
-
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               <FormField
                                 control={form.control}
                                 name="name"
                                 render={({ field }) => (
                                   <FormItem className="md:col-span-2">
-                                    <FormLabel className="text-left text-base font-medium">اسم التقرير</FormLabel>
+                                    <FormLabel className="text-right text-base font-medium">اسم التقرير</FormLabel>
                                     <FormControl>
                                       <Input 
                                         placeholder="مثال: تقرير حالة الأسطول الشهري" 
                                         {...field} 
-                                        className="text-left h-12 border-2 focus:border-blue-500"
+                                        className="text-right h-12 border-2 focus:border-blue-500"
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -417,7 +400,7 @@ const ScheduledReports = () => {
                                 name="type"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="text-left text-base font-medium">نوع التقرير</FormLabel>
+                                    <FormLabel className="text-right text-base font-medium">نوع التقرير</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                       <FormControl>
                                         <SelectTrigger className="h-12 border-2">
@@ -442,7 +425,7 @@ const ScheduledReports = () => {
                                 name="frequency"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="text-left text-base font-medium">التكرار</FormLabel>
+                                    <FormLabel className="text-right text-base font-medium">التكرار</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                       <FormControl>
                                         <SelectTrigger className="h-12 border-2">
@@ -467,20 +450,16 @@ const ScheduledReports = () => {
                               name="recipients"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-left text-base font-medium flex items-center gap-2">
-                                    <MessageCircle className="h-4 w-4 text-green-600" />
-                                    أرقام واتساب للإشعارات
-                                  </FormLabel>
+                                  <FormLabel className="text-right text-base font-medium">المستلمون</FormLabel>
                                   <FormControl>
                                     <Input 
-                                      placeholder="+97466707063, +97470598989" 
+                                      placeholder="admin@company.com, manager@company.com" 
                                       {...field} 
-                                      className="text-left h-12 border-2 focus:border-green-500 bg-green-50/30"
+                                      className="text-right h-12 border-2 focus:border-blue-500"
                                     />
                                   </FormControl>
-                                  <FormDescription className="text-left text-sm flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-600" />
-                                    سيتم إرسال إشعار واتساب تلقائياً عند إنشاء التقرير
+                                  <FormDescription className="text-right text-sm">
+                                    أدخل عناوين البريد الإلكتروني مفصولة بفواصل
                                   </FormDescription>
                                   <FormMessage />
                                 </FormItem>
@@ -492,7 +471,7 @@ const ScheduledReports = () => {
                               name="format"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-left text-base font-medium">تنسيق الملف</FormLabel>
+                                  <FormLabel className="text-right text-base font-medium">تنسيق الملف</FormLabel>
                                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                       <SelectTrigger className="h-12 border-2">
@@ -530,7 +509,7 @@ const ScheduledReports = () => {
               {filteredReports.map((report) => {
                 const IconComponent = reportTypeIcons[report.type as keyof typeof reportTypeIcons];
                 return (
-                  <Card key={report.id} className="hover:shadow-lg transition-all duration-300 bg-white/90 backdrop-blur-sm border-r-4 border-r-blue-500">
+                  <Card key={report.id} className="hover:shadow-lg transition-all duration-300 bg-white/90 backdrop-blur-sm border-l-4 border-l-blue-500">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -551,10 +530,6 @@ const ScheduledReports = () => {
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
                                 التشغيل التالي: {report.nextRunDate}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <MessageCircle className="h-4 w-4 text-green-600" />
-                                {report.recipients.length} رقم واتساب
                               </span>
                               {report.lastRun && (
                                 <span className="flex items-center gap-1">
@@ -585,7 +560,7 @@ const ScheduledReports = () => {
                               disabled={isRunningReport}
                               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-md"
                             >
-                              <Download className="h-4 w-4 ml-1" />
+                              <Download className="h-4 w-4 mr-1" />
                               {isRunningReport ? 'جاري التشغيل...' : 'تشغيل الآن + واتساب'}
                             </Button>
 
@@ -597,12 +572,12 @@ const ScheduledReports = () => {
                             >
                               {report.status === 'active' ? (
                                 <>
-                                  <Pause className="h-4 w-4 ml-1" />
+                                  <Pause className="h-4 w-4 mr-1" />
                                   إيقاف
                                 </>
                               ) : (
                                 <>
-                                  <Play className="h-4 w-4 ml-1" />
+                                  <Play className="h-4 w-4 mr-1" />
                                   تفعيل
                                 </>
                               )}
@@ -622,7 +597,7 @@ const ScheduledReports = () => {
                                   }}
                                   className="text-red-600 focus:text-red-600"
                                 >
-                                  <Trash2 className="h-4 w-4 ml-2" />
+                                  <Trash2 className="h-4 w-4 mr-2" />
                                   حذف التقرير
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -650,7 +625,7 @@ const ScheduledReports = () => {
                         onClick={() => setOpen(true)}
                         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                       >
-                        <Plus className="h-4 w-4 ml-2" />
+                        <Plus className="h-4 w-4 mr-2" />
                         إنشاء أول تقرير
                       </Button>
                     )}
@@ -684,31 +659,6 @@ const ScheduledReports = () => {
                 onClick={() => selectedReport && handleDeleteReport(selectedReport.id)}
               >
                 حذف
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Run Report Confirmation Dialog */}
-        <Dialog open={runDialogOpen} onOpenChange={setRunDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>تشغيل التقرير</DialogTitle>
-              <DialogDescription>
-                هل تريد تشغيل التقرير "{selectedReport?.name}" الآن؟
-                سيتم إنشاء ملف PDF وإرسال إشعارات واتساب للأرقام المحددة.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setRunDialogOpen(false)}>
-                إلغاء
-              </Button>
-              <Button 
-                onClick={() => selectedReport && handleRunReport(selectedReport.id)}
-                disabled={isRunningReport}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {isRunningReport ? 'جاري التشغيل...' : 'تشغيل الآن'}
               </Button>
             </DialogFooter>
           </DialogContent>

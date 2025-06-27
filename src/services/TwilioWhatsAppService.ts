@@ -102,6 +102,118 @@ export class TwilioWhatsAppService {
   }
 
   /**
+   * إرسال تذكير دفعة شهرية (28 من كل شهر)
+   */
+  async sendMonthlyReminder(
+    customerPhone: string,
+    customerName: string,
+    amount: number,
+    dueDate: string,
+    contractNumber: string,
+    remainingInstallments: number
+  ): Promise<WhatsAppMessageResult> {
+    const variables = {
+      '1': customerName,
+      '2': String(amount),
+      '3': dueDate,
+      '4': contractNumber,
+      '5': String(remainingInstallments),
+    };
+    const logBody = `Monthly reminder for ${customerName}, Amount: ${amount}, Due: ${dueDate}`;
+    return this.sendMessage(customerPhone, logBody, 'monthly_reminder', variables);
+  }
+
+  /**
+   * إرسال إنذار غرامة تأخير (1 من كل شهر)
+   */
+  async sendDelayPenalty(
+    customerPhone: string,
+    customerName: string,
+    overdueAmount: number,
+    penaltyAmount: number,
+    daysOverdue: number,
+    contractNumber: string,
+    totalDue: number
+  ): Promise<WhatsAppMessageResult> {
+    const variables = {
+      '1': customerName,
+      '2': String(overdueAmount),
+      '3': String(penaltyAmount),
+      '4': String(daysOverdue),
+      '5': contractNumber,
+      '6': String(totalDue),
+    };
+    const logBody = `Delay penalty notice for ${customerName}, Overdue: ${overdueAmount}, Penalty: ${penaltyAmount}`;
+    return this.sendMessage(customerPhone, logBody, 'delay_penalty', variables);
+  }
+
+  /**
+   * إرسال إنذار نهائي قانوني
+   */
+  async sendFinalWarning(
+    customerPhone: string,
+    customerName: string,
+    totalDue: number,
+    contractNumber: string,
+    daysOverdue: number
+  ): Promise<WhatsAppMessageResult> {
+    const variables = {
+      '1': customerName,
+      '2': String(totalDue),
+      '3': contractNumber,
+      '4': String(daysOverdue),
+    };
+    const logBody = `Final legal warning for ${customerName}, Total due: ${totalDue}`;
+    return this.sendMessage(customerPhone, logBody, 'final_warning', variables);
+  }
+
+  /**
+   * إرسال إنذار إجراء قانوني (24 ساعة)
+   */
+  async sendLegalAction(
+    customerPhone: string,
+    customerName: string,
+    totalDue: number,
+    contractNumber: string,
+    vehicleDetails: string
+  ): Promise<WhatsAppMessageResult> {
+    const variables = {
+      '1': customerName,
+      '2': String(totalDue),
+      '3': contractNumber,
+      '4': vehicleDetails,
+    };
+    const logBody = `Legal action notice for ${customerName}, Total due: ${totalDue}`;
+    return this.sendMessage(customerPhone, logBody, 'legal_action', variables);
+  }
+
+  /**
+   * إرسال تقرير يومي للمدير العام (أيام 1-10 من كل شهر)
+   */
+  async sendManagerReport(
+    managerPhone: string,
+    managerName: string,
+    reportDate: string,
+    totalCollections: number,
+    overduePayments: number,
+    newContracts: number,
+    totalRevenue: number,
+    activeVehicles: number
+  ): Promise<WhatsAppMessageResult> {
+    const variables = {
+      '1': managerName,
+      '2': reportDate,
+      '3': String(totalCollections),
+      '4': String(overduePayments),
+      '5': String(newContracts),
+      '6': String(totalRevenue),
+      '7': String(activeVehicles),
+    };
+    const logBody = `Daily manager report for ${managerName}, Date: ${reportDate}`;
+    return this.sendMessage(managerPhone, logBody, 'manager_report', variables);
+  }
+
+  /**
    * Core method to securely invoke the Supabase Edge Function.
    * This is the only method that communicates with the backend.
    * It now supports sending template variables.

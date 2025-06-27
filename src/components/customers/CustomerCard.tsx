@@ -49,23 +49,23 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
 
   return (
     <Card 
-      className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary/20 hover:border-l-primary cursor-pointer"
+      className="group hover:shadow-lg transition-all duration-300 border-r-4 border-r-primary/20 hover:border-r-primary cursor-pointer h-full"
       onClick={handleCardClick}
       dir="rtl"
     >
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 space-x-reverse">
+          <div className="flex items-center gap-3 flex-row-reverse">
             <Avatar className="h-12 w-12 border-2 border-primary/10 flex-shrink-0">
               <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
                 {getInitials(customer.full_name || 'غير معروف')}
               </AvatarFallback>
             </Avatar>
-            <div className="space-y-1 flex-1 min-w-0">
-              <CardTitle className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors truncate text-left">
+            <div className="space-y-1 flex-1 min-w-0 text-right">
+              <CardTitle className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors truncate">
                 {customer.full_name || 'غير معروف'}
               </CardTitle>
-              <div className="text-left">
+              <div className="flex justify-start">
                 <CustomerStatusBadge status={customer.status} size="sm" />
               </div>
             </div>
@@ -73,25 +73,25 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[160px] text-right">
+            <DropdownMenuContent align="start" className="w-[160px]" dir="rtl">
               <DropdownMenuItem asChild>
-                <Link to={`/customers/${customer.id}`} className="flex items-center flex-row-reverse">
-                  <User className="h-4 w-4 mr-2" />
+                <Link to={`/customers/${customer.id}`} className="flex items-center gap-2 text-right">
+                  <User className="h-4 w-4" />
                   عرض التفاصيل
                 </Link>
               </DropdownMenuItem>
               {onEdit && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(customer); }} className="text-left">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(customer); }} className="text-right">
                   تعديل العميل
                 </DropdownMenuItem>
               )}
               {onDelete && (
                 <DropdownMenuItem 
-                  className="text-destructive focus:text-destructive text-left"
+                  className="text-destructive focus:text-destructive text-right"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (window.confirm(`هل أنت متأكد من حذف ${customer.full_name}؟`)) {
@@ -108,29 +108,35 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 gap-3">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="text-left">
-              <p className="text-sm text-muted-foreground text-left">البريد الإلكتروني</p>
-              <p className="font-medium text-left truncate">{customer.email || 'غير متوفر'}</p>
+            <div className="flex items-center gap-3 flex-row-reverse flex-1 min-w-0">
+              <Mail className="h-4 w-4 text-primary/60 flex-shrink-0" />
+              <div className="text-right flex-1 min-w-0">
+                <p className="text-sm text-muted-foreground">البريد الإلكتروني</p>
+                <p className="font-medium truncate">{customer.email || 'غير متوفر'}</p>
+              </div>
             </div>
-            <Mail className="h-4 w-4 text-primary/60 flex-shrink-0" />
           </div>
           
           <div className="flex items-center justify-between">
-            <div className="text-left">
-              <p className="text-sm text-muted-foreground text-left">رقم الهاتف</p>
-              <p className="font-medium text-left phone-number-ltr" dir="ltr">{customer.phone || 'غير متوفر'}</p>
+            <div className="flex items-center gap-3 flex-row-reverse flex-1 min-w-0">
+              <Phone className="h-4 w-4 text-primary/60 flex-shrink-0" />
+              <div className="text-right flex-1 min-w-0">
+                <p className="text-sm text-muted-foreground">رقم الهاتف</p>
+                <p className="font-medium phone-number-ltr" dir="ltr">{customer.phone || 'غير متوفر'}</p>
+              </div>
             </div>
-            <Phone className="h-4 w-4 text-primary/60 flex-shrink-0" />
           </div>
           
           <div className="flex items-center justify-between">
-            <div className="text-left">
-              <p className="text-sm text-muted-foreground text-left">تاريخ الإضافة</p>
-              <p className="font-medium text-left">{formatDate(customer.created_at)}</p>
+            <div className="flex items-center gap-3 flex-row-reverse flex-1 min-w-0">
+              <Calendar className="h-4 w-4 text-primary/60 flex-shrink-0" />
+              <div className="text-right flex-1 min-w-0">
+                <p className="text-sm text-muted-foreground">تاريخ الإضافة</p>
+                <p className="font-medium">{formatDate(customer.created_at)}</p>
+              </div>
             </div>
-            <Calendar className="h-4 w-4 text-primary/60 flex-shrink-0" />
           </div>
         </div>
 
