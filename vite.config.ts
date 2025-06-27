@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -52,21 +51,6 @@ export default defineConfig(({ mode }) => ({
     // Optimize dependencies
     commonjsOptions: {
       transformMixedEsModules: true
-    },
-    // PWA specific build optimizations
-    assetsDir: 'assets',
-    sourcemap: mode === 'development',
-    minify: mode === 'production' ? 'esbuild' : false,
-    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari13.1'],
-  },
-  // PWA specific optimizations
-  define: {
-    __PWA_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-  },
-  // Enable PWA features in preview mode
-  preview: {
-    port: 8080,
-    host: true,
+    }
   }
 }));

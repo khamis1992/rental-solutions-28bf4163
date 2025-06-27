@@ -9703,45 +9703,6 @@ export type Database = {
         }
         Relationships: []
       }
-      whatsapp_messages: {
-        Row: {
-          cost: number | null
-          created_at: string | null
-          error_message: string | null
-          id: number
-          message_content: string
-          message_type: string
-          phone_number: string
-          sent_at: string | null
-          status: string
-          twilio_message_id: string | null
-        }
-        Insert: {
-          cost?: number | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: number
-          message_content: string
-          message_type?: string
-          phone_number: string
-          sent_at?: string | null
-          status?: string
-          twilio_message_id?: string | null
-        }
-        Update: {
-          cost?: number | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: number
-          message_content?: string
-          message_type?: string
-          phone_number?: string
-          sent_at?: string | null
-          status?: string
-          twilio_message_id?: string | null
-        }
-        Relationships: []
-      }
       whatsapp_templates: {
         Row: {
           category: string | null
