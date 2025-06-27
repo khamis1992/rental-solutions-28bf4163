@@ -1,163 +1,131 @@
-import React, { useState, useEffect } from 'react';
-import { X, Download, Smartphone, Star, Shield, Zap, Users, ArrowUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { motion, AnimatePresence } from 'framer-motion';
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
+import React, { useState, useEffect } from 'react';
+import { X, Download, Smartphone, Apple } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SmartInstallBannerProps {
   position?: 'top' | 'bottom' | 'floating';
   theme?: 'default' | 'premium' | 'minimal';
-  showOnPages?: string[];
   minEngagementScore?: number;
 }
 
 export const SmartInstallBanner: React.FC<SmartInstallBannerProps> = ({
   position = 'top',
-  theme = 'default',
-  showOnPages = [],
-  minEngagementScore = 1  // Very low threshold for quick showing
+  theme = 'premium',
+  minEngagementScore = 3
 }) => {
   const [showBanner, setShowBanner] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalling, setIsInstalling] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [installMethod, setInstallMethod] = useState<'prompt' | 'manual' | 'ios'>('manual');
   const [engagementScore, setEngagementScore] = useState(0);
-  const [userInteractions, setUserInteractions] = useState(0);
-  const [visitDuration, setVisitDuration] = useState(0);
-  const [currentPage, setCurrentPage] = useState('');
 
-  // Detect platform and capabilities
+  // Device detection
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const isAndroid = /Android/.test(navigator.userAgent);
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches ||
-                           (window.navigator as any).standalone === true;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                      (window.navigator as any).standalone === true;
 
-  // Calculate engagement score based on user behavior
   useEffect(() => {
-    const startTime = Date.now();
-    let interactionCount = 0;
-
-    // Track page interactions
-    const trackInteraction = () => {
-      interactionCount++;
-      setUserInteractions(prev => prev + 1);
-    };
-
-    // Track visit duration
-    const updateDuration = () => {
-      const duration = Math.floor((Date.now() - startTime) / 1000);
-      setVisitDuration(duration);
-    };
-
-    // Event listeners for user engagement
-    const events = ['click', 'scroll', 'keydown', 'touchstart'];
-    events.forEach(event => {
-      document.addEventListener(event, trackInteraction, { passive: true });
-    });
-
-    // Update duration every 10 seconds
-    const durationInterval = setInterval(updateDuration, 10000);
-
-    // Get current page
-    setCurrentPage(window.location.pathname);
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, trackInteraction);
-      });
-      clearInterval(durationInterval);
-    };
-  }, []);
-
-  // Calculate engagement score
-  useEffect(() => {
-    const score = Math.min(100, 
-      (userInteractions * 2) + 
-      Math.floor(visitDuration / 10) + 
-      (currentPage !== '/' ? 10 : 0) // Bonus for visiting other pages
-    );
-    setEngagementScore(score);
-  }, [userInteractions, visitDuration, currentPage]);
-
-  // Smart banner display logic
-  useEffect(() => {
-    if (isInStandaloneMode) return; // Already installed
+    if (isStandalone) return; // Already installed
 
     // Check dismissal history
-    const bannerDismissed = localStorage.getItem('smart-banner-dismissed');
-    const dismissedTime = bannerDismissed ? parseInt(bannerDismissed) : 0;
+    const dismissed = localStorage.getItem('pwa-banner-dismissed');
+    const dismissedTime = dismissed ? parseInt(dismissed) : 0;
     const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24);
+    
+    if (dismissed && daysSinceDismissed < 7) return;
 
-    // Don't show if dismissed recently (reduced from 3 to 1 day)
-    if (bannerDismissed && daysSinceDismissed < 1) return;
+    // Track user engagement
+    const trackEngagement = () => {
+      setEngagementScore(prev => prev + 1);
+    };
 
-    // Check page restrictions
-    if (showOnPages.length > 0 && !showOnPages.includes(currentPage)) return;
+    // Add engagement listeners
+    document.addEventListener('click', trackEngagement);
+    document.addEventListener('scroll', trackEngagement);
+    window.addEventListener('focus', trackEngagement);
 
-    // Check engagement threshold (much lower threshold for faster showing)
-    if (engagementScore < minEngagementScore) return;
-
-    // Faster timing logic - show much sooner
-    const showTimeout = (() => {
-      if (engagementScore > 20) return 1000; // High engagement - show very soon
-      if (engagementScore > 10) return 2000; // Medium engagement
-      return 3000; // Low engagement - still show quickly
-    })();
-
-    const timer = setTimeout(() => {
-      setShowBanner(true);
-    }, showTimeout);
-
-    return () => clearTimeout(timer);
-  }, [engagementScore, currentPage, showOnPages, minEngagementScore]);
-
-  // Handle install prompt
-  useEffect(() => {
+    // Handle beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setDeferredPrompt(e);
+      setInstallMethod('prompt');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
+    window.addEventListener('pwa-install-available', handleBeforeInstallPrompt);
+
+    // Show banner logic
+    const showBannerTimer = setTimeout(() => {
+      if (engagementScore >= minEngagementScore) {
+        if (isIOS) {
+          setInstallMethod('ios');
+        } else if (deferredPrompt) {
+          setInstallMethod('prompt');
+        } else {
+          setInstallMethod('manual');
+        }
+        setShowBanner(true);
+      }
+    }, 3000); // Show after 3 seconds
+
+    return () => {
+      clearTimeout(showBannerTimer);
+      document.removeEventListener('click', trackEngagement);
+      document.removeEventListener('scroll', trackEngagement);
+      window.removeEventListener('focus', trackEngagement);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, [engagementScore, minEngagementScore, isStandalone, isIOS, deferredPrompt]);
 
   const handleInstall = async () => {
-    setIsInstalling(true);
-
-    try {
-      if (deferredPrompt) {
+    if (installMethod === 'prompt' && deferredPrompt) {
+      try {
         await deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         
         if (outcome === 'accepted') {
           setShowBanner(false);
-          localStorage.removeItem('smart-banner-dismissed');
+          localStorage.setItem('pwa-installed', 'true');
         }
+        
         setDeferredPrompt(null);
-      } else {
-        // Platform-specific instructions
-        showInstallInstructions();
+      } catch (error) {
+        console.error('Install failed:', error);
+        showManualInstructions();
       }
-    } catch (error) {
-      console.error('Install error:', error);
-    } finally {
-      setIsInstalling(false);
+    } else {
+      showManualInstructions();
     }
   };
 
-  const showInstallInstructions = () => {
-    const instructions = isIOS 
-      ? 'للتثبيت على iOS:\n1. اضغط على زر المشاركة (↑)\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"'
-      : isAndroid
-      ? 'للتثبيت على أندرويد:\n1. اضغط على قائمة المتصفح (⋮)\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"'
-      : 'للتثبيت:\nاستخدم قائمة المتصفح واختر "إضافة إلى الشاشة الرئيسية"';
+  const showManualInstructions = () => {
+    let instructions = '';
+    
+    if (isIOS) {
+      instructions = `لتثبيت التطبيق على جهاز آيفون/آيباد:
+
+1. اضغط على زر المشاركة (⬆️) في أسفل الشاشة
+2. مرر لأسفل واختر "إضافة إلى الشاشة الرئيسية"
+3. اضغط "إضافة" لإكمال التثبيت
+
+ملاحظة: يجب استخدام متصفح Safari`;
+    } else if (isMobile) {
+      instructions = `لتثبيت التطبيق:
+
+1. اضغط على قائمة المتصفح (⋮)
+2. اختر "إضافة إلى الشاشة الرئيسية"
+3. اتبع التعليمات لإكمال التثبيت`;
+    } else {
+      instructions = `لتثبيت التطبيق على الكمبيوتر:
+
+1. ابحث عن أيقونة التثبيت في شريط العنوان
+2. أو استخدم قائمة المتصفح واختر "تثبيت التطبيق"
+3. اتبع التعليمات لإكمال التثبيت`;
+    }
     
     alert(instructions);
     setShowBanner(false);
@@ -165,149 +133,107 @@ export const SmartInstallBanner: React.FC<SmartInstallBannerProps> = ({
 
   const handleDismiss = () => {
     setShowBanner(false);
-    localStorage.setItem('smart-banner-dismissed', Date.now().toString());
+    localStorage.setItem('pwa-banner-dismissed', Date.now().toString());
   };
 
   if (!showBanner || !isMobile) return null;
 
-  // Theme configurations
-  const themes = {
-    default: {
-      bg: 'bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg',
-      text: 'text-white',
-      button: 'bg-white text-blue-600 hover:bg-gray-100 font-semibold shadow-md',
-      accent: 'text-blue-200'
-    },
-    premium: {
-      bg: 'bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 shadow-xl',
-      text: 'text-white',
-      button: 'bg-white text-gray-900 hover:bg-gray-100 font-bold shadow-lg',
-      accent: 'text-purple-200'
-    },
-    minimal: {
-      bg: 'bg-white border-t border-gray-200 shadow-xl',
-      text: 'text-gray-900',
-      button: 'bg-blue-600 text-white hover:bg-blue-700 font-semibold',
-      accent: 'text-gray-600'
-    }
-  };
-
-  const themeClasses = themes[theme];
-
-  const bannerContent = (
-    <div className={`${themeClasses.bg} ${themeClasses.text} p-4 relative overflow-hidden`} dir="rtl">
-      {/* Background decoration for premium theme */}
-      {theme === 'premium' && (
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent" />
-          <Star className="absolute top-2 right-4 w-6 h-6 animate-pulse" />
-          <Zap className="absolute bottom-2 left-8 w-4 h-4 animate-bounce" />
+  const BannerContent = () => (
+    <div className="flex items-center justify-between p-4 gap-4" dir="rtl">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className={`p-2 rounded-full ${
+          theme === 'premium' ? 'bg-white/20' : 'bg-blue-100'
+        }`}>
+          {isIOS ? (
+            <Apple className="w-5 h-5 text-current" />
+          ) : (
+            <Smartphone className="w-5 h-5 text-current" />
+          )}
         </div>
-      )}
-
-      <div className="relative flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1 flex-row-reverse">
-          <div className="bg-white/20 p-3 rounded-full shadow-lg">
-            <Smartphone className="w-7 h-7" />
-          </div>
-          
-          <div className="flex-1 text-right">
-            <div className="flex items-center gap-2 flex-row-reverse mb-1">
-              <h3 className="font-bold text-lg">العراف للتأجير</h3>
-              <Badge variant="secondary" className="bg-white/20 text-white text-xs font-semibold px-2 py-1">
-                تطبيق
-              </Badge>
-            </div>
-            
-            <p className={`text-sm ${themeClasses.accent} leading-relaxed font-medium`}>
-              تثبيت مجاني • يعمل بدون إنترنت • إشعارات فورية
-            </p>
-            
-            {/* Features for premium theme */}
-            {theme === 'premium' && (
-              <div className="flex items-center gap-4 mt-2 flex-row-reverse">
-                <div className="flex items-center gap-1">
-                  <Shield className="w-3 h-3" />
-                  <span className="text-xs font-medium">آمن</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
-                  <span className="text-xs font-medium">سريع</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-3 h-3" />
-                  <span className="text-xs font-medium">موثوق</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 mr-4">
-          <Button
-            onClick={handleInstall}
-            disabled={isInstalling}
-            size="sm"
-            className={`${themeClasses.button} px-6 py-2 rounded-full text-sm`}
-          >
-            {isInstalling ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                جارٍ التثبيت...
-              </div>
-            ) : (
-              <>
-                <Download className="w-4 h-4 ml-1" />
-                تثبيت
-              </>
-            )}
-          </Button>
-          
-          <button
-            onClick={handleDismiss}
-            className="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm truncate">تطبيق العراف للتأجير</p>
+          <p className={`text-xs truncate ${
+            theme === 'premium' ? 'text-white/80' : 'text-gray-600'
+          }`}>
+            للحصول على تجربة أفضل، ثبت التطبيق
+          </p>
         </div>
       </div>
-
-      {/* Engagement indicator */}
-      {engagementScore > 10 && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-          <div 
-            className="h-full bg-white/50 transition-all duration-500 rounded-full"
-            style={{ width: `${Math.min(100, engagementScore)}%` }}
-          />
-        </div>
-      )}
+      
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Button 
+          onClick={handleInstall}
+          size="sm"
+          className={
+            theme === 'premium' 
+              ? "bg-white text-blue-600 hover:bg-gray-100" 
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          }
+        >
+          <Download className="w-4 h-4 ml-1" />
+          تثبيت
+        </Button>
+        <button 
+          onClick={handleDismiss}
+          className={`p-1 rounded ${
+            theme === 'premium' 
+              ? 'text-white/60 hover:text-white' 
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 
-  // Position wrapper
-  const positionClasses = {
-    top: 'fixed top-0 left-0 right-0 z-50',
-    bottom: 'fixed bottom-0 left-0 right-0 z-50',
-    floating: 'fixed bottom-4 left-4 right-4 z-50 rounded-lg overflow-hidden shadow-xl'
-  };
+  const bannerPositionClass = {
+    top: 'top-0',
+    bottom: 'bottom-0',
+    floating: 'bottom-4 left-4 right-4'
+  }[position];
+
+  const bannerBaseClass = position === 'floating' 
+    ? 'fixed z-50 mx-auto max-w-md left-1/2 transform -translate-x-1/2'
+    : 'fixed left-0 right-0 z-50';
+
+  if (position === 'floating') {
+    return (
+      <AnimatePresence>
+        {showBanner && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className={`${bannerBaseClass} ${bannerPositionClass}`}
+          >
+            <Card className="shadow-lg">
+              <CardContent className="p-0">
+                <BannerContent />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ 
-          y: position === 'top' ? -100 : position === 'bottom' ? 100 : 50,
-          opacity: 0 
-        }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ 
-          y: position === 'top' ? -100 : position === 'bottom' ? 100 : 50,
-          opacity: 0 
-        }}
-        transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-        className={positionClasses[position]}
-      >
-        {bannerContent}
-      </motion.div>
+      {showBanner && (
+        <motion.div
+          initial={{ y: position === 'top' ? -100 : 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: position === 'top' ? -100 : 100, opacity: 0 }}
+          className={`${bannerBaseClass} ${bannerPositionClass} ${
+            theme === 'premium' 
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' 
+              : 'bg-white border-b shadow-sm'
+          }`}
+        >
+          <BannerContent />
+        </motion.div>
+      )}
     </AnimatePresence>
   );
-}; 
+};

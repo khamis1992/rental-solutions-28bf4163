@@ -1,3 +1,4 @@
+
 import { createRoot } from 'react-dom/client';
 import ReactDOMLegacy from 'react-dom';
 import App from './App.tsx';
@@ -15,30 +16,37 @@ if (import.meta.env.DEV) {
 // Initialize monitoring before app starts
 initializeMonitoring();
 
-// PWA Service Worker Registration
+// Enhanced PWA Service Worker Registration
 const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
     try {
+      // Wait for page load to complete
+      await new Promise(resolve => {
+        if (document.readyState === 'complete') {
+          resolve(true);
+        } else {
+          window.addEventListener('load', resolve);
+        }
+      });
+
       const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
+        scope: '/',
+        updateViaCache: 'none'
       });
       
       console.log('Service worker registered successfully:', registration);
       
-      // Check for updates
+      // Handle updates
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('New content is available; please refresh.');
-              // You can show an update notification here
-              if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('تحديث متوفر', {
-                  body: 'إصدار جديد من التطبيق متوفر. يرجى التحديث.',
-                  icon: '/icons/icon-192x192.png'
-                });
-              }
+              // Dispatch custom event for UpdatePrompt component
+              window.dispatchEvent(new CustomEvent('sw-update-available', { 
+                detail: { registration } 
+              }));
             }
           });
         }
@@ -47,6 +55,9 @@ const registerServiceWorker = async () => {
       // Check for existing service worker updates
       if (registration.waiting) {
         console.log('Service worker update available');
+        window.dispatchEvent(new CustomEvent('sw-update-available', { 
+          detail: { registration } 
+        }));
       }
       
       return registration;
@@ -58,78 +69,96 @@ const registerServiceWorker = async () => {
   }
 };
 
-// PWA Install Helper
+// Enhanced PWA Install Features
 const initPWAFeatures = () => {
-  // Store install prompt event
   let deferredPrompt: any = null;
   
+  // Handle beforeinstallprompt event
   window.addEventListener('beforeinstallprompt', (e) => {
     console.log('beforeinstallprompt event fired');
-    // Prevent the mini-infobar from appearing on mobile
     e.preventDefault();
-    // Stash the event so it can be triggered later
     deferredPrompt = e;
     
-    // Update UI to show install button or prompt
+    // Store globally for components to access
     (window as any).canInstallPWA = true;
     (window as any).deferredPrompt = deferredPrompt;
     
-    // Dispatch custom event for InstallPrompt component
-    window.dispatchEvent(new CustomEvent('pwa-install-available', { detail: deferredPrompt }));
+    // Dispatch custom event for PWA components
+    window.dispatchEvent(new CustomEvent('pwa-install-available', { 
+      detail: deferredPrompt 
+    }));
   });
 
+  // Handle app installed event
   window.addEventListener('appinstalled', () => {
-    console.log('PWA was installed');
+    console.log('PWA was installed successfully');
     deferredPrompt = null;
     (window as any).canInstallPWA = false;
     (window as any).deferredPrompt = null;
     
-    // Show success message
+    // Show success notification
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('تم التثبيت بنجاح!', {
         body: 'تطبيق العراف للتأجير متوفر الآن على شاشتك الرئيسية.',
-        icon: '/icons/icon-192x192.png'
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/badge-72x72.png'
       });
     }
+    
+    // Dispatch success event
+    window.dispatchEvent(new CustomEvent('pwa-installed'));
   });
   
-  // Handle iOS install prompt manually
-  if (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
-    console.log('iOS device detected - manual install instructions will be shown');
+  // Enhanced iOS detection and handling
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  
+  if (isIOS) {
+    console.log('iOS device detected - manual install instructions available');
     (window as any).isIOSDevice = true;
   }
   
-  // Check if already installed
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  if (isStandalone || (window.navigator as any).standalone) {
+  // Check if already installed (standalone mode)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                      (window.navigator as any).standalone === true ||
+                      document.referrer.includes('android-app://');
+  
+  if (isStandalone) {
     console.log('App is running in standalone mode');
     (window as any).isPWAInstalled = true;
+    document.body.classList.add('pwa-installed');
   }
 };
 
-// Global PWA install function
+// Global PWA install function with enhanced error handling
 (window as any).installPWA = async () => {
   const deferredPrompt = (window as any).deferredPrompt;
   
   if (!deferredPrompt) {
     console.log('No install prompt available');
-    // For browsers that don't support install prompt or iOS
+    
     if ((window as any).isIOSDevice) {
-      alert('لإضافة التطبيق إلى الشاشة الرئيسية:\n1. اضغط على زر المشاركة في أسفل الشاشة\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"');
+      // Enhanced iOS instructions
+      const instructions = `لإضافة التطبيق إلى الشاشة الرئيسية:
+
+1. اضغط على زر المشاركة (⬆️) في أسفل الشاشة
+2. مرر لأسفل واختر "إضافة إلى الشاشة الرئيسية"
+3. اضغط "إضافة" لإكمال التثبيت
+
+بعد التثبيت، ستجد التطبيق في الشاشة الرئيسية ويمكن استخدامه بدون إنترنت.`;
+      
+      alert(instructions);
     } else {
-      alert('لإضافة التطبيق إلى الشاشة الرئيسية، استخدم قائمة المتصفح واختر "إضافة إلى الشاشة الرئيسية"');
+      alert('للتثبيت: استخدم قائمة المتصفح واختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية"');
     }
     return false;
   }
 
   try {
-    // Show the install prompt
     await deferredPrompt.prompt();
-    
-    // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
     
-    console.log(`User response to the install prompt: ${outcome}`);
+    console.log(`User response to install prompt: ${outcome}`);
     
     if (outcome === 'accepted') {
       console.log('User accepted the install prompt');
@@ -145,21 +174,38 @@ const initPWAFeatures = () => {
   }
 };
 
-// Initialize app
+// Initialize app with proper sequencing
 const initApp = async () => {
-  // Register service worker
-  await registerServiceWorker();
-  
-  // Initialize PWA features
-  initPWAFeatures();
-  
-  // Mount React app
-  const container = document.getElementById("root");
-  if (container) {
-    const root = createRoot(container);
-    root.render(<ErrorBoundary>
-      <App />
-    </ErrorBoundary>);
+  try {
+    // Initialize PWA features first
+    initPWAFeatures();
+    
+    // Register service worker
+    await registerServiceWorker();
+    
+    // Mount React app
+    const container = document.getElementById("root");
+    if (container) {
+      const root = createRoot(container);
+      root.render(
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      );
+    }
+  } catch (error) {
+    console.error('App initialization failed:', error);
+    
+    // Fallback: still try to mount the app
+    const container = document.getElementById("root");
+    if (container) {
+      const root = createRoot(container);
+      root.render(
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      );
+    }
   }
 };
 

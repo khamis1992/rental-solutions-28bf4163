@@ -1,3 +1,4 @@
+
 {
   "name": "نظام إدارة تأجير السيارات - العراف",
   "short_name": "العراف للتأجير",
@@ -5,42 +6,42 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "theme_color": "#1e40af",
   "background_color": "#ffffff",
   "dir": "rtl",
   "lang": "ar",
   "categories": ["business", "productivity", "finance"],
-  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "shortcuts": [
     {
       "name": "اتفاقية جديدة",
       "short_name": "اتفاقية",
       "description": "إنشاء اتفاقية تأجير جديدة",
       "url": "/agreements/add",
-      "icons": [{ "src": "/icons/agreement-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "المدفوعات",
       "short_name": "المدفوعات",
       "description": "عرض وإدارة المدفوعات",
       "url": "/payments",
-      "icons": [{ "src": "/icons/payment-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "المركبات",
       "short_name": "المركبات", 
       "description": "إدارة أسطول المركبات",
       "url": "/vehicles",
-      "icons": [{ "src": "/icons/vehicle-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "الخطابات القانونية",
       "short_name": "قانونية",
       "description": "إنتاج الوثائق القانونية",
-      "url": "/legal/ai-letter-generator",
-      "icons": [{ "src": "/icons/legal-192.png", "sizes": "192x192", "type": "image/png" }]
+      "url": "/legal",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "icons": [
@@ -78,7 +79,7 @@
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-384x384.png",
@@ -90,69 +91,23 @@
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "/screenshots/dashboard.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "لوحة التحكم الرئيسية"
-    },
-    {
-      "src": "/screenshots/agreements.png",
-      "sizes": "1280x720", 
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "إدارة الاتفاقيات"
-    },
-    {
-      "src": "/screenshots/mobile-dashboard.png",
-      "sizes": "750x1334",
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "لوحة التحكم للجوال"
-    }
-  ],
-  "share_target": {
-    "action": "/share",
-    "method": "POST",
-    "enctype": "multipart/form-data",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url",
-      "files": [
-        {
-          "name": "file",
-          "accept": ["image/*", "application/pdf"]
-        }
-      ]
-    }
-  },
-  "protocol_handlers": [
+    },
     {
-      "protocol": "web+rental",
-      "url": "/agreements/%s"
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512", 
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "لوحة التحكم الرئيسية"
     }
-  ],
-  "related_applications": [],
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
-  "edge_side_panel": {
-    "preferred_width": 400
-  }
+  ]
 }

@@ -1,539 +1,290 @@
-// Enhanced Service Worker for Al-Araf Rental System
-// Version 3.0.0 - Advanced PWA Implementation
 
-const CACHE_NAME = 'alaraf-rental-v3.0.0';
-const RUNTIME_CACHE = 'alaraf-runtime-v3.0.0';
-const DYNAMIC_CACHE = 'alaraf-dynamic-v3.0.0';
-const IMAGE_CACHE = 'alaraf-images-v3.0.0';
-const API_CACHE = 'alaraf-api-v3.0.0';
+const CACHE_NAME = 'alaraf-rental-v2.2.0';
+const CACHE_VERSION = '2.2.0';
 
-// Cache duration settings
-const CACHE_DURATION = {
-  STATIC: 30 * 24 * 60 * 60 * 1000, // 30 days
-  API: 5 * 60 * 1000, // 5 minutes
-  IMAGES: 7 * 24 * 60 * 60 * 1000, // 7 days
-  DYNAMIC: 24 * 60 * 60 * 1000 // 1 day
-};
-
-// Enhanced static assets for caching
-const STATIC_ASSETS = [
+// Define cached resources
+const STATIC_CACHE_URLS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  '/icons/maskable-icon-192x192.png',
-  '/icons/maskable-icon-512x512.png',
-  '/Amiri-Bold.ttf',
-  '/Amiri-Bold.js',
-
-  // Core routes
-  '/dashboard',
-  '/customers',
-  '/agreements',
-  '/vehicles',
-  '/payments',
-  '/maintenance',
-  '/reports',
-  '/legal',
-  '/financials',
-  
-  // Critical CSS and JS (will be automatically cached by Vite)
+  '/vite.svg'
 ];
 
-// API endpoints for intelligent caching
-const API_CACHE_PATTERNS = [
-  /\/api\/.*$/,
-  /\/rest\/v1\/profiles$/,
-  /\/rest\/v1\/customers$/,
-  /\/rest\/v1\/vehicles$/,
-  /\/rest\/v1\/leases$/,
-  /\/rest\/v1\/agreements$/,
-  /\/rest\/v1\/maintenance$/,
-  /\/rest\/v1\/payments$/,
-  /\/rest\/v1\/payment_schedules$/,
-  /\/rest\/v1\/vehicle_inspections$/
+// API routes to cache
+const API_CACHE_ROUTES = [
+  '/api/profiles',
+  '/api/vehicles', 
+  '/api/agreements',
+  '/api/payments',
+  '/api/customers',
+  '/api/maintenance',
+  '/rest/v1/profiles',
+  '/rest/v1/vehicles',
+  '/rest/v1/leases',
+  '/rest/v1/unified_payments'
 ];
 
-// Background sync tags
-const SYNC_TAGS = {
-  PAYMENT: 'sync-payment',
-  AGREEMENT: 'sync-agreement',
-  MAINTENANCE: 'sync-maintenance',
-  CUSTOMER: 'sync-customer',
-  VEHICLE: 'sync-vehicle',
-  DOCUMENT: 'sync-document'
-};
-
-// Queue for offline operations
-let offlineQueue = [];
-
-// Install event - Cache static assets
+// Install event - cache essential resources
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v3.0.0');
+  console.log('[SW] Installing service worker version:', CACHE_VERSION);
   
   event.waitUntil(
-    Promise.all([
-      // Cache static assets
-      caches.open(CACHE_NAME).then((cache) => {
-        console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS.filter(asset => asset !== '/'));
-      }),
-      
-      // Skip waiting to activate immediately
-      self.skipWaiting()
-    ])
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('[SW] Caching app shell');
+        return cache.addAll(STATIC_CACHE_URLS);
+      })
+      .then(() => {
+        console.log('[SW] Skip waiting to activate immediately');
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error('[SW] Failed to cache during install:', error);
+      })
   );
 });
 
-// Activate event - Clean old caches
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker v3.0.0');
+  console.log('[SW] Activating service worker version:', CACHE_VERSION);
   
   event.waitUntil(
-    Promise.all([
-      // Clean old caches
     caches.keys().then((cacheNames) => {
       return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME && 
-                cacheName !== RUNTIME_CACHE && 
-                cacheName !== DYNAMIC_CACHE &&
-                cacheName !== IMAGE_CACHE &&
-                cacheName !== API_CACHE) {
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
-            }
-          })
-        );
-      }),
-      
-      // Claim all clients
-      self.clients.claim(),
-      
-      // Clean expired cache entries
-      cleanExpiredCaches()
-    ])
+          }
+        })
+      );
+    }).then(() => {
+      console.log('[SW] Claiming clients');
+      return self.clients.claim();
+    })
   );
 });
 
-// Enhanced fetch event with intelligent caching strategies
+// Fetch event - implement caching strategies
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-
-  // Skip non-GET requests for caching
+  
+  // Skip non-GET requests
   if (request.method !== 'GET') {
-    // Handle POST/PUT/DELETE for offline queue
-    if (!navigator.onLine) {
-      event.respondWith(handleOfflineRequest(request));
-    }
+    return;
+  }
+  
+  // Skip chrome-extension and other protocols
+  if (!url.protocol.startsWith('http')) {
     return;
   }
 
-  // Different strategies based on request type
-  if (isStaticAsset(url)) {
-    event.respondWith(cacheFirstStrategy(request, CACHE_NAME));
-  } else if (isAPIRequest(url)) {
-    event.respondWith(networkFirstWithTimeout(request, API_CACHE, 3000));
-  } else if (isImageRequest(url)) {
-    event.respondWith(cacheFirstStrategy(request, IMAGE_CACHE));
-  } else {
-    event.respondWith(staleWhileRevalidate(request, DYNAMIC_CACHE));
-  }
-});
-
-// Background sync for offline operations
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync triggered:', event.tag);
-  
-  switch (event.tag) {
-    case SYNC_TAGS.PAYMENT:
-      event.waitUntil(syncPayments());
-      break;
-    case SYNC_TAGS.AGREEMENT:
-      event.waitUntil(syncAgreements());
-      break;
-    case SYNC_TAGS.MAINTENANCE:
-      event.waitUntil(syncMaintenance());
-      break;
-    case SYNC_TAGS.CUSTOMER:
-      event.waitUntil(syncCustomers());
-      break;
-    case SYNC_TAGS.VEHICLE:
-      event.waitUntil(syncVehicles());
-      break;
-    case SYNC_TAGS.DOCUMENT:
-      event.waitUntil(syncDocuments());
-      break;
-    default:
-      console.log('[SW] Unknown sync tag:', event.tag);
-  }
-});
-
-// Push notification handling
-self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received:', event);
-  
-  const options = {
-    body: 'لديك تحديث جديد في نظام العراف للتأجير',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: 'فتح التطبيق',
-        icon: '/icons/checkmark.png'
-      },
-      {
-        action: 'close',
-        title: 'إغلاق',
-        icon: '/icons/xmark.png'
-      }
-    ],
-    requireInteraction: true,
-    tag: 'rental-notification'
-  };
-  
-  if (event.data) {
-    const data = event.data.json();
-    options.body = data.body || options.body;
-    options.title = data.title || 'العراف للتأجير';
-  }
-  
-  event.waitUntil(
-    self.registration.showNotification('العراف للتأجير', options)
+  event.respondWith(
+    handleRequest(request, url)
   );
 });
 
-// Notification click handling
-self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event);
-  event.notification.close();
-  
-  if (event.action === 'explore') {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
-  } else if (event.action === 'close') {
-    // Just close the notification
-    return;
-  } else {
-    // Default action - open app
-    event.waitUntil(
-      clients.matchAll().then((clientList) => {
-        if (clientList.length > 0) {
-          return clientList[0].focus();
-        }
-        return clients.openWindow('/');
-      })
-    );
-  }
-});
-
-// Message handling for cache updates
-self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  } else if (event.data && event.data.type === 'CACHE_UPDATE') {
-    event.waitUntil(updateCaches());
-  } else if (event.data && event.data.type === 'CLEAR_CACHE') {
-    event.waitUntil(clearAllCaches());
-  }
-});
-
-// Caching strategies
-async function cacheFirstStrategy(request, cacheName) {
+async function handleRequest(request, url) {
   try {
-    const cache = await caches.open(cacheName);
-    const cachedResponse = await cache.match(request);
+    // Strategy 1: Cache First for static assets
+    if (isStaticAsset(url)) {
+      return await cacheFirst(request);
+    }
     
-    if (cachedResponse && !isExpired(cachedResponse)) {
-      // Update in background
-      fetch(request).then(response => {
-        if (response.ok) {
-          cache.put(request, response.clone());
-        }
-      }).catch(() => {}); // Silent fail for background update
-      
-      return cachedResponse;
+    // Strategy 2: Network First for API calls
+    if (isApiCall(url)) {
+      return await networkFirst(request);
     }
-
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
+    
+    // Strategy 3: Network First for HTML pages
+    if (request.destination === 'document') {
+      return await networkFirst(request);
     }
-    return networkResponse;
+    
+    // Strategy 4: Cache First for everything else
+    return await cacheFirst(request);
+    
   } catch (error) {
-    console.error('[SW] Cache first strategy failed:', error);
-    return new Response('Offline - Resource not available', { 
-      status: 503,
-      statusText: 'Service Unavailable'
-    });
+    console.error('[SW] Request failed:', error);
+    
+    // Return offline fallback for HTML requests
+    if (request.destination === 'document') {
+      return await getOfflineFallback();
+    }
+    
+    throw error;
   }
 }
 
-async function networkFirstWithTimeout(request, cacheName, timeout = 3000) {
-  try {
-    const cache = await caches.open(cacheName);
-    
-    // Race between network and timeout
-    const networkPromise = fetch(request);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Network timeout')), timeout)
-    );
-    
-    try {
-      const response = await Promise.race([networkPromise, timeoutPromise]);
+// Cache First Strategy
+async function cacheFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  
+  if (cached) {
+    // Update cache in background
+    fetch(request).then(response => {
       if (response.ok) {
         cache.put(request, response.clone());
       }
-      return response;
-    } catch (networkError) {
-      console.log('[SW] Network failed, trying cache:', networkError.message);
-      const cachedResponse = await cache.match(request);
-      
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-
-      throw new Error('No cache available');
-    }
-  } catch (error) {
-    console.error('[SW] Network first strategy failed:', error);
-      return new Response(
-        JSON.stringify({ 
-        error: 'Service temporarily unavailable',
-        message: 'سيتم تحديث البيانات عند عودة الاتصال',
-        offline: true 
-        }),
-        { 
-          status: 503,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+    }).catch(() => {}); // Ignore network errors
+    
+    return cached;
   }
+  
+  // Not in cache, fetch from network
+  const response = await fetch(request);
+  
+  if (response.ok) {
+    cache.put(request, response.clone());
+  }
+  
+  return response;
 }
 
-async function staleWhileRevalidate(request, cacheName) {
+// Network First Strategy
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  
   try {
-      const cache = await caches.open(cacheName);
-    const cachedResponse = await cache.match(request);
+    // Try network first with timeout
+    const response = await Promise.race([
+      fetch(request),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Network timeout')), 5000)
+      )
+    ]);
     
-    // Start fetch in background
-    const fetchPromise = fetch(request).then(response => {
-      if (response.ok) {
-        cache.put(request, response.clone());
-      }
-      return response;
-    });
-    
-    // Return cached version immediately if available
-    if (cachedResponse) {
-      return cachedResponse;
+    if (response.ok) {
+      cache.put(request, response.clone());
     }
     
-    // Otherwise wait for network
-    return await fetchPromise;
+    return response;
   } catch (error) {
-    console.error('[SW] Stale while revalidate failed:', error);
-    return new Response('Offline', { status: 503 });
+    console.log('[SW] Network failed, trying cache:', request.url);
+    
+    // Fall back to cache
+    const cached = await cache.match(request);
+    if (cached) {
+      return cached;
+    }
+    
+    throw error;
   }
 }
 
-// Utility functions
+// Helper functions
 function isStaticAsset(url) {
-  return url.pathname.includes('/assets/') ||
-         url.pathname.includes('/icons/') ||
-         url.pathname.endsWith('.js') ||
-         url.pathname.endsWith('.css') ||
-         url.pathname.endsWith('.woff2') ||
-         url.pathname.endsWith('.ttf');
+  return url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|ico)$/);
 }
 
-function isAPIRequest(url) {
-  return API_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname));
+function isApiCall(url) {
+  return API_CACHE_ROUTES.some(route => url.pathname.startsWith(route)) ||
+         url.hostname !== self.location.hostname;
 }
 
-function isImageRequest(url) {
-  return url.pathname.match(/\.(jpg|jpeg|png|gif|webp|svg)$/);
-}
-
-function isExpired(response) {
-  const cachedTime = response.headers.get('sw-cache-time');
-  if (!cachedTime) return false;
+async function getOfflineFallback() {
+  const cache = await caches.open(CACHE_NAME);
+  const fallback = await cache.match('/');
   
-  const age = Date.now() - parseInt(cachedTime);
-  return age > CACHE_DURATION.STATIC;
-}
-
-async function handleOfflineRequest(request) {
-  // Add to offline queue
-  const requestData = {
-    url: request.url,
-    method: request.method,
-    headers: [...request.headers.entries()],
-    body: request.method !== 'GET' ? await request.text() : null,
-    timestamp: Date.now()
-  };
-  
-  offlineQueue.push(requestData);
-  localStorage.setItem('offline-queue', JSON.stringify(offlineQueue));
-  
-  // Schedule background sync
-  if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-    const registration = await navigator.serviceWorker.ready;
-    await registration.sync.register('offline-sync');
+  if (fallback) {
+    return fallback;
   }
   
-  return new Response(
-    JSON.stringify({ 
-      success: true, 
-      message: 'تم حفظ العملية وسيتم تنفيذها عند عودة الاتصال',
-      queued: true 
-    }),
-    { 
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    }
-  );
+  // Create minimal offline page
+  return new Response(`
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>غير متصل - العراف للتأجير</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            direction: rtl;
+          }
+          .offline-container {
+            max-width: 400px;
+            margin: 0 auto;
+          }
+          .offline-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="offline-container">
+          <div class="offline-icon">📱</div>
+          <h1>غير متصل بالإنترنت</h1>
+          <p>يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.</p>
+          <button onclick="window.location.reload()">إعادة المحاولة</button>
+        </div>
+      </body>
+    </html>
+  `, {
+    headers: { 'Content-Type': 'text/html' }
+  });
 }
 
-// Background sync functions
-async function syncPayments() {
-  console.log('[SW] Syncing payments...');
-  const queue = getOfflineQueue().filter(item => item.url.includes('/payments'));
-  await processQueue(queue, SYNC_TAGS.PAYMENT);
-}
+// Handle background sync
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Background sync:', event.tag);
+  
+  if (event.tag === 'background-sync') {
+    event.waitUntil(handleBackgroundSync());
+  }
+});
 
-async function syncAgreements() {
-  console.log('[SW] Syncing agreements...');
-  const queue = getOfflineQueue().filter(item => item.url.includes('/agreements') || item.url.includes('/leases'));
-  await processQueue(queue, SYNC_TAGS.AGREEMENT);
-}
-
-async function syncMaintenance() {
-  console.log('[SW] Syncing maintenance...');
-  const queue = getOfflineQueue().filter(item => item.url.includes('/maintenance'));
-  await processQueue(queue, SYNC_TAGS.MAINTENANCE);
-}
-
-async function syncCustomers() {
-  console.log('[SW] Syncing customers...');
-  const queue = getOfflineQueue().filter(item => item.url.includes('/customers'));
-  await processQueue(queue, SYNC_TAGS.CUSTOMER);
-}
-
-async function syncVehicles() {
-  console.log('[SW] Syncing vehicles...');
-  const queue = getOfflineQueue().filter(item => item.url.includes('/vehicles'));
-  await processQueue(queue, SYNC_TAGS.VEHICLE);
-}
-
-async function syncDocuments() {
-  console.log('[SW] Syncing documents...');
-  const queue = getOfflineQueue().filter(item => item.url.includes('/documents'));
-  await processQueue(queue, SYNC_TAGS.DOCUMENT);
-}
-
-function getOfflineQueue() {
+async function handleBackgroundSync() {
   try {
-    return JSON.parse(localStorage.getItem('offline-queue') || '[]');
-  } catch {
-    return [];
-  }
-}
-
-async function processQueue(queue, syncTag) {
-  const successes = [];
-  const failures = [];
-  
-  for (const item of queue) {
-    try {
-      const response = await fetch(item.url, {
-        method: item.method,
-        headers: new Headers(item.headers),
-        body: item.body
-        });
-        
-        if (response.ok) {
-        successes.push(item);
-      } else {
-        failures.push(item);
-    }
-  } catch (error) {
-      console.error('[SW] Sync failed for item:', item, error);
-      failures.push(item);
-    }
-  }
-  
-  // Update queue by removing successful items
-  if (successes.length > 0) {
-    offlineQueue = offlineQueue.filter(item => !successes.includes(item));
-    localStorage.setItem('offline-queue', JSON.stringify(offlineQueue));
+    // Sync any pending offline data
+    console.log('[SW] Performing background sync');
     
-    // Notify clients about successful sync
+    // This would typically sync with your backend
+    // For now, just log that sync is happening
     const clients = await self.clients.matchAll();
     clients.forEach(client => {
       client.postMessage({
-        type: 'SYNC_SUCCESS',
-        tag: syncTag,
-        count: successes.length
+        type: 'BACKGROUND_SYNC_SUCCESS'
       });
     });
-  }
-  
-  console.log(`[SW] Sync completed - Success: ${successes.length}, Failed: ${failures.length}`);
-}
-
-async function cleanExpiredCaches() {
-  const cacheNames = [API_CACHE, DYNAMIC_CACHE, IMAGE_CACHE];
-  
-  for (const cacheName of cacheNames) {
-    try {
-      const cache = await caches.open(cacheName);
-      const requests = await cache.keys();
-      
-      for (const request of requests) {
-        const response = await cache.match(request);
-        if (response && isExpired(response)) {
-              await cache.delete(request);
-        }
-      }
-    } catch (error) {
-      console.error('[SW] Error cleaning cache:', cacheName, error);
-    }
+    
+  } catch (error) {
+    console.error('[SW] Background sync failed:', error);
   }
 }
 
-async function updateCaches() {
-  console.log('[SW] Updating caches...');
+// Handle messages from the app
+self.addEventListener('message', (event) => {
+  console.log('[SW] Received message:', event.data);
   
-  // Clear old caches
-  await clearAllCaches();
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
   
-  // Re-cache static assets
-  const cache = await caches.open(CACHE_NAME);
-  await cache.addAll(STATIC_ASSETS);
-  
-  console.log('[SW] Caches updated successfully');
-}
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: CACHE_VERSION });
+  }
+});
 
-async function clearAllCaches() {
-  const cacheNames = await caches.keys();
-  await Promise.all(cacheNames.map(name => caches.delete(name)));
-}
+// Notify clients about updates
+self.addEventListener('install', (event) => {
+  // Send update notification to all clients
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'UPDATE_AVAILABLE',
+        version: CACHE_VERSION
+      });
+    });
+  });
+});
 
-// Performance monitoring
-console.log('[SW] Service Worker v3.0.0 loaded successfully');
-console.log('[SW] Cache strategy: Static (cache-first), API (network-first), Images (cache-first), Dynamic (stale-while-revalidate)');
-console.log('[SW] Background sync enabled for: payments, agreements, maintenance, customers, vehicles, documents');
-console.log('[SW] Push notifications enabled');
-console.log('[SW] Offline queue enabled');
+console.log('[SW] Service worker loaded, version:', CACHE_VERSION);
