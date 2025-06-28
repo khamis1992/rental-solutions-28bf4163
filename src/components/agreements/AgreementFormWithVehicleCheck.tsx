@@ -1,258 +1,206 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle, Save, Eye } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import VehicleSelector from '@/components/vehicles/VehicleSelector';
-import CustomerSelector from '@/components/customers/CustomerSelector';
-import { Database } from '@/integrations/supabase/types';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { Loader2, Plus, Car, User, FileText, DollarSign } from 'lucide-react';
+import { VehicleSelector } from '@/components/vehicles/VehicleSelector';
+import { CustomerSelector } from '@/components/customers/CustomerSelector';
+import type { Customer, Vehicle, PaymentRecord } from '@/types/database';
 
-type Customer = Database['public']['Tables']['profiles']['Row'];
-type Vehicle = Database['public']['Tables']['vehicles']['Row'];
-type Lease = Database['public']['Tables']['leases']['Insert'];
-
-interface AgreementFormWithVehicleCheckProps {
-  onSubmit?: (agreement: Lease) => void;
-  initialData?: Partial<Lease>;
-  isEdit?: boolean;
+interface AgreementFormData {
+  customer_id: string;
+  vehicle_id: string;
+  lease_start: string;
+  lease_end: string;
+  monthly_rent: number;
+  deposit: number;
+  status: 'draft' | 'active' | 'expired' | 'terminated';
+  terms: string;
+  payment_day_of_month: number;
 }
 
-const AgreementFormWithVehicleCheck: React.FC<AgreementFormWithVehicleCheckProps> = ({
-  onSubmit,
-  initialData,
-  isEdit = false
-}) => {
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [vehicleStatus, setVehicleStatus] = useState<string>('');
-  const [isCheckingVehicle, setIsCheckingVehicle] = useState(false);
-  const [canProceed, setCanProceed] = useState(false);
-  const [formData, setFormData] = useState<Lease>({
+const AgreementFormWithVehicleCheck: React.FC = () => {
+  const [formData, setFormData] = useState<AgreementFormData>({
     customer_id: '',
     vehicle_id: '',
-    agreement_number: '',
-    start_date: '',
-    end_date: '',
-    rent_amount: 0,
-    deposit_amount: 0,
+    lease_start: new Date().toISOString().split('T')[0],
+    lease_end: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+    monthly_rent: 0,
+    deposit: 0,
     status: 'draft',
     terms: '',
+    payment_day_of_month: new Date().getDate(),
   });
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        customer_id: initialData.customer_id || '',
-        vehicle_id: initialData.vehicle_id || '',
-        agreement_number: initialData.agreement_number || '',
-        start_date: initialData.start_date || '',
-        end_date: initialData.end_date || '',
-        rent_amount: initialData.rent_amount || 0,
-        deposit_amount: initialData.deposit_amount || 0,
-        status: initialData.status || 'draft',
-        terms: initialData.terms || '',
-      });
-    }
-  }, [initialData]);
-
-  useEffect(() => {
-    setCanProceed(!!selectedCustomer && !!selectedVehicle && vehicleStatus === 'available');
-  }, [selectedCustomer, selectedVehicle, vehicleStatus]);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData({ ...formData, [name]: value });
   };
 
-  const handleNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: Number(value) }));
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({ ...formData, [name]: value });
   };
 
-  const handleCheckVehicle = async () => {
-    if (!selectedVehicle) {
-      toast.error('الرجاء اختيار مركبة');
-      return;
-    }
+  const generatePaymentSchedule = (startDate: Date, endDate: Date, monthlyRent: number, paymentDay: number): PaymentRecord[] => {
+    const payments: PaymentRecord[] = [];
+    const current = new Date(startDate);
+    let paymentId = 1;
 
-    setIsCheckingVehicle(true);
-    try {
-      const { data, error } = await supabase
-        .from('leases')
-        .select('id')
-        .eq('vehicle_id', selectedVehicle.id)
-        .eq('status', 'active')
-        .single();
-
-      if (error) {
-        console.error('Error checking vehicle availability:', error);
-        toast.error('فشل في التحقق من حالة المركبة');
-        setVehicleStatus('unknown');
-        return;
+    while (current <= endDate) {
+      const paymentDate = new Date(current.getFullYear(), current.getMonth(), paymentDay);
+      
+      // If payment day is past current month's end, set to last day of month
+      if (paymentDate.getDate() !== paymentDay) {
+        paymentDate.setDate(0); // Last day of previous month
       }
 
-      if (data) {
-        setVehicleStatus('rented');
-        toast.error('المركبة مؤجرة حالياً');
-        setCanProceed(false);
-      } else {
-        setVehicleStatus('available');
-        toast.success('المركبة متاحة');
-        setCanProceed(true);
-      }
-    } finally {
-      setIsCheckingVehicle(false);
+      payments.push({
+        id: `payment_${paymentId}`,
+        amount: monthlyRent,
+        status: 'pending' as const,
+        due_date: paymentDate.toISOString().split('T')[0]
+      });
+
+      current.setMonth(current.getMonth() + 1);
+      paymentId++;
     }
+
+    return payments;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canProceed || !selectedCustomer || !selectedVehicle) {
-      toast.error('يرجى التأكد من جميع البيانات المطلوبة');
+    if (!selectedCustomer || !selectedVehicle) {
+      toast.error('يرجى اختيار العميل والمركبة');
       return;
     }
 
-    const agreementData: Lease = {
-      ...formData,
-      customer_id: selectedCustomer.id,
-      vehicle_id: selectedVehicle.id,
-    };
+    try {
+      setIsSubmitting(true);
 
-    if (onSubmit) {
-      onSubmit(agreementData);
+      // Generate payment schedule
+      const startDate = new Date(formData.lease_start);
+      const endDate = new Date(formData.lease_end);
+      const paymentSchedule = generatePaymentSchedule(
+        startDate,
+        endDate,
+        formData.monthly_rent,
+        formData.payment_day_of_month
+      );
+
+      // Create agreement
+      const { data: agreement, error: agreementError } = await supabase
+        .from('leases')
+        .insert([{
+          ...formData,
+          customer_id: selectedCustomer.id,
+          vehicle_id: selectedVehicle.id,
+          payment_schedule: paymentSchedule
+        }])
+        .select()
+        .single();
+
+      if (agreementError) throw agreementError;
+
+      toast.success('تم إنشاء الاتفاقية بنجاح');
+      navigate(`/agreements/${agreement.id}`);
+    } catch (error) {
+      console.error('Error creating agreement:', error);
+      toast.error('حدث خطأ أثناء إنشاء الاتفاقية');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5" />
-            معلومات العميل والمركبة
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="customer">العميل</Label>
-              <CustomerSelector
-                onSelect={setSelectedCustomer}
-                value={selectedCustomer}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="vehicle">المركبة</Label>
-              <VehicleSelector
-                onSelect={setSelectedVehicle}
-                value={selectedVehicle}
-                onStatusChange={setVehicleStatus}
-              />
-            </div>
+    <Card dir="rtl">
+      <CardHeader>
+        <CardTitle>إنشاء اتفاقية جديدة</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="customer_id">العميل</Label>
+            <CustomerSelector onCustomerSelect={setSelectedCustomer} />
           </div>
-
-          {vehicleStatus && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                حالة المركبة: {vehicleStatus}
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            بيانات الاتفاقية
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="agreement_number">رقم الاتفاقية</Label>
-              <Input
-                type="text"
-                id="agreement_number"
-                name="agreement_number"
-                value={formData.agreement_number}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="start_date">تاريخ البداية</Label>
-              <Input
-                type="date"
-                id="start_date"
-                name="start_date"
-                value={formData.start_date}
-                onChange={handleInputChange}
-              />
-            </div>
+          <div>
+            <Label htmlFor="vehicle_id">المركبة</Label>
+            <VehicleSelector onVehicleSelect={setSelectedVehicle} />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="end_date">تاريخ النهاية</Label>
-              <Input
-                type="date"
-                id="end_date"
-                name="end_date"
-                value={formData.end_date}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="rent_amount">مبلغ الإيجار</Label>
-              <Input
-                type="number"
-                id="rent_amount"
-                name="rent_amount"
-                value={formData.rent_amount}
-                onChange={handleNumberInputChange}
-              />
-            </div>
+          <div>
+            <Label htmlFor="lease_start">تاريخ البداية</Label>
+            <Input
+              type="date"
+              id="lease_start"
+              name="lease_start"
+              value={formData.lease_start}
+              onChange={handleInputChange}
+            />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="deposit_amount">مبلغ التأمين</Label>
-              <Input
-                type="number"
-                id="deposit_amount"
-                name="deposit_amount"
-                value={formData.deposit_amount}
-                onChange={handleNumberInputChange}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="status">الحالة</Label>
-              <Select onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="اختر الحالة" defaultValue={formData.status} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">مسودة</SelectItem>
-                  <SelectItem value="active">نشط</SelectItem>
-                  <SelectItem value="completed">مكتمل</SelectItem>
-                  <SelectItem value="cancelled">ملغي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="lease_end">تاريخ النهاية</Label>
+            <Input
+              type="date"
+              id="lease_end"
+              name="lease_end"
+              value={formData.lease_end}
+              onChange={handleInputChange}
+            />
           </div>
-
+          <div>
+            <Label htmlFor="monthly_rent">الإيجار الشهري</Label>
+            <Input
+              type="number"
+              id="monthly_rent"
+              name="monthly_rent"
+              value={formData.monthly_rent}
+              onChange={handleInputChange}
+            />
+          </div>
+          <div>
+            <Label htmlFor="deposit">التأمين</Label>
+            <Input
+              type="number"
+              id="deposit"
+              name="deposit"
+              value={formData.deposit}
+              onChange={handleInputChange}
+            />
+          </div>
+          <div>
+            <Label htmlFor="payment_day_of_month">يوم الدفع من الشهر</Label>
+            <Input
+              type="number"
+              id="payment_day_of_month"
+              name="payment_day_of_month"
+              value={formData.payment_day_of_month}
+              onChange={handleInputChange}
+            />
+          </div>
+          <div>
+            <Label htmlFor="status">الحالة</Label>
+            <Select onValueChange={(value) => handleSelectChange('status', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="اختر الحالة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">مسودة</SelectItem>
+                <SelectItem value="active">نشطة</SelectItem>
+                <SelectItem value="expired">منتهية</SelectItem>
+                <SelectItem value="terminated">تم إنهاؤها</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label htmlFor="terms">الشروط</Label>
             <Textarea
@@ -263,20 +211,22 @@ const AgreementFormWithVehicleCheck: React.FC<AgreementFormWithVehicleCheckProps
               className="resize-none"
             />
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end gap-4">
-        <Button type="button" variant="outline">
-          <Eye className="h-4 w-4 mr-2" />
-          معاينة
-        </Button>
-        <Button type="submit" disabled={!canProceed}>
-          <Save className="h-4 w-4 mr-2" />
-          حفظ الاتفاقية
-        </Button>
-      </div>
-    </form>
+          <Button disabled={isSubmitting}>
+            {isSubmitting ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>جاري الإنشاء...</span>
+              </div>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 ml-2" />
+                إنشاء اتفاقية
+              </>
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

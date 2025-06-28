@@ -1,7 +1,6 @@
-
 class WhatsAppReportsService {
   private targetNumbers = ['+97466707063', '+97470598989'];
-  private supabaseUrl = 'https://vqdlsidkucrownbfuouq.supabase.co';
+  private supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   
   async sendScheduledReport(reportData: {
     reportName: string;
@@ -12,22 +11,11 @@ class WhatsAppReportsService {
   }) {
     const results = [];
     
-    // First check if service is configured
-    const serviceReady = await this.testConnection();
-    if (!serviceReady) {
-      console.error('WhatsApp service is not configured properly');
-      return [{
-        phone: 'service_error',
-        success: false,
-        message: 'WhatsApp service is not configured. Please check the setup.'
-      }];
-    }
-    
     for (const phoneNumber of this.targetNumbers) {
       try {
         console.log(`إرسال تقرير إلى: ${phoneNumber}`);
         
-        const result = await this.sendReportAsText(phoneNumber, reportData);
+        const result = await this.sendReportWithPDF(phoneNumber, reportData);
         
         results.push({
           phone: phoneNumber,
@@ -48,6 +36,53 @@ class WhatsAppReportsService {
     return results;
   }
 
+  private async sendReportWithPDF(phoneNumber: string, reportData: {
+    reportName: string;
+    reportType: string;
+    generatedAt: string;
+    pdfUrl?: string;
+    reportSize?: string;
+  }) {
+    try {
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/send-whatsapp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          to: phoneNumber,
+          messageType: 'report_with_pdf',
+          variables: {
+            '1': reportData.reportName,
+            '2': this.getReportTypeArabic(reportData.reportType),
+            '3': this.formatDate(reportData.generatedAt),
+            '4': this.formatTime(reportData.generatedAt),
+            '5': reportData.reportSize || 'غير محدد'
+          },
+          mediaUrl: reportData.pdfUrl
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.log('فشل إرسال القالب، محاولة إرسال رسالة نصية...');
+        return await this.sendReportAsText(phoneNumber, reportData);
+      }
+
+      return {
+        success: true,
+        message: 'تم إرسال التقرير مع ملف PDF بنجاح',
+        messageId: result.messageId
+      };
+
+    } catch (error) {
+      console.error('خطأ في إرسال التقرير مع PDF:', error);
+      return await this.sendReportAsText(phoneNumber, reportData);
+    }
+  }
+
   private async sendReportAsText(phoneNumber: string, reportData: {
     reportName: string;
     reportType: string;
@@ -62,35 +97,29 @@ class WhatsAppReportsService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y`
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
           to: phoneNumber,
-          messageType: 'scheduled_report',
+          messageType: 'general',
           body: arabicMessage
         })
       });
 
       const result = await response.json();
-      console.log('WhatsApp service response:', result);
       
-      if (!response.ok || !result.success) {
-        // Handle specific setup errors
-        if (result.setup_required) {
-          throw new Error('خدمة الواتساب تحتاج إعداد. يرجى مراجعة إعدادات Twilio في Supabase');
-        }
+      if (!response.ok) {
         throw new Error(result.error || 'فشل في إرسال الرسالة');
       }
 
       return {
         success: true,
-        message: 'تم إرسال التقرير بنجاح',
+        message: 'تم إرسال التقرير كرسالة نصية',
         messageId: result.messageId
       };
 
     } catch (error) {
-      console.error('خطأ في إرسال التقرير:', error);
-      throw new Error(`فشل إرسال التقرير: ${error.message}`);
+      throw new Error(`فشل إرسال الرسالة النصية: ${error.message}`);
     }
   }
 
@@ -115,14 +144,14 @@ class WhatsAppReportsService {
       message += `📁 *حجم الملف:* ${reportData.reportSize}\n`;
     }
     
-    message += `\n🔍 *حالة التقرير:* جاهز للمراجعة\n`;
+    message += `\n🔍 *حالة التقرير:* جاهز للتحميل\n`;
     
     if (reportData.pdfUrl) {
       message += `\n📥 *رابط التحميل:*\n${reportData.pdfUrl}\n`;
     }
     
     message += `\n---\n`;
-    message += `🏢 شركة العراف لتأجير السيارات\n`;
+    message += `🏢 شركة الأرف لتأجير السيارات\n`;
     message += `📱 نظام التقارير الآلي`;
 
     return message;
@@ -173,13 +202,13 @@ class WhatsAppReportsService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y`
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({ test: true })
       });
 
       const result = await response.json();
-      return result.success === true;
+      return result.success;
     } catch (error) {
       console.error('فشل اختبار الاتصال:', error);
       return false;
@@ -195,4 +224,4 @@ class WhatsAppReportsService {
 export const whatsAppReportsService = new WhatsAppReportsService();
 
 // Default export for compatibility
-export default WhatsAppReportsService;
+export default WhatsAppReportsService; 
