@@ -27,6 +27,8 @@ export interface AgreementFilters {
   start_date_before?: string;
   end_date_after?: string;
   end_date_before?: string;
+  created_date_after?: string;  // تاريخ الإنشاء من
+  created_date_before?: string; // تاريخ الإنشاء إلى
   rent_min?: number;
   rent_max?: number;
   license_plate?: string;
@@ -82,6 +84,23 @@ export class AgreementService extends BaseService {
 
       if (filters?.start_date_before) {
         query = query.lte('start_date', filters.start_date_before);
+      }
+
+      if (filters?.end_date_after) {
+        query = query.gte('end_date', filters.end_date_after);
+      }
+
+      if (filters?.end_date_before) {
+        query = query.lte('end_date', filters.end_date_before);
+      }
+
+      // مرشحات تاريخ الإنشاء الجديدة
+      if (filters?.created_date_after) {
+        query = query.gte('created_at', filters.created_date_after);
+      }
+
+      if (filters?.created_date_before) {
+        query = query.lte('created_at', filters.created_date_before);
       }
 
       if (filters?.rent_min !== undefined) {
