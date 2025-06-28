@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Plus, RefreshCw } from 'lucide-react';
+import { Calendar, Plus, RefreshCw, Trash2, Edit } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { Payment } from '@/types/payment.types';
 import { Agreement } from '@/types/agreement';
@@ -11,6 +11,7 @@ import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 interface PaymentHistorySectionProps {
   payments: Payment[];
@@ -43,6 +44,8 @@ export function PaymentHistorySection({
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isEditLateFeeDialogOpen, setIsEditLateFeeDialogOpen] = useState(false);
   const [newLateFee, setNewLateFee] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
 
   const {
     syncAll,
@@ -66,7 +69,7 @@ export function PaymentHistorySection({
     return result.payment;
   }
 
-  // Updated handleRecordPayment to use the edge function
+  // Updated handleRecordPayment to handle payment settlement
   const handleRecordPayment = async (
     amount: number,
     date: Date,
@@ -78,33 +81,51 @@ export function PaymentHistorySection({
     paymentType?: string,
     paymentId?: string
   ) => {
-    if (paymentId) {
+    if (paymentId && selectedPayment) {
+      // Settlement: Update existing payment to mark as paid
       try {
-        await processPartialPayment(paymentId, amount);
-        // Optionally, show a success message
-        if (typeof fetchPayments === 'function') {
+        const updatedPayment: Partial<Payment> = {
+          id: paymentId,
+          status: 'paid',
+          payment_date: date.toISOString(),
+          payment_method: method || 'cash',
+          reference_number: reference || '',
+          description: notes || selectedPayment.description || '',
+          amount_paid: amount,
+          balance: Math.max(0, selectedPayment.amount - amount)
+        };
+        
+        const success = await onPaymentUpdated(updatedPayment);
+        if (success && typeof fetchPayments === 'function') {
           fetchPayments();
-        } else if (typeof window !== 'undefined') {
-          window.location.reload(); // fallback: reload page
         }
+        return success;
       } catch (err) {
-        alert('Payment failed: ' + (err instanceof Error ? err.message : err));
+        console.error('Settlement failed:', err);
         return false;
       }
     } else {
-      // Fallback: create a new payment (if needed)
-      const newPayment: Partial<Payment> = {
-        amount,
-        payment_date: date.toISOString(),
-        description: notes || '',
-        payment_method: method || 'cash',
-        reference_number: reference || '',
-        lease_id: leaseId,
-        status: 'paid' // Fix: use valid status
-      };
-      await onRecordPayment(newPayment);
+      // Create new payment
+      try {
+        const newPayment: Partial<Payment> = {
+          amount,
+          payment_date: date.toISOString(),
+          description: notes || '',
+          payment_method: method || 'cash',
+          reference_number: reference || '',
+          lease_id: leaseId,
+          status: 'paid'
+        };
+        await onRecordPayment(newPayment);
+        if (typeof fetchPayments === 'function') {
+          fetchPayments();
+        }
+        return true;
+      } catch (err) {
+        console.error('Payment creation failed:', err);
+        return false;
+      }
     }
-    return true;
   };
 
   const getStatusColor = (status: string) => {
@@ -127,6 +148,38 @@ export function PaymentHistorySection({
       maximumFractionDigits: 2,
       minimumFractionDigits: 0
     }).format(amount);
+  };
+
+  // Handle payment deletion
+  const handleDeletePayment = async () => {
+    if (!paymentToDelete?.id) return;
+    
+    try {
+      await onPaymentDeleted(paymentToDelete.id);
+      toast.success('تم حذف الدفعة بنجاح');
+      setIsDeleteDialogOpen(false);
+      setPaymentToDelete(null);
+      if (typeof fetchPayments === 'function') {
+        fetchPayments();
+      }
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      toast.error('فشل في حذف الدفعة');
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'paid':
+        return 'مدفوعة';
+      case 'pending':
+        return 'معلقة';
+      case 'overdue':
+        return 'متأخرة';
+      default:
+        return status;
+    }
   };
 
   if (isLoading) {
@@ -266,11 +319,11 @@ export function PaymentHistorySection({
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-4 space-x-reverse ml-6">
+                <div className="flex flex-col gap-3 min-w-[140px]">
                   {payment.status !== 'paid' && (
                     <Button
                       size="default"
-                      className="bg-green-600 hover:bg-green-700 text-white shadow-md transition-all duration-200 hover:scale-105 font-semibold min-w-[120px]"
+                      className="bg-green-600 hover:bg-green-700 text-white shadow-md transition-all duration-200 hover:scale-105 font-semibold"
                       onClick={() => {
                         setSelectedPayment(payment);
                         setIsPaymentDialogOpen(true);
@@ -280,10 +333,38 @@ export function PaymentHistorySection({
                     </Button>
                   )}
                   {payment.status === 'paid' && (
-                    <div className="text-green-600 font-medium bg-green-50 px-4 py-2 rounded-md border border-green-200">
+                    <Badge variant="outline" className="text-green-600 border-green-300 px-4 py-2 text-sm font-medium bg-green-50">
                       ✓ مُسوّاة
-                    </div>
+                    </Badge>
                   )}
+                  
+                  {/* Edit and Delete buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50"
+                      onClick={() => {
+                        setSelectedPayment(payment);
+                        setIsPaymentDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4 ml-1" />
+                      تعديل
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+                      onClick={() => {
+                        setPaymentToDelete(payment);
+                        setIsDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 ml-1" />
+                      حذف
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -319,28 +400,119 @@ export function PaymentHistorySection({
             onSubmit={async (e) => {
               e.preventDefault();
               if (selectedPayment && newLateFee !== '') {
-                await onPaymentUpdated({
-                  id: selectedPayment.id,
-                  late_fine_amount: Number(newLateFee),
-                });
-                setIsEditLateFeeDialogOpen(false);
-                setSelectedPayment(null);
+                try {
+                  const success = await onPaymentUpdated({
+                    id: selectedPayment.id,
+                    late_fine_amount: Number(newLateFee),
+                  });
+                  
+                  if (success) {
+                    toast.success('تم تحديث رسوم التأخير بنجاح');
+                    setIsEditLateFeeDialogOpen(false);
+                    setSelectedPayment(null);
+                    if (typeof fetchPayments === 'function') {
+                      fetchPayments();
+                    }
+                  } else {
+                    toast.error('فشل في تحديث رسوم التأخير');
+                  }
+                } catch (error) {
+                  console.error('Error updating late fee:', error);
+                  toast.error('حدث خطأ أثناء تحديث رسوم التأخير');
+                }
               }
             }}
           >
-            <Label className="text-right block">رسوم التأخير (ر.ق)</Label>
-            <Input
-              type="number"
-              value={newLateFee}
-              onChange={(e) => setNewLateFee(e.target.value)}
-              min={0}
-              step={1}
-              required
-              className="text-right"
-              dir="rtl"
-            />
-            <Button type="submit" className="mt-2">حفظ</Button>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-right block">رسوم التأخير (ر.ق)</Label>
+                <Input
+                  type="number"
+                  value={newLateFee}
+                  onChange={(e) => setNewLateFee(e.target.value)}
+                  min={0}
+                  step={1}
+                  required
+                  className="text-right"
+                  dir="rtl"
+                  placeholder="أدخل مبلغ رسوم التأخير"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditLateFeeDialogOpen(false);
+                    setSelectedPayment(null);
+                  }}
+                >
+                  إلغاء
+                </Button>
+                <Button type="submit">حفظ التعديل</Button>
+              </div>
+            </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Payment Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader className="text-right">
+            <DialogTitle className="text-red-700 flex items-center gap-2 flex-row-reverse">
+              <Trash2 className="h-5 w-5" />
+              تأكيد حذف الدفعة
+            </DialogTitle>
+            <DialogDescription className="text-right">
+              هل أنت متأكد من حذف هذه الدفعة؟ لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {paymentToDelete && (
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <div className="text-right space-y-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold">المبلغ:</span>
+                  <span>{formatCurrency(paymentToDelete.amount)} ر.ق</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">الحالة:</span>
+                                     <Badge className={getStatusColor(paymentToDelete.status || 'pending')}>
+                     {getStatusText(paymentToDelete.status || 'pending')}
+                   </Badge>
+                </div>
+                {paymentToDelete.description && (
+                  <div className="flex justify-between">
+                    <span className="font-semibold">الوصف:</span>
+                    <span className="text-sm">{paymentToDelete.description}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setPaymentToDelete(null);
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button 
+              type="button"
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700"
+              onClick={handleDeletePayment}
+            >
+              <Trash2 className="h-4 w-4 ml-2" />
+              تأكيد الحذف
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </Card>

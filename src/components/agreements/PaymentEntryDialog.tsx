@@ -20,7 +20,11 @@ interface PaymentEntryDialogProps {
     date: Date,
     notes: string | undefined,
     method: string | undefined,
-    reference: string | undefined
+    reference: string | undefined,
+    includeLateFee?: boolean,
+    isPartialPayment?: boolean,
+    paymentType?: string,
+    paymentId?: string
   ) => Promise<boolean>;
   defaultAmount?: number;
   title?: string;
@@ -37,6 +41,7 @@ export function PaymentEntryDialog({
   defaultAmount = 0,
   title = 'تسجيل دفعة',
   description = 'أدخل تفاصيل الدفعة',
+  selectedPayment,
 }: PaymentEntryDialogProps) {
   const [amount, setAmount] = useState(defaultAmount.toString());
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
@@ -47,13 +52,23 @@ export function PaymentEntryDialog({
 
   useEffect(() => {
     if (open) {
-      setAmount(defaultAmount.toString());
-      setPaymentDate(new Date());
-      setNotes('');
-      setMethod('');
-      setReference('');
+      if (selectedPayment) {
+        // Settlement mode: pre-fill with existing payment data
+        setAmount(selectedPayment.amount.toString());
+        setPaymentDate(selectedPayment.payment_date ? new Date(selectedPayment.payment_date) : new Date());
+        setNotes(selectedPayment.description || '');
+        setMethod(selectedPayment.payment_method || '');
+        setReference(selectedPayment.reference_number || '');
+      } else {
+        // New payment mode: use defaults
+        setAmount(defaultAmount.toString());
+        setPaymentDate(new Date());
+        setNotes('');
+        setMethod('');
+        setReference('');
+      }
     }
-  }, [open, defaultAmount]);
+  }, [open, defaultAmount, selectedPayment]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,16 +86,26 @@ export function PaymentEntryDialog({
         paymentDate,
         notes || undefined,
         method || undefined,
-        reference || undefined
+        reference || undefined,
+        false, // includeLateFee
+        false, // isPartialPayment
+        undefined, // paymentType
+        selectedPayment?.id // paymentId for settlement
       );
       
       if (success) {
-        toast.success('تم تسجيل الدفعة بنجاح');
+        const message = selectedPayment 
+          ? 'تم تسوية الدفعة بنجاح' 
+          : 'تم تسجيل الدفعة بنجاح';
+        toast.success(message);
         onOpenChange(false);
       }
     } catch (error) {
       console.error('Error submitting payment:', error);
-      toast.error('فشل في تسجيل الدفعة');
+      const errorMessage = selectedPayment 
+        ? 'فشل في تسوية الدفعة' 
+        : 'فشل في تسجيل الدفعة';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -188,7 +213,10 @@ export function PaymentEntryDialog({
               إلغاء
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'جاري التسجيل...' : 'تسجيل الدفعة'}
+              {isSubmitting 
+                ? (selectedPayment ? 'جاري التسوية...' : 'جاري التسجيل...') 
+                : (selectedPayment ? 'تسوية الدفعة' : 'تسجيل الدفعة')
+              }
             </Button>
           </div>
         </form>
