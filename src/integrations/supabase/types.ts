@@ -8590,6 +8590,7 @@ export type Database = {
           reconciliation_date: string | null
           reconciliation_status: string | null
           recurring_interval: unknown | null
+          reference_number: string | null
           security_deposit_id: string | null
           status: string | null
           transaction_id: string | null
@@ -8619,6 +8620,7 @@ export type Database = {
           reconciliation_date?: string | null
           reconciliation_status?: string | null
           recurring_interval?: unknown | null
+          reference_number?: string | null
           security_deposit_id?: string | null
           status?: string | null
           transaction_id?: string | null
@@ -8648,6 +8650,7 @@ export type Database = {
           reconciliation_date?: string | null
           reconciliation_status?: string | null
           recurring_interval?: unknown | null
+          reference_number?: string | null
           security_deposit_id?: string | null
           status?: string | null
           transaction_id?: string | null
@@ -9700,6 +9703,45 @@ export type Database = {
           email?: string
           id?: string
           sent_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_messages: {
+        Row: {
+          cost: number | null
+          created_at: string | null
+          error_message: string | null
+          id: number
+          message_content: string
+          message_type: string
+          phone_number: string
+          sent_at: string | null
+          status: string
+          twilio_message_id: string | null
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: number
+          message_content: string
+          message_type?: string
+          phone_number: string
+          sent_at?: string | null
+          status?: string
+          twilio_message_id?: string | null
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: number
+          message_content?: string
+          message_type?: string
+          phone_number?: string
+          sent_at?: string | null
+          status?: string
+          twilio_message_id?: string | null
         }
         Relationships: []
       }
