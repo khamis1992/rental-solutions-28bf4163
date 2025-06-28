@@ -1,137 +1,152 @@
 
-import React from 'react';
-import { useAgreementTable } from '@/hooks/use-agreement-table';
-import { AgreementCardView } from './AgreementCardView';
-import { Agreement } from '@/types/agreement';
-import { SimpleAgreement } from '@/hooks/use-agreements';
-import { SimplePagination } from '@/components/ui/simple-pagination';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Eye, Edit, Trash2, Car, User, Calendar, DollarSign } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatters';
+import { Agreement, SimpleAgreement } from '@/types/database';
+import { AgreementDeletionDialog } from '@/components/agreements/dialogs/AgreementDeletionDialog';
 
 interface AgreementListProps {
-  agreements?: SimpleAgreement[];
+  agreements: SimpleAgreement[];
   isLoading?: boolean;
   onDeleteAgreement?: (id: string) => void;
-  pagination?: {
-    page: number;
-    totalPages: number;
-    totalCount: number;
-    handlePageChange: (page: number) => void;
-  };
 }
 
-export function AgreementList({
-  agreements: externalAgreements,
-  isLoading: externalLoading,
-  onDeleteAgreement,
-  pagination: externalPagination,
-}: AgreementListProps) {
-  const {
-    agreements: internalAgreements,
-    isLoading: internalLoading,
-    error,
-    deleteAgreements,
-    pagination: internalPagination,
-  } = useAgreementTable();
+export const AgreementList: React.FC<AgreementListProps> = ({
+  agreements,
+  isLoading = false,
+  onDeleteAgreement
+}) => {
+  const [deletingAgreement, setDeletingAgreement] = useState<SimpleAgreement | null>(null);
 
-  const agreements = externalAgreements ?? internalAgreements;
-  const isLoading = externalLoading ?? internalLoading;
-  
-  // Handle delete function - either use provided function or delete single agreement
-  const handleDelete = onDeleteAgreement ?? (async (id: string) => {
-    await deleteAgreements([id]);
-  });
-  
-  const pagination = externalPagination ?? {
-    page: internalPagination.pageIndex + 1,
-    totalPages: Math.ceil(internalPagination.total / internalPagination.pageSize),
-    totalCount: internalPagination.total,
-    handlePageChange: () => {} // Simple implementation
+  const getStatusBadge = (status: string) => {
+    const statusMap = {
+      'active': { variant: 'default' as const, label: 'نشط' },
+      'completed': { variant: 'secondary' as const, label: 'مكتمل' },
+      'cancelled': { variant: 'destructive' as const, label: 'ملغي' },
+      'draft': { variant: 'outline' as const, label: 'مسودة' },
+    };
+    
+    const statusInfo = statusMap[status as keyof typeof statusMap] || { variant: 'outline' as const, label: status };
+    return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
+  };
+
+  const handleDeleteClick = (agreement: SimpleAgreement) => {
+    setDeletingAgreement(agreement);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deletingAgreement && onDeleteAgreement) {
+      onDeleteAgreement(deletingAgreement.id);
+      setDeletingAgreement(null);
+    }
   };
 
   if (isLoading) {
-    return <div>Loading agreements...</div>;
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[...Array(6)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="h-3 bg-gray-200 rounded"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  }
-
-  // Transform SimpleAgreement to Agreement with proper type safety
-  const typedAgreements = agreements?.map((agreement: SimpleAgreement): Agreement => ({
-    // Core database fields from SimpleAgreement
+  // Convert SimpleAgreement to Agreement format for consistency
+  const convertedAgreements = agreements.map((agreement: SimpleAgreement): Agreement => ({
     id: agreement.id,
     agreement_number: agreement.agreement_number,
-    status: agreement.status,
+    customer_id: agreement.customer_id,
+    vehicle_id: agreement.vehicle_id,
     start_date: agreement.start_date,
     end_date: agreement.end_date,
     rent_amount: agreement.rent_amount,
-    customer_id: agreement.customer_id,
-    vehicle_id: agreement.vehicle_id,
-    payment_frequency: agreement.payment_frequency,
-    payment_day: agreement.payment_day,
-    rent_due_day: agreement.rent_due_day,
-    confirmation_email_sent: agreement.confirmation_email_sent,
-    daily_late_fee: agreement.daily_late_fee,
     deposit_amount: agreement.deposit_amount,
-    down_payment: agreement.down_payment,
-    notes: agreement.notes,
+    status: agreement.status,
+    terms: agreement.terms,
     created_at: agreement.created_at,
     updated_at: agreement.updated_at,
-    
-    // Required database fields with defaults
-    agreement_type: 'short_term',
-    total_amount: agreement.rent_amount || 0,
-    
-    // Relationship data
-    customers: agreement.customers ? {
-      id: agreement.customers.id,
-      full_name: agreement.customers.full_name,
-      email: agreement.customers.email || '',
-      phone_number: agreement.customers.phone_number || '',
-      address: agreement.customers.address || '',
-      city: agreement.customers.city || '',
-      state: agreement.customers.state || '',
-      zip_code: agreement.customers.zip_code || '',
-      role: agreement.customers.role || 'customer',
-      created_at: agreement.customers.created_at || '',
-      updated_at: agreement.customers.updated_at || '',
-      driver_license: null
-    } : undefined,
-    vehicles: agreement.vehicles ? {
-      ...agreement.vehicles,
-      attention_needed_notes: '',
-      engine_number: '',
-      model_number: '',
-      notes: '',
-      created_at: '',
-      updated_at: '',
-      vin: agreement.vehicles.vin || ''
-    } : undefined,
-    
-    // Computed fields for backward compatibility
-    customer_name: agreement.customer_name,
-    vehicle_info: agreement.vehicle_info
-  })) || [];
+  }));
 
   return (
-    <div className="space-y-6">
-      <AgreementCardView
-        agreements={typedAgreements}
-        isLoading={isLoading}
-        onDeleteAgreement={handleDelete}
+    <>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {convertedAgreements.map((agreement) => (
+          <Card key={agreement.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold">
+                  {agreement.agreement_number}
+                </CardTitle>
+                {getStatusBadge(agreement.status)}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span>{(agreements.find(a => a.id === agreement.id) as SimpleAgreement)?.customer_name || 'غير محدد'}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Car className="h-4 w-4 text-muted-foreground" />
+                  <span>{(agreements.find(a => a.id === agreement.id) as SimpleAgreement)?.vehicle_license_plate || 'غير محدد'}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>{new Date(agreement.start_date).toLocaleDateString('ar-QA')}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{formatCurrency(agreement.rent_amount)}</span>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 pt-2">
+                <Button size="sm" variant="outline" className="flex-1">
+                  <Eye className="h-4 w-4 mr-1" />
+                  عرض
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1">
+                  <Edit className="h-4 w-4 mr-1" />
+                  تعديل
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => handleDeleteClick(agreements.find(a => a.id === agreement.id) as SimpleAgreement)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <AgreementDeletionDialog
+        agreement={deletingAgreement}
+        isOpen={!!deletingAgreement}
+        onClose={() => setDeletingAgreement(null)}
+        onConfirm={handleDeleteConfirm}
       />
-      
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex flex-col items-center justify-center mt-6">
-          <SimplePagination
-            currentPage={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={pagination.handlePageChange}
-          />
-          <div className="text-sm text-muted-foreground text-center mt-2">
-            Showing {agreements.length} of {pagination.totalCount}
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
-}
+};
+
+export default AgreementList;
