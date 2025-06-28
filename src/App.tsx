@@ -14,6 +14,9 @@ import { useIsMobile } from "./hooks/use-mobile";
 // PWA Components
 import { PWAController } from "./components/pwa/PWAController";
 
+// Mobile Performance Components
+import { MobilePerformanceMonitor, useMobilePerformanceOptimization } from "./components/ui/mobile-performance-monitor";
+
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
@@ -225,6 +228,9 @@ function App() {
     },
   }));
 
+  // تحسينات الأداء للجوال
+  const { optimizationsEnabled } = useMobilePerformanceOptimization();
+
   useEffect(() => {
     initializeApp();
   }, []);
@@ -249,6 +255,9 @@ function App() {
                         enableNotifications={true}
                         enableOfflineSync={true}
                       />
+                      
+                      {/* مراقب الأداء للجوال */}
+                      <MobilePerformanceMonitor />
                       
                       <Toaster />
                       <Sonner />

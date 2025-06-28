@@ -21,15 +21,17 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,ttf,woff2}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB limit
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-api',
+              networkTimeoutSeconds: 3,
               expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24, // 24 hours
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 12, // 12 hours
               },
             },
           },
@@ -39,16 +41,38 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: 'images',
               expiration: {
-                maxEntries: 200,
+                maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
               },
             },
           },
+          {
+            urlPattern: /\.(woff|woff2|ttf|otf)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'fonts',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+            },
+          },
+          {
+            urlPattern: /\.(js|css)$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'static-resources',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week
+              },
+            },
+          }
         ],
         skipWaiting: true,
         clientsClaim: true,
       },
-      includeAssets: ['favicon.ico', 'robots.txt', '*.png', '*.svg', '*.ttf'],
+      includeAssets: ['favicon.ico', 'robots.txt', '*.png', '*.svg'],
       manifest: {
         name: 'نظام إدارة تأجير السيارات - العراف',
         short_name: 'العراف للتأجير',
@@ -167,34 +191,123 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
+    // تحسين للجوال
+    target: ['es2015', 'safari11'],
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: mode === 'production',
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info'],
+      },
+      mangle: {
+        safari10: true,
+      },
+    },
+    // تقليل حد التحذير
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor chunks
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-select',
-            '@radix-ui/react-toast',
-            'lucide-react'
-          ],
-          'supabase-vendor': ['@supabase/supabase-js', '@supabase/ssr'],
-          'query-vendor': ['@tanstack/react-query'],
-          'chart-vendor': ['chart.js', 'recharts'],
-          'pdf-vendor': ['jspdf', 'jspdf-autotable', 'pdfmake'],
-          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          'date-vendor': ['date-fns'],
-          'utils-vendor': ['clsx', 'class-variance-authority', 'tailwind-merge']
+        // تحسين تقسيم الحزم للجوال
+        manualChunks: (id) => {
+          // مكتبات أساسية - تحميل فوري
+          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            return 'react-core';
+          }
+          
+          // مكتبات UI أساسية - تحميل فوري
+          if (id.includes('@radix-ui') || id.includes('lucide-react')) {
+            return 'ui-core';
+          }
+          
+          // مكتبات PDF - تحميل عند الحاجة
+          if (id.includes('jspdf') || id.includes('pdfmake') || id.includes('canvas')) {
+            return 'pdf-heavy';
+          }
+          
+          // مكتبات الرسوم البيانية - تحميل عند الحاجة
+          if (id.includes('chart.js') || id.includes('recharts') || id.includes('plotly')) {
+            return 'charts-heavy';
+          }
+          
+          // Supabase
+          if (id.includes('@supabase')) {
+            return 'supabase';
+          }
+          
+          // مكتبات التاريخ والنماذج
+          if (id.includes('date-fns') || id.includes('react-hook-form') || id.includes('zod')) {
+            return 'forms-dates';
+          }
+          
+          // مكتبات الاستعلام
+          if (id.includes('@tanstack/react-query')) {
+            return 'query';
+          }
+          
+          // مكتبات مساعدة
+          if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
+            return 'utils';
+          }
+          
+          // المكونات الثقيلة
+          if (id.includes('/reports/') || id.includes('/analytics/') || id.includes('/legal/')) {
+            return 'heavy-features';
+          }
+          
+          // كل ما تبقى من node_modules
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
+        // تحسين أسماء الملفات
+        entryFileNames: (chunkInfo) => {
+          const name = chunkInfo.name === 'main' ? 'index' : chunkInfo.name;
+          return `assets/${name}-[hash].js`;
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name?.endsWith('.css')) {
+            return 'assets/style-[hash].css';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
+      },
+      // تحسين تحميل الملفات الخارجية
+      external: (id) => {
+        // استبعاد ملفات الخطوط الضخمة من الحزمة الرئيسية
+        if (id.includes('vfs_fonts') || id.includes('Amiri-') && id.includes('.js')) {
+          return true;
         }
-      }
+        return false;
+      },
     },
-    // Optimize dependencies
-    commonjsOptions: {
-      transformMixedEsModules: true
-    }
-  }
+    // تحسين الضغط للجوال
+    assetsInlineLimit: 2048, // تصغير حد الملفات المضمنة للجوال
+    cssCodeSplit: true,
+    sourcemap: mode === 'development',
+    // Pre-bundling للجوال
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@radix-ui/react-dialog',
+        '@radix-ui/react-dropdown-menu',
+        'lucide-react',
+        '@tanstack/react-query',
+        '@supabase/supabase-js'
+      ],
+      exclude: [
+        'jspdf',
+        'pdfmake',
+        'chart.js',
+        'recharts'
+      ],
+    },
+  },
+  // تحسين خاص للجوال
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
 }));
