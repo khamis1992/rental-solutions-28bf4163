@@ -217,12 +217,12 @@ const AppContent = () => {
 
 function App() {
   const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
+  defaultOptions: {
+    queries: {
         ...getRetryConfig(),
         retryOnMount: true,
         refetchOnWindowFocus: false,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000,  // 10 minutes
       },
     },
@@ -237,13 +237,13 @@ function App() {
 
   return (
     <DocumentationModeProvider>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <LanguageProvider>
-            <AuthProvider>
-              <ProfileProvider>
+        <AuthProvider>
+          <ProfileProvider>
                 <SettingsProvider>
-                  <NotificationProvider>
+            <NotificationProvider>
                     <TooltipProvider>
                       {/* Enhanced PWA Components */}
                       <PWAController 
@@ -266,12 +266,12 @@ function App() {
                       </ErrorBoundary>
                     </TooltipProvider>
                   </NotificationProvider>
-                </SettingsProvider>
-              </ProfileProvider>
-            </AuthProvider>
+              </SettingsProvider>
+          </ProfileProvider>
+        </AuthProvider>
           </LanguageProvider>
         </BrowserRouter>
-      </QueryClientProvider>
+    </QueryClientProvider>
     </DocumentationModeProvider>
   );
 }

@@ -28,7 +28,9 @@ import {
   CheckCircle,
   AlertTriangle,
   RefreshCw,
-  Save
+  Save,
+  Camera,
+  Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 import IdCardScanner from './IdCardScanner';
@@ -72,6 +74,7 @@ export const CustomerFormWithIdScanner: React.FC<CustomerFormWithIdScannerProps>
   const [showScanner, setShowScanner] = useState(false);
   const [scannedData, setScannedData] = useState<ExtractedIdData | null>(null);
   const [isAutoFilled, setIsAutoFilled] = useState(false);
+  const [showWelcomeToast, setShowWelcomeToast] = useState(false);
 
   // إعداد النموذج
   const form = useForm<CustomerFormData>({
@@ -135,10 +138,32 @@ export const CustomerFormWithIdScanner: React.FC<CustomerFormWithIdScannerProps>
   const handleSubmit = async (data: CustomerFormData) => {
     try {
       await onSubmit(data);
-      toast.success(isArabic ? 'تم حفظ بيانات العميل بنجاح!' : 'Customer data saved successfully!');
+      
+      // إعادة تعيين النموذج بعد النجاح
+      form.reset({
+        full_name: '',
+        id_number: '',
+        nationality: '',
+        date_of_birth: '',
+        phone_number: '',
+        email: '',
+        address: '',
+        driver_license: '',
+        emergency_contact: '',
+        id_expiry_date: '',
+        gender: '',
+      });
+      
+      // إعادة تعيين حالة البيانات المستخرجة
+      setScannedData(null);
+      setIsAutoFilled(false);
+      
+      toast.success(isArabic ? '✅ تم حفظ بيانات العميل بنجاح!' : '✅ Customer data saved successfully!', {
+        description: isArabic ? 'يمكنك إضافة عميل آخر أو العودة لقائمة العملاء' : 'You can add another customer or return to customer list'
+      });
     } catch (error) {
       console.error('خطأ في حفظ العميل:', error);
-      toast.error(isArabic ? 'فشل في حفظ البيانات' : 'Failed to save data');
+      toast.error(isArabic ? '❌ فشل في حفظ البيانات' : '❌ Failed to save data');
     }
   };
 
@@ -150,9 +175,101 @@ export const CustomerFormWithIdScanner: React.FC<CustomerFormWithIdScannerProps>
     toast.info(isArabic ? 'تم إعادة تعيين النموذج' : 'Form reset');
   };
 
+  // إظهار إشعار ترحيبي عند فتح الصفحة لأول مرة
+  React.useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('customer-form-welcome-seen');
+    if (!hasSeenWelcome && !showWelcomeToast) {
+      setTimeout(() => {
+        toast.info(
+          isArabic 
+            ? '💡 نصيحة: استخدم مسح البطاقة الشخصية لتوفير الوقت!' 
+            : '💡 Tip: Use ID Card Scanner to save time!',
+          {
+            description: isArabic 
+              ? 'اضغط على زر "ابدأ المسح الآن" لملء البيانات تلقائياً'
+              : 'Click "Start Scanning" button to auto-fill data',
+            duration: 8000,
+            action: {
+              label: isArabic ? 'جرب الآن' : 'Try Now',
+              onClick: () => setShowScanner(true)
+            }
+          }
+        );
+        localStorage.setItem('customer-form-welcome-seen', 'true');
+        setShowWelcomeToast(true);
+      }, 2000);
+    }
+  }, [isArabic, showWelcomeToast]);
+
   return (
     <div className="space-y-6" dir={isArabic ? 'rtl' : 'ltr'}>
-      {/* Header مع زر المسح */}
+      {/* إرشادات المسح */}
+      {!isAutoFilled && (
+        <Alert className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+          <AlertTriangle className="h-5 w-5 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <div className={isArabic ? 'text-right' : 'text-left'}>
+              <p className="font-semibold mb-2">
+                {isArabic ? '💡 نصيحة: استخدم مسح البطاقة الشخصية' : '💡 Tip: Use ID Card Scanner'}
+              </p>
+              <ul className={`text-sm space-y-1 ${isArabic ? 'list-disc list-inside' : 'list-disc list-inside'}`}>
+                <li>{isArabic ? 'توفير 90% من وقت إدخال البيانات' : 'Save 90% of data entry time'}</li>
+                <li>{isArabic ? 'منع الأخطاء الإملائية تماماً' : 'Prevent spelling errors completely'}</li>
+                <li>{isArabic ? 'دقة عالية تصل إلى 95%' : 'High accuracy up to 95%'}</li>
+                <li>{isArabic ? 'دعم البطاقات القطرية والخليجية' : 'Support for Qatari and Gulf IDs'}</li>
+              </ul>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* بطاقة خيار المسح السريع */}
+      <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hover:shadow-lg transition-shadow duration-200">
+        <CardContent className="p-6">
+          <div className={`flex items-center justify-between ${isArabic ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-center gap-4 ${isArabic ? 'flex-row-reverse' : ''}`}>
+              <div className="p-3 bg-blue-100 rounded-full animate-pulse">
+                <Scan className="h-8 w-8 text-blue-600" />
+              </div>
+              <div className={isArabic ? 'text-right' : 'text-left'}>
+                <h3 className="text-xl font-bold text-blue-900">
+                  {isArabic ? '🚀 مسح البطاقة الشخصية الذكي' : '🚀 Smart ID Card Scanner'}
+                </h3>
+                <p className="text-blue-700 text-sm mb-2">
+                  {isArabic ? 'املأ البيانات تلقائياً في ثوانٍ معدودة!' : 'Auto-fill data in seconds!'}
+                </p>
+                <div className={`flex items-center gap-4 text-xs text-blue-600 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center gap-1 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                    <Camera className="h-3 w-3" />
+                    <span>{isArabic ? 'كاميرا مباشرة' : 'Live Camera'}</span>
+                  </div>
+                  <div className={`flex items-center gap-1 ${isArabic ? 'flex-row-reverse' : ''}`}>
+                    <Upload className="h-3 w-3" />
+                    <span>{isArabic ? 'رفع صورة' : 'Upload Image'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className={`flex flex-col gap-2 ${isArabic ? 'items-end' : 'items-start'}`}>
+              <Button
+                type="button"
+                onClick={() => setShowScanner(true)}
+                className={`bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white px-6 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 ${isArabic ? 'flex-row-reverse' : ''}`}
+                size="lg"
+              >
+                <CreditCard className="h-6 w-6 mr-2" />
+                {isArabic ? 'ابدأ المسح الآن' : 'Start Scanning'}
+              </Button>
+              <p className="text-xs text-green-600 font-medium">
+                {isArabic ? 'يدعم البطاقات القطرية' : 'Supports Qatari IDs'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Header مع زر إعادة التعيين */}
       <Card>
         <CardHeader>
           <div className={`flex items-center justify-between ${isArabic ? 'flex-row-reverse' : ''}`}>
@@ -162,15 +279,15 @@ export const CustomerFormWithIdScanner: React.FC<CustomerFormWithIdScannerProps>
             </CardTitle>
             
             <div className={`flex gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
-              {/* زر المسح الذكي */}
+              {/* زر المسح الإضافي في الهيدر */}
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setShowScanner(true)}
-                className={`flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}
+                className={`flex items-center gap-2 border-blue-300 text-blue-600 hover:bg-blue-50 ${isArabic ? 'flex-row-reverse' : ''}`}
               >
                 <Scan className="h-4 w-4" />
-                {isArabic ? 'مسح البطاقة الشخصية' : 'Scan ID Card'}
+                {isArabic ? 'مسح سريع' : 'Quick Scan'}
               </Button>
               
               {/* زر إعادة التعيين */}
@@ -329,7 +446,7 @@ export const CustomerFormWithIdScanner: React.FC<CustomerFormWithIdScannerProps>
                     <FormItem>
                       <FormLabel className={`flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
                         <Mail className="h-4 w-4" />
-                        {isArabic ? 'البريد الإلكتروني' : 'Email'}
+                        {isArabic ? 'البريد الإلكتروني (اختياري)' : 'Email (Optional)'}
                       </FormLabel>
                       <FormControl>
                         <Input 
@@ -337,7 +454,7 @@ export const CustomerFormWithIdScanner: React.FC<CustomerFormWithIdScannerProps>
                           type="email"
                           className="text-left"
                           dir="ltr"
-                          placeholder="example@email.com"
+                          placeholder={isArabic ? "example@email.com (اختياري)" : "example@email.com (optional)"}
                         />
                       </FormControl>
                       <FormMessage />
@@ -466,6 +583,19 @@ export const CustomerFormWithIdScanner: React.FC<CustomerFormWithIdScannerProps>
                   }
                 </Button>
                 
+                {/* زر إضافة عميل آخر - يظهر بعد الحفظ الناجح */}
+                {!isSubmitting && Object.values(form.getValues()).some(val => val === '') && (
+                  <Button 
+                    type="button" 
+                    variant="secondary"
+                    onClick={handleReset}
+                    className="max-w-xs"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    {isArabic ? 'إضافة عميل جديد' : 'Add New Customer'}
+                  </Button>
+                )}
+                
                 {onCancel && (
                   <Button 
                     type="button" 
@@ -473,9 +603,16 @@ export const CustomerFormWithIdScanner: React.FC<CustomerFormWithIdScannerProps>
                     onClick={onCancel}
                     disabled={isSubmitting}
                   >
-                    {isArabic ? 'إلغاء' : 'Cancel'}
+                    {isArabic ? 'العودة للعملاء' : 'Back to Customers'}
                   </Button>
                 )}
+              </div>
+
+              {/* نصيحة للمستخدم */}
+              <div className={`text-sm text-gray-600 ${isArabic ? 'text-right' : 'text-left'}`}>
+                <p>
+                  💡 {isArabic ? 'نصيحة: بعد حفظ العميل، سيتم إعادة تعيين النموذج تلقائياً لإضافة عميل آخر' : 'Tip: After saving the customer, the form will be automatically reset to add another customer'}
+                </p>
               </div>
             </form>
           </Form>

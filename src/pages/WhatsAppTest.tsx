@@ -386,7 +386,7 @@ const WhatsAppTest: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { twilioWhatsAppService } = await import('@/services/TwilioWhatsAppService');
+      // Service is now imported at the top of the file
       let result;
 
       // استخدام تاريخ الدفعة الفعلي إذا كان متوفراً
