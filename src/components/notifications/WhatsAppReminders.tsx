@@ -31,6 +31,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { useCustomers } from '@/hooks/use-customers';
 import { supabase } from '@/lib/supabase';
+import { twilioWhatsAppService } from '@/services/TwilioWhatsAppService';
 
 interface WhatsAppStats {
   totalSent: number;
@@ -50,6 +51,14 @@ interface SelectedCustomer {
   full_name: string;
   phone: string;
   email: string;
+}
+
+interface CustomerSearchResult {
+  id: string;
+  full_name: string;
+  phone: string;
+  email: string;
+  selected: boolean;
 }
 
 interface NextPayment {
@@ -80,9 +89,14 @@ export const WhatsAppReminders: React.FC = () => {
   // Customer selection states
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
-  const [amount, setAmount] = useState(500);
   const [nextPayment, setNextPayment] = useState<NextPayment | null>(null);
   const [results, setResults] = useState<Array<{ type: string; message: string; success: boolean; timestamp: Date }>>([]);
+  
+  // New search and multi-select states
+  const [phoneSearch, setPhoneSearch] = useState<string>('');
+  const [selectedCustomers, setSelectedCustomers] = useState<CustomerSearchResult[]>([]);
+  const [selectAll, setSelectAll] = useState<boolean>(false);
+  const [filteredCustomers, setFilteredCustomers] = useState<CustomerSearchResult[]>([]);
 
   // جلب قائمة العملاء
   const { customers, isLoading: isLoadingCustomers, refreshCustomers } = useCustomers();
@@ -105,9 +119,11 @@ export const WhatsAppReminders: React.FC = () => {
   useEffect(() => {
     const checkServiceStatus = async () => {
       try {
-        const { twilioWhatsAppService } = await import('@/services/TwilioWhatsAppService');
         const status = await twilioWhatsAppService.getServiceStatus();
-        setServiceStatus(status);
+        setServiceStatus({
+          ...status,
+          fromNumber: '+19253293588' // Twilio WhatsApp number
+        });
       } catch (error) {
         setServiceStatus({
           available: false,
@@ -123,6 +139,31 @@ export const WhatsAppReminders: React.FC = () => {
     console.log('🔍 جاري جلب العملاء من قاعدة البيانات...');
     refreshCustomers();
   }, []);
+
+  // Update filtered customers based on search and customers list
+  useEffect(() => {
+    if (customers.length > 0) {
+      const customerResults: CustomerSearchResult[] = customers.map((customer: any) => ({
+        id: customer.id!,
+        full_name: customer.full_name || 'عميل',
+        phone: customer.phone || customer.phone_number || '',
+        email: customer.email || '',
+        selected: false
+      }));
+
+      // Filter by phone search
+      const filtered = phoneSearch.trim()
+        ? customerResults.filter(customer => 
+            customer.phone.includes(phoneSearch.trim()) ||
+            customer.full_name.toLowerCase().includes(phoneSearch.trim().toLowerCase())
+          )
+        : customerResults;
+
+      setFilteredCustomers(filtered);
+    } else {
+      setFilteredCustomers([]);
+    }
+  }, [customers, phoneSearch]);
 
   // تحديث بيانات العميل المختار عند تغيير الاختيار
   useEffect(() => {
@@ -148,7 +189,6 @@ export const WhatsAppReminders: React.FC = () => {
     } else {
       setSelectedCustomer(null);
       setNextPayment(null);
-      setAmount(500); // إعادة تعيين للمبلغ الافتراضي
     }
   }, [selectedCustomerId, customers]);
 
@@ -277,21 +317,155 @@ export const WhatsAppReminders: React.FC = () => {
 
       if (nextPaymentData) {
         setNextPayment(nextPaymentData);
-        setAmount(nextPaymentData.amount);
-        console.log('💰 تم تحديد المبلغ تلقائياً:', nextPaymentData.amount);
+        console.log('💰 تم العثور على دفعة مستحقة بمبلغ:', nextPaymentData.amount);
       } else {
         console.log('⚠️ لم يتم العثور على دفعات مستحقة للعميل');
         setNextPayment(null);
-        setAmount(500); // مبلغ افتراضي
       }
 
     } catch (error) {
       console.error('❌ خطأ في جلب الدفعة التالية:', error);
       setNextPayment(null);
-      setAmount(500);
     } finally {
       setIsLoadingPayment(false);
     }
+  };
+
+  // Handle customer selection
+  const toggleCustomerSelection = (customerId: string) => {
+    setFilteredCustomers(prev => 
+      prev.map(customer => 
+        customer.id === customerId 
+          ? { ...customer, selected: !customer.selected }
+          : customer
+      )
+    );
+  };
+
+  const toggleSelectAll = () => {
+    const newSelectAll = !selectAll;
+    setSelectAll(newSelectAll);
+    setFilteredCustomers(prev => 
+      prev.map(customer => ({ ...customer, selected: newSelectAll }))
+    );
+  };
+
+  const getSelectedCustomers = () => {
+    return filteredCustomers.filter(customer => customer.selected);
+  };
+
+  // Send message to multiple customers
+  const sendBulkMessage = async (messageType: 'monthly_reminder' | 'delay_penalty' | 'final_warning' | 'legal_action' | 'manager_report') => {
+    const selectedCustomersList = getSelectedCustomers();
+    
+    if (selectedCustomersList.length === 0) {
+      toast.error('الرجاء اختيار عميل واحد على الأقل');
+      return;
+    }
+
+    if (!serviceStatus.available) {
+      toast.error('خدمة الواتساب غير متاحة: ' + (serviceStatus.error || 'خطأ غير معروف'));
+      return;
+    }
+
+    setIsLoading(true);
+    let successCount = 0;
+    let failureCount = 0;
+
+    try {
+      for (const customer of selectedCustomersList) {
+        try {
+          let result;
+          const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const contractType = 'تأجير سيارة';
+
+          switch (messageType) {
+            case 'monthly_reminder':
+              result = await twilioWhatsAppService.sendMonthlyReminder(
+                customer.phone,
+                customer.full_name,
+                500, // مبلغ افتراضي
+                dueDate,
+                'C-' + Math.random().toString(36).substr(2, 6),
+                5
+              );
+              break;
+
+            case 'delay_penalty':
+              const penaltyAmount = Math.round(500 * 0.05); // مبلغ افتراضي
+              result = await twilioWhatsAppService.sendDelayPenalty(
+                customer.phone,
+                customer.full_name,
+                500, // مبلغ افتراضي
+                penaltyAmount,
+                30,
+                'C-' + Math.random().toString(36).substr(2, 6),
+                500 + penaltyAmount // مبلغ افتراضي
+              );
+              break;
+
+            case 'final_warning':
+              result = await twilioWhatsAppService.sendFinalWarning(
+                customer.phone,
+                customer.full_name,
+                500, // مبلغ افتراضي
+                'C-' + Math.random().toString(36).substr(2, 6),
+                60
+              );
+              break;
+
+            case 'legal_action':
+              result = await twilioWhatsAppService.sendLegalAction(
+                customer.phone,
+                customer.full_name,
+                500, // مبلغ افتراضي
+                'C-' + Math.random().toString(36).substr(2, 6),
+                'سيارة تويوتا كامري 2020 - لوحة 123456'
+              );
+              break;
+
+            case 'manager_report':
+              result = await twilioWhatsAppService.sendManagerReport(
+                customer.phone,
+                customer.full_name,
+                new Date().toLocaleDateString('ar-QA'),
+                15,
+                5,
+                3,
+                45000,
+                25
+              );
+              break;
+          }
+
+          if (result.success) {
+            successCount++;
+            addResult(getMessageTypeName(messageType), `✅ تم الإرسال إلى ${customer.full_name} بنجاح`, true);
+          } else {
+            failureCount++;
+            addResult(getMessageTypeName(messageType), `❌ فشل الإرسال إلى ${customer.full_name}: ${result.error}`, false);
+          }
+
+          updateStats(result.success);
+          
+          // Add small delay between messages to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+        } catch (error) {
+          failureCount++;
+          addResult(getMessageTypeName(messageType), `❌ خطأ في إرسال رسالة إلى ${customer.full_name}`, false);
+          updateStats(false);
+        }
+      }
+
+      toast.success(`تم إرسال ${successCount} رسالة بنجاح، فشل في ${failureCount} رسالة`);
+      setShowSendDialog(false);
+
+    } catch (error) {
+      toast.error('خطأ في الإرسال الجماعي');
+      console.error(error);
+    }
+    setIsLoading(false);
   };
 
   const sendMessage = async (messageType: 'reminder' | 'overdue' | 'confirmation' | 'monthly_reminder' | 'delay_penalty' | 'final_warning' | 'legal_action' | 'manager_report') => {
@@ -312,7 +486,6 @@ export const WhatsAppReminders: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { twilioWhatsAppService } = await import('@/services/TwilioWhatsAppService');
       let result;
 
       // استخدام تاريخ الدفعة الفعلي إذا كان متوفراً
@@ -329,7 +502,7 @@ export const WhatsAppReminders: React.FC = () => {
           result = await twilioWhatsAppService.sendPaymentReminder(
             selectedCustomer.phone,
             selectedCustomer.full_name,
-            amount,
+            500, // مبلغ افتراضي
             dueDate,
             contractType
           );
@@ -340,7 +513,7 @@ export const WhatsAppReminders: React.FC = () => {
           result = await twilioWhatsAppService.sendOverduePaymentAlert(
             selectedCustomer.phone,
             selectedCustomer.full_name,
-            amount,
+            500, // مبلغ افتراضي
             daysOverdue,
             contractType
           );
@@ -350,7 +523,7 @@ export const WhatsAppReminders: React.FC = () => {
           result = await twilioWhatsAppService.sendPaymentConfirmation(
             selectedCustomer.phone,
             selectedCustomer.full_name,
-            amount,
+            500, // مبلغ افتراضي
             new Date().toLocaleDateString('ar-QA'),
             contractType,
             'R-' + Math.random().toString(36).substr(2, 9).toUpperCase()
@@ -361,7 +534,7 @@ export const WhatsAppReminders: React.FC = () => {
           result = await twilioWhatsAppService.sendMonthlyReminder(
             selectedCustomer.phone,
             selectedCustomer.full_name,
-            amount,
+            500, // مبلغ افتراضي
             dueDate,
             nextPayment?.agreementNumber || 'C-' + Math.random().toString(36).substr(2, 6),
             5 // default remaining installments
@@ -369,15 +542,15 @@ export const WhatsAppReminders: React.FC = () => {
           break;
 
         case 'delay_penalty':
-          const penaltyAmount = Math.round(amount * 0.05); // 5% penalty
+          const penaltyAmount = Math.round(500 * 0.05); // 5% penalty مبلغ افتراضي
           result = await twilioWhatsAppService.sendDelayPenalty(
             selectedCustomer.phone,
             selectedCustomer.full_name,
-            amount,
+            500, // مبلغ افتراضي
             penaltyAmount,
             nextPayment?.daysOverdue || 30,
             nextPayment?.agreementNumber || 'C-' + Math.random().toString(36).substr(2, 6),
-            amount + penaltyAmount
+            500 + penaltyAmount // مبلغ افتراضي
           );
           break;
 
@@ -385,7 +558,7 @@ export const WhatsAppReminders: React.FC = () => {
           result = await twilioWhatsAppService.sendFinalWarning(
             selectedCustomer.phone,
             selectedCustomer.full_name,
-            amount,
+            500, // مبلغ افتراضي
             nextPayment?.agreementNumber || 'C-' + Math.random().toString(36).substr(2, 6),
             nextPayment?.daysOverdue || 60
           );
@@ -395,7 +568,7 @@ export const WhatsAppReminders: React.FC = () => {
           result = await twilioWhatsAppService.sendLegalAction(
             selectedCustomer.phone,
             selectedCustomer.full_name,
-            amount,
+            500, // مبلغ افتراضي
             nextPayment?.agreementNumber || 'C-' + Math.random().toString(36).substr(2, 6),
             'سيارة تويوتا كامري 2020 - لوحة 123456'
           );
@@ -637,234 +810,124 @@ export const WhatsAppReminders: React.FC = () => {
               </DialogHeader>
               
               <div className="space-y-4">
-                {/* Customer Selection */}
+                {/* Phone Search */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label htmlFor="customer">اختيار العميل</Label>
+                  <Label htmlFor="phone-search">البحث برقم الجوال أو الاسم</Label>
                     <div className="flex gap-2">
+                    <Input
+                      id="phone-search"
+                      type="text"
+                      value={phoneSearch}
+                      onChange={(e) => setPhoneSearch(e.target.value)}
+                      placeholder="ابحث برقم الجوال أو اسم العميل..."
+                      className="flex-1"
+                    />
                       <Button
                         variant="outline"
-                        size="sm"
                         onClick={refreshCustomers}
                         disabled={isLoadingCustomers}
                       >
                         <RefreshCw className={`h-4 w-4 ${isLoadingCustomers ? 'animate-spin' : ''}`} />
                         تحديث
                       </Button>
-                      
-
-                    </div>
                   </div>
-                  <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر عميل من القائمة..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {isLoadingCustomers ? (
-                        <SelectItem value="loading" disabled>
-                          جاري تحميل العملاء...
-                        </SelectItem>
-                      ) : customers.length === 0 ? (
-                        <SelectItem value="no-customers" disabled>
-                          لا توجد عملاء متاحين
-                        </SelectItem>
-                      ) : (
-                        customers.map((customer) => {
-                          const customerData = customer as any;
-                          return (
-                            <SelectItem key={customerData.id} value={customerData.id!}>
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4" />
-                                <div>
-                                  <div className="font-medium">{customerData.full_name || 'عميل'}</div>
-                                  <div className="text-xs text-gray-500">
-                                    {formatPhoneNumber(customerData.phone || customerData.phone_number || '')}
-                                  </div>
-                                </div>
-                              </div>
-                            </SelectItem>
-                          );
-                        })
-                      )}
-                    </SelectContent>
-                  </Select>
                 </div>
 
-                {/* Customer Info Display */}
-                {selectedCustomer && (
-                  <Card className="p-4 bg-blue-50 border-blue-200">
-                    <h3 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      معلومات العميل المختار
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-blue-600" />
-                        <span className="text-gray-600">الاسم:</span>
-                        <span className="font-medium">{selectedCustomer.full_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-blue-600" />
-                        <span className="text-gray-600">الهاتف:</span>
-                        <span className="font-medium font-mono" dir="ltr">
-                          {formatPhoneNumber(selectedCustomer.phone)}
-                        </span>
-                      </div>
-                      {selectedCustomer.email && (
-                        <div className="flex items-center gap-2 md:col-span-2">
-                          <span className="text-gray-600">البريد الإلكتروني:</span>
-                          <span className="font-medium">{selectedCustomer.email}</span>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                )}
-
-                {/* Next Payment Info */}
-                {selectedCustomer && (
-                  <Card className={`p-4 ${
-                    nextPayment?.isOverdue 
-                      ? 'bg-red-50 border-red-200' 
-                      : nextPayment 
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-gray-50 border-gray-200'
-                  }`}>
-                    <h3 className={`font-medium mb-3 flex items-center gap-2 ${
-                      nextPayment?.isOverdue 
-                        ? 'text-red-800' 
-                        : nextPayment 
-                          ? 'text-green-800'
-                          : 'text-gray-600'
-                    }`}>
-                      {isLoadingPayment ? (
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : nextPayment?.isOverdue ? (
-                        <AlertTriangle className="h-4 w-4" />
-                      ) : nextPayment ? (
-                        <Calendar className="h-4 w-4" />
-                      ) : (
-                        <Info className="h-4 w-4" />
-                      )}
-                      {isLoadingPayment ? 'جاري البحث عن الدفعات...' : 
-                       nextPayment?.isOverdue ? 'دفعة متأخرة' :
-                       nextPayment ? 'الدفعة التالية المستحقة' : 'لا توجد دفعات مستحقة'}
-                    </h3>
-                    
-                    {!isLoadingPayment && (
-                      <div className="space-y-2 text-sm">
-                        {nextPayment ? (
-                          <>
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-600">المبلغ:</span>
-                              <span className="font-bold text-lg">{nextPayment.amount} ر.ق</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-600">تاريخ الاستحقاق:</span>
-                              <span className="font-medium">{formatDueDate(nextPayment.dueDate)}</span>
-                            </div>
-                            {nextPayment.agreementNumber && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-gray-600">رقم العقد:</span>
-                                <span className="font-medium">{nextPayment.agreementNumber}</span>
-                              </div>
-                            )}
-                            {nextPayment.isOverdue && nextPayment.daysOverdue && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-red-600">أيام التأخير:</span>
-                                <span className="font-bold text-red-600">{nextPayment.daysOverdue} يوم</span>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <p className="text-gray-600 text-center py-2">لا توجد دفعات معلقة أو متأخرة لهذا العميل</p>
-                        )}
-                      </div>
-                    )}
-                  </Card>
-                )}
-
+                {/* Select All / Customer List */}
                 <div>
-                  <Label htmlFor="amount">المبلغ (ريال قطري)</Label>
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      id="amount"
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(Number(e.target.value))}
-                      placeholder="500"
-                    />
-                    {nextPayment && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setAmount(nextPayment.amount)}
-                        className="whitespace-nowrap"
-                      >
-                        استخدام المبلغ المستحق
-                      </Button>
-                    )}
+                  <div className="flex items-center justify-between mb-3">
+                    <Label>اختيار العملاء ({getSelectedCustomers().length} محدد)</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="select-all"
+                        checked={selectAll}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                        تحديد الكل ({filteredCustomers.length})
+                      </Label>
+                    </div>
                   </div>
-                  {nextPayment && (
-                    <p className="text-xs text-green-600 mt-1">
-                      💡 تم تحديد المبلغ تلقائياً بناءً على الدفعة المستحقة ({nextPayment.amount} ر.ق)
-                    </p>
-                  )}
+                  
+                  <div className="max-h-64 overflow-y-auto border rounded-lg">
+                      {isLoadingCustomers ? (
+                      <div className="p-4 text-center text-gray-500">
+                          جاري تحميل العملاء...
+                                  </div>
+                    ) : filteredCustomers.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500">
+                        {phoneSearch.trim() ? 'لا توجد نتائج للبحث' : 'لا توجد عملاء متاحين'}
+                                </div>
+                    ) : (
+                      filteredCustomers.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className={`p-3 border-b border-gray-100 flex items-center gap-3 hover:bg-gray-50 cursor-pointer ${
+                            customer.selected ? 'bg-blue-50' : ''
+                          }`}
+                          onClick={() => toggleCustomerSelection(customer.id)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={customer.selected}
+                            onChange={() => toggleCustomerSelection(customer.id)}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                          />
+                          <User className="h-4 w-4 text-gray-600" />
+                          <div className="flex-1">
+                            <div className="font-medium">{customer.full_name}</div>
+                            <div className="text-xs text-gray-500 font-mono" dir="ltr">
+                              {formatPhoneNumber(customer.phone)}
+                              </div>
+                            {customer.email && (
+                              <div className="text-xs text-gray-400">{customer.email}</div>
+                      )}
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Button 
-                    onClick={() => sendMessage('reminder')}
-                    disabled={isLoading || !selectedCustomer}
-                    className="bg-blue-600 hover:bg-blue-700 h-16"
-                  >
-                    {isLoading ? (
-                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        <span>تذكير دفعة</span>
                       </div>
-                    )}
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => sendMessage('overdue')}
-                    disabled={isLoading || !selectedCustomer}
-                    className="bg-red-600 hover:bg-red-700 h-16"
-                  >
-                    {isLoading ? (
-                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <AlertTriangle className="h-5 w-5" />
-                        <span>دفعة متأخرة</span>
-                      </div>
-                    )}
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => sendMessage('confirmation')}
-                    disabled={isLoading || !selectedCustomer}
-                    className="bg-green-600 hover:bg-green-700 h-16"
-                  >
-                    {isLoading ? (
-                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <CheckCircle className="h-5 w-5" />
-                        <span>تأكيد استلام</span>
-                      </div>
-                    )}
-                  </Button>
+                      ))
+                      )}
+                    </div>
                 </div>
 
-                {/* القوالب الجديدة المعتمدة */}
+                {/* Selected Customers Summary */}
+                {getSelectedCustomers().length > 0 && (
+                  <Card className="p-4 bg-green-50 border-green-200">
+                    <h3 className="font-medium text-green-800 mb-3 flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      العملاء المحددون ({getSelectedCustomers().length})
+                    </h3>
+                    <div className="text-sm text-green-700">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {getSelectedCustomers().slice(0, 4).map((customer) => (
+                          <div key={customer.id} className="flex items-center gap-2">
+                            <User className="h-3 w-3" />
+                            <span>{customer.full_name}</span>
+                            <span className="text-xs text-green-600 font-mono" dir="ltr">
+                              {formatPhoneNumber(customer.phone)}
+                            </span>
+                            </div>
+                        ))}
+                            </div>
+                      {getSelectedCustomers().length > 4 && (
+                        <div className="mt-2 text-center text-green-600">
+                          وآخرون... ({getSelectedCustomers().length - 4} عميل إضافي)
+                              </div>
+                            )}
+                              </div>
+                  </Card>
+                )}
+
+
+
+                {/* إرسال الرسائل الجماعية */}
                 <div className="border-t pt-4">
-                  <h4 className="font-medium text-gray-800 mb-3">القوالب الجديدة المعتمدة</h4>
+                  <h4 className="font-medium text-gray-800 mb-3">إرسال رسائل جماعية</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Button 
-                      onClick={() => sendMessage('monthly_reminder')}
-                      disabled={isLoading || !selectedCustomer}
+                      onClick={() => sendBulkMessage('monthly_reminder')}
+                      disabled={isLoading || getSelectedCustomers().length === 0}
                       className="bg-indigo-600 hover:bg-indigo-700 h-16"
                     >
                       {isLoading ? (
@@ -872,14 +935,14 @@ export const WhatsAppReminders: React.FC = () => {
                       ) : (
                         <div className="flex flex-col items-center gap-2">
                           <Calendar className="h-5 w-5" />
-                          <span>تذكير شهري (28)</span>
+                          <span>تذكير شهري ({getSelectedCustomers().length})</span>
                         </div>
                       )}
                     </Button>
                     
                     <Button 
-                      onClick={() => sendMessage('delay_penalty')}
-                      disabled={isLoading || !selectedCustomer}
+                      onClick={() => sendBulkMessage('delay_penalty')}
+                      disabled={isLoading || getSelectedCustomers().length === 0}
                       className="bg-orange-600 hover:bg-orange-700 h-16"
                     >
                       {isLoading ? (
@@ -887,14 +950,14 @@ export const WhatsAppReminders: React.FC = () => {
                       ) : (
                         <div className="flex flex-col items-center gap-2">
                           <AlertTriangle className="h-5 w-5" />
-                          <span>غرامة تأخير (1)</span>
+                          <span>غرامة تأخير ({getSelectedCustomers().length})</span>
                         </div>
                       )}
                     </Button>
                     
                     <Button 
-                      onClick={() => sendMessage('final_warning')}
-                      disabled={isLoading || !selectedCustomer}
+                      onClick={() => sendBulkMessage('final_warning')}
+                      disabled={isLoading || getSelectedCustomers().length === 0}
                       className="bg-red-700 hover:bg-red-800 h-16"
                     >
                       {isLoading ? (
@@ -902,14 +965,14 @@ export const WhatsAppReminders: React.FC = () => {
                       ) : (
                         <div className="flex flex-col items-center gap-2">
                           <AlertTriangle className="h-5 w-5" />
-                          <span>إنذار نهائي</span>
+                          <span>إنذار نهائي ({getSelectedCustomers().length})</span>
                         </div>
                       )}
                     </Button>
                     
                     <Button 
-                      onClick={() => sendMessage('legal_action')}
-                      disabled={isLoading || !selectedCustomer}
+                      onClick={() => sendBulkMessage('legal_action')}
+                      disabled={isLoading || getSelectedCustomers().length === 0}
                       className="bg-gray-800 hover:bg-gray-900 h-16"
                     >
                       {isLoading ? (
@@ -917,7 +980,7 @@ export const WhatsAppReminders: React.FC = () => {
                       ) : (
                         <div className="flex flex-col items-center gap-2">
                           <AlertTriangle className="h-5 w-5" />
-                          <span>إجراء قانوني (24 ساعة)</span>
+                          <span>إجراء قانوني ({getSelectedCustomers().length})</span>
                         </div>
                       )}
                     </Button>
@@ -925,8 +988,8 @@ export const WhatsAppReminders: React.FC = () => {
                   
                   <div className="mt-4">
                     <Button 
-                      onClick={() => sendMessage('manager_report')}
-                      disabled={isLoading || !selectedCustomer}
+                      onClick={() => sendBulkMessage('manager_report')}
+                      disabled={isLoading || getSelectedCustomers().length === 0}
                       className="bg-purple-600 hover:bg-purple-700 h-16 w-full"
                     >
                       {isLoading ? (
@@ -934,18 +997,18 @@ export const WhatsAppReminders: React.FC = () => {
                       ) : (
                         <div className="flex flex-col items-center gap-2">
                           <BarChart3 className="h-5 w-5" />
-                          <span>تقرير المدير العام (1-10)</span>
+                          <span>تقرير المدير العام ({getSelectedCustomers().length})</span>
                         </div>
                       )}
                     </Button>
                   </div>
                 </div>
 
-                {!selectedCustomer && (
+                {getSelectedCustomers().length === 0 && (
                   <Alert className="border-yellow-200 bg-yellow-50">
                     <AlertTriangle className="h-4 w-4 text-yellow-600" />
                     <AlertDescription className="text-yellow-800">
-                      يرجى اختيار عميل من القائمة أعلاه لإرسال الرسالة
+                      يرجى اختيار عميل واحد على الأقل من القائمة أعلاه لإرسال الرسالة الجماعية
                     </AlertDescription>
                   </Alert>
                 )}

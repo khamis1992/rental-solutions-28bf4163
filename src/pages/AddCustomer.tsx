@@ -30,16 +30,27 @@ const AddCustomer = () => {
         // إضافة البيانات الجديدة من مسح البطاقة
         id_expiry_date: data.id_expiry_date || undefined,
         gender: data.gender || undefined,
+        status: 'active', // تعيين الحالة الافتراضية
       };
 
-      await createCustomer.mutateAsync(customerData);
-      toast.success('تم إضافة العميل بنجاح!', {
-        description: 'يمكنك الآن إنشاء عقد إيجار للعميل الجديد'
+      const result = await createCustomer.mutateAsync(customerData);
+      
+      // إظهار رسالة نجاح مع خيارات للمستخدم
+      toast.success('✅ تم إضافة العميل بنجاح!', {
+        description: `تم إنشاء ملف العميل: ${data.full_name}`,
+        action: {
+          label: 'عرض قائمة العملاء',
+          onClick: () => navigate('/customers')
+        },
+        duration: 5000,
       });
-      navigate('/customers');
+
+      // لا نقوم بـ navigate تلقائياً - نبقى في نفس الصفحة للسماح بإضافة عملاء أخرين
+      // يمكن للمستخدم الانتقال لقائمة العملاء عبر الزر في رسالة النجاح
+      
     } catch (error) {
       console.error('Error creating customer:', error);
-      toast.error('فشل في إنشاء العميل', {
+      toast.error('❌ فشل في إنشاء العميل', {
         description: error instanceof Error ? error.message : 'حدث خطأ غير معروف'
       });
     } finally {

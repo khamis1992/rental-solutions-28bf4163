@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { googleVisionOCR, ExtractedIdData as GoogleExtractedIdData, OCRResult } from '@/services/google-vision-ocr';
 
 interface ExtractedIdData {
   fullName: string;
@@ -25,35 +26,89 @@ export const useIdCardScanner = ({ onSuccess, onError }: UseIdCardScannerProps =
   const [extractedData, setExtractedData] = useState<ExtractedIdData | null>(null);
   const [scanProgress, setScanProgress] = useState(0);
 
-  // معالجة OCR محاكاة
+  // معالجة OCR باستخدام Google Vision API
   const processImageWithOCR = useCallback(async (imageData: string): Promise<ExtractedIdData> => {
-    const progressSteps = [
-      { step: 25, delay: 800 },
-      { step: 50, delay: 1000 },
-      { step: 75, delay: 800 },
-      { step: 100, delay: 500 }
-    ];
+    try {
+      // رسائل التقدم أثناء المعالجة
+      const progressMessages = [
+        { step: 25, message: 'تحضير الصورة...', delay: 500 },
+        { step: 50, message: 'إرسال إلى Google Vision...', delay: 800 },
+        { step: 75, message: 'استخراج النصوص...', delay: 1000 },
+        { step: 100, message: 'تحليل البيانات...', delay: 700 }
+      ];
 
-    for (const { step, delay } of progressSteps) {
-      await new Promise(resolve => setTimeout(resolve, delay));
-      setScanProgress(step);
+      // عرض رسائل التقدم
+      const progressPromise = (async () => {
+        for (const { step, message, delay } of progressMessages) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          setScanProgress(step);
+          toast.info(message, { duration: 800 });
+        }
+      })();
+
+      // معالجة الصورة باستخدام Google Vision
+      const result: OCRResult = await googleVisionOCR.processIdCard(imageData);
+
+      // انتظار انتهاء رسائل التقدم
+      await progressPromise;
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'فشل في استخراج البيانات من الصورة');
+      }
+
+      // تحويل النتيجة إلى التنسيق المطلوب
+      const extractedData: ExtractedIdData = {
+        fullName: result.data.fullName,
+        idNumber: result.data.idNumber,
+        nationality: result.data.nationality,
+        dateOfBirth: result.data.dateOfBirth,
+        expiryDate: result.data.expiryDate,
+        phoneNumber: result.data.phoneNumber,
+        address: result.data.address,
+        gender: result.data.gender,
+        qrCodeData: result.data.qrCodeData,
+        confidence: result.data.confidence
+      };
+
+      // إظهار معلومات إضافية في وضع التطوير
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 نتائج Google Vision OCR:', {
+          processingTime: `${result.processingTime}ms`,
+          confidence: `${result.data.confidence}%`,
+          rawTextLength: result.rawText?.length || 0,
+          extractedFields: Object.keys(extractedData).filter(key => 
+            extractedData[key as keyof ExtractedIdData] && 
+            extractedData[key as keyof ExtractedIdData] !== ''
+          ).length
+        });
+      }
+
+      // تحديد جودة الاستخراج
+      const fieldsExtracted = [
+        extractedData.fullName,
+        extractedData.idNumber,
+        extractedData.nationality,
+        extractedData.dateOfBirth
+      ].filter(field => field && field !== 'غير محدد' && field !== '').length;
+
+      if (fieldsExtracted < 2) {
+        toast.warning('تم استخراج بعض البيانات، يرجى التحقق من صحتها قبل المتابعة');
+      } else if (fieldsExtracted >= 3) {
+        toast.success(`تم استخراج ${fieldsExtracted} حقول بنجاح!`);
+      }
+
+      return extractedData;
+
+    } catch (error) {
+      console.error('❌ خطأ في معالجة OCR:', error);
+      
+      // في حالة الخطأ، عرض رسالة مفيدة
+      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
+      toast.error(`خطأ في المعالجة: ${errorMessage}`);
+      
+      // إرجاع خطأ ليتم التعامل معه في المستوى الأعلى
+      throw new Error(`فشل في معالجة الصورة: ${errorMessage}`);
     }
-
-    // بيانات محاكاة
-    const mockData = {
-      fullName: 'خميس هاشم محمد الجبر',
-      idNumber: '29876543210',
-      nationality: 'قطري',
-      dateOfBirth: '1985-03-15',
-      expiryDate: '2030-03-15',
-      phoneNumber: '+974 5555 4321',
-      address: 'أم صلال، منطقة 71، مبنى 79',
-      gender: 'ذكر',
-      confidence: 94,
-      qrCodeData: 'QID:29876543210:KhasimHashem:QAT:1985-03-15'
-    };
-    
-    return mockData;
   }, []);
 
   // مسح ملف الصورة

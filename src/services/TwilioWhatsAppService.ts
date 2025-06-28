@@ -361,15 +361,15 @@ export class TwilioWhatsAppService {
         
         // Handle different types of errors gracefully
         if (error.message?.includes('Edge Function returned a non-2xx status code')) {
-          return {
-            available: false,
+      return {
+        available: false,
             error: 'خدمة الواتساب غير مكونة بشكل صحيح. يرجى التحقق من Edge Function والـ Secrets.'
-          };
-        }
+      };
+    }
 
         if (error.message?.includes('FunctionsHttpError')) {
-          return {
-            available: false,
+      return {
+        available: false,
             error: 'وظيفة الواتساب غير متاحة في Supabase أو تحتاج إعادة نشر.'
           };
         }

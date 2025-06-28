@@ -34,11 +34,11 @@ import { useCustomers } from '@/hooks/use-customers';
 import { supabase } from '@/lib/supabase';
 import { twilioWhatsAppService } from '@/services/TwilioWhatsAppService';
 
-  interface ServiceStatus {
-    available: boolean;
-    error?: string;
+interface ServiceStatus {
+  available: boolean;
+  error?: string;
     fromNumber?: string;
-  }
+}
 
 interface SelectedCustomer {
   id: string;
@@ -386,7 +386,7 @@ const WhatsAppTest: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { twilioWhatsAppService } = await import('@/services/TwilioWhatsAppService');
+      // Service is now imported at the top of the file
       let result;
 
       // استخدام تاريخ الدفعة الفعلي إذا كان متوفراً

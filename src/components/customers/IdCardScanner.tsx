@@ -112,42 +112,113 @@ export const IdCardScanner: React.FC<IdCardScannerProps> = ({
     return canvas.toDataURL('image/jpeg', 0.9);
   }, []);
 
-  // محاكاة OCR لاستخراج البيانات من البطاقة القطرية
+  // استخراج البيانات من البطاقة القطرية باستخدام Google Vision OCR
   const extractDataFromImage = useCallback(async (imageData: string): Promise<ExtractedIdData> => {
     setIsProcessing(true);
     setScanProgress(0);
 
-    // محاكاة معالجة تدريجية
-    const progressSteps = [
-      { step: 20, message: isArabic ? 'تحليل الصورة...' : 'Analyzing image...' },
-      { step: 40, message: isArabic ? 'استخراج النصوص...' : 'Extracting text...' },
-      { step: 60, message: isArabic ? 'التعرف على البيانات...' : 'Recognizing data...' },
-      { step: 80, message: isArabic ? 'التحقق من البيانات...' : 'Validating data...' },
-      { step: 100, message: isArabic ? 'اكتمل!' : 'Complete!' }
-    ];
+    try {
+      // استيراد خدمة Google Vision OCR
+      const { googleVisionOCR } = await import('@/services/google-vision-ocr');
+      
+      // رسائل التقدم
+      const progressSteps = [
+        { step: 20, message: isArabic ? 'تحضير الصورة...' : 'Preparing image...', delay: 600 },
+        { step: 40, message: isArabic ? 'إرسال إلى Google Vision...' : 'Sending to Google Vision...', delay: 800 },
+        { step: 60, message: isArabic ? 'استخراج النصوص...' : 'Extracting text...', delay: 1200 },
+        { step: 80, message: isArabic ? 'تحليل البيانات...' : 'Analyzing data...', delay: 800 },
+        { step: 100, message: isArabic ? 'اكتمل!' : 'Complete!', delay: 400 }
+      ];
 
-    for (const { step, message } of progressSteps) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setScanProgress(step);
-      toast.info(message, { duration: 500 });
+      // عرض رسائل التقدم
+      const progressPromise = (async () => {
+        for (const { step, message, delay } of progressSteps) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          setScanProgress(step);
+          toast.info(message, { duration: 600 });
+        }
+      })();
+
+      // معالجة الصورة باستخدام Google Vision
+      const result = await googleVisionOCR.processIdCard(imageData);
+
+      // انتظار انتهاء رسائل التقدم
+      await progressPromise;
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || (isArabic ? 'فشل في استخراج البيانات' : 'Failed to extract data'));
+      }
+
+      // إظهار معلومات تطويرية إضافية
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 إحصائيات المسح:', {
+          processingTime: `${result.processingTime}ms`,
+          confidence: `${result.data.confidence}%`,
+          rawTextPreview: result.rawText?.substring(0, 100) + '...',
+          fieldsExtracted: Object.keys(result.data).filter(key => 
+            result.data![key as keyof typeof result.data] && 
+            result.data![key as keyof typeof result.data] !== ''
+          ).length
+        });
+      }
+
+      // تحديد جودة الاستخراج وعرض الرسائل المناسبة
+      const fieldsExtracted = [
+        result.data.fullName,
+        result.data.idNumber,
+        result.data.nationality,
+        result.data.dateOfBirth
+      ].filter(field => field && field !== 'غير محدد' && field !== '').length;
+
+      if (result.data.confidence >= 90 && fieldsExtracted >= 4) {
+        toast.success(isArabic ? 
+          `🎉 مسح ممتاز! تم استخراج جميع البيانات بدقة ${result.data.confidence}%` :
+          `🎉 Excellent scan! All data extracted with ${result.data.confidence}% accuracy`
+        );
+      } else if (result.data.confidence >= 75 && fieldsExtracted >= 3) {
+        toast.success(isArabic ? 
+          `✅ مسح جيد! تم استخراج ${fieldsExtracted} حقول` :
+          `✅ Good scan! ${fieldsExtracted} fields extracted`
+        );
+      } else if (fieldsExtracted >= 2) {
+        toast.warning(isArabic ? 
+          '⚠️ تم استخراج بعض البيانات، يرجى المراجعة' :
+          '⚠️ Some data extracted, please review'
+        );
+      } else {
+        toast.error(isArabic ? 
+          '❌ جودة الصورة منخفضة، يرجى المحاولة مرة أخرى' :
+          '❌ Low image quality, please try again'
+        );
+      }
+
+      return result.data;
+
+    } catch (error) {
+      console.error('❌ خطأ في استخراج البيانات:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(isArabic ? 
+        `خطأ في معالجة الصورة: ${errorMessage}` : 
+        `Image processing error: ${errorMessage}`
+      );
+      
+      // في حالة الخطأ، إرجاع بيانات فارغة مع رسالة خطأ واضحة
+      return {
+        fullName: 'فشل في استخراج الاسم',
+        idNumber: '',
+        nationality: 'غير محدد',
+        dateOfBirth: '',
+        expiryDate: '',
+        phoneNumber: '',
+        address: '',
+        gender: '',
+        qrCodeData: '',
+        confidence: 0
+      };
+    } finally {
+      setIsProcessing(false);
     }
-
-    // بيانات محاكاة للبطاقة القطرية
-    const mockData: ExtractedIdData = {
-      fullName: 'خميس هاشم محمد الجبر',
-      idNumber: '29876543210',
-      nationality: 'قطري',
-      dateOfBirth: '1985-03-15',
-      expiryDate: '2030-03-15',
-      phoneNumber: '+974 5555 4321',
-      address: 'أم صلال، منطقة 71، مبنى 79',
-      gender: 'ذكر',
-      qrCodeData: 'QID:29876543210:KhasimHashem:QAT:1985-03-15',
-      confidence: 92
-    };
-
-    setIsProcessing(false);
-    return mockData;
   }, [isArabic]);
 
   // معالجة المسح

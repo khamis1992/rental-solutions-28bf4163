@@ -1,60 +1,61 @@
-interface ExtractedIdData {
-  fullName: string;
-  idNumber: string;
-  nationality: string;
-  dateOfBirth: string;
-  expiryDate: string;
-  phoneNumber?: string;
-  address?: string;
-  gender?: string;
-  qrCodeData?: string;
-  confidence: number;
-}
+import { googleVisionOCR, ExtractedIdData, OCRResult } from './google-vision-ocr';
 
-interface OCRResult {
-  success: boolean;
-  data?: ExtractedIdData;
-  error?: string;
-  processingTime: number;
-}
-
+/**
+ * خدمة مسح البطاقة الشخصية - واجهة موحدة
+ * تستخدم Google Vision API مع fallback للبيانات المحاكاة
+ */
 export class IdCardOCRService {
+  /**
+   * معالجة صورة البطاقة الشخصية
+   */
   async processIdCard(imageData: string | File): Promise<OCRResult> {
-    const startTime = Date.now();
-    
     try {
-      await this.simulateProcessing();
+      // استخدام خدمة Google Vision API
+      const result = await googleVisionOCR.processIdCard(imageData);
       
-      const mockData: ExtractedIdData = {
-        fullName: 'خميس هاشم محمد الجبر',
-        idNumber: '29876543210',
-        nationality: 'قطري',
-        dateOfBirth: '1985-03-15',
-        expiryDate: '2030-03-15',
-        phoneNumber: '+974 5555 4321',
-        address: 'أم صلال، منطقة 71، مبنى 79',
-        gender: 'ذكر',
-        confidence: 94,
-        qrCodeData: 'QID:29876543210:KhasimHashem:QAT:1985-03-15'
-      };
-
-      return {
-        success: true,
-        data: mockData,
-        processingTime: Date.now() - startTime
-      };
-
+      // إضافة تسجيل للمطورين
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 IdCardOCRService - نتائج المعالجة:', {
+          success: result.success,
+          confidence: result.data?.confidence || 0,
+          processingTime: result.processingTime,
+          hasRawText: !!result.rawText
+        });
+      }
+      
+      return result;
+      
     } catch (error) {
+      console.error('❌ خطأ في IdCardOCRService:', error);
+      
+      // في حالة الخطأ، إنشاء استجابة خطأ
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'خطأ غير معروف',
-        processingTime: Date.now() - startTime
+        error: error instanceof Error ? error.message : 'خطأ غير معروف في معالجة الصورة',
+        processingTime: 0
       };
     }
   }
 
-  private async simulateProcessing(): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 1500));
+  /**
+   * التحقق من توفر خدمة Google Vision API
+   */
+  isGoogleVisionAvailable(): boolean {
+    return !!process.env.VITE_GOOGLE_VISION_API_KEY;
+  }
+
+  /**
+   * الحصول على معلومات الخدمة
+   */
+  getServiceInfo() {
+    return {
+      provider: this.isGoogleVisionAvailable() ? 'Google Vision API' : 'Mock Data',
+      isProduction: this.isGoogleVisionAvailable(),
+      supportedLanguages: ['ar', 'en'],
+      supportedFormats: ['image/jpeg', 'image/png', 'image/webp'],
+      maxFileSize: '10MB',
+      expectedAccuracy: this.isGoogleVisionAvailable() ? '85-95%' : '0% (Mock)'
+    };
   }
 }
 
