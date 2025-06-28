@@ -29,19 +29,20 @@ import AddMaintenance from '@/pages/AddMaintenance';
 import EditMaintenance from '@/pages/EditMaintenance';
 import Reports from '@/pages/Reports';
 import Settings from '@/pages/Settings';
-import Login from '@/pages/Login';
+import Login from '@/pages/auth/Login';
 import TrafficFines from '@/pages/TrafficFines';
 import Legal from '@/pages/Legal';
-import LegalCaseDetail from '@/pages/LegalCaseDetail';
-import LegalDocuments from '@/pages/LegalDocuments';
-import CarInstallments from '@/pages/CarInstallments';
-import LegalReports from '@/pages/LegalReports';
-import DocumentsPage from '@/pages/DocumentsPage';
-import InvoiceTemplates from '@/pages/InvoiceTemplates';
+// TODO: Create missing pages
+// import LegalCaseDetail from '@/pages/LegalCaseDetail';
+// import LegalDocuments from '@/pages/LegalDocuments';
+// import CarInstallments from '@/pages/CarInstallments';
+// import LegalReports from '@/pages/LegalReports';
+// import DocumentsPage from '@/pages/DocumentsPage';
+// import InvoiceTemplates from '@/pages/InvoiceTemplates';
 import WhatsAppNotifications from '@/pages/WhatsAppNotifications';
 import ActivityPage from '@/pages/ActivityPage';
 import CollectionReports from '@/pages/CollectionReports';
-import PWAController from '@/components/pwa/PWAController';
+import { PWAController } from '@/components/pwa/PWAController';
 import Layout from '@/components/layout/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ProfileProvider } from '@/contexts/ProfileContext';
@@ -231,7 +232,8 @@ function App() {
                           </Layout>
                         </ProtectedRoute>
                       } />
-                      <Route path="/legal/cases/:id" element={
+                      {/* TODO: Uncomment when pages are created */}
+                      {/* <Route path="/legal/cases/:id" element={
                         <ProtectedRoute>
                           <Layout>
                             <LegalCaseDetail />
@@ -253,7 +255,6 @@ function App() {
                         </ProtectedRoute>
                       } />
 
-                      {/* Car Installments */}
                       <Route path="/car-installments" element={
                         <ProtectedRoute>
                           <Layout>
@@ -262,7 +263,6 @@ function App() {
                         </ProtectedRoute>
                       } />
 
-                      {/* Documents */}
                       <Route path="/documents" element={
                         <ProtectedRoute>
                           <Layout>
@@ -271,14 +271,13 @@ function App() {
                         </ProtectedRoute>
                       } />
 
-                      {/* Invoice Templates */}
                       <Route path="/invoice-templates" element={
                         <ProtectedRoute>
                           <Layout>
                             <InvoiceTemplates />
                           </Layout>
                         </ProtectedRoute>
-                      } />
+                      } /> */}
 
                       {/* WhatsApp Notifications */}
                       <Route path="/whatsapp-notifications" element={
