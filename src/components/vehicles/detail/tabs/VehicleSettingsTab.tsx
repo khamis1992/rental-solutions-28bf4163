@@ -9,6 +9,7 @@ import { Settings, Edit, Save, X, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VehicleData } from '@/types/vehicle.types';
 import { useVehicleDetail } from '@/hooks/use-vehicle-detail';
+import { VehicleStatusQuickUpdate } from '@/components/vehicles/VehicleStatusQuickUpdate';
 import { toast } from 'sonner';
 
 interface VehicleSettingsTabProps {
@@ -61,6 +62,9 @@ export const VehicleSettingsTab: React.FC<VehicleSettingsTabProps> = ({ vehicle 
 
   return (
     <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Vehicle Status Quick Update */}
+      <VehicleStatusQuickUpdate vehicle={vehicle} />
+      
       {/* Vehicle Information Settings */}
       <Card>
         <CardHeader>

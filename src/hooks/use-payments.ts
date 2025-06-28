@@ -18,7 +18,8 @@ export const usePayments = (leaseId: string) => {
         .from('unified_payments')
         .select('*')
         .eq('lease_id', leaseId)
-        .order('created_at', { ascending: false });
+        .order('payment_date', { ascending: true })
+        .order('created_at', { ascending: true });
 
       if (error) {
         console.error('Error fetching payments:', error);

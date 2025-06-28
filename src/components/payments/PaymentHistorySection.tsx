@@ -183,21 +183,30 @@ export function PaymentHistorySection({
           </div>
         ) : (
           <div className="space-y-4">
-            {payments.map((payment) => (
+            {[...payments]
+              .sort((a, b) => {
+                // ترتيب من الأقدم إلى الأحدث
+                const dateA = new Date(a.payment_date || a.created_at || 0);
+                const dateB = new Date(b.payment_date || b.created_at || 0);
+                return dateA.getTime() - dateB.getTime();
+              })
+              .map((payment) => (
               <div
                 key={payment.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex items-center justify-between p-6 border rounded-lg hover:bg-muted/50 transition-all duration-200 shadow-sm hover:shadow-md"
                 dir="rtl"
               >
-                <div className="flex items-center space-x-4 space-x-reverse">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">
+                <div className="flex items-center space-x-6 space-x-reverse flex-1">
+                  <div className="flex-shrink-0">
+                    <Calendar className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-xl text-gray-900 mb-2">
                       {formatCurrency(payment.amount)} ر.ق
                     </div>
-                    <div className="text-xs text-blue-600 mt-1 font-medium">
+                    <div className="text-sm text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-md inline-block">
                       الاستحقاق: 1 من كل شهر
-                      </div>
+                    </div>
                     
                     {(() => {
                       // Show dynamic late fee for pending/overdue
@@ -257,18 +266,23 @@ export function PaymentHistorySection({
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-2 space-x-reverse">
+                <div className="flex items-center space-x-4 space-x-reverse ml-6">
                   {payment.status !== 'paid' && (
                     <Button
-                      size="sm"
-                      variant="outline"
+                      size="default"
+                      className="bg-green-600 hover:bg-green-700 text-white shadow-md transition-all duration-200 hover:scale-105 font-semibold min-w-[120px]"
                       onClick={() => {
                         setSelectedPayment(payment);
                         setIsPaymentDialogOpen(true);
                       }}
                     >
-                      تسوية
+                      تسوية الدفعة
                     </Button>
+                  )}
+                  {payment.status === 'paid' && (
+                    <div className="text-green-600 font-medium bg-green-50 px-4 py-2 rounded-md border border-green-200">
+                      ✓ مُسوّاة
+                    </div>
                   )}
                 </div>
               </div>

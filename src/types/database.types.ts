@@ -194,7 +194,7 @@ export interface Database {
       notification_status: 'pending' | 'sent' | 'failed' | 'delivered' | 'read';
       payment_status: 'pending' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
       user_location_status: 'active' | 'inactive' | 'offline';
-      vehicle_status: 'available' | 'rented' | 'maintenance' | 'reserved' | 'out_of_service';
+      vehicle_status: 'available' | 'rented' | 'reserved' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired' | 'out_of_service';
     };
     CompositeTypes: {
       Json: Json;

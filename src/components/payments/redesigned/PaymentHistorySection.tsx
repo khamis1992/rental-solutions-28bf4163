@@ -173,7 +173,11 @@ export function PaymentHistorySection({
   // Helper function to get payment action button
   const getPaymentActionButton = (payment: Payment) => {
     if (payment.status === 'paid') {
-      return null; // لا حاجة لإجراء للمدفوعات المكتملة
+      return (
+        <div className="text-green-600 font-semibold bg-green-50 px-4 py-3 rounded-lg border border-green-200 text-center">
+          ✓ مُسوّاة
+        </div>
+      );
     }
 
     const isOverdue = payment.status === 'overdue';
@@ -181,13 +185,13 @@ export function PaymentHistorySection({
 
     return (
       <Button
-        size="sm"
+        size="default"
         onClick={() => {
           setSelectedPayment(payment);
           setIsPaymentDialogOpen(true);
         }}
         className={`
-          font-semibold shadow-md transition-all duration-200 hover:scale-105 min-w-[140px]
+          font-semibold shadow-lg transition-all duration-200 hover:scale-105 min-w-[140px] px-6 py-3
           ${isOverdue 
             ? 'bg-red-600 hover:bg-red-700 text-white border-red-700' 
             : 'bg-green-600 hover:bg-green-700 text-white border-green-700'
@@ -195,7 +199,7 @@ export function PaymentHistorySection({
         `}
         variant={isOverdue ? 'destructive' : 'default'}
       >
-        <CreditCard className="h-4 w-4 ml-2" />
+        <CreditCard className="h-5 w-5 ml-2" />
         {isOverdue ? 'دفع المتأخرات' : 'تسوية الدفعة'}
       </Button>
     );
@@ -318,28 +322,35 @@ export function PaymentHistorySection({
           </div>
         ) : (
           <div className="space-y-4">
-            {payments.map((payment, index) => (
-              <div key={payment.id}>
-                <div className="flex items-start justify-between p-6 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-md transition-all duration-200">
-                  <div className="flex items-start space-x-4 flex-1 space-x-reverse">
-                    <div className="flex-shrink-0">
-                      {getStatusIcon(payment.status)}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-3 space-x-reverse">
-                          <h4 className="text-lg font-bold text-gray-900">
-                            {formatCurrency(payment.amount)} ر.ق
-                          </h4>
-                          </div>
+            {[...payments]
+              .sort((a, b) => {
+                // ترتيب من الأقدم إلى الأحدث
+                const dateA = new Date(a.payment_date || a.created_at || 0);
+                const dateB = new Date(b.payment_date || b.created_at || 0);
+                return dateA.getTime() - dateB.getTime();
+              })
+                            .map((payment, index) => (
+                <div key={payment.id}>
+                  <div className="flex items-start justify-between p-8 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-lg transition-all duration-200">
+                    <div className="flex items-start space-x-6 flex-1 space-x-reverse">
+                      <div className="flex-shrink-0 mt-1">
+                        {getStatusIcon(payment.status)}
                       </div>
                       
-                      <div className="space-y-1 text-sm text-gray-600">
-                        <div className="flex items-center text-xs text-blue-600 font-medium">
-                            <Calendar className="h-4 w-4 ml-1" />
-                          <span>الاستحقاق: 1 من كل شهر</span>
-                          </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-4 space-x-reverse">
+                            <h4 className="text-2xl font-bold text-gray-900 tracking-tight">
+                              {formatCurrency(payment.amount)} ر.ق
+                            </h4>
+                            </div>
+                        </div>
+                      
+                                              <div className="space-y-3 text-sm text-gray-600">
+                          <div className="flex items-center text-sm text-blue-600 font-medium bg-blue-50 px-3 py-2 rounded-md inline-flex">
+                              <Calendar className="h-4 w-4 ml-2" />
+                            <span>الاستحقاق: 1 من كل شهر</span>
+                            </div>
                         
                         {payment.description && (
                           <div className="text-sm text-gray-600 mt-1">
@@ -408,19 +419,21 @@ export function PaymentHistorySection({
                             );
                           }
                           return null;
-                        })()}
+                        })()                        }
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3 mr-4 space-x-reverse">
+                    <div className="flex items-center space-x-4 mr-6 space-x-reverse">
                       {/* Main Payment Action Button */}
-                      {getPaymentActionButton(payment)}
+                      <div className="min-w-[140px]">
+                        {getPaymentActionButton(payment)}
+                      </div>
                       
                       {/* More Options Dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button variant="ghost" size="default" className="hover:bg-gray-100">
+                            <MoreHorizontal className="h-5 w-5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">

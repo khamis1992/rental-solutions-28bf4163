@@ -89,11 +89,24 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       setType(DocumentType.OTHER);
       setFile(null);
       
+      toast.success('تم رفع المستند بنجاح!');
+      
       if (onComplete) {
         onComplete();
       }
-    } catch (error) {
-      // Error handling is done in the mutation
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      
+      // Enhanced error handling with helpful messages
+      if (error.message.includes('bucket')) {
+        toast.error('مشكلة في مساحة التخزين. يرجى استخدام زر "إعداد نظام المستندات" في الأعلى لحل المشكلة.');
+      } else if (error.message.includes('size')) {
+        toast.error('حجم الملف كبير جداً. الحد الأقصى 50 ميجابايت.');
+      } else if (error.message.includes('type')) {
+        toast.error('نوع الملف غير مدعوم. يرجى استخدام PDF, DOC, DOCX, XLS, XLSX, أو صور.');
+      } else {
+        toast.error(`فشل في رفع المستند: ${error.message}`);
+      }
     }
   };
 

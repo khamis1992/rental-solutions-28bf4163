@@ -197,6 +197,7 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
                     selectedVehicle={selectedVehicle}
                     onVehicleSelect={handleVehicleSelect}
                     placeholder="البحث عن مركبة..."
+                    excludeMaintenanceVehicles={true}
                   />
                   </div>
                 </FormControl>

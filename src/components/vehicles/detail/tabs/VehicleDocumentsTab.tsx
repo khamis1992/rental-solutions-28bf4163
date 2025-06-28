@@ -1,12 +1,17 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Upload, Download, Edit } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileText, Upload, Download, Edit, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VehicleData } from '@/types/vehicle.types';
 import DocumentList from '@/components/documents/DocumentList';
+import DocumentUpload from '@/components/documents/DocumentUpload';
+import { StorageTestButton } from '@/components/documents/StorageTestButton';
 import { DocumentEntityType } from '@/types/document.types';
+import { toast } from 'sonner';
 
 interface VehicleDocumentsTabProps {
   vehicle: VehicleData;
@@ -14,9 +19,45 @@ interface VehicleDocumentsTabProps {
 
 export const VehicleDocumentsTab: React.FC<VehicleDocumentsTabProps> = ({ vehicle }) => {
   const { language } = useLanguage();
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+
+  const handleUploadClick = () => {
+    setIsUploadDialogOpen(true);
+  };
+
+  const handleDownloadAll = () => {
+    toast.info('جاري تحضير تحميل جميع المستندات...');
+    // TODO: Implement download all functionality
+  };
+
+  const handleEditDocuments = () => {
+    toast.info('وضع تحرير المستندات غير متوفر حالياً');
+    // TODO: Implement edit mode functionality
+  };
+
+  const handleUploadComplete = () => {
+    setIsUploadDialogOpen(false);
+    toast.success('تم رفع المستند بنجاح');
+  };
 
   return (
     <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Storage Setup Alert */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription className="text-right" dir="rtl">
+          <div className="flex items-center justify-between">
+            <div className="text-right">
+              <strong>مشكلة في رفع المستندات؟</strong>
+              <p className="text-sm text-muted-foreground mt-1">
+                إذا كنت تواجه خطأ في رفع المستندات، اضغط على زر الإعداد لحل المشكلة
+              </p>
+            </div>
+            <StorageTestButton />
+          </div>
+        </AlertDescription>
+      </Alert>
+
       {/* Document Management Actions */}
       <Card>
         <CardHeader>
@@ -33,6 +74,7 @@ export const VehicleDocumentsTab: React.FC<VehicleDocumentsTabProps> = ({ vehicl
             <Button 
               variant="outline" 
               className={`${language === 'ar' ? 'flex-row-reverse' : ''}`}
+              onClick={handleUploadClick}
             >
               <Upload className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
               {language === 'ar' ? 'رفع مستند' : 'Upload Document'}
@@ -40,6 +82,7 @@ export const VehicleDocumentsTab: React.FC<VehicleDocumentsTabProps> = ({ vehicl
             <Button 
               variant="outline"
               className={`${language === 'ar' ? 'flex-row-reverse' : ''}`}
+              onClick={handleDownloadAll}
             >
               <Download className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
               {language === 'ar' ? 'تحميل الكل' : 'Download All'}
@@ -47,6 +90,7 @@ export const VehicleDocumentsTab: React.FC<VehicleDocumentsTabProps> = ({ vehicl
             <Button 
               variant="outline"
               className={`${language === 'ar' ? 'flex-row-reverse' : ''}`}
+              onClick={handleEditDocuments}
             >
               <Edit className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
               {language === 'ar' ? 'تحرير المستندات' : 'Edit Documents'}
@@ -132,6 +176,21 @@ export const VehicleDocumentsTab: React.FC<VehicleDocumentsTabProps> = ({ vehicl
           />
         </CardContent>
       </Card>
+
+      {/* Upload Dialog */}
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="sm:max-w-md md:max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">رفع مستند للمركبة</DialogTitle>
+          </DialogHeader>
+          <DocumentUpload
+            entityType={DocumentEntityType.VEHICLE}
+            entityId={vehicle.id}
+            onComplete={handleUploadComplete}
+            onCancel={() => setIsUploadDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

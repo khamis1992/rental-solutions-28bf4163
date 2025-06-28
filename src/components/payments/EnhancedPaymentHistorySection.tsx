@@ -311,7 +311,14 @@ export function EnhancedPaymentHistorySection({
             </div>
           ) : (
             <div className="space-y-4">
-              {payments.map((payment) => {
+              {[...payments]
+                .sort((a, b) => {
+                  // ترتيب من الأقدم إلى الأحدث
+                  const dateA = new Date(a.payment_date || a.created_at || 0);
+                  const dateB = new Date(b.payment_date || b.created_at || 0);
+                  return dateA.getTime() - dateB.getTime();
+                })
+                .map((payment) => {
                 const lateFee = calculateLateFee(payment);
                 return (
                   <Card
@@ -324,23 +331,25 @@ export function EnhancedPaymentHistorySection({
                         : 'border-l-red-500 bg-red-50/30'
                     }`}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between" dir="rtl">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between gap-6" dir="rtl">
                         <div className="flex items-start space-x-4 space-x-reverse flex-1">
-                          {getStatusIcon(payment.status)}
-                          <div className="flex-1">
+                          <div className="flex-shrink-0 mt-1">
+                            {getStatusIcon(payment.status)}
+                          </div>
+                          <div className="flex-1 min-w-0">
                             {/* Payment Amount */}
-                            <div className="flex items-center gap-2 flex-row-reverse mb-2">
-                              <h3 className="text-xl font-bold text-gray-900">
+                            <div className="flex items-center gap-3 flex-row-reverse mb-3">
+                              <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
                                 {formatCurrency(payment.amount)} ر.ق
                               </h3>
-                              <Badge className={`${getStatusColor(payment.status)} font-medium`}>
+                              <Badge className={`${getStatusColor(payment.status)} font-medium px-3 py-1`}>
                                 {getStatusText(payment.status)}
                               </Badge>
                             </div>
                             
                             {/* Due Date */}
-                            <div className="text-sm text-blue-600 font-medium mb-2">
+                            <div className="text-sm text-blue-600 font-medium mb-3 bg-blue-50 px-3 py-1 rounded-md inline-block">
                               الاستحقاق: 1 من كل شهر
                             </div>
                             
@@ -385,11 +394,11 @@ export function EnhancedPaymentHistorySection({
                         </div>
                         
                         {/* Action Buttons */}
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-3 min-w-[140px]">
                           {payment.status !== 'paid' && payment.status !== 'completed' && (
                             <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
+                              size="default"
+                              className="bg-green-600 hover:bg-green-700 text-white shadow-md transition-all duration-200 hover:scale-105 font-semibold"
                               onClick={() => {
                                 setSelectedPayment(payment);
                                 setIsPaymentDialogOpen(true);
@@ -399,7 +408,7 @@ export function EnhancedPaymentHistorySection({
                             </Button>
                           )}
                           {(payment.status === 'paid' || payment.status === 'completed') && (
-                            <Badge variant="outline" className="text-green-600 border-green-300">
+                            <Badge variant="outline" className="text-green-600 border-green-300 px-4 py-2 text-sm font-medium bg-green-50">
                               ✓ مُسوّاة
                             </Badge>
                           )}

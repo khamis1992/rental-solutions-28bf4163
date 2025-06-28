@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import { Wrench } from 'lucide-react';
 import { MaintenanceSchedulingWizard } from '@/components/maintenance/MaintenanceSchedulingWizard';
+import { VehicleStatusManager } from '@/components/maintenance/VehicleStatusManager';
 
 const Maintenance = () => {
   const navigate = useNavigate();
@@ -58,10 +59,18 @@ const Maintenance = () => {
           setIsLoading(false);
         }
 
-        // تحميل المركبات
+        // تحميل المركبات - جميع المركبات لإمكانية تغيير الحالة
         const vehicleData = await getAllVehicles();
         if (mounted) {
-          setVehicles(vehicleData.filter(v => v.status === 'maintenance' || v.status === 'accident'));
+          // عرض جميع المركبات لإمكانية تغيير حالتها، مع التركيز على الصيانة والحوادث
+          const sortedVehicles = vehicleData.sort((a, b) => {
+            // إعطاء أولوية للمركبات في الصيانة والحوادث
+            const priorityStatus = ['maintenance', 'accident'];
+            const aPriority = priorityStatus.includes(a.status) ? 0 : 1;
+            const bPriority = priorityStatus.includes(b.status) ? 0 : 1;
+            return aPriority - bPriority;
+          });
+          setVehicles(sortedVehicles);
           setIsLoadingVehicles(false);
         }
       } catch (error) {
@@ -144,7 +153,14 @@ const Maintenance = () => {
 
       setMaintenanceRecords(records);
       setFilteredRecords(records);
-      setVehicles(vehicleData.filter(v => v.status === 'maintenance' || v.status === 'accident'));
+      // تحديث جميع المركبات مع إعطاء أولوية للصيانة والحوادث
+      const sortedVehicles = vehicleData.sort((a, b) => {
+        const priorityStatus = ['maintenance', 'accident'];
+        const aPriority = priorityStatus.includes(a.status) ? 0 : 1;
+        const bPriority = priorityStatus.includes(b.status) ? 0 : 1;
+        return aPriority - bPriority;
+      });
+      setVehicles(sortedVehicles);
       
       toast.success('تم تحديث البيانات بنجاح');
     } catch (error) {
@@ -475,6 +491,13 @@ const Maintenance = () => {
                 />
               </CardContent>
             </Card>
+
+            {/* إدارة حالات المركبات */}
+            <VehicleStatusManager
+              vehicles={vehicles || []}
+              isLoading={isLoadingVehicles}
+              onRefresh={handleManualRefresh}
+            />
           </TabsContent>
 
           {/* Active Maintenance Tab */}

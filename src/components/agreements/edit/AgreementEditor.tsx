@@ -953,6 +953,7 @@ const AgreementEditor = () => {
                                 selectedVehicle={selectedVehicle}
                                 onVehicleSelect={handleVehicleSelect}
                                 placeholder="البحث عن مركبة..."
+                                excludeMaintenanceVehicles={true}
                               />
                             </FormControl>
                             <FormMessage />

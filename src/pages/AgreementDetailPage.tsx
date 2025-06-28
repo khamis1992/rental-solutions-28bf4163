@@ -241,7 +241,7 @@ const AgreementDetailPage = () => {
   // Render loading state while fetching agreement
   if (isLoading) {
     return (
-      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد">
+      <PageContainer title="تفاصيل العقد" description="تفاصيل العقد" dir="rtl" forceTitleLeft={true}>
         <div className="space-y-6">
           <Skeleton className="h-12 w-2/3" />
           <div className="grid gap-6 md:grid-cols-2">
@@ -295,13 +295,17 @@ const AgreementDetailPage = () => {
     <PageContainer 
       title="تفاصيل العقد" 
       description="تفاصيل العقد"
+      dir="rtl"
+      forceTitleLeft={true}
     >
       <div className="legal-rtl" dir="rtl">
       <div className="flex justify-between items-center mb-4" dir="rtl">
         {/* Title and badges moved to far right */}
         <div className="flex items-center space-x-reverse space-x-2">
           <h2 className="text-3xl font-bold tracking-tight text-right">
-            عقد رقم {agreement.agreement_number}
+            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              {agreement.agreement_number}
+            </span>
           </h2>
           <Badge variant={getStatusBadgeVariant(agreement.status)}>
             {agreement.status.toUpperCase() === 'ACTIVE' && 'نشط'}
@@ -340,11 +344,24 @@ const AgreementDetailPage = () => {
 
       <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md">
         <CardContent className="p-6 bg-zinc-100 rounded-md text-right" dir="rtl">
-          <div className="flex flex-col md:flex-row justify-between">
+          <div className="flex flex-col md:flex-row justify-between items-start mb-4">
             <div className="space-y-1 text-right">
+              <h3 className="text-xl font-semibold text-right">
+                تفاصيل العقد
+              </h3>
               <p className="text-sm text-muted-foreground text-right">
-                {agreement.created_at && <>تم الإنشاء في {format(new Date(agreement.created_at), 'd MMMM, yyyy', {locale: undefined})}</>}
+                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-medium">
+                  {agreement.agreement_number}
+                </span>
               </p>
+              <p className="text-sm text-muted-foreground text-right">
+                إدارة معلومات العقد والمدفوعات والوثائق ذات الصلة
+              </p>
+              {agreement.created_at && (
+                <p className="text-sm text-muted-foreground text-right">
+                  تم الإنشاء في {format(new Date(agreement.created_at), 'd MMMM, yyyy', {locale: undefined})}
+                </p>
+              )}
             </div>
           </div>
           
@@ -430,11 +447,6 @@ const AgreementDetailPage = () => {
       <RecordPaymentDialog 
         open={isPaymentDialogOpen} 
         onOpenChange={setIsPaymentDialogOpen}
-        agreementId={agreement?.id}
-        onPaymentRecorded={() => {
-          refreshAgreementData();
-          fetchPayments();
-        }}
       />
       </div>
     </PageContainer>

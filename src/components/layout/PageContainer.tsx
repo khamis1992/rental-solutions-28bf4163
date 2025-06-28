@@ -99,9 +99,6 @@ const PageContainer: React.FC<PageContainerProps> = ({
             <div className={titleAlignClass}>
               {title && <h1 className={cn("text-xl md:text-2xl font-bold tracking-tight", titleAlignClass)}>{title}</h1>}
               {description && <p className={cn("text-muted-foreground mt-1 text-sm md:text-base", titleAlignClass)}>{description}</p>}
-              <p className={cn("text-xs text-muted-foreground mt-1", titleAlignClass)}>
-                {isRTL ? `تاريخ النظام: ${formatDate(systemDate)}` : `System Date: ${formatDate(systemDate)}`}
-              </p>
             </div>
             {actions && (
               <div className={cn(

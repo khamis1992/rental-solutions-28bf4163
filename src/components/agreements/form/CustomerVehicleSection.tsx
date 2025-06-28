@@ -65,6 +65,7 @@ export const CustomerVehicleSection = ({
           selectedVehicle={selectedVehicle}
           onVehicleSelect={setSelectedVehicle}
           placeholder="Select vehicle"
+          excludeMaintenanceVehicles={true}
         />
         {vehicleError && (
           <Alert variant="destructive" className="py-2 mt-1">

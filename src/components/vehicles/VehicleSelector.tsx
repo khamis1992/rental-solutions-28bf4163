@@ -15,13 +15,15 @@ interface VehicleSelectorProps {
   onVehicleSelect: (vehicle: ExtendedVehicle) => void;
   placeholder?: string;
   disabled?: boolean;
+  excludeMaintenanceVehicles?: boolean; // جديد: استثناء مركبات الصيانة والحوادث
 }
 
 const VehicleSelector = ({
   selectedVehicle,
   onVehicleSelect,
   placeholder = "Search for a vehicle...",
-  disabled = false
+  disabled = false,
+  excludeMaintenanceVehicles = false
 }: VehicleSelectorProps) => {
   const [open, setOpen] = useState<boolean>(false);
   const [internalSearchQuery, setInternalSearchQuery] = useState<string>('');
@@ -29,7 +31,25 @@ const VehicleSelector = ({
   const [isSearching, setIsSearching] = useState(false);
   
   const vehiclesHook = useVehicles();
-  const { data: vehicles, isLoading, error } = vehiclesHook.useList();
+  const { data: allVehicles, isLoading, error } = vehiclesHook.useList();
+
+  // فلترة المركبات حسب الحاجة
+  const vehicles = React.useMemo(() => {
+    if (!allVehicles) return [];
+    
+    if (excludeMaintenanceVehicles) {
+      // استثناء المركبات في الصيانة والحوادث للعقود
+      const excludedStatuses = ['maintenance', 'accident', 'rented', 'retired'];
+      const filtered = allVehicles.filter(vehicle => 
+        !excludedStatuses.includes(vehicle.status)
+      );
+      
+      console.log(`تم فلترة ${filtered.length} مركبة متاحة من أصل ${allVehicles.length} مركبة`);
+      return filtered;
+    }
+    
+    return allVehicles;
+  }, [allVehicles, excludeMaintenanceVehicles]);
 
   // Enhanced search function
   const performEnhancedSearch = async (searchTerm: string) => {
@@ -148,23 +168,28 @@ const VehicleSelector = ({
     }
   }, [error]);
 
+  // عدد المركبات المحظورة
+  const blockedVehiclesCount = excludeMaintenanceVehicles && allVehicles ? 
+    allVehicles.length - vehicles.length : 0;
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className={cn("justify-between w-full")}
-        >
-          {selectedVehicle ? 
-            `${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate})` : 
-            placeholder
-          }
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
+    <div className="space-y-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className={cn("justify-between w-full")}
+          >
+            {selectedVehicle ? 
+              `${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate})` : 
+              placeholder
+            }
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
       <PopoverContent className="p-0 w-full min-w-[400px]" align="start" sideOffset={4}>
         <Command shouldFilter={false}>
           <div className="flex items-center border-b px-3">
@@ -258,6 +283,24 @@ const VehicleSelector = ({
         </Command>
       </PopoverContent>
     </Popover>
+
+    {/* تحذير المركبات المحظورة للعقود */}
+    {excludeMaintenanceVehicles && blockedVehiclesCount > 0 && (
+      <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
+        <AlertTriangle className="h-4 w-4" />
+        <span>
+          {blockedVehiclesCount} مركبة غير متاحة (في الصيانة/حادث/مؤجرة)
+        </span>
+      </div>
+    )}
+
+    {/* عداد المركبات المتاحة */}
+    {excludeMaintenanceVehicles && (
+      <div className="text-xs text-muted-foreground">
+        {vehicles.length} مركبة متاحة للإيجار
+      </div>
+    )}
+  </div>
   );
 };
 
