@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/ui/PageHeader';
 
@@ -16,22 +16,18 @@ import { CustomerListFilterClone } from '@/components/agreements/CustomerListFil
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { AgreementTabPanel } from '@/components/agreements/AgreementTabPanel';
 import { Badge } from '@/components/ui/badge';
 import { AgreementViewSelectors } from '@/components/agreements/AgreementViewSelectors';
 import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
 import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPanel';
-import { EnhancedAgreementFilterPanel } from '@/components/agreements/EnhancedAgreementFilterPanel';
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { CheckCircle } from 'lucide-react';
 
 const Agreements = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
@@ -39,7 +35,6 @@ const Agreements = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('agreements');
   const [viewMode, setViewMode] = useState('card' as 'card' | 'table' | 'compact');
-  const [showNewAgreementAlert, setShowNewAgreementAlert] = useState(false);
   
   // Use the agreement service hook
   const {
@@ -56,25 +51,6 @@ const Agreements = () => {
   
   // Add state for customer search functionality
   const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
-
-  // Handle new agreement notification
-  useEffect(() => {
-    if (location.state?.newAgreementId && location.state?.message) {
-      setShowNewAgreementAlert(true);
-      toast.success(location.state.message, {
-        duration: 5000,
-        description: `العقد رقم: ${location.state.newAgreementId}`
-      });
-      
-      // Clear the state to prevent showing again on refresh
-      window.history.replaceState({}, document.title);
-      
-      // Auto-hide alert after 10 seconds
-      setTimeout(() => {
-        setShowNewAgreementAlert(false);
-      }, 10000);
-    }
-  }, [location.state]);
   
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -193,31 +169,6 @@ const Agreements = () => {
       />
       
       <div className="flex flex-col gap-6" dir="rtl">
-        {/* New Agreement Success Alert */}
-        {showNewAgreementAlert && (
-          <Alert className="bg-green-50 border-green-200">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800 text-right">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">
-                  ✅ تم إنشاء العقد الجديد بنجاح وإضافته لقائمة العقود أدناه
-                </span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setShowNewAgreementAlert(false)}
-                  className="text-green-600 hover:text-green-800"
-                >
-                  ✕
-                </Button>
-              </div>
-              <p className="text-sm mt-1">
-                يمكنك العثور على العقد الجديد في قائمة "جميع العقود" أو في تبويب "نشطة"
-              </p>
-            </AlertDescription>
-          </Alert>
-        )}
-
         {/* Analytics Section */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Stats Overview */}
@@ -285,7 +236,7 @@ const Agreements = () => {
           {/* Filter Panel */}
           {showFilters && (
             <div className="border-b">
-              <EnhancedAgreementFilterPanel onFilterChange={handleFilterChange} currentFilters={searchParams} />
+              <AgreementFilterPanel onFilterChange={handleFilterChange} currentFilters={searchParams} />
             </div>
           )}
           
@@ -293,14 +244,7 @@ const Agreements = () => {
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full sm:w-auto" dir="rtl">
               <TabsList className="justify-start">
-                <TabsTrigger value="agreements" className="text-right">
-                  جميع العقود
-                  {agreements && agreements.length > 0 && (
-                    <Badge variant="secondary" className="mr-2">
-                      {agreements.length}
-                    </Badge>
-                  )}
-                </TabsTrigger>
+                <TabsTrigger value="agreements" className="text-right">جميع العقود</TabsTrigger>
                 <TabsTrigger value="active" className="text-right">نشطة</TabsTrigger>
                 <TabsTrigger value="completed" className="text-right">مكتملة</TabsTrigger>
                 <TabsTrigger value="cancelled" className="text-right">ملغاة</TabsTrigger>
@@ -312,7 +256,6 @@ const Agreements = () => {
                 agreements={agreements}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
-                onRefresh={refetch}
                 loadingText="جاري تحميل العقود..."
               />
               <AgreementTabPanel
@@ -321,7 +264,6 @@ const Agreements = () => {
                 agreements={agreements}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
-                onRefresh={refetch}
                 loadingText=""
               />
               <AgreementTabPanel
@@ -330,7 +272,6 @@ const Agreements = () => {
                 agreements={agreements}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
-                onRefresh={refetch}
                 loadingText=""
               />
               <AgreementTabPanel
@@ -339,7 +280,6 @@ const Agreements = () => {
                 agreements={agreements}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
-                onRefresh={refetch}
                 loadingText=""
               />
               <TabsContent value="history" className="m-0">

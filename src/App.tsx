@@ -95,7 +95,6 @@ const DocumentsPage = lazy(() => import("./pages/DocumentsPage"));
 const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
 const WhatsAppNotifications = lazy(() => import("./pages/WhatsAppNotifications"));
 const WhatsAppTest = lazy(() => import("./pages/WhatsAppTest"));
-const GoogleVisionTest = lazy(() => import("./pages/GoogleVisionTest"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Mobile Field Operations
@@ -197,7 +196,6 @@ const AppContent = () => {
                 <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />
                 <Route path="/whatsapp-notifications" element={withErrorBoundary(WhatsAppNotifications)} />
                 <Route path="/whatsapp-test" element={withErrorBoundary(WhatsAppTest)} />
-                <Route path="/google-vision-test" element={withErrorBoundary(GoogleVisionTest)} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/system" element={<Navigate to="/settings" replace />} />
                 <Route path="/users" element={withErrorBoundary(UserManagement)} />

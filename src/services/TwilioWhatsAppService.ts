@@ -347,52 +347,42 @@ export class TwilioWhatsAppService {
     error?: string;
   }> {
     try {
-      console.log("[WhatsApp Service] Checking service status...");
-      
       // Test connection by trying to call the edge function with a test flag.
+      // The function will return an error if secrets are not configured on the server.
       const { data, error } = await supabase.functions.invoke('send-whatsapp', {
         body: { test: true }
       });
 
-      console.log("[WhatsApp Service] Status check response:", { data, error });
-
       if (error) {
-        console.error("[WhatsApp Service] Error during status check:", error);
-        
         // Handle different types of errors gracefully
         if (error.message?.includes('Edge Function returned a non-2xx status code')) {
       return {
         available: false,
-            error: 'خدمة الواتساب غير مكونة بشكل صحيح. يرجى التحقق من Edge Function والـ Secrets.'
+            error: 'خدمة الواتساب غير مكونة. يرجى إعداد Twilio Secrets في Supabase.'
       };
     }
 
         if (error.message?.includes('FunctionsHttpError')) {
       return {
         available: false,
-            error: 'وظيفة الواتساب غير متاحة في Supabase أو تحتاج إعادة نشر.'
+            error: 'وظيفة الواتساب غير متاحة في Supabase.'
           };
         }
         
-        return {
-          available: false,
-          error: `خطأ في الخدمة: ${error.message}`
-        };
+        throw new Error(error.message);
       }
       
-      if (data && !data.success) {
-        console.warn("[WhatsApp Service] Service returned failure:", data);
+      if (data && !data.success && data.error?.includes('credentials')) {
         return {
           available: false,
-          error: data.error || 'بيانات Twilio غير مكونة في الخادم.'
+          error: 'بيانات Twilio غير مكونة في الخادم.'
         };
       }
 
-      console.log("[WhatsApp Service] Service is available and working!");
       return { available: true };
 
     } catch (err: any) {
-      console.error("[WhatsApp Service] Exception during status check:", err);
+      console.warn("WhatsApp service status check failed:", err.message);
       
       // Return user-friendly error messages instead of throwing
       let errorMessage = 'خدمة الواتساب غير متاحة حالياً';
