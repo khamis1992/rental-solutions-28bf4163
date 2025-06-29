@@ -11,8 +11,8 @@ import { ErrorBoundary } from "./components/ui/error-boundary";
 import { getRetryConfig } from "./lib/api/retry-utils";
 import { useIsMobile } from "./hooks/use-mobile";
 
-// PWA Components
-import { PWAController } from "./components/pwa/PWAController";
+// PWA Components - DISABLED
+// import { PWAController } from "./components/pwa/PWAController";
 
 // Mobile Performance Components
 import { MobilePerformanceMonitor, useMobilePerformanceOptimization } from "./components/ui/mobile-performance-monitor";
@@ -245,8 +245,9 @@ function App() {
                 <SettingsProvider>
             <NotificationProvider>
                     <TooltipProvider>
-                      {/* Enhanced PWA Components */}
-                      <PWAController 
+                      {/* Enhanced PWA Components - DISABLED */}
+                      {/* PWA functionality has been disabled to remove installation prompts */}
+                      {/* <PWAController 
                         enableSmartBanner={true}
                         enableEnhancedPrompt={true}
                         enableUpdatePrompt={true}
@@ -254,7 +255,7 @@ function App() {
                         bannerTheme="premium"
                         enableNotifications={true}
                         enableOfflineSync={true}
-                      />
+                      /> */}
                       
                       {/* مراقب الأداء للجوال */}
                       <MobilePerformanceMonitor />

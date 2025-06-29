@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -97,6 +96,19 @@ const Login = () => {
           </motion.div>
         </CardHeader>
         <CardContent>
+          {import.meta.env.DEV && (
+            <motion.div variants={itemVariants} className="mb-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
+                <div className="flex items-center gap-2 text-amber-800">
+                  <span className="text-amber-600">⚠️</span>
+                  <span className="font-medium">Development Mode</span>
+                </div>
+                <p className="text-amber-700 mt-1">
+                  If authentication fails, you can use any email/password to access the development version.
+                </p>
+              </div>
+            </motion.div>
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <motion.div variants={itemVariants}>

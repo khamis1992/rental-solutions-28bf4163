@@ -45,6 +45,8 @@ const logPWAStatus = () => {
 };
 
 export const InstallPrompt: React.FC = () => {
+  return null; // <-- Permanently disable the prompt by returning null
+  
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showIOSPrompt, setShowIOSPrompt] = useState(false);

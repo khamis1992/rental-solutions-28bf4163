@@ -8,6 +8,7 @@ interface GradientButtonProps extends ButtonProps {
   gradient?: 'primary' | 'success' | 'warning' | 'danger';
   isLoading?: boolean;
   tooltip?: string;
+  glow?: boolean;
 }
 
 export function GradientButton({
@@ -16,6 +17,7 @@ export function GradientButton({
   className,
   children,
   tooltip,
+  glow = false,
   ...props
 }: GradientButtonProps) {
   const gradientStyles = {
@@ -30,6 +32,7 @@ export function GradientButton({
       className={cn(
         gradientStyles[gradient],
         "text-white transition-all duration-200 shadow-lg hover:shadow-xl",
+        glow && "animate-pulse shadow-2xl shadow-blue-500/50",
         isLoading && "opacity-80 cursor-not-allowed",
         className
       )}
