@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import PageContainer from '@/components/layout/PageContainer';
 import AgreementWithCustomerSteps from '@/components/agreements/AgreementWithCustomerSteps';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
@@ -12,7 +13,8 @@ import { agreementPaymentService } from '@/services/AgreementPaymentService';
 
 const AddAgreement = () => {
   const navigate = useNavigate();
-  const { createAgreement } = useAgreementService();
+  const queryClient = useQueryClient();
+  const { createAgreement, refetch } = useAgreementService();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (data: Agreement) => {
@@ -25,6 +27,12 @@ const AddAgreement = () => {
       
       if (result) {
         console.log('تم إنشاء الاتفاقية بنجاح:', result);
+        
+        // تحديث الـ cache فوراً
+        await queryClient.invalidateQueries({ queryKey: ['agreements'] });
+        
+        // إعادة جلب قائمة العقود لضمان التحديث
+        await refetch();
         
         toast.success('تم إنشاء الاتفاقية بنجاح', {
           description: 'سيتم إنشاء جدولة الدفعات تلقائياً في الخلفية...'
@@ -61,10 +69,18 @@ const AddAgreement = () => {
           });
         }
         
-        // الانتقال إلى صفحة تفاصيل العقد الجديد
+        // تحديث نهائي للـ cache قبل الانتقال
+        await queryClient.invalidateQueries({ queryKey: ['agreements'] });
+        
+        // انتظار قصير للتأكد من تحديث الـ cache ثم الانتقال
         setTimeout(() => {
-          navigate(`/agreements/${result.id}`);
-        }, 2000);
+          navigate('/agreements', { 
+            state: { 
+              newAgreementId: result.id,
+              message: 'تم إنشاء العقد بنجاح وإضافته لقائمة العقود'
+            }
+          });
+        }, 1000);
       }
     } catch (error) {
       console.error('Error creating agreement:', error);
@@ -170,6 +186,7 @@ const AddAgreement = () => {
                 <li>تتبع حالة كل دفعة (معلقة، مدفوعة، متأخرة)</li>
                 <li>إصلاح تلقائي للاتفاقيات القديمة التي تفتقد للمدفوعات</li>
                 <li>تقارير مالية شاملة وتحليلات فورية</li>
+                <li>**ظهور فوري في قائمة العقود** بعد الحفظ مباشرة</li>
               </ul>
             </div>
           </AlertDescription>
