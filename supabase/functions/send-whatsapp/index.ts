@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from '../_shared/cors.ts'
 
-console.log("WhatsApp Edge Function - Production Ready Version")
+console.log("Production WhatsApp sender function initializing...")
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -11,71 +11,65 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json()
-    console.log("Received request:", JSON.stringify(requestBody, null, 2))
     
     // Handle test requests for service status check
     if (requestBody.test) {
       const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       if (!accountSid) {
-        console.error("TWILIO_ACCOUNT_SID not found in environment")
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "Twilio secrets not configured",
-          setup_required: true
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        })
+        throw new Error('Twilio secrets not configured in the function environment.');
       }
-      
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "WhatsApp service is configured and ready",
-        account_sid_configured: true
-      }), {
+      return new Response(JSON.stringify({ success: true, message: "Test successful" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       })
     }
 
-    const { to, body, messageType = 'general', variables } = requestBody
-    console.log(`Processing WhatsApp message: to=${to}, type=${messageType}`)
+    const { to, body, messageType, variables, mediaUrl } = requestBody
+    console.log(`Received request to send to: ${to}, type: ${messageType}`)
 
-    // Validate required parameters
     if (!to) {
-      throw new Error("Missing 'to' parameter")
+      throw new Error("Missing 'to' in request.")
     }
 
-    if (!body && !variables) {
-      throw new Error("Missing message content ('body' or 'variables')")
+    // --- Template-based sending ---
+    // ⚠️ يجب تحديث معرفات القوالب التالية بالمعرفات الفعلية المعتمدة من Twilio
+    const templateSids = {
+      'payment_reminder': 'HX9096bf6d24b0c82817f99b3af0803d95', // تذكير دفعة شهرية ✅ معتمد ويعمل
+      'monthly_reminder': 'HX_MONTHLY_REMINDER_SID', // تذكير دفعة شهرية (28 من كل شهر) - يحتاج SID فعلي
+      'delay_penalty': 'HX_DELAY_PENALTY_SID', // إنذار غرامة تأخير (1 من كل شهر) - يحتاج SID فعلي
+      'final_warning': 'HX_FINAL_WARNING_SID', // إنذار نهائي قانوني - يحتاج SID فعلي
+      'legal_action': 'HX_LEGAL_ACTION_SID', // إنذار إجراء قانوني (24 ساعة) - يحتاج SID فعلي
+      'manager_report': 'HX_MANAGER_REPORT_SID', // تقرير يومي للمدير العام - يحتاج SID فعلي
+      'report_with_pdf': 'HX_REPORT_PDF_SID', // قالب جديد للتقارير مع PDF - يحتاج SID فعلي
+      'scheduled_report': null, // التقارير المجدولة - إرسال نص عادي
+      'instant_report': null, // التقارير الفورية - إرسال نص عادي
+      'daily_summary': null, // الملخص اليومي - إرسال نص عادي
+      'report_failure': null, // تنبيه فشل التقرير - إرسال نص عادي
+      // Legacy templates
+      'overdue_payment': 'HX_OVERDUE_PAYMENT_SID',
+      'payment_received': 'HX_PAYMENT_RECEIVED_SID'
+    };
+
+    const contentSid = templateSids[messageType];
+    
+    if (messageType !== 'general' && contentSid === undefined) {
+      throw new Error(`Message template for type '${messageType}' is not defined.`);
     }
 
-    // Get Twilio credentials from Supabase Function Secrets
+    if (contentSid && !variables) {
+      throw new Error(`Variables are required for template message type '${messageType}'.`);
+    }
+    // --- End of template logic ---
+
+    // Get credentials from server-side environment variables (secrets)
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const fromNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-
-    console.log("Checking Twilio credentials...")
-    console.log("Account SID configured:", !!accountSid)
-    console.log("Auth Token configured:", !!authToken)
-    console.log("WhatsApp Number configured:", !!fromNumber)
+    console.log("Using credentials from Supabase function secrets");
 
     if (!accountSid || !authToken || !fromNumber) {
-      const missingSecrets = [];
-      if (!accountSid) missingSecrets.push('TWILIO_ACCOUNT_SID');
-      if (!authToken) missingSecrets.push('TWILIO_AUTH_TOKEN');
-      if (!fromNumber) missingSecrets.push('TWILIO_WHATSAPP_NUMBER');
-      
-      console.error("Missing Twilio secrets:", missingSecrets.join(', '))
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Twilio credentials not properly configured",
-        missing_secrets: missingSecrets,
-        setup_required: true
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
+      console.error("Twilio secrets not found in Supabase function environment.");
+      throw new Error('Twilio secrets not configured in the function environment. Please set them in the Supabase dashboard.');
     }
 
     // Format phone number for WhatsApp
@@ -84,46 +78,43 @@ serve(async (req) => {
       const cleanPhone = to.replace(/[^\d+]/g, '')
       if (cleanPhone.startsWith('+')) {
         formattedTo = `whatsapp:${cleanPhone}`
-      } else if (cleanPhone.startsWith('974')) {
-        formattedTo = `whatsapp:+${cleanPhone}`
       } else {
         formattedTo = `whatsapp:+974${cleanPhone}`
       }
     }
 
-    console.log(`Sending WhatsApp message from ${fromNumber} to ${formattedTo}`)
+    console.log(`Attempting to send message from ${fromNumber} to ${formattedTo}`)
 
-    // Create message body
-    let messageBody = body;
-    if (!messageBody && variables) {
-      // Create Arabic message based on message type
-      switch (messageType) {
-        case 'payment_reminder':
-          messageBody = `السلام عليكم،\n\nتذكير بسداد دفعة الإيجار:\n- المبلغ: ${variables['1'] || 'غير محدد'}\n- التاريخ المستحق: ${variables['2'] || 'غير محدد'}\n\nشكراً لكم\nشركة العراف للتأجير`;
-          break;
-        case 'monthly_reminder':
-          messageBody = `السلام عليكم،\n\nتذكير شهري بدفعة الإيجار:\n- المبلغ المستحق: ${variables['1'] || 'غير محدد'}\n- تاريخ الاستحقاق: ${variables['2'] || 'غير محدد'}\n\nيرجى التواصل معنا لأي استفسارات\nشركة العراف للتأجير`;
-          break;
-        case 'late_payment_notice':
-          messageBody = `السلام عليكم،\n\nإشعار تأخير سداد:\n- المبلغ المتأخر: ${variables['1'] || 'غير محدد'}\n- أيام التأخير: ${variables['2'] || 'غير محدد'}\n- الغرامة: ${variables['3'] || 'غير محدد'}\n\nيرجى السداد في أقرب وقت\nشركة العراف للتأجير`;
-          break;
-        case 'scheduled_report':
-          messageBody = `📊 تقرير مجدول جديد\n\nاسم التقرير: ${variables['1'] || 'غير محدد'}\nالنوع: ${variables['2'] || 'غير محدد'}\nتاريخ الإنشاء: ${variables['3'] || 'غير محدد'}\n\nشركة العراف للتأجير`;
-          break;
-        default:
-          messageBody = variables['1'] || 'رسالة من نظام العراف للتأجير';
-      }
-    }
-
-    // Prepare Twilio API request
+    // Use Twilio REST API directly
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
     
     const formData = new URLSearchParams()
     formData.append('From', fromNumber)
     formData.append('To', formattedTo)
-    formData.append('Body', messageBody)
 
-    console.log("Sending request to Twilio API...")
+    // Use Content API for templates, or Body for general messages
+    if (contentSid) {
+      console.log(`Sending with Template SID: ${contentSid}`);
+      formData.append('ContentSid', contentSid);
+      formData.append('ContentVariables', JSON.stringify(variables));
+      
+      // إضافة ملف PDF إذا كان متوفراً
+      if (mediaUrl) {
+        console.log(`Adding media attachment: ${mediaUrl}`);
+        formData.append('MediaUrl', mediaUrl);
+      }
+    } else {
+      console.log("Sending with freeform body (for reports and general messages).");
+      if (!body) throw new Error("Missing 'body' for general message.");
+      formData.append('Body', body);
+      
+      // إضافة ملف PDF للرسائل النصية أيضاً
+      if (mediaUrl) {
+        console.log(`Adding media attachment to text message: ${mediaUrl}`);
+        formData.append('MediaUrl', mediaUrl);
+      }
+    }
+
     const response = await fetch(twilioUrl, {
       method: 'POST',
       headers: {
@@ -134,59 +125,72 @@ serve(async (req) => {
     })
 
     const result = await response.json()
-    console.log("Twilio API response:", JSON.stringify(result, null, 2))
     
     if (!response.ok) {
       console.error('Twilio API error:', result)
       
-      // Handle specific Twilio errors
-      let errorMessage = 'Unknown Twilio error';
-      if (result.code === 20003) {
-        errorMessage = 'Authentication failed - please check your Twilio credentials';
-      } else if (result.code === 21211) {
-        errorMessage = 'Invalid phone number format';
-      } else if (result.code === 21608) {
-        errorMessage = 'WhatsApp number not configured or verified';
-      } else if (result.message) {
-        errorMessage = result.message;
+      // التعامل مع خطأ 63016 (قالب مرفوض أو غير معتمد)
+      if (result.code === 63016) {
+        console.log('Template error 63016 detected, falling back to text message...');
+        
+        // إعادة المحاولة كرسالة نصية عادية
+        const fallbackFormData = new URLSearchParams()
+        fallbackFormData.append('From', fromNumber)
+        fallbackFormData.append('To', formattedTo)
+        fallbackFormData.append('Body', body || `تقرير جديد متاح: ${variables?.['1'] || 'غير محدد'}`)
+        
+        if (mediaUrl) {
+          fallbackFormData.append('MediaUrl', mediaUrl);
+        }
+        
+        const fallbackResponse = await fetch(twilioUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: fallbackFormData,
+        })
+        
+        const fallbackResult = await fallbackResponse.json()
+        
+        if (!fallbackResponse.ok) {
+          throw new Error(`Fallback message also failed: ${fallbackResult.message || 'Unknown error'}`)
+        }
+        
+        console.log(`Fallback message sent successfully. SID: ${fallbackResult.sid}`)
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          messageId: fallbackResult.sid, 
+          fallback: true,
+          message: 'Template failed, sent as text message with media'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
       }
       
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: `Twilio error: ${errorMessage}`,
-        twilio_code: result.code,
-        details: result,
-        setup_required: result.code === 20003
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
+      throw new Error(`Twilio API error: ${result.message || 'Unknown error'}`)
     }
     
-    console.log(`WhatsApp message sent successfully. SID: ${result.sid}`)
+    console.log(`Message sent successfully. SID: ${result.sid}`)
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      messageId: result.sid,
-      message: "WhatsApp message sent successfully",
-      to: formattedTo,
-      type: messageType
-    }), {
+    return new Response(JSON.stringify({ success: true, messageId: result.sid }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
     
   } catch (error) {
-    console.error('Error in WhatsApp Edge Function:', error)
+    console.error('Error sending WhatsApp message:', error)
     
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message || "Internal server error",
-      timestamp: new Date().toISOString(),
-      function: 'send-whatsapp'
+      error: error.message,
+      timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200, // Return 200 but with success: false to avoid HTTP errors
+      status: 500,
     })
   }
 }) 

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 
 // Cache for storing availability check results
@@ -56,14 +57,14 @@ export const checkEdgeFunctionAvailability = async (
   
   while (attempt <= retries) {
     try {
-      console.log(`ℹ️ Checking edge function availability: ${functionName} (attempt ${attempt + 1}/${retries + 1})`);
+      console.log(`Checking edge function availability: ${functionName} (attempt ${attempt + 1}/${retries + 1})`);
       
       const response = await supabase.functions.invoke(functionName, {
         body: { test: true },
       });
       
       if (!response.error) {
-        console.log(`✅ Edge function ${functionName} is available`);
+        console.log(`Edge function ${functionName} is available`);
         
         // Cache the positive result both in memory and session storage
         const cacheValue = { available: true, timestamp: now };
@@ -77,15 +78,7 @@ export const checkEdgeFunctionAvailability = async (
         return true;
       }
       
-      // Handle specific error cases more gracefully
-      if (response.error?.message?.includes('Function not found') || 
-          response.error?.message?.includes('Invalid API key') ||
-          response.error?.message?.includes('Not Found')) {
-        console.log(`ℹ️ Edge function ${functionName} not deployed or not accessible - this is expected in development`);
-        break; // No need to retry for these errors
-      }
-      
-      console.log(`⚠️ Edge function ${functionName} check failed:`, response.error?.message || 'Unknown error');
+      console.warn(`Edge function ${functionName} check failed:`, response.error);
       attempt++;
       
       if (attempt <= retries) {
@@ -93,17 +86,7 @@ export const checkEdgeFunctionAvailability = async (
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
     } catch (err) {
-      console.log(`ℹ️ Error checking edge function ${functionName}:`, err instanceof Error ? err.message : 'Unknown error');
-      
-      // Handle common development errors gracefully
-      if (err instanceof Error && 
-          (err.message.includes('fetch') || 
-           err.message.includes('network') || 
-           err.message.includes('API key'))) {
-        console.log(`ℹ️ Edge function ${functionName} not accessible - continuing without this service`);
-        break; // No need to retry for these errors
-      }
-      
+      console.error(`Error checking edge function ${functionName}:`, err);
       attempt++;
       
       if (attempt <= retries) {
@@ -112,7 +95,7 @@ export const checkEdgeFunctionAvailability = async (
     }
   }
   
-  console.log(`ℹ️ Edge function ${functionName} is unavailable - some import features may be limited`);
+  console.error(`Edge function ${functionName} is unavailable after ${retries + 1} attempts`);
   
   // Cache the negative result both in memory and session storage
   const cacheValue = { available: false, timestamp: now };
@@ -145,7 +128,7 @@ export const getSystemServicesStatus = async (): Promise<{
         
         // Cache valid for 1 hour
         if (now - timestamp < CACHE_TTL) {
-          console.log('ℹ️ Using cached system services status');
+          console.log('Using cached system services status');
           return status;
         }
       } catch (err) {
@@ -154,28 +137,13 @@ export const getSystemServicesStatus = async (): Promise<{
     }
   }
   
-  console.log('🔍 Checking system services availability...');
-  
-  // Check edge functions with reduced retries to speed up development
-  const agreementImport = await checkEdgeFunctionAvailability('process-agreement-imports', 0);
-  const customerImport = await checkEdgeFunctionAvailability('process-customer-imports', 0);
+  const agreementImport = await checkEdgeFunctionAvailability('process-agreement-imports');
+  const customerImport = await checkEdgeFunctionAvailability('process-customer-imports', 2);
   
   const status = {
     agreementImport,
     customerImport
   };
-  
-  // Log overall status
-  const availableServices = Object.values(status).filter(Boolean).length;
-  const totalServices = Object.keys(status).length;
-  
-  if (availableServices === 0) {
-    console.log('ℹ️ No edge functions available - using core features only');
-  } else if (availableServices < totalServices) {
-    console.log(`ℹ️ ${availableServices}/${totalServices} edge functions available - some import features may be limited`);
-  } else {
-    console.log('✅ All edge functions available');
-  }
   
   // Cache the result in session storage
   if (typeof sessionStorage !== 'undefined') {

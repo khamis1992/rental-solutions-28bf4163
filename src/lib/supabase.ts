@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
@@ -393,58 +394,6 @@ export const fixAgreementPayments = async (agreementId: string) => {
     return { 
       success: false, 
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 
-    };
-  }
-};
-
-/**
- * Test the authentication service specifically
- */
-export const testAuthConnection = async (): Promise<{
-  isHealthy: boolean;
-  error?: string;
-  canSignUp?: boolean;
-  hasAuthSettings?: boolean;
-}> => {
-  try {
-    console.log('🔍 Testing Supabase auth service...');
-    
-    // Test 1: Check if we can get the current session (this doesn't require auth)
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('❌ Session check failed:', sessionError);
-      return {
-        isHealthy: false,
-        error: `Session check failed: ${sessionError.message}`,
-      };
-    }
-    
-    console.log('✅ Session check passed');
-    
-    // Test 2: Try to get user (should work even if no user is logged in)
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    
-    if (userError && !userError.message.includes('JWT')) {
-      console.error('❌ User check failed:', userError);
-      return {
-        isHealthy: false,
-        error: `User check failed: ${userError.message}`,
-      };
-    }
-    
-    console.log('✅ User check passed');
-    
-    return {
-      isHealthy: true,
-      canSignUp: true,
-      hasAuthSettings: true,
-    };
-  } catch (error) {
-    console.error('❌ Auth connection test failed:', error);
-    return {
-      isHealthy: false,
-      error: error instanceof Error ? error.message : 'Unknown auth error',
     };
   }
 };

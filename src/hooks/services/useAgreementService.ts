@@ -174,22 +174,9 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       }
       return result.data;
     },
-    onSuccess: (newAgreement) => {
+    onSuccess: () => {
       toast.success('Agreement created successfully');
-      
-      // تحديث فوري للـ cache
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
-      
-      // إضافة العقد الجديد للـ cache الحالي لظهوره فوراً
-      queryClient.setQueryData(['agreements', searchParams], (oldData: Agreement[] | undefined) => {
-        if (oldData && Array.isArray(oldData)) {
-          return [newAgreement, ...oldData];
-        }
-        return [newAgreement];
-      });
-      
-      // تحديث أي استعلامات أخرى متعلقة بالعقود
-      queryClient.invalidateQueries({ queryKey: ['agreements'], exact: false });
     },
     onError: (error) => {
       toast.error(`Creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

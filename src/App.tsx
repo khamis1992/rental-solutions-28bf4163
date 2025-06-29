@@ -11,8 +11,8 @@ import { ErrorBoundary } from "./components/ui/error-boundary";
 import { getRetryConfig } from "./lib/api/retry-utils";
 import { useIsMobile } from "./hooks/use-mobile";
 
-// PWA Components - DISABLED
-// import { PWAController } from "./components/pwa/PWAController";
+// PWA Components
+import { PWAController } from "./components/pwa/PWAController";
 
 // Mobile Performance Components
 import { MobilePerformanceMonitor, useMobilePerformanceOptimization } from "./components/ui/mobile-performance-monitor";
@@ -217,12 +217,12 @@ const AppContent = () => {
 
 function App() {
   const [queryClient] = useState(() => new QueryClient({
-  defaultOptions: {
-    queries: {
+    defaultOptions: {
+      queries: {
         ...getRetryConfig(),
         retryOnMount: true,
         refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000,  // 10 minutes
       },
     },
@@ -237,17 +237,16 @@ function App() {
 
   return (
     <DocumentationModeProvider>
-    <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <LanguageProvider>
-        <AuthProvider>
-          <ProfileProvider>
+            <AuthProvider>
+              <ProfileProvider>
                 <SettingsProvider>
-            <NotificationProvider>
+                  <NotificationProvider>
                     <TooltipProvider>
-                      {/* Enhanced PWA Components - DISABLED */}
-                      {/* PWA functionality has been disabled to remove installation prompts */}
-                      {/* <PWAController 
+                      {/* Enhanced PWA Components */}
+                      <PWAController 
                         enableSmartBanner={true}
                         enableEnhancedPrompt={true}
                         enableUpdatePrompt={true}
@@ -255,7 +254,7 @@ function App() {
                         bannerTheme="premium"
                         enableNotifications={true}
                         enableOfflineSync={true}
-                      /> */}
+                      />
                       
                       {/* مراقب الأداء للجوال */}
                       <MobilePerformanceMonitor />
@@ -267,12 +266,12 @@ function App() {
                       </ErrorBoundary>
                     </TooltipProvider>
                   </NotificationProvider>
-              </SettingsProvider>
-          </ProfileProvider>
-        </AuthProvider>
+                </SettingsProvider>
+              </ProfileProvider>
+            </AuthProvider>
           </LanguageProvider>
         </BrowserRouter>
-    </QueryClientProvider>
+      </QueryClientProvider>
     </DocumentationModeProvider>
   );
 }
