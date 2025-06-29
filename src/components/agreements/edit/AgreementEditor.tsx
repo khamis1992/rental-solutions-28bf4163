@@ -1058,9 +1058,6 @@ const AgreementEditor = () => {
                                 }}
                               />
                             </FormControl>
-                            <div className="text-xs text-muted-foreground text-right">
-                              اختياري - يمكن الاحتفاظ بالقيمة الحالية دون تغيير
-                            </div>
                             <FormMessage />
                           </FormItem>
                         )}

@@ -3,7 +3,6 @@ import { TabsContent } from '@/components/ui/tabs';
 import AgreementTable from '@/components/agreements/AgreementTable';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface AgreementTabPanelProps {
   value: string;
@@ -12,7 +11,6 @@ interface AgreementTabPanelProps {
   isLoading: boolean;
   onDeleteAgreement?: (id: string) => void;
   loadingText?: string;
-  onRefresh: () => void;
 }
 
 export const AgreementTabPanel = ({
@@ -21,29 +19,9 @@ export const AgreementTabPanel = ({
   agreements,
   isLoading,
   onDeleteAgreement,
-  loadingText = 'Loading agreements...',
-  onRefresh
+  loadingText = 'Loading agreements...'
 }: AgreementTabPanelProps) => (
   <TabsContent value={value} className="m-0">
-    <div className="flex items-center justify-between p-4 border-b">
-      <h3 className="text-lg font-semibold">
-        {value === 'agreements' && 'جميع العقود'}
-        {value === 'active' && 'العقود النشطة'}
-        {value === 'completed' && 'العقود المكتملة'}
-        {value === 'cancelled' && 'العقود الملغاة'}
-      </h3>
-      
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={onRefresh}
-        className="flex items-center gap-2"
-        disabled={isLoading}
-      >
-        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-        تحديث
-      </Button>
-    </div>
     <Suspense
       fallback={
         <div className="flex items-center justify-center h-64">

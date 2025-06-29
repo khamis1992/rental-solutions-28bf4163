@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -25,20 +24,18 @@ import {
   RefreshCw,
   UserPlus,
   Database,
-  Info,
-  Loader2
+  Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PageContainer from '@/components/layout/PageContainer';
 import { useCustomers } from '@/hooks/use-customers';
 import { supabase } from '@/lib/supabase';
-import { twilioWhatsAppService } from '@/services/TwilioWhatsAppService';
 
-  interface ServiceStatus {
-    available: boolean;
-    error?: string;
-    fromNumber?: string;
-  }
+interface ServiceStatus {
+  available: boolean;
+  error?: string;
+  fromNumber: string;
+}
 
 interface SelectedCustomer {
   id: string;
@@ -53,13 +50,6 @@ interface NextPayment {
   agreementNumber: string | null;
   isOverdue: boolean;
   daysOverdue?: number;
-}
-
-interface TestResult {
-  type: 'status' | 'message';
-  success: boolean;
-  message: string;
-  details?: any;
 }
 
 const WhatsAppTest: React.FC = () => {
@@ -78,7 +68,7 @@ const WhatsAppTest: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
   const [amount, setAmount] = useState(500);
   const [nextPayment, setNextPayment] = useState<NextPayment | null>(null);
-  const [results, setResults] = useState<TestResult[]>([]);
+  const [results, setResults] = useState<Array<{ type: string; message: string; success: boolean; timestamp: Date }>>([]);
 
   // جلب قائمة العملاء
   const { customers, isLoading: isLoadingCustomers, refreshCustomers } = useCustomers();
@@ -95,6 +85,7 @@ const WhatsAppTest: React.FC = () => {
   useEffect(() => {
     const checkServiceStatus = async () => {
       try {
+        const { twilioWhatsAppService } = await import('@/services/TwilioWhatsAppService');
         const status = await twilioWhatsAppService.getServiceStatus();
         setServiceStatus(status);
       } catch (error) {
@@ -434,33 +425,18 @@ const WhatsAppTest: React.FC = () => {
 
       if (result.success) {
         const successMessage = `✅ تم إرسال ${getMessageTypeName(messageType)} إلى ${selectedCustomer.full_name} بنجاح!\nمعرف الرسالة: ${result.messageId}`;
-        addResult({
-          type: 'message',
-          success: true,
-          message: successMessage,
-          details: result
-        });
+        addResult(getMessageTypeName(messageType), successMessage, true);
         updateStats(true);
         toast.success(`تم إرسال ${getMessageTypeName(messageType)} إلى ${selectedCustomer.full_name} بنجاح!`);
       } else {
         const errorMessage = `❌ فشل في إرسال ${getMessageTypeName(messageType)} إلى ${selectedCustomer.full_name}:\n${result.error}`;
-        addResult({
-          type: 'message',
-          success: false,
-          message: errorMessage,
-          details: result
-        });
+        addResult(getMessageTypeName(messageType), errorMessage, false);
         updateStats(false);
         toast.error('فشل في إرسال الرسالة: ' + result.error);
       }
     } catch (error) {
       const errorMessage = `❌ خطأ في النظام:\n${error instanceof Error ? error.message : 'خطأ غير معروف'}`;
-      addResult({
-        type: 'message',
-        success: false,
-        message: errorMessage,
-        details: error
-      });
+      addResult('خطأ نظام', errorMessage, false);
       updateStats(false);
       toast.error('خطأ في إرسال الرسالة');
       console.error(error);
@@ -477,8 +453,9 @@ const WhatsAppTest: React.FC = () => {
     return names[type as keyof typeof names] || type;
   };
 
-  const addResult = (result: TestResult) => {
-    setResults(prev => [result, ...prev].slice(0, 10));
+  const addResult = (type: string, message: string, success: boolean) => {
+    const newResult = { type, message, success, timestamp: new Date() };
+    setResults(prev => [newResult, ...prev].slice(0, 10));
   };
 
   const updateStats = (success: boolean) => {
@@ -521,61 +498,6 @@ const WhatsAppTest: React.FC = () => {
   };
 
   const successRate = (stats.sent + stats.failed) > 0 ? Math.round((stats.sent / (stats.sent + stats.failed)) * 100) : 0;
-
-  const testServiceStatus = async () => {
-    setIsLoading(true);
-    try {
-      const status = await twilioWhatsAppService.getServiceStatus();
-      addResult({
-        type: 'status',
-        success: status.available,
-        message: status.available 
-          ? 'خدمة الواتساب متاحة وجاهزة للاستخدام' 
-          : `خدمة الواتساب غير متاحة: ${status.error}`,
-        details: status
-      });
-    } catch (error) {
-      addResult({
-        type: 'status',
-        success: false,
-        message: `خطأ في اختبار الحالة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`,
-        details: error
-      });
-    }
-    setIsLoading(false);
-  };
-
-  const sendTestMessage = async () => {
-    if (!selectedCustomer || !selectedCustomer.phone || !selectedCustomer.full_name) {
-      addResult({
-        type: 'message',
-        success: false,
-        message: 'يرجى اختيار عميل من القائمة'
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const result = await twilioWhatsAppService.sendMessage(selectedCustomer.phone, selectedCustomer.full_name, 'general');
-      addResult({
-        type: 'message',
-        success: result.success,
-        message: result.success 
-          ? `تم إرسال الرسالة بنجاح! معرف الرسالة: ${result.messageId}`
-          : `فشل في إرسال الرسالة: ${result.error}`,
-        details: result
-      });
-    } catch (error) {
-      addResult({
-        type: 'message',
-        success: false,
-        message: `خطأ في إرسال الرسالة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`,
-        details: error
-      });
-    }
-    setIsLoading(false);
-  };
 
   return (
     <PageContainer
@@ -973,7 +895,7 @@ const WhatsAppTest: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="font-medium">{result.type}</div>
                       <div className="text-xs opacity-75">
-                        {new Date().toLocaleTimeString('ar-QA')}
+                        {result.timestamp.toLocaleTimeString('ar-QA')}
                       </div>
                     </div>
                     <div className="mt-1 text-sm whitespace-pre-line">{result.message}</div>
@@ -1019,70 +941,6 @@ const WhatsAppTest: React.FC = () => {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Test Service Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-right">فحص حالة الخدمة</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-gray-600 text-right">
-              تحقق من أن خدمة الواتساب مكونة بشكل صحيح ومتصلة بـ Twilio
-            </p>
-            <Button 
-              onClick={testServiceStatus}
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin ml-2" />}
-              فحص حالة الخدمة
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Send Test Message */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-right">إرسال رسالة اختبار</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="phone" className="text-right block mb-2">رقم الهاتف</Label>
-              <Input
-                id="phone"
-                value={selectedCustomer?.phone || ''}
-                onChange={(e) => setSelectedCustomer(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                placeholder="+97450000000"
-                className="text-right"
-                dir="ltr"
-              />
-              <p className="text-xs text-gray-500 text-right mt-1">
-                أدخل رقم هاتف صحيح بصيغة +974XXXXXXXX
-              </p>
-            </div>
-
-            <div>
-              <Label htmlFor="message" className="text-right block mb-2">نص الرسالة</Label>
-              <Textarea
-                id="message"
-                value={selectedCustomer?.full_name || ''}
-                onChange={(e) => setSelectedCustomer(prev => prev ? { ...prev, full_name: e.target.value } : null)}
-                placeholder="اكتب رسالتك هنا..."
-                className="text-right min-h-[100px]"
-                rows={4}
-              />
-            </div>
-
-            <Button 
-              onClick={sendTestMessage}
-              disabled={isLoading || !selectedCustomer || !selectedCustomer.phone || !selectedCustomer.full_name}
-              className="w-full"
-            >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin ml-2" />}
-              إرسال رسالة اختبار
-            </Button>
           </CardContent>
         </Card>
       </div>

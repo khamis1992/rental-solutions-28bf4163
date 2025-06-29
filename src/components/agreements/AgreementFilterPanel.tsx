@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -38,12 +39,6 @@ export function AgreementFilterPanel({ onFilterChange, currentFilters = {} }: Ag
   );
   const [endDateTo, setEndDateTo] = useState(
     currentFilters?.end_date_before ? new Date(currentFilters.end_date_before) : undefined
-  );
-  const [createdDateFrom, setCreatedDateFrom] = useState(
-    currentFilters?.created_date_after ? new Date(currentFilters.created_date_after) : undefined
-  );
-  const [createdDateTo, setCreatedDateTo] = useState(
-    currentFilters?.created_date_before ? new Date(currentFilters.created_date_before) : undefined
   );
   const [licensePlate, setLicensePlate] = useState(currentFilters?.license_plate || '');
   const [minRent, setMinRent] = useState(currentFilters?.rent_min || '');
