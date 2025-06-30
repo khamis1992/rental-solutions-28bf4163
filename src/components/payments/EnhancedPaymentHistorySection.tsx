@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Plus, RefreshCw, Clock, CheckCircle, AlertTriangle, CreditCard, DollarSign, Trash2, Edit } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Calendar, Plus, RefreshCw, Clock, CheckCircle, AlertTriangle, CreditCard, DollarSign, Trash2, Edit, AlertCircle } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
+
 import { Payment } from '@/types/payment.types';
 import { Agreement } from '@/types/agreement';
 import { useAgreementPaymentSync } from '@/hooks/payment/use-agreement-payment-sync';
@@ -27,6 +29,191 @@ interface EnhancedPaymentHistorySectionProps {
   fetchPayments?: () => void;
 }
 
+// دالة مساعدة لتنسيق التاريخ بأمان
+const formatDateSafely = (date: Date): string => {
+  try {
+    return date.toLocaleDateString('ar-QA') || date.toLocaleDateString() || 'تاريخ غير صحيح';
+  } catch {
+    return 'تاريخ غير صحيح';
+  }
+};
+
+// دالة محلية لتحليل وصف الدفعة 
+const parsePaymentDescription = (description: string): { month: number, year: number } | null => {
+  if (!description) return null;
+  
+  const monthMatch = description.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i);
+  const yearMatch = description.match(/\b(20\d{2})\b/);
+  
+  if (monthMatch && yearMatch) {
+    const monthsMap: { [key: string]: number } = {
+      'january': 1, 'february': 2, 'march': 3, 'april': 4,
+      'may': 5, 'june': 6, 'july': 7, 'august': 8,
+      'september': 9, 'october': 10, 'november': 11, 'december': 12
+    };
+    
+    const month = monthsMap[monthMatch[0].toLowerCase()];
+    const year = parseInt(yearMatch[0]);
+    
+    return { month, year };
+  }
+  
+  return null;
+};
+
+// دالة حساب غرامة التأخير
+const calculateLateFee = (payment: Payment) => {
+  if (payment.status === 'paid' || payment.status === 'completed') {
+    return payment.late_fine_amount || 0;
+  }
+  
+  if ((payment.status === 'pending' || payment.status === 'overdue') && payment.payment_date) {
+    const today = new Date();
+    const dueDate = new Date(payment.payment_date);
+    const firstOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth(), 1);
+    const daysLate = Math.max(0, differenceInCalendarDays(today, firstOfMonth));
+    const fee = Math.min(daysLate * 120, 3000);
+    return fee;
+  }
+  
+  return 0;
+};
+
+// دالة لتحويل الوصف الإنجليزي إلى عربي مبسط
+const formatPaymentDescription = (description: string): string => {
+  if (!description) return 'دفعة إيجار';
+  
+  // استخراج الشهر والسنة من الوصف الإنجليزي
+  const monthMatch = description.match(/(January|February|March|April|May|June|July|August|September|October|November|December)/i);
+  const yearMatch = description.match(/\b(20\d{2})\b/);
+  
+  if (monthMatch && yearMatch) {
+    const monthsMap: { [key: string]: string } = {
+      'january': 'يناير', 'february': 'فبراير', 'march': 'مارس',
+      'april': 'أبريل', 'may': 'مايو', 'june': 'يونيو',
+      'july': 'يوليو', 'august': 'أغسطس', 'september': 'سبتمبر',
+      'october': 'أكتوبر', 'november': 'نوفمبر', 'december': 'ديسمبر'
+    };
+    
+    const arabicMonth = monthsMap[monthMatch[0].toLowerCase()];
+    const year = yearMatch[0];
+    
+    return `إيجار شهر ${arabicMonth} ${year}`;
+  }
+  
+  return 'دفعة إيجار';
+};
+
+// دالة لتحديد حالة الدفعة الذكية
+const getSmartPaymentStatus = (payment: any): { 
+  status: 'paid' | 'pending' | 'overdue', 
+  reason: string,
+  daysDifference: number,
+  computedDueDate?: Date 
+} => {
+  const today = new Date();
+  
+  // إذا كانت مدفوعة، لا نحتاج تحليل إضافي
+  if (payment.status === 'paid' || payment.status === 'completed') {
+    return { 
+      status: 'paid', 
+      reason: 'الدفعة مسجلة كمدفوعة في النظام', 
+      daysDifference: 0 
+    };
+  }
+  
+  // تحليل النص لاستخراج التاريخ المقصود
+  const parsedDate = parsePaymentDescription(payment.description || '');
+  let computedDueDate: Date | null = null;
+  
+  if (parsedDate) {
+    // إنشاء تاريخ استحقاق محسوب من النص (آخر يوم في الشهر)
+    computedDueDate = new Date(parsedDate.year, parsedDate.month - 1, 1);
+    const lastDayOfMonth = new Date(parsedDate.year, parsedDate.month, 0).getDate();
+    computedDueDate.setDate(lastDayOfMonth);
+    
+    console.log(`🤖 تاريخ الاستحقاق المحسوب من النص: ${formatDateSafely(computedDueDate)}`);
+  }
+  
+  // استخدام تاريخ الاستحقاق المسجل في قاعدة البيانات كأولوية
+  const dbDueDate = payment.due_date ? new Date(payment.due_date) : null;
+  
+  // اختيار التاريخ الأكثر دقة
+  const effectiveDueDate = dbDueDate || computedDueDate;
+  
+  if (!effectiveDueDate) {
+    return { 
+      status: 'pending', 
+      reason: 'لا يمكن تحديد تاريخ الاستحقاق', 
+      daysDifference: 0 
+    };
+  }
+  
+  const daysDifference = Math.floor((today.getTime() - effectiveDueDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  console.log(`📊 مقارنة التواريخ:`, {
+    today: formatDateSafely(today),
+    dbDueDate: dbDueDate ? formatDateSafely(dbDueDate) : 'غير محدد',
+    computedDueDate: computedDueDate ? formatDateSafely(computedDueDate) : 'غير محدد',
+    effectiveDueDate: formatDateSafely(effectiveDueDate),
+    daysDifference: `${daysDifference} يوم`,
+    isOverdue: daysDifference > 0
+  });
+  
+  if (daysDifference > 0) {
+    // متأخرة
+    let reason = `تاريخ الاستحقاق (${formatDateSafely(effectiveDueDate)}) مضى منذ ${daysDifference} يوم`;
+    if (computedDueDate && !dbDueDate) {
+      reason += ` (محسوب من النص: "${payment.description}")`;
+    }
+    return { 
+      status: 'overdue', 
+      reason, 
+      daysDifference,
+      computedDueDate: effectiveDueDate
+    };
+  } else {
+    // معلقة
+    let reason = `تاريخ الاستحقاق (${formatDateSafely(effectiveDueDate)}) لم يأتِ بعد (باقي ${Math.abs(daysDifference)} يوم)`;
+    if (computedDueDate && !dbDueDate) {
+      reason += ` (محسوب من النص: "${payment.description}")`;
+    }
+    return { 
+      status: 'pending', 
+      reason, 
+      daysDifference,
+      computedDueDate: effectiveDueDate
+    };
+  }
+};
+
+// دالة لحساب تفاصيل غرامة التأخير
+const getLateFeeDetails = (payment: Payment) => {
+  const lateFee = calculateLateFee(payment);
+  if (lateFee === 0) return null;
+  
+  if ((payment.status === 'pending' || payment.status === 'overdue') && payment.payment_date) {
+    const today = new Date();
+    const dueDate = new Date(payment.payment_date);
+    const firstOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth(), 1);
+    const daysLate = Math.max(0, differenceInCalendarDays(today, firstOfMonth));
+    
+    return {
+      amount: lateFee,
+      daysLate,
+      dailyRate: 120,
+      isActive: payment.status === 'overdue'
+    };
+  }
+  
+  return {
+    amount: lateFee,
+    daysLate: 0,
+    dailyRate: 0,
+    isActive: false
+  };
+};
+
 export function EnhancedPaymentHistorySection({
   payments,
   isLoading,
@@ -46,26 +233,72 @@ export function EnhancedPaymentHistorySection({
   const [newLateFee, setNewLateFee] = useState('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
+  const [isUpdatingStatuses, setIsUpdatingStatuses] = useState(false);
 
   const {
     syncAll,
     isPending
   } = useAgreementPaymentSync(leaseId);
 
-  // Calculate payment statistics
+  // Calculate payment statistics with smart analysis
   const paymentStats = React.useMemo(() => {
-    const paidPayments = payments.filter(p => p.status === 'paid' || p.status === 'completed');
-    const pendingPayments = payments.filter(p => p.status === 'pending');
-    const overduePayments = payments.filter(p => p.status === 'overdue');
+    let smartPaid = 0;
+    let smartPending = 0;
+    let smartOverdue = 0;
+    let totalLateFees = 0;
     
-    const totalLateFees = payments.reduce((sum, p) => sum + (p.late_fine_amount || 0), 0);
+    // تحليل كل دفعة باستخدام النظام الذكي
+    const analyzedPayments = payments.map(payment => {
+      const smartStatus = getSmartPaymentStatus(payment);
+      
+      // عد الدفعات حسب الحالة الذكية
+      if (smartStatus.status === 'paid') {
+        smartPaid++;
+      } else if (smartStatus.status === 'pending') {
+        smartPending++;
+      } else if (smartStatus.status === 'overdue') {
+        smartOverdue++;
+      }
+      
+      return {
+        ...payment,
+        smartStatus
+      };
+    });
+
+    // حساب غرامات التأخير (3000 ر.ق لكل شهر متأخر)
+    totalLateFees = smartOverdue * 3000;
+    
+    // إضافة نتائج التحليل للـ console
+    // حساب عدد الدفعات التي تحتاج تحديث
+    const needsUpdate = analyzedPayments.filter(p => 
+      p.status !== p.smartStatus.status && p.smartStatus.status !== 'paid'
+    ).length;
+
+    console.log(`📊 تحليل دفعات العقد:`, {
+      total: payments.length,
+      originalCounts: {
+        paid: payments.filter(p => p.status === 'paid' || p.status === 'completed').length,
+        pending: payments.filter(p => p.status === 'pending').length,
+        overdue: payments.filter(p => p.status === 'overdue').length
+      },
+      smartCounts: {
+        paid: smartPaid,
+        pending: smartPending,
+        overdue: smartOverdue
+      },
+      needsUpdate: `${needsUpdate} دفعات تحتاج تحديث`,
+      totalLateFees: `${totalLateFees.toLocaleString()} ر.ق`
+    });
     
     return {
       total: payments.length,
-      paid: paidPayments.length,
-      pending: pendingPayments.length,
-      overdue: overduePayments.length,
-      totalLateFees
+      paid: smartPaid,
+      pending: smartPending,
+      overdue: smartOverdue,
+      totalLateFees,
+      analyzedPayments,
+      needsUpdate
     };
   }, [payments]);
 
@@ -142,8 +375,9 @@ export function EnhancedPaymentHistorySection({
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (status: string | null | undefined) => {
+    const safeStatus = status || 'pending';
+    switch (safeStatus) {
       case 'completed':
       case 'paid':
         return <CheckCircle className="h-5 w-5 text-green-600" />;
@@ -156,8 +390,9 @@ export function EnhancedPaymentHistorySection({
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
+  const getStatusText = (status: string | null | undefined) => {
+    const safeStatus = status || 'pending';
+    switch (safeStatus) {
       case 'completed':
       case 'paid':
         return 'مدفوعة';
@@ -166,12 +401,13 @@ export function EnhancedPaymentHistorySection({
       case 'overdue':
         return 'متأخرة';
       default:
-        return status;
+        return safeStatus;
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (status: string | null | undefined) => {
+    const safeStatus = status || 'pending';
+    switch (safeStatus) {
       case 'completed':
       case 'paid':
         return 'bg-green-50 text-green-700 border-green-200';
@@ -184,12 +420,13 @@ export function EnhancedPaymentHistorySection({
     }
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | null | undefined) => {
+    const safeAmount = amount || 0;
     return new Intl.NumberFormat('en-US', {
       style: 'decimal',
       maximumFractionDigits: 2,
       minimumFractionDigits: 0
-    }).format(amount);
+    }).format(safeAmount);
   };
 
   // Handle payment deletion
@@ -210,21 +447,63 @@ export function EnhancedPaymentHistorySection({
     }
   };
 
-  const calculateLateFee = (payment: Payment) => {
-    if (payment.status === 'paid' || payment.status === 'completed') {
-      return payment.late_fine_amount || 0;
-    }
+
+
+  // دالة تحديث حالات الدفعات بناءً على التحليل الذكي
+  const updatePaymentStatuses = async () => {
+    if (!payments.length) return;
     
-    if ((payment.status === 'pending' || payment.status === 'overdue') && payment.payment_date) {
-      const today = new Date();
-      const dueDate = new Date(payment.payment_date);
-      const firstOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth(), 1);
-      const daysLate = Math.max(0, differenceInCalendarDays(today, firstOfMonth));
-      const fee = Math.min(daysLate * 120, 3000);
-      return fee;
-    }
+    setIsUpdatingStatuses(true);
+    let updatedCount = 0;
     
-    return 0;
+    try {
+      console.log('🔄 بدء تحديث حالات الدفعات...');
+      
+      for (const payment of payments) {
+        const smartAnalysis = getSmartPaymentStatus(payment);
+        const originalStatus = payment.status;
+        const smartStatus = smartAnalysis.status;
+        
+        // تحديث الحالة إذا كانت مختلفة
+        if (originalStatus !== smartStatus && smartStatus !== 'paid') {
+          console.log(`📝 تحديث دفعة ${payment.id}:`, {
+            from: originalStatus,
+            to: smartStatus,
+            reason: smartAnalysis.reason
+          });
+          
+          const updatedPayment: Partial<Payment> = {
+            id: payment.id,
+            status: smartStatus,
+            // إضافة ملاحظة عن التحديث الذكي
+            description: payment.description ? 
+              `${payment.description} [محدث ذكياً من ${originalStatus} إلى ${smartStatus}]` : 
+              `[محدث ذكياً من ${originalStatus} إلى ${smartStatus}]`
+          };
+          
+          const success = await onPaymentUpdated(updatedPayment);
+          if (success) {
+            updatedCount++;
+          }
+        }
+      }
+      
+      if (updatedCount > 0) {
+        toast.success(`تم تحديث ${updatedCount} دفعات بنجاح`);
+        // إعادة تحميل البيانات
+        if (typeof fetchPayments === 'function') {
+          fetchPayments();
+        }
+      } else {
+        toast.success('جميع حالات الدفعات محدثة ولا تحتاج تغيير');
+      }
+      
+    } catch (error) {
+      console.error('خطأ في تحديث حالات الدفعات:', error);
+      toast.error('فشل في تحديث حالات الدفعات');
+    } finally {
+      setIsUpdatingStatuses(false);
+    }
   };
 
   if (isLoading) {
@@ -242,6 +521,44 @@ export function EnhancedPaymentHistorySection({
 
   return (
     <div className="space-y-6" dir="rtl">
+      {/* Smart Analysis Alert */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <AlertCircle className="h-4 w-4 text-blue-600" />
+        <AlertTitle className="text-blue-800">🧠 نظام التحليل الذكي للدفعات</AlertTitle>
+        <AlertDescription className="text-blue-700">
+          النظام يحلل الآن نصوص الدفعات مثل "Monthly rent payment for March 2025" ويحدد الحالة الصحيحة بناءً على تحليل التاريخ والنص.
+          <br />
+          <strong>دفعات متأخرة ذكياً:</strong> {paymentStats.overdue} | <strong>غرامات التأخير:</strong> {paymentStats.totalLateFees.toLocaleString()} ر.ق
+          {paymentStats.needsUpdate > 0 && (
+            <>
+              <br />
+              <strong className="text-red-700">⚠️ {paymentStats.needsUpdate} دفعات تحتاج تحديث في قاعدة البيانات</strong>
+            </>
+          )}
+          <br />
+          <div className="mt-3">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={updatePaymentStatuses}
+              disabled={isUpdatingStatuses || paymentStats.needsUpdate === 0}
+              className={`${paymentStats.needsUpdate > 0 ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
+            >
+              {isUpdatingStatuses ? (
+                <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 ml-2" />
+              )}
+              {isUpdatingStatuses ? 'جاري التحديث...' : 
+               paymentStats.needsUpdate > 0 ? `تحديث ${paymentStats.needsUpdate} دفعات` : 'جميع الدفعات محدثة'}
+            </Button>
+            <span className="text-xs text-blue-600 mr-2">
+              سيتم تحديث حالات الدفعات في قاعدة البيانات
+            </span>
+          </div>
+        </AlertDescription>
+      </Alert>
+
       {/* Payment Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -293,8 +610,6 @@ export function EnhancedPaymentHistorySection({
         </Card>
       </div>
 
-
-
       {/* Payment History */}
       <Card>
         <CardHeader>
@@ -337,7 +652,7 @@ export function EnhancedPaymentHistorySection({
               لا توجد مدفوعات مسجلة بعد
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[...payments]
                 .sort((a, b) => {
                   // ترتيب من الأقدم إلى الأحدث
@@ -347,130 +662,125 @@ export function EnhancedPaymentHistorySection({
                 })
                 .map((payment) => {
                 const lateFee = calculateLateFee(payment);
+                const lateFeeDetails = getLateFeeDetails(payment);
                 return (
-                  <Card
+                  <div
                     key={payment.id}
-                    className={`border-l-4 ${
+                    className={`border rounded-lg p-4 transition-all hover:shadow-sm ${
                       payment.status === 'paid' || payment.status === 'completed'
-                        ? 'border-l-green-500 bg-green-50/30'
+                        ? 'bg-green-50/50 border-green-200'
                         : payment.status === 'pending'
-                        ? 'border-l-yellow-500 bg-yellow-50/30'
-                        : 'border-l-red-500 bg-red-50/30'
+                        ? 'bg-yellow-50/50 border-yellow-200'
+                        : 'bg-red-50/50 border-red-200'
                     }`}
                   >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between gap-6" dir="rtl">
-                        <div className="flex items-start space-x-4 space-x-reverse flex-1">
-                          <div className="flex-shrink-0 mt-1">
-                            {getStatusIcon(payment.status)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            {/* Payment Amount */}
-                            <div className="flex items-center gap-3 flex-row-reverse mb-3">
-                              <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-                                {formatCurrency(payment.amount)} ر.ق
-                              </h3>
-                              <Badge className={`${getStatusColor(payment.status)} font-medium px-3 py-1`}>
-                                {getStatusText(payment.status)}
-                              </Badge>
-                            </div>
-                            
-                            {/* Due Date */}
-                            <div className="text-sm text-blue-600 font-medium mb-3 bg-blue-50 px-3 py-1 rounded-md inline-block">
-                              الاستحقاق: 1 من كل شهر
-                            </div>
-                            
-                            {/* Late Fee Information */}
-                            {lateFee > 0 && (
-                              <div className="bg-red-100 border border-red-200 rounded-lg p-3 mb-3">
-                                <div className="flex items-center justify-between flex-row-reverse">
-                                  <div className="text-right">
-                                    <p className="text-sm font-semibold text-red-800">رسوم التأخير</p>
-                                    <p className="text-lg font-bold text-red-600">
-                                      {formatCurrency(lateFee)} ر.ق
-                                    </p>
-                                    {payment.status === 'overdue' && (
-                                      <p className="text-xs text-red-600 mt-1">
-                                        يزيد بـ 120 ر.ق يومياً
-                                      </p>
-                                    )}
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-red-300 text-red-700 hover:bg-red-50"
-                                    onClick={() => {
-                                      setSelectedPayment(payment);
-                                      setNewLateFee(String(lateFee));
-                                      setIsEditLateFeeDialogOpen(true);
-                                    }}
-                                  >
-                                    تعديل الرسوم
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Description */}
-                            {payment.description && (
-                              <div className="text-sm text-muted-foreground">
-                                {payment.description}
-                              </div>
-                            )}
-                          </div>
+                    <div className="flex items-center justify-between gap-4" dir="rtl">
+                      {/* Payment Info - Right Side */}
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="flex-shrink-0">
+                          {getStatusIcon(payment.status)}
                         </div>
-                        
-                        {/* Action Buttons */}
-                        <div className="flex flex-col gap-3 min-w-[140px]">
-                          {payment.status !== 'paid' && payment.status !== 'completed' && (
-                            <Button
-                              size="default"
-                              className="bg-green-600 hover:bg-green-700 text-white shadow-md transition-all duration-200 hover:scale-105 font-semibold"
-                              onClick={() => {
-                                setSelectedPayment(payment);
-                                setIsPaymentDialogOpen(true);
-                              }}
-                            >
-                              تسوية الدفعة
-                            </Button>
-                          )}
-                          {(payment.status === 'paid' || payment.status === 'completed') && (
-                            <Badge variant="outline" className="text-green-600 border-green-300 px-4 py-2 text-sm font-medium bg-green-50">
-                              ✓ مُسوّاة
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg font-semibold text-gray-900">
+                              {formatCurrency(payment.amount)} ر.ق
+                            </span>
+                            <Badge className={`${getStatusColor(payment.status)} text-xs px-2 py-0.5`}>
+                              {getStatusText(payment.status)}
                             </Badge>
-                          )}
-                          
-                          {/* Edit and Delete buttons for all payments */}
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50"
-                              onClick={() => {
-                                setSelectedPayment(payment);
-                                setIsPaymentDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4 ml-1" />
-                              تعديل
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
-                              onClick={() => {
-                                setPaymentToDelete(payment);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 ml-1" />
-                              حذف
-                            </Button>
                           </div>
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
+                              الاستحقاق: 1 من كل شهر
+                            </span>
+                            {payment.description && (
+                              <span className="truncate max-w-xs">
+                                {formatPaymentDescription(payment.description)}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* تفاصيل غرامة التأخير المحسنة */}
+                          {lateFeeDetails && (
+                            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <span className="font-semibold text-red-800">غرامة التأخير: </span>
+                                  <span className="text-red-600 font-bold">{formatCurrency(lateFeeDetails.amount)} ر.ق</span>
+                                  {lateFeeDetails.daysLate > 0 && (
+                                    <span className="text-red-600 mr-2">
+                                      ({lateFeeDetails.daysLate} يوم × {lateFeeDetails.dailyRate} ر.ق)
+                                    </span>
+                                  )}
+                                  {lateFeeDetails.isActive && (
+                                    <span className="text-red-500 mr-2">⚠️ تزيد يومياً</span>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs px-2 py-1 h-6 border-red-300 text-red-700 hover:bg-red-100"
+                                  onClick={() => {
+                                    setSelectedPayment(payment);
+                                    setNewLateFee(String(lateFeeDetails.amount));
+                                    setIsEditLateFeeDialogOpen(true);
+                                  }}
+                                >
+                                  تعديل
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                      
+                      {/* Actions - Left Side */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {payment.status !== 'paid' && payment.status !== 'completed' ? (
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5"
+                            onClick={() => {
+                              setSelectedPayment(payment);
+                              setIsPaymentDialogOpen(true);
+                            }}
+                          >
+                            تسوية
+                          </Button>
+                        ) : (
+                          <Badge variant="outline" className="text-green-600 border-green-300 text-xs px-2 py-1">
+                            ✓ مُسوّاة
+                          </Badge>
+                        )}
+                        
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-100"
+                            onClick={() => {
+                              setSelectedPayment(payment);
+                              setIsPaymentDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-red-600 hover:bg-red-100"
+                            onClick={() => {
+                              setPaymentToDelete(payment);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -591,7 +901,7 @@ export function EnhancedPaymentHistorySection({
                 {paymentToDelete.description && (
                   <div className="flex justify-between">
                     <span className="font-semibold">الوصف:</span>
-                    <span className="text-sm">{paymentToDelete.description}</span>
+                    <span className="text-sm">{formatPaymentDescription(paymentToDelete.description)}</span>
                   </div>
                 )}
               </div>

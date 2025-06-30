@@ -20,7 +20,8 @@ import { AgreementOverviewCard } from './tabs/AgreementOverviewCard';
 import { PaymentManagementCard } from './tabs/PaymentManagementCard';
 import { DocumentsCard } from './tabs/DocumentsCard';
 import { SettingsCard } from './tabs/SettingsCard';
-import { FileText, CreditCard, FileImage, Settings } from 'lucide-react';
+import { TrafficFinesTab } from './tabs/TrafficFinesTab';
+import { FileText, CreditCard, FileImage, Settings, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface RedesignedAgreementDetailProps {
@@ -128,10 +129,12 @@ export function RedesignedAgreementDetail({
         // تحضير بيانات العقد للنظام الجديد
         const agreementData = {
           ...agreement,
+          agreement_number: agreement.agreement_number || '',
           start_date: ensureDate(agreement.start_date),
           end_date: ensureDate(agreement.end_date),
           created_at: ensureDate(agreement.created_at),
           updated_at: ensureDate(agreement.updated_at),
+          total_amount: contractAmount || 0,
         };
         
         // استخدام النظام الجديد المتطور مع صورة البطاقة الشخصية
@@ -249,7 +252,7 @@ export function RedesignedAgreementDetail({
 
       {/* Main Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4" dir="rtl">
+        <TabsList className="grid w-full grid-cols-5" dir="rtl">
           <TabsTrigger value="overview" className="flex items-center gap-2 flex-row-reverse">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">نظرة عامة</span>
@@ -257,6 +260,10 @@ export function RedesignedAgreementDetail({
           <TabsTrigger value="payments" className="flex items-center gap-2 flex-row-reverse">
             <CreditCard className="h-4 w-4" />
             <span className="hidden sm:inline">المدفوعات</span>
+          </TabsTrigger>
+          <TabsTrigger value="traffic-fines" className="flex items-center gap-2 flex-row-reverse">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="hidden sm:inline">المخالفات</span>
           </TabsTrigger>
           <TabsTrigger value="documents" className="flex items-center gap-2 flex-row-reverse">
             <FileImage className="h-4 w-4" />
@@ -292,6 +299,14 @@ export function RedesignedAgreementDetail({
             onRecordPayment={handleRecordPayment}
             fetchPayments={fetchPayments}
             getDateString={getDateString}
+          />
+        </TabsContent>
+
+        {/* Traffic Fines Tab */}
+        <TabsContent value="traffic-fines" className="space-y-6 mt-6">
+          <TrafficFinesTab
+            agreementId={agreement.id}
+            vehicleLicensePlate={agreement.vehicles?.license_plate || undefined}
           />
         </TabsContent>
 

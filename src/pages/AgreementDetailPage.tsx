@@ -405,7 +405,26 @@ const AgreementDetailPage = () => {
         const monthlyRentAmount = rentAmount || 0;
         const totalOverdueAmount = overduePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
         const totalLateFees = overduePaymentsCount * 3000; // 3000 QAR per month as per business rules
-        const grandTotal = totalOverdueAmount + totalLateFees;
+        
+        // حساب إجمالي المخالفات المرورية لهذا العقد
+        const agreementTrafficFines = trafficFines?.filter(fine => 
+          fine.leaseId === agreement.id
+        ) || [];
+        const totalTrafficFines = agreementTrafficFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+        
+        console.log(`🚗 المخالفات المرورية للعقد ${agreement.id}:`, {
+          totalFines: trafficFines?.length || 0,
+          agreementFines: agreementTrafficFines.length,
+          totalAmount: totalTrafficFines,
+          fineDetails: agreementTrafficFines.map(f => ({ 
+            id: f.id, 
+            leaseId: f.leaseId, 
+            amount: f.fineAmount,
+            licensePlate: f.licensePlate
+          }))
+        });
+        
+        const grandTotal = totalOverdueAmount + totalLateFees + totalTrafficFines;
 
                  // Show enhanced summary if there are overdue payments
          if (overduePaymentsCount > 0) {
@@ -416,6 +435,7 @@ const AgreementDetailPage = () => {
                  monthlyRentAmount={monthlyRentAmount}
                  totalOverdueAmount={totalOverdueAmount}
                  totalLateFees={totalLateFees}
+                 trafficFinesAmount={totalTrafficFines}
                  grandTotal={grandTotal}
                />
              </div>

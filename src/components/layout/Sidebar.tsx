@@ -20,7 +20,9 @@ import {
   TrendingUp,
   Receipt,
   Activity,
-  MessageCircle
+  MessageCircle,
+  Brain,
+  Settings
 } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -275,6 +277,20 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               icon={<Activity className="h-4 w-4 flex-shrink-0" />}
               label="سجل النشاط"
               isActive={isActive('/activity')}
+              onClick={handleNavClick}
+            />
+          </NavGroup>
+
+          <NavGroup
+            label="إدارة النظام"
+            icon={<Settings className="h-5 w-5 flex-shrink-0" />}
+            onSelect={handleNavClick}
+          >
+            <NavLink
+              to="/admin/smart-updater"
+              icon={<Brain className="h-4 w-4 flex-shrink-0" />}
+              label="النظام الذكي الشامل"
+              isActive={isActive('/admin/smart-updater')}
               onClick={handleNavClick}
             />
           </NavGroup>
