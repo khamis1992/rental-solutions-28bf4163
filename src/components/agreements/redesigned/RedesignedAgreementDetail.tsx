@@ -21,6 +21,7 @@ import { PaymentManagementCard } from './tabs/PaymentManagementCard';
 import { DocumentsCard } from './tabs/DocumentsCard';
 import { SettingsCard } from './tabs/SettingsCard';
 import { FileText, CreditCard, FileImage, Settings } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface RedesignedAgreementDetailProps {
   agreement: Agreement | null;
@@ -103,6 +104,27 @@ export function RedesignedAgreementDetail({
         setLoading('generatingPdf');
         toast.info("جاري تحضير ملف PDF للعقد...");
         
+        // جلب بيانات العميل للحصول على صورة البطاقة الشخصية
+        let customerIdCardImage: string | undefined;
+        if (agreement.customer_id) {
+          try {
+            const { data: customerData, error: customerError } = await supabase
+              .from('profiles')
+              .select('id_card_image')
+              .eq('id', agreement.customer_id)
+              .single();
+            
+            if (customerError) {
+              console.warn('تعذر جلب بيانات العميل:', customerError);
+            } else if (customerData?.id_card_image) {
+              customerIdCardImage = customerData.id_card_image;
+              console.log('تم العثور على صورة البطاقة الشخصية للعميل');
+            }
+          } catch (error) {
+            console.warn('خطأ في جلب صورة البطاقة الشخصية:', error);
+          }
+        }
+        
         // تحضير بيانات العقد للنظام الجديد
         const agreementData = {
           ...agreement,
@@ -112,14 +134,19 @@ export function RedesignedAgreementDetail({
           updated_at: ensureDate(agreement.updated_at),
         };
         
-        // استخدام النظام الجديد المتطور
+        // استخدام النظام الجديد المتطور مع صورة البطاقة الشخصية
         await generateModernAgreementPDF(
           agreementData,
           payments || [], // الدفعات
-          [] // المخالفات المرورية - يمكن إضافتها لاحقاً
+          [], // المخالفات المرورية - يمكن إضافتها لاحقاً
+          customerIdCardImage // صورة البطاقة الشخصية
         );
         
-        toast.success("تم إنشاء ملف PDF بنجاح باستخدام النظام المتطور");
+        if (customerIdCardImage) {
+          toast.success("تم إنشاء ملف PDF بنجاح مع إرفاق صورة البطاقة الشخصية");
+        } else {
+          toast.success("تم إنشاء ملف PDF بنجاح - لم يتم العثور على صورة البطاقة الشخصية");
+        }
       } catch (error) {
         console.error("خطأ في إنشاء ملف PDF:", error);
         toast.error("فشل في إنشاء ملف PDF");

@@ -139,13 +139,6 @@ export const ArabicDashboard: React.FC<ArabicDashboardProps> = ({
   // Quick actions for Arabic dashboard
   const quickActions = [
     {
-      title: 'إضافة عميل جديد',
-      description: 'تسجيل عميل جديد في النظام',
-      icon: Users,
-      color: 'bg-green-500',
-      onClick: () => navigate('/customers/add')
-    },
-    {
       title: 'إضافة عقد جديد',
       description: 'إنشاء عقد تأجير جديد',
       icon: FileText,

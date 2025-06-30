@@ -253,8 +253,13 @@ const Dashboard = () => {
     document.head.appendChild(style);
     
     return () => {
-      if (document.head.contains(style)) {
-        document.head.removeChild(style);
+      try {
+        if (style && document.head && document.head.contains(style)) {
+          document.head.removeChild(style);
+        }
+      } catch (error) {
+        // Silently handle DOM manipulation errors
+        console.debug('Style cleanup error (safe to ignore):', error);
       }
     };
   }, []);

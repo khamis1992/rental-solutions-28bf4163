@@ -201,7 +201,7 @@ function mapAgreementData(agreement: Agreement) {
     idNumber: (agreement.customers as any)?.driver_license || 'غير محدد',
     phoneNumber: agreement.customers?.phone_number || 'غير محدد',
     email: agreement.customers?.email || 'غير محدد',
-    address: 'الدوحة - قطر', // Default address
+    address: (agreement.customers as any)?.address || 'الدوحة - قطر', // العنوان الافتراضي
     
     // Vehicle info
     vehicleMake: agreement.vehicles?.make || 'غير محدد',
@@ -214,7 +214,7 @@ function mapAgreementData(agreement: Agreement) {
     
     // Financial info
     monthlyRent: formatArabicCurrency(agreement.rent_amount),
-    totalAmount: formatArabicCurrency(agreement.total_amount),
+    totalAmount: formatArabicCurrency((agreement as any).total_amount || agreement.rent_amount * duration),
     depositAmount: formatArabicCurrency(agreement.deposit_amount),
     paymentMethod: 'تحويل بنكي / نقداً',
     lateFee: formatArabicCurrency(agreement.daily_late_fee || 120)

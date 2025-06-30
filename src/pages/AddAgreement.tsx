@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import AgreementWithCustomerSteps from '@/components/agreements/AgreementWithCustomerSteps';
@@ -6,17 +6,143 @@ import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { Agreement } from '@/types/agreement';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Shield, ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, Calculator, Clock, CheckCircle } from 'lucide-react';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
 
 const AddAgreement = () => {
   const navigate = useNavigate();
   const { createAgreement } = useAgreementService();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [formInteracted, setFormInteracted] = useState(false);
+
+  // تتبع تغييرات حالة الحماية
+  useEffect(() => {
+    console.log('🔄 Protection state changed:', { 
+      hasUnsavedChanges, 
+      formInteracted, 
+      isSubmitting,
+      protectionActive: hasUnsavedChanges && formInteracted && !isSubmitting
+    });
+  }, [hasUnsavedChanges, formInteracted, isSubmitting]);
+
+  // نظام حماية متقدم من refresh وإغلاق الصفحة
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges && !isSubmitting && formInteracted) {
+        console.log('🛡️ beforeunload triggered - showing confirmation');
+        // المتصفحات الحديثة تظهر رسالة افتراضية
+        e.preventDefault();
+        e.returnValue = ''; // Chrome يحتاج هذا
+        return ''; // Safari يحتاج هذا
+      }
+    };
+
+    // منع استخدام F5 و Ctrl+R
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (hasUnsavedChanges && !isSubmitting && formInteracted) {
+        // F5
+        if (e.key === 'F5') {
+          e.preventDefault();
+          if (confirm('هل أنت متأكد من تحديث الصفحة؟ ستفقد جميع البيانات المدخلة.')) {
+            window.location.reload();
+          }
+          return false;
+        }
+        
+        // Ctrl+R أو Cmd+R
+        if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+          e.preventDefault();
+          if (confirm('هل أنت متأكد من تحديث الصفحة؟ ستفقد جميع البيانات المدخلة.')) {
+            window.location.reload();
+          }
+          return false;
+        }
+      }
+    };
+
+    if (hasUnsavedChanges && formInteracted) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [hasUnsavedChanges, isSubmitting, formInteracted]);
+
+  // تتبع تفاعل المستخدم مع النموذج
+  useEffect(() => {
+         const handleFormInteraction = () => {
+       if (!formInteracted) {
+         console.log('🟡 Form interaction detected - Enabling protection');
+         setFormInteracted(true);
+         setHasUnsavedChanges(true);
+       }
+     };
+
+    // مراقبة جميع أحداث التفاعل مع النموذج
+    const formInputs = ['input', 'select', 'textarea'];
+    const handleInputChange = () => handleFormInteraction();
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('form') || target.closest('.agreement-form-rtl')) {
+        handleFormInteraction();
+      }
+    };
+
+    // إضافة event listeners
+    formInputs.forEach(input => {
+      document.addEventListener(input, handleInputChange);
+    });
+    document.addEventListener('click', handleClick);
+    document.addEventListener('focus', handleInputChange, true);
+
+    return () => {
+      formInputs.forEach(input => {
+        document.removeEventListener(input, handleInputChange);
+      });
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('focus', handleInputChange, true);
+         };
+   }, [formInteracted]);
+
+  // حماية من navigation الداخلي باستخدام popstate
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (hasUnsavedChanges && formInteracted && !isSubmitting) {
+        const confirmed = confirm(
+          'هل أنت متأكد من مغادرة هذه الصفحة؟ ستفقد جميع البيانات المدخلة غير المحفوظة.'
+        );
+        
+        if (!confirmed) {
+          // منع الرجوع
+          window.history.pushState(null, '', window.location.href);
+        } else {
+          setHasUnsavedChanges(false);
+          setFormInteracted(false);
+        }
+      }
+    };
+
+    if (hasUnsavedChanges && formInteracted) {
+      // إضافة state جديد للتاريخ لمنع الرجوع
+      window.history.pushState(null, '', window.location.href);
+      window.addEventListener('popstate', handlePopState);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [hasUnsavedChanges, formInteracted, isSubmitting]);
 
   const handleSubmit = async (data: Agreement) => {
     setIsSubmitting(true);
+    // إيقاف الحماية عند بدء الحفظ
+    setHasUnsavedChanges(false);
+    setFormInteracted(false);
     try {
       console.log('بدء إنشاء الاتفاقية:', data);
       
@@ -26,45 +152,63 @@ const AddAgreement = () => {
       if (result) {
         console.log('تم إنشاء الاتفاقية بنجاح:', result);
         
+        // عرض رسالة النجاح فوراً
         toast.success('تم إنشاء الاتفاقية بنجاح', {
-          description: 'سيتم إنشاء جدولة الدفعات تلقائياً في الخلفية...'
+          description: 'جاري إنشاء جدولة الدفعات...',
+          duration: 3000
         });
 
         try {
           // إنشاء جدولة الدفعات للاتفاقية الجديدة
           console.log('بدء إنشاء جدولة الدفعات للاتفاقية:', result.id);
           
-          const paymentResult = await agreementPaymentService.createPaymentScheduleForAgreement({
-            ...result,
-            start_date: result.start_date,
-            end_date: result.end_date,
-            rent_amount: result.rent_amount,
+          // إنشاء object مطابق لنوع Agreement المطلوب مع type assertion
+          const agreementForPayments = {
+            id: result.id,
+            customer_id: result.customer_id,
+            vehicle_id: result.vehicle_id || '',
+            start_date: typeof result.start_date === 'string' ? result.start_date : result.start_date.toISOString(),
+            end_date: typeof result.end_date === 'string' ? result.end_date : result.end_date.toISOString(),
+            rent_amount: result.rent_amount || 0,
             payment_frequency: result.payment_frequency || 'monthly',
             payment_day: result.payment_day || 1,
-            deposit_amount: result.deposit_amount || 0
-          });
+            deposit_amount: result.deposit_amount || 0,
+            agreement_type: result.agreement_type || 'lease_to_own',
+            agreement_number: result.agreement_number || '',
+            status: result.status,
+            daily_late_fee: result.daily_late_fee || 120,
+            notes: result.notes || ''
+          } as Agreement;
+          
+          const paymentResult = await agreementPaymentService.createPaymentScheduleForAgreement(agreementForPayments);
 
           if (paymentResult.success) {
             toast.success('تم إنشاء الاتفاقية وجدولة الدفعات بنجاح', {
-              description: `تم إنشاء ${paymentResult.scheduleCount} دفعة مجدولة تلقائياً`
+              description: `تم إنشاء ${paymentResult.scheduleCount} دفعة مجدولة`,
+              duration: 4000
             });
           } else {
             console.error('فشل في إنشاء جدولة الدفعات:', paymentResult.error);
             toast.success('تم إنشاء الاتفاقية بنجاح', {
-              description: 'سيتم إنشاء جدولة الدفعات تلقائياً عند عرض تفاصيل العقد'
+              description: 'سيتم إنشاء جدولة الدفعات عند عرض تفاصيل العقد',
+              duration: 4000
             });
           }
         } catch (paymentError) {
           console.error('خطأ في إنشاء جدولة الدفعات:', paymentError);
           toast.success('تم إنشاء الاتفاقية بنجاح', {
-            description: 'سيتم إنشاء جدولة الدفعات تلقائياً عند عرض تفاصيل العقد'
+            description: 'سيتم إنشاء جدولة الدفعات عند عرض تفاصيل العقد',
+            duration: 4000
           });
         }
         
-        // الانتقال إلى صفحة تفاصيل العقد الجديد
-        setTimeout(() => {
-          navigate(`/agreements/${result.id}`);
-        }, 2000);
+        // مسح حالة التغييرات غير المحفوظة بعد النجاح
+        console.log('✅ Agreement saved successfully - Disabling protection');
+        setHasUnsavedChanges(false);
+        setFormInteracted(false);
+        
+        // الانتقال مباشرة إلى صفحة تفاصيل العقد الجديد بدون timeout
+        navigate(`/agreements/${result.id}`, { replace: true });
       }
     } catch (error) {
       console.error('Error creating agreement:', error);
@@ -78,73 +222,21 @@ const AddAgreement = () => {
 
   return (
     <PageContainer
-      title="إنشاء اتفاقية إيجار جديدة مع جدولة دفعات تلقائية"
+      title="إنشاء اتفاقية إيجار جديدة"
       description="إنشاء اتفاقية إيجار جديدة مع جدولة دفعات تلقائية"
       dir="rtl"
       forceTitleLeft={true}
     >
       <div className="max-w-4xl mx-auto space-y-6" dir="rtl">
-        {/* Information Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-right flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-500" />
-                اتفاقية شاملة
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground text-right">
-                جميع التفاصيل اللازمة لإنشاء اتفاقية إيجار مكتملة
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-right flex items-center gap-2">
-                <Calculator className="h-4 w-4 text-green-500" />
-                جدولة تلقائية
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground text-right">
-                إنشاء جدولة دفعات تلقائية فوري بناءً على المدة والمبلغ
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-right flex items-center gap-2">
-                <Clock className="h-4 w-4 text-purple-500" />
-                توفير الوقت
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground text-right">
-                لا حاجة لإدخال الدفعات يدوياً - النظام يتولى كل شيء تلقائياً
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Instructions Alert */}
-        <Alert>
-          <CheckCircle className="h-4 w-4" />
-          <AlertDescription className="text-right">
-            <div className="space-y-2">
-              <div className="font-medium">خطوات إنشاء الاتفاقية:</div>
-              <ol className="list-decimal list-inside space-y-1 text-sm">
-                <li>اختر العميل من القائمة أو ابحث عنه بالاسم أو الهاتف</li>
-                <li>حدد المركبة المراد تأجيرها</li>
-                <li>أدخل تواريخ الإيجار ومبلغ الإيجار الشهري</li>
-                <li>راجع التفاصيل ووافق على الشروط</li>
-                <li>احفظ الاتفاقية وستُنشأ جدولة الدفعات تلقائياً فوراً</li>
-              </ol>
-            </div>
-          </AlertDescription>
-        </Alert>
+        {/* مؤشر حالة الحماية */}
+        {hasUnsavedChanges && formInteracted && (
+          <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+            <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              تم تفعيل الحماية من فقدان البيانات. سيتم تحذيرك قبل مغادرة الصفحة أو تحديثها.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Agreement Form */}
         <Card className="agreement-form-rtl">
@@ -158,22 +250,6 @@ const AddAgreement = () => {
             />
           </CardContent>
         </Card>
-
-        {/* Benefits Information */}
-        <Alert variant="default">
-          <AlertDescription className="text-right">
-            <div className="space-y-2">
-              <div className="font-medium">مزايا النظام التلقائي الجديد:</div>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>إنشاء فوري لجدولة دفعات مفصلة حسب المدة المحددة</li>
-                <li>حساب تلقائي للمبالغ بناءً على تكرار الدفع</li>
-                <li>تتبع حالة كل دفعة (معلقة، مدفوعة، متأخرة)</li>
-                <li>إصلاح تلقائي للاتفاقيات القديمة التي تفتقد للمدفوعات</li>
-                <li>تقارير مالية شاملة وتحليلات فورية</li>
-              </ul>
-            </div>
-          </AlertDescription>
-        </Alert>
       </div>
     </PageContainer>
   );

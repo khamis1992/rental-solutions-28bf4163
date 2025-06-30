@@ -25,6 +25,7 @@ import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
 import { supabase } from '@/lib/supabase';
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
+import { EnhancedFinancialSummary } from '@/components/legal/EnhancedFinancialSummary';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -396,31 +397,54 @@ const AgreementDetailPage = () => {
         </CardContent>
       </Card>
 
-      {/* Financial summary section - temporarily disabled */}
-      {/* 
-      {agreement && isFinancialExpanded && (
-        <AgreementFinancialSummary
-          agreement={{
-            id: agreement.id,
-            total_amount: agreement.total_amount || 0,
-            deposit_amount: agreement.deposit_amount,
-            monthly_amount: rentAmount || 0,
-            start_date: agreement.start_date || '',
-            end_date: agreement.end_date || '',
-            status: agreement.status
-          }}
-          payments={payments.map(p => ({
-            id: p.id,
-            amount: p.amount || 0,
-            payment_date: p.payment_date,
-            status: p.status as 'paid' | 'pending' | 'overdue' | 'cancelled',
-            description: p.description
-          }))}
-          onPaymentAction={handlePaymentAction}
-          className="mb-6"
-        />
-      )}
-      */}
+      {/* Enhanced Financial Summary - New Design */}
+      {agreement && isFinancialExpanded && (() => {
+        // Calculate financial data for the enhanced summary
+        const overduePayments = payments.filter(p => p.status === 'overdue');
+        const overduePaymentsCount = overduePayments.length;
+        const monthlyRentAmount = rentAmount || 0;
+        const totalOverdueAmount = overduePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const totalLateFees = overduePaymentsCount * 3000; // 3000 QAR per month as per business rules
+        const grandTotal = totalOverdueAmount + totalLateFees;
+
+                 // Show enhanced summary if there are overdue payments
+         if (overduePaymentsCount > 0) {
+           return (
+             <div className="mb-6">
+               <EnhancedFinancialSummary
+                 overduePaymentsCount={overduePaymentsCount}
+                 monthlyRentAmount={monthlyRentAmount}
+                 totalOverdueAmount={totalOverdueAmount}
+                 totalLateFees={totalLateFees}
+                 grandTotal={grandTotal}
+               />
+             </div>
+           );
+         }
+         
+         // Show status indicator when no overdue payments
+         if (payments.length > 0) {
+           return (
+             <div className="mb-6">
+               <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                 <CardContent className="p-6 text-center">
+                   <div className="flex items-center justify-center gap-3 mb-2">
+                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                     <h3 className="text-lg font-semibold text-green-800">
+                       ✅ الوضع المالي للعقد ممتاز
+                     </h3>
+                   </div>
+                   <p className="text-green-700 text-sm">
+                     لا توجد مدفوعات متأخرة • جميع الدفعات محدثة
+                   </p>
+                 </CardContent>
+               </Card>
+             </div>
+           );
+         }
+         
+         return null;
+      })()}
 
       {/* Use the AgreementDetailWrapper which handles both designs */}
       <AgreementDetailWrapper

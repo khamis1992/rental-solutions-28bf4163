@@ -7,4 +7,4 @@ export * from './LegalCaseCompactView';
 export * from './LegalCaseDetails';
 export * from './LegalCaseManagement';
 export * from './LegalDashboard';
-export * from './LegalQuickActions';
+export { EnhancedFinancialSummary } from './EnhancedFinancialSummary';

@@ -229,13 +229,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               onClick={handleNavClick}
             />
             <NavLink
-              to="/payments"
-              icon={<Receipt className="h-4 w-4 flex-shrink-0" />}
-              label="المدفوعات"
-              isActive={isActive('/payments')}
-              onClick={handleNavClick}
-            />
-            <NavLink
               to="/whatsapp-notifications"
               icon={<MessageCircle className="h-4 w-4 flex-shrink-0" />}
               label="تذكيرات الواتساب"

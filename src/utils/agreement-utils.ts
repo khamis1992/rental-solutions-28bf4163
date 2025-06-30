@@ -534,6 +534,5 @@ export function adaptSimpleToFullAgreement(simpleAgreement: any): Agreement {
   return {
     ...simpleAgreement,
     additional_drivers: simpleAgreement.additional_drivers || [],
-    terms_accepted: !!simpleAgreement.terms_accepted,
   };
 }

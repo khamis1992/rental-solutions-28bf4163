@@ -1,8 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { CustomerListFilter } from '@/components/customers/CustomerListFilter';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Upload, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Upload, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface CustomerPageToolbarProps {
@@ -25,17 +24,12 @@ export const CustomerPageToolbar: React.FC<CustomerPageToolbarProps> = ({
   isEdgeFunctionAvailable,
 }) => {
   const { t } = useLanguage();
-  const navigate = useNavigate();
-
-  const handleAddCustomer = () => {
-    navigate('/customers/add');
-  };
 
   return (
     <div className="flex flex-col gap-4" dir="rtl">
       {/* أزرار الإجراءات - تتكيف مع الوضع المحمول */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex flex-wrap gap-2 order-2 sm:order-1">
+        <div className="flex flex-wrap gap-2 order-1">
           <Button 
             variant="outline" 
             size="sm" 
@@ -60,15 +54,6 @@ export const CustomerPageToolbar: React.FC<CustomerPageToolbarProps> = ({
             <span className="sm:hidden">استيراد</span>
           </Button>
         </div>
-        
-        <Button 
-          onClick={handleAddCustomer}
-          size="sm"
-          className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 flex-row-reverse order-1 sm:order-2 w-full sm:w-auto"
-        >
-          <PlusCircle className="h-4 w-4" />
-          {t('customer.add')}
-        </Button>
       </div>
       
       {/* فلتر البحث - عرض كامل على الوضع المحمول */}

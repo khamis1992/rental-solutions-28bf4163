@@ -15,7 +15,7 @@ export function CustomerDetailsSection({ customerInfo, isDetailsOpen }: Customer
       <div className="grid grid-cols-1 gap-1 text-sm">
         <div><span className="font-medium">Name:</span> {customerInfo.full_name}</div>
         {customerInfo.email && <div><span className="font-medium">Email:</span> {customerInfo.email}</div>}
-        {customerInfo.phone_number && <div><span className="font-medium">Phone:</span> {customerInfo.phone_number}</div>}
+        {customerInfo.phone_number && <div><span className="font-medium">Phone:</span> <span className="phone-number-ltr" dir="ltr">{customerInfo.phone_number}</span></div>}
       </div>
     </div>
   );

@@ -160,35 +160,64 @@ const Reports = () => {
                     <TabsTrigger value="legal" className="text-sm">التقرير القانوني</TabsTrigger>
                   </TabsList>
                   
-                  <div className="mb-5 px-4">
-                    <ReportDownloadOptions 
-                      reportType={selectedTab} 
-                      getReportData={getReportData} 
-                    />
-                  </div>
-                  
                   <div className="space-y-5">
                     <TabsContent value="fleet" className="mt-0">
+                      <div className="mb-5 px-4">
+                        <ReportDownloadOptions 
+                          reportType="fleet" 
+                          getReportData={() => reportData?.vehicles || []} 
+                        />
+                      </div>
                       <FleetReport />
                     </TabsContent>
                     
                     <TabsContent value="financial" className="mt-0">
+                      <div className="mb-5 px-4">
+                        <ReportDownloadOptions 
+                          reportType="financial" 
+                          getReportData={() => transactions || []} 
+                        />
+                      </div>
                       <FinancialReport />
                     </TabsContent>
                     
                     <TabsContent value="customers" className="mt-0">
+                      <div className="mb-5 px-4">
+                        <ReportDownloadOptions 
+                          reportType="customers" 
+                          getReportData={() => customers || []} 
+                        />
+                      </div>
                       <CustomerReport />
                     </TabsContent>
                     
                     <TabsContent value="maintenance" className="mt-0">
+                      <div className="mb-5 px-4">
+                        <ReportDownloadOptions 
+                          reportType="maintenance" 
+                          getReportData={() => maintenanceData || []} 
+                        />
+                      </div>
                       <MaintenanceReport />
                     </TabsContent>
                     
                     <TabsContent value="traffic" className="mt-0">
+                      <div className="mb-5 px-4">
+                        <ReportDownloadOptions 
+                          reportType="traffic" 
+                          getReportData={() => trafficFines || []} 
+                        />
+                      </div>
                       <TrafficFineReport />
                     </TabsContent>
                     
                     <TabsContent value="legal" className="mt-0">
+                      <div className="mb-5 px-4">
+                        <ReportDownloadOptions 
+                          reportType="legal" 
+                          getReportData={() => []} 
+                        />
+                      </div>
                       <LegalReport />
                     </TabsContent>
                   </div>

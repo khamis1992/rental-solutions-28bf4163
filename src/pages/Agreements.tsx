@@ -246,7 +246,7 @@ const Agreements = () => {
               <TabsList className="justify-start">
                 <TabsTrigger value="agreements" className="text-right">جميع العقود</TabsTrigger>
                 <TabsTrigger value="active" className="text-right">نشطة</TabsTrigger>
-                <TabsTrigger value="completed" className="text-right">مكتملة</TabsTrigger>
+                <TabsTrigger value="closed" className="text-right">مكتملة</TabsTrigger>
                 <TabsTrigger value="cancelled" className="text-right">ملغاة</TabsTrigger>
                 <TabsTrigger value="history" className="text-right">سجل الاستيراد</TabsTrigger>
               </TabsList>

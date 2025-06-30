@@ -37,7 +37,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
     full_name: "",
     email: "",
     phone: "",
-    address: "",
+    address: "الدوحة - قطر", // العنوان الافتراضي
     driver_license: "",
     nationality: "",
     notes: "",

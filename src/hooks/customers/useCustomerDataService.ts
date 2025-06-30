@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 import { CacheSynchronization } from '@/utils/cache-synchronization';
+import { ensureIdCardImageColumn } from '@/lib/ensure-id-card-column';
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
@@ -35,22 +36,60 @@ export const useCustomerDataService = () => {
       const formattedPhone = formatQatarPhoneNumber(newCustomer.phone);
       console.log('Formatted phone number:', formattedPhone);
       
-      const { data, error } = await supabase
+      // Ensure id_card_image column exists (create if needed)
+      const columnExists = await ensureIdCardImageColumn();
+      
+      // Prepare insert data with safe handling of id_card_image
+      const insertData: any = { 
+        full_name: newCustomer.full_name,
+        email: newCustomer.email,
+        phone_number: formattedPhone,
+        address: newCustomer.address,
+        driver_license: newCustomer.driver_license,
+        nationality: newCustomer.nationality,
+        notes: newCustomer.notes,
+        status: newCustomer.status || 'active',
+        role: CUSTOMER_ROLE,
+        created_at: new Date().toISOString() 
+      };
+
+      // Only add id_card_image if it exists and column is available
+      console.log('🔍 Checking ID card image:', { 
+        hasImage: !!newCustomer.id_card_image, 
+        imageLength: newCustomer.id_card_image?.length,
+        columnExists 
+      });
+      
+      if (newCustomer.id_card_image && columnExists) {
+        console.log('✅ ID card image found and column exists, adding to insert data');
+        insertData.id_card_image = newCustomer.id_card_image;
+        console.log('📝 Final insert data keys:', Object.keys(insertData));
+      } else if (newCustomer.id_card_image && !columnExists) {
+        console.warn('⚠️ ID card image found but column does not exist - skipping');
+        toast.warning('ملاحظة: صورة البطاقة الشخصية لن يتم حفظها حاليًا', {
+          description: 'سيتم حفظ باقي بيانات العميل بنجاح'
+        });
+      } else {
+        console.log('ℹ️ No ID card image to save');
+      }
+
+      let { data, error } = await supabase
         .from(PROFILES_TABLE)
-        .insert([{ 
-          full_name: newCustomer.full_name,
-          email: newCustomer.email,
-          phone_number: formattedPhone,
-          address: newCustomer.address,
-          driver_license: newCustomer.driver_license,
-          nationality: newCustomer.nationality,
-          notes: newCustomer.notes,
-          status: newCustomer.status || 'active',
-          role: CUSTOMER_ROLE,
-          created_at: new Date().toISOString() 
-        }])
+        .insert([insertData])
         .select()
         .single();
+
+      // If error is about id_card_image column, try without it
+      if (error && error.message.includes('id_card_image')) {
+        console.warn('id_card_image column not found, retrying without it');
+        const { id_card_image, ...insertDataWithoutImage } = insertData;
+        
+        ({ data, error } = await supabase
+          .from(PROFILES_TABLE)
+          .insert([insertDataWithoutImage])
+          .select()
+          .single());
+      }
 
       if (error) {
         console.error('Error creating customer:', error);
@@ -58,6 +97,8 @@ export const useCustomerDataService = () => {
       }
       
       console.log('Created customer:', data);
+      console.log('🔍 Created customer id_card_image field:', data.id_card_image);
+      console.log('📋 All fields in created customer:', Object.keys(data));
       
       if (!data) {
         throw new Error('No data returned after customer creation');
@@ -82,21 +123,50 @@ export const useCustomerDataService = () => {
       const formattedPhone = formatQatarPhoneNumber(customer.phone);
       console.log('Updating customer with formatted phone:', formattedPhone);
       
-      const { data, error } = await supabase
+      // Ensure id_card_image column exists (create if needed)
+      const columnExists = await ensureIdCardImageColumn();
+      
+      // Prepare update data with safe handling of id_card_image
+      const updateData: any = { 
+        full_name: customer.full_name,
+        email: customer.email,
+        phone_number: formattedPhone,
+        address: customer.address,
+        driver_license: customer.driver_license,
+        nationality: customer.nationality,
+        notes: customer.notes,
+        status: customer.status,
+        updated_at: new Date().toISOString() 
+      };
+
+      // Only add id_card_image if it exists and column is available
+      if (customer.id_card_image && columnExists) {
+        console.log('ID card image found and column exists, adding to update data');
+        updateData.id_card_image = customer.id_card_image;
+      } else if (customer.id_card_image && !columnExists) {
+        console.warn('ID card image found but column does not exist - skipping');
+        toast.warning('ملاحظة: صورة البطاقة الشخصية لن يتم حفظها حاليًا', {
+          description: 'سيتم حفظ باقي بيانات العميل بنجاح'
+        });
+      }
+
+      let { data, error } = await supabase
         .from(PROFILES_TABLE)
-        .update({ 
-          full_name: customer.full_name,
-          email: customer.email,
-          phone_number: formattedPhone,
-          address: customer.address,
-          driver_license: customer.driver_license,
-          nationality: customer.nationality,
-          notes: customer.notes,
-          status: customer.status,
-          updated_at: new Date().toISOString() 
-        })
+        .update(updateData)
         .eq('id', customer.id)
         .select();
+
+      // If error is about id_card_image column, try without it
+      if (error && error.message.includes('id_card_image')) {
+        console.warn('id_card_image column not found, retrying without it');
+        const { id_card_image, ...updateDataWithoutImage } = updateData;
+        
+        ({ data, error } = await supabase
+          .from(PROFILES_TABLE)
+          .update(updateDataWithoutImage)
+          .eq('id', customer.id)
+          .select());
+      }
 
       if (error) throw new Error(error.message);
       

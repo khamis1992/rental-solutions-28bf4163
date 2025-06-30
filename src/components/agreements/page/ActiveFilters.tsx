@@ -25,40 +25,44 @@ export function ActiveFilters({ activeFilters, setSearchParams }: ActiveFiltersP
   const getLabelForFilter = (key: string, value: string): string => {
     switch (key) {
       case 'agreement_number':
-        return `Agreement #: ${value}`;
+        return `رقم العقد: ${value}`;
       case 'status':
-        return `Status: ${value.charAt(0).toUpperCase() + value.slice(1)}`;
+        return `الحالة: ${value.charAt(0).toUpperCase() + value.slice(1)}`;
       case 'start_date_after':
-        return `Start Date After: ${new Date(value).toLocaleDateString()}`;
+        return `بداية العقد بعد: ${new Date(value).toLocaleDateString('ar-QA')}`;
       case 'start_date_before':
-        return `Start Date Before: ${new Date(value).toLocaleDateString()}`;
+        return `بداية العقد قبل: ${new Date(value).toLocaleDateString('ar-QA')}`;
       case 'end_date_after':
-        return `End Date After: ${new Date(value).toLocaleDateString()}`;
+        return `نهاية العقد بعد: ${new Date(value).toLocaleDateString('ar-QA')}`;
       case 'end_date_before':
-        return `End Date Before: ${new Date(value).toLocaleDateString()}`;
+        return `نهاية العقد قبل: ${new Date(value).toLocaleDateString('ar-QA')}`;
+      case 'created_date_after':
+        return `أُنشِئ بعد: ${new Date(value).toLocaleDateString('ar-QA')}`;
+      case 'created_date_before':
+        return `أُنشِئ قبل: ${new Date(value).toLocaleDateString('ar-QA')}`;
       case 'rent_min':
-        return `Min Rent: $${value}`;
+        return `الحد الأدنى: ${value} ر.ق`;
       case 'rent_max':
-        return `Max Rent: $${value}`;
+        return `الحد الأعلى: ${value} ر.ق`;
       case 'license_plate':
-        return `Plate: ${value}`;
+        return `اللوحة: ${value}`;
       case 'searchTerm':
-        return `Search: ${value || ''}`;
+        return `البحث: ${value || ''}`;
       default:
         return `${key}: ${value}`;
     }
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-4 mt-1">
-      <span className="text-sm text-muted-foreground">Active filters:</span>
+    <div className="flex flex-wrap items-center gap-2 mb-4 mt-1" dir="rtl">
+      <span className="text-sm text-muted-foreground text-right">المرشحات النشطة:</span>
       {activeFilters.map(([key, value]) => (
-        <Badge key={key} variant="outline" className="flex items-center gap-1 py-1">
-          {getLabelForFilter(key, value)}
+        <Badge key={key} variant="outline" className="flex items-center gap-1 py-1 flex-row-reverse">
+          <span className="text-right">{getLabelForFilter(key, value)}</span>
           <button
             onClick={() => handleRemoveFilter(key)}
-            className="ml-1 rounded-full hover:bg-muted p-0.5"
-            aria-label={`Remove ${key} filter`}
+            className="mr-1 rounded-full hover:bg-muted p-0.5"
+            aria-label={`إزالة مرشح ${key}`}
           >
             <X className="h-3 w-3" />
           </button>
@@ -69,7 +73,7 @@ export function ActiveFilters({ activeFilters, setSearchParams }: ActiveFiltersP
           onClick={handleClearAllFilters}
           className="text-xs text-muted-foreground hover:text-destructive underline"
         >
-          Clear all
+          مسح الكل
         </button>
       )}
     </div>

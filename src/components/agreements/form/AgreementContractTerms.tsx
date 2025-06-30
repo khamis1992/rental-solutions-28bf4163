@@ -22,13 +22,20 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
 }) => {
   const [expectedPayments, setExpectedPayments] = useState<number>(0);
   const [totalScheduledAmount, setTotalScheduledAmount] = useState<number>(0);
+  
+  // تعيين القيم الافتراضية للحقول المخفية
+  useEffect(() => {
+    form.setValue('payment_frequency', 'monthly'); // دائماً شهري
+    form.setValue('payment_day', 1); // دائماً يوم 1
+    form.setValue('daily_late_fee', 120); // دائماً 120 ريال يومياً
+  }, [form]);
 
-  // Watch form values to calculate payment schedule preview
-  const rentAmount = form.watch('rent_amount') || 0;
-  const depositAmount = form.watch('deposit_amount') || 0;
-  const startDate = form.watch('start_date');
-  const endDate = form.watch('end_date');
-  const paymentFrequency = form.watch('payment_frequency') || 'monthly';
+  // Watch form values to calculate payment schedule preview - with safe defaults
+  const rentAmount = form.watch('rent_amount') ?? 0;
+  const depositAmount = form.watch('deposit_amount') ?? 0;
+  const startDate = form.watch('start_date') ?? '';
+  const endDate = form.watch('end_date') ?? '';
+  const paymentFrequency = form.watch('payment_frequency') ?? 'monthly';
 
   // Calculate payment schedule preview
   useEffect(() => {
@@ -67,8 +74,11 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
       setExpectedPayments(paymentsCount);
       setTotalScheduledAmount(totalAmount);
       
-      // Update total amount in form
-      form.setValue('total_amount', totalAmount);
+      // Update total amount in form only if it has changed to prevent controlled/uncontrolled issues
+      const currentTotal = form.getValues('total_amount');
+      if (currentTotal !== totalAmount) {
+        form.setValue('total_amount', totalAmount);
+      }
     }
   }, [rentAmount, depositAmount, startDate, endDate, paymentFrequency, form]);
 
@@ -132,6 +142,7 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
                     type="number"
                     placeholder="1250.00"
                     {...field}
+                    value={field.value ?? ''}
                     className="text-right"
                     dir="rtl"
                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
@@ -156,6 +167,7 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
                     type="number"
                     placeholder="2500.00"
                     {...field}
+                    value={field.value ?? ''}
                     className="text-right"
                     dir="rtl"
                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
@@ -169,55 +181,8 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="payment_frequency"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-right">تكرار الدفع</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value || 'monthly'} dir="rtl">
-                  <FormControl>
-                    <SelectTrigger className="text-right">
-                      <SelectValue placeholder="اختر تكرار الدفع" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent align="start">
-                    <SelectItem value="weekly" className="text-right">أسبوعي</SelectItem>
-                    <SelectItem value="biweekly" className="text-right">كل أسبوعين</SelectItem>
-                    <SelectItem value="monthly" className="text-right">شهري (الافتراضي)</SelectItem>
-                    <SelectItem value="quarterly" className="text-right">ربع سنوي</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-right" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="payment_day"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-right">يوم الدفع من الشهر</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="31"
-                    placeholder="1"
-                    {...field}
-                    className="text-right"
-                    dir="rtl"
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                  />
-                </FormControl>
-                <div className="text-xs text-muted-foreground text-right">
-                  اليوم المحدد من كل شهر لاستحقاق الدفعة
-                </div>
-                <FormMessage className="text-right" />
-              </FormItem>
-            )}
-          />
+          {/* تكرار الدفع ويوم الدفع محددين تلقائياً: شهري في يوم 1 */}
+          {/* تم إخفاء هذه الحقول وتعيينها تلقائياً */}
 
           <FormField
             control={form.control}
@@ -230,6 +195,7 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
                     type="number"
                     placeholder="0.00"
                     {...field}
+                    value={field.value ?? ''}
                     className="text-right bg-gray-50"
                     dir="rtl"
                     readOnly
@@ -244,29 +210,8 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="daily_late_fee"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-right">رسوم التأخير اليومية</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="100.00"
-                    {...field}
-                    className="text-right"
-                    dir="rtl"
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 100)}
-                  />
-                </FormControl>
-                <div className="text-xs text-muted-foreground text-right">
-                  الرسوم المفروضة لكل يوم تأخير في الدفع
-                </div>
-                <FormMessage className="text-right" />
-              </FormItem>
-            )}
-          />
+          {/* رسوم التأخير محددة تلقائياً بـ 120 ريال يومياً */}
+          {/* تم إخفاء هذا الحقل وتعيينه تلقائياً */}
         </div>
 
         <FormField
@@ -275,12 +220,13 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-right">ملاحظات إضافية</FormLabel>
-              <FormControl>
+                              <FormControl>
                 <Textarea
                   placeholder="أي ملاحظات أو شروط إضافية للاتفاقية..."
                   className="min-h-[100px] text-right"
                   dir="rtl"
                   {...field}
+                  value={field.value ?? ''}
                 />
               </FormControl>
               <FormMessage className="text-right" />
@@ -288,21 +234,7 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
           )}
         />
 
-        {/* Payment Terms Information */}
-        <Alert>
-          <Calendar className="h-4 w-4" />
-          <AlertDescription className="text-right">
-            <div className="space-y-2">
-              <div className="font-medium">معلومات مهمة حول الدفعات:</div>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>سيتم إنشاء جدولة دفعات تلقائية عند حفظ الاتفاقية</li>
-                <li>ستظهر جميع الدفعات في صفحة تفاصيل العقد</li>
-                <li>يمكن تعديل حالة الدفعات لاحقاً حسب الحاجة</li>
-                <li>رسوم التأخير تطبق تلقائياً على الدفعات المتأخرة</li>
-              </ul>
-            </div>
-          </AlertDescription>
-        </Alert>
+        {/* تم حذف بطاقة معلومات الدفعات كما طُلب */}
 
         <div className="flex items-center space-x-2 space-x-reverse">
           <Checkbox

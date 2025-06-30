@@ -1,14 +1,39 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+// import App from './SimpleApp.tsx';
 import './index.css';
+
+// Import environment variables diagnostic test
+import './env-test.ts';
 
 // Initialize monitoring services
 import { initializeMonitoring } from './services/monitoring';
 import { ErrorBoundary } from './components/error/ErrorBoundary';
+import { initPhoneNumberObserver } from './utils/phone-display-utils';
 
 // Import payment testing utilities in development
 if (import.meta.env.DEV) {
   import('./utils/test-payment-creation.ts');
+}
+
+// Setup console error handling before app starts
+if (import.meta.env.PROD) {
+  // Production: Minimize console output
+  const originalError = console.error;
+  const originalWarn = console.warn;
+  
+  console.error = (...args) => {
+    // Only log critical errors in production
+    const message = args.join(' ');
+    if (message.includes('chunk load') || message.includes('network')) {
+      originalError(...args);
+    }
+  };
+  
+  console.warn = () => {}; // Suppress all warnings in production
+} else {
+  // Development: Show all errors for debugging
+  console.log('🔍 Development mode - All console errors visible for debugging');
 }
 
 // Initialize monitoring before app starts
@@ -115,6 +140,11 @@ const initPWAFeatures = () => {
 const initApp = async () => {
   // Initialize PWA features (service worker handled by Vite PWA plugin)
   initPWAFeatures();
+  
+  // Initialize phone number LTR styling observer
+  setTimeout(() => {
+    initPhoneNumberObserver();
+  }, 1000); // Wait for app to mount
   
   // Mount React app
   const container = document.getElementById("root");

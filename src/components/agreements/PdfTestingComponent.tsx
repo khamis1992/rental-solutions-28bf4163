@@ -114,7 +114,8 @@ export function PdfTestingComponent() {
     await generateModernAgreementPDF(
       sampleAgreement,
       samplePayments,
-      [] // No traffic fines for this test
+      [], // No traffic fines for this test
+      undefined // No ID card image for this test
     );
     toast.success('Modern PDF generation test completed');
   };
@@ -147,7 +148,8 @@ export function PdfTestingComponent() {
     await generateModernAgreementPDF(
       arabicAgreement,
       samplePayments,
-      []
+      [],
+      undefined // No ID card image for this test
     );
     toast.success('Modern Arabic text rendering test completed');
   };
@@ -168,7 +170,8 @@ export function PdfTestingComponent() {
     await generateModernAgreementPDF(
       sampleAgreement,
       largePayments,
-      []
+      [],
+      undefined // No ID card image for this test
     );
     toast.success('Modern large document test completed');
   };

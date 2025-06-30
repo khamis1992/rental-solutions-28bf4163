@@ -4,18 +4,37 @@ import { toast } from 'sonner';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
 
-// Get Supabase configuration from environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Get Supabase configuration from environment variables with fallback
+let supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+let supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Check that we have the required environment variables
+// Debug: Log environment variables (safely)
+console.log('🔍 Environment Variables Debug:');
+console.log('VITE_SUPABASE_URL:', supabaseUrl ? '✅ Present' : '❌ Missing');
+console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ Present' : '❌ Missing');
+console.log('All import.meta.env keys:', Object.keys(import.meta.env));
+
+// Fallback: If environment variables are not loaded, use hardcoded values for development
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables!');
-  console.error('Please create a .env file with:');
-  console.error('VITE_SUPABASE_URL=your_supabase_project_url');
-  console.error('VITE_SUPABASE_ANON_KEY=your_supabase_anon_key');
-  throw new Error('Missing required Supabase environment variables. Please check your .env file.');
+  console.warn('⚠️ Environment variables not loaded, using fallback values');
+  supabaseUrl = 'https://vqdlsidkucrownbfuouq.supabase.co';
+  supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y';
+  
+  console.log('📝 Note: Add these to your .env file for proper environment variable loading:');
+  console.log('VITE_SUPABASE_URL=' + supabaseUrl);
+  console.log('VITE_SUPABASE_ANON_KEY=' + supabaseAnonKey);
 }
+
+// Ensure we have valid values before proceeding
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Critical Error: No Supabase configuration available!');
+  throw new Error('Supabase configuration is completely missing. Please check your setup.');
+}
+
+console.log('✅ Supabase configuration ready:', {
+  url: supabaseUrl.substring(0, 30) + '...',
+  keyLength: supabaseAnonKey.length
+});
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

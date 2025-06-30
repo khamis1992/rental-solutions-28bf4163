@@ -678,7 +678,7 @@ export const WhatsAppReminders: React.FC = () => {
                                 <div>
                                   <div className="font-medium">{customerData.full_name || 'عميل'}</div>
                                   <div className="text-xs text-gray-500">
-                                    {formatPhoneNumber(customerData.phone || customerData.phone_number || '')}
+                                    <span className="phone-number-ltr" dir="ltr">{formatPhoneNumber(customerData.phone || customerData.phone_number || '')}</span>
                                   </div>
                                 </div>
                               </div>
@@ -707,7 +707,7 @@ export const WhatsAppReminders: React.FC = () => {
                         <Phone className="h-4 w-4 text-blue-600" />
                         <span className="text-gray-600">الهاتف:</span>
                         <span className="font-medium font-mono" dir="ltr">
-                          {formatPhoneNumber(selectedCustomer.phone)}
+                          <span className="phone-number-ltr" dir="ltr">{formatPhoneNumber(selectedCustomer.phone)}</span>
                         </span>
                       </div>
                       {selectedCustomer.email && (

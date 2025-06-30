@@ -5,7 +5,7 @@ import { validationPatterns } from '@/lib/validation';
 export const customerSchema = z.object({
   id: z.string().optional(),
   full_name: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().email("Please enter a valid email address").optional(),
   phone: z.string().regex(/^[3-9]\d{7}$/, "Please enter a valid 8-digit Qatar phone number"),
   address: z.string().min(5, "Address must be at least 5 characters").optional(),
   driver_license: z.string().min(3, "Driver license number is required"),
@@ -14,6 +14,7 @@ export const customerSchema = z.object({
   status: z.enum(["active", "inactive", "blacklisted", "pending_review", "pending_payment"]).default("active"),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
+  id_card_image: z.string().optional(), // صورة البطاقة الشخصية (base64)
 });
 
 export type Customer = z.infer<typeof customerSchema>;

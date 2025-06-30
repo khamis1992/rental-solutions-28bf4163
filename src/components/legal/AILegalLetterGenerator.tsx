@@ -702,7 +702,7 @@ const AILegalLetterGenerator = () => {
                     <div><span className="font-medium">الاسم:</span> {selectedCustomer.name}</div>
                         <div>
                       <span className="font-medium">الهاتف:</span> 
-                      <span className="phone-number"> {selectedCustomer.phone}</span>
+                      <span className="phone-number phone-number-ltr" dir="ltr"> {selectedCustomer.phone}</span>
                     </div>
                     <div><span className="font-medium">البريد:</span> {selectedCustomer.email || 'غير محدد'}</div>
                     <div><span className="font-medium">العنوان:</span> {selectedCustomer.address || 'غير محدد'}</div>

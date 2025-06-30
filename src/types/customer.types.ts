@@ -18,6 +18,7 @@ export interface Customer {
   status?: CustomerStatus;
   created_at?: string;
   updated_at?: string;
+  id_card_image?: string; // صورة البطاقة الشخصية (base64)
 }
 
 export interface CustomerFilterParams {

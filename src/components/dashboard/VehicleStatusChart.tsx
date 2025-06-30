@@ -16,10 +16,12 @@ interface VehicleStatusChartProps {
 
 const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   const navigate = useNavigate();
-  const [chartType, setChartType] = useState<'pie' | 'donut'>('donut');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const { t } = useTranslation();
   const { language } = useLanguage();
+  
+  // نوع الرسم البياني ثابت على الشكل الحلقي
+  const chartType = 'donut' as const;
   
   if (!data) return null;
   
@@ -72,9 +74,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
         <div className={`flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 ${language === 'ar' ? 'sm:flex-row-reverse' : ''}`}>
           <ChartControls 
             selectedFilter={selectedFilter}
-            chartType={chartType}
             onFilterChange={handleFilterChange}
-            onChartTypeChange={setChartType}
           />
           <CardTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
             نظرة عامة على حالة الأسطول

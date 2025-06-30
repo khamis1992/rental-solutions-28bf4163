@@ -181,7 +181,7 @@ export function VehicleAssignmentDialog({
                 <h3 className="font-medium">Customer Details</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div><span className="font-medium">Name:</span> {customerDetails.full_name}</div>
-                  <div><span className="font-medium">Phone:</span> {customerDetails.phone_number}</div>
+                  <div><span className="font-medium">Phone:</span> <span className="phone-number-ltr" dir="ltr">{customerDetails.phone_number}</span></div>
                   {customerDetails.email && <div><span className="font-medium">Email:</span> {customerDetails.email}</div>}
                 </div>
               </div>

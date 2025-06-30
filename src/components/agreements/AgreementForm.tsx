@@ -27,33 +27,44 @@ const AgreementForm = ({
   onSubmit,
   isSubmitting = false
 }: AgreementFormProps) => {
-  const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null as any);
   const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
   const [isGeneratingAgreementNumber, setIsGeneratingAgreementNumber] = useState(false);
 
-  // Initialize form with default values, ensuring proper date handling
+  // Initialize form with safe default values to prevent controlled/uncontrolled input issues  
+  const getDefaultValues = (): Partial<Agreement> => {
+    const defaults: Partial<Agreement> = {
+      customer_id: '',
+      vehicle_id: '',
+      start_date: new Date().toISOString().split('T')[0],
+      end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      duration_months: 12,
+      status: 'active' as const,
+      agreement_type: 'lease_to_own' as const,
+      agreement_number: '',
+      deposit_amount: 0,
+      rent_amount: 0,
+      daily_late_fee: 120,
+      notes: '',
+      payment_frequency: 'monthly' as const,
+      payment_day: 1
+    };
+
+    // If we have initialData, merge safely to prevent undefined values
+    if (initialData) {
+      const safeInitialData = Object.fromEntries(
+        Object.entries(initialData).filter(([_, value]) => value !== undefined && value !== null)
+      );
+      return { ...defaults, ...safeInitialData };
+    }
+
+    return defaults;
+  };
+
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
-    defaultValues: {
-      ...initialData || {
-        customer_id: '',
-        vehicle_id: '',
-        start_date: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 30 days from now
-        status: 'draft',
-        agreement_number: '',
-        total_amount: 0,
-        deposit_amount: 0,
-        rent_amount: 0,
-        daily_late_fee: 100,
-        notes: '',
-        additional_drivers: [],
-        payment_frequency: 'monthly',
-        payment_day: 1,
-        terms_accepted: false
-      }
-    },
+    defaultValues: getDefaultValues(),
   });
 
   const isEdit = !!initialData?.id;
@@ -82,7 +93,17 @@ const AgreementForm = ({
   // Set initial selections if editing
   useEffect(() => {
     if (initialData?.customers) {
-      setSelectedCustomer(initialData.customers);
+      // تحويل بيانات العميل إلى CustomerInfo مع معالجة القيم null
+      const customerInfo: CustomerInfo = {
+        id: initialData.customers.id,
+        full_name: initialData.customers.full_name,
+        email: initialData.customers.email || '',
+        phone_number: initialData.customers.phone_number || '',
+        driver_license: initialData.customers.driver_license || '',
+        nationality: '',
+        address: initialData.customers.address || ''
+      };
+      setSelectedCustomer(customerInfo);
     }
     if (initialData?.vehicles) {
       setSelectedVehicle(initialData.vehicles);
@@ -126,9 +147,9 @@ const AgreementForm = ({
       const agreementData = {
         ...data,
         agreement_number: agreementNumber,
-        start_date: typeof data.start_date === 'string' ? data.start_date : data.start_date.toISOString(),
-        end_date: typeof data.end_date === 'string' ? data.end_date : data.end_date.toISOString(),
-        terms_accepted: termsAccepted
+        start_date: typeof data.start_date === 'string' ? data.start_date : (data.start_date as Date).toISOString(),
+        end_date: typeof data.end_date === 'string' ? data.end_date : (data.end_date as Date).toISOString(),
+        // terms_accepted removed - not stored in database
       };
 
       // Submit the agreement
@@ -150,7 +171,7 @@ const AgreementForm = ({
   return (
     <div dir="rtl" className="space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-10">
+        <form onSubmit={form.handleSubmit(handleSubmit as any)} className="space-y-6 pb-10">
           {/* Agreement Number Generation Status */}
           {isGeneratingAgreementNumber && (
             <Alert>
@@ -180,7 +201,8 @@ const AgreementForm = ({
             form={form} 
             isEdit={isEdit} 
             onVehicleChange={handleVehicleChange}
-            onCustomerChange={handleCustomerChange} 
+            onCustomerChange={handleCustomerChange}
+            hideCustomerSelector={!!initialData?.customer_id} // إخفاء قسم العميل إذا كان محدد مسبقاً
           />
           
           {selectedCustomer && (
@@ -210,23 +232,7 @@ const AgreementForm = ({
             </Alert>
           )}
 
-          {/* Payment Schedule Information */}
-          {!isEdit && (
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription className="text-right">
-                <div className="space-y-1">
-                  <div className="font-medium">ما سيحدث عند الحفظ:</div>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li>سيتم حفظ الاتفاقية مع جميع التفاصيل المدخلة</li>
-                    <li>سيتم إنشاء جدولة دفعات تلقائية فوراً في الخلفية</li>
-                    <li>ستظهر جميع الدفعات تلقائياً في صفحة تفاصيل العقد</li>
-                    <li>لن تحتاج لأي إجراءات إضافية - النظام يتولى كل شيء</li>
-                  </ul>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* تم حذف بطاقة "ما سيحدث عند الحفظ" كما طُلب */}
 
           <div className="flex justify-start space-x-2 flex-row-reverse gap-2">
             <Button variant="outline" type="button" onClick={() => window.history.back()}>

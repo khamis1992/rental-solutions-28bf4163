@@ -25,7 +25,7 @@ export function CustomerInformationCard({ agreement }: CustomerInformationCardPr
           </div>
           <div>
             <p className="font-medium text-sm">Phone</p>
-            <p className="text-sm">{agreement.customers?.phone_number ?? 'N/A'}</p>
+                          <p className="text-sm phone-number-ltr" dir="ltr">{agreement.customers?.phone_number ?? 'N/A'}</p>
           </div>
           <div>
             <p className="font-medium text-sm">Address</p>

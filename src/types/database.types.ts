@@ -46,6 +46,7 @@ export interface Database {
           created_at: string | null;
           updated_at: string | null;
           driver_license: string | null;
+          id_card_image: string | null;
         };
         Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'id' | 'created_at' | 'updated_at'> & {
           id: string;

@@ -18,12 +18,39 @@ export class AgreementPaymentService {
     try {
       console.log('Creating complete payment schedule for agreement:', agreement.id);
       
+      // Check if payments already exist for this agreement to prevent duplicates
+      const { data: existingPayments, error: paymentsError } = await supabase
+        .from('unified_payments')
+        .select('id')
+        .eq('lease_id', agreement.id!)
+        .limit(1);
+
+      if (paymentsError) {
+        console.error('Error checking existing payments:', paymentsError);
+        return {
+          success: false,
+          scheduleCount: 0,
+          paymentCount: 0,
+          error: `Failed to check existing payments: ${paymentsError.message}`
+        };
+      }
+
+      if (existingPayments && existingPayments.length > 0) {
+        console.log('Payments already exist for this agreement, skipping creation');
+        return {
+          success: true,
+          scheduleCount: 0,
+          paymentCount: 0,
+          error: 'Payment schedule already exists for this agreement'
+        };
+      }
+      
       // Generate the payment schedule
       const schedule = generatePaymentSchedule({
         startDate: new Date(agreement.start_date),
         endDate: new Date(agreement.end_date),
         rentAmount: agreement.rent_amount,
-        paymentFrequency: agreement.payment_frequency || 'monthly',
+        paymentFrequency: (agreement.payment_frequency as "monthly" | "weekly" | "daily") || 'monthly',
         paymentDay: agreement.payment_day || 1,
         includeDeposit: !!agreement.deposit_amount,
         depositAmount: agreement.deposit_amount || 0

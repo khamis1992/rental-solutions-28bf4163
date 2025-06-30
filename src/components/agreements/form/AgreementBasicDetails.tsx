@@ -16,16 +16,24 @@ interface AgreementBasicDetailsProps {
   isEdit?: boolean;
   onVehicleChange?: (vehicle: any) => void;
   onCustomerChange?: (customer: CustomerInfo) => void;
+  hideCustomerSelector?: boolean; // إخفاء قسم اختيار العميل عند وجود بيانات مُحددة مسبقاً
 }
 
 export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
   form,
   isEdit = false,
   onVehicleChange,
-  onCustomerChange
+  onCustomerChange,
+  hideCustomerSelector = false
 }) => {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  
+  // تعيين القيم الافتراضية للحقول المخفية
+  useEffect(() => {
+    form.setValue('agreement_type', 'lease_to_own'); // دائماً إيجار منتهي بالتملك
+    form.setValue('status', 'active'); // دائماً نشط
+  }, [form]);
 
   const handleCustomerSelect = (customer: CustomerInfo) => {
     console.log('تم اختيار العميل:', customer);
@@ -53,10 +61,8 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
   // Get status labels in Arabic
   const getStatusLabel = (status: string) => {
     const translations: { [key: string]: string } = {
-      'draft': 'مسودة',
       'active': 'نشط',
-      'pending': 'معلق',
-      'completed': 'مكتمل',
+      'closed': 'مكتمل',
       'cancelled': 'ملغي'
     };
     return translations[status] || status;
@@ -101,86 +107,48 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="agreement_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-right">نوع الاتفاقية</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} dir="rtl">
-                  <FormControl>
-                    <SelectTrigger className="text-right">
-                      <SelectValue placeholder="اختر نوع الاتفاقية" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent align="start">
-                    <SelectItem value="short_term" className="text-right">قصير المدى</SelectItem>
-                    <SelectItem value="lease_to_own" className="text-right">إيجار منتهي بالتملك</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-right" />
-              </FormItem>
-            )}
-          />
+          {/* نوع الاتفاقية محدد تلقائياً: إيجار منتهي بالتملك */}
+          {/* تم إخفاء هذا الحقل وتعيينه تلقائياً */}
 
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-right">الحالة</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} dir="rtl">
-                  <FormControl>
-                    <SelectTrigger className="text-right">
-                      <SelectValue placeholder="اختر الحالة" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent align="start">
-                    <SelectItem value="draft" className="text-right">مسودة</SelectItem>
-                    <SelectItem value="active" className="text-right">نشط</SelectItem>
-                    <SelectItem value="pending" className="text-right">معلق</SelectItem>
-                    <SelectItem value="completed" className="text-right">مكتمل</SelectItem>
-                    <SelectItem value="cancelled" className="text-right">ملغي</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-right" />
-              </FormItem>
-            )}
-          />
+          {/* الحالة محددة تلقائياً: نشط */}
+          {/* تم إخفاء هذا الحقل وتعيينه تلقائياً */}
 
-          <FormField
-            control={form.control}
-            name="customer_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-right flex items-center gap-2">
-                  العميل
-                  <span className="text-red-500">*</span>
-                </FormLabel>
-                <FormControl>
-                  <div className="w-full">
-                  <CustomerSelector
-                    selectedCustomer={selectedCustomer}
-                    onCustomerSelect={handleCustomerSelect}
-                    placeholder="البحث عن عميل..."
-                      inputClassName="text-right"
-                  />
-                  </div>
-                </FormControl>
-                <FormMessage className="text-right" />
-                {selectedCustomer && (
-                  <div className="text-sm text-muted-foreground text-right bg-green-50 p-2 rounded">
-                    تم اختيار العميل: <span className="font-medium">{selectedCustomer.full_name}</span>
-                    {selectedCustomer.phone_number && (
-                      <span className="block ltr-text" dir="ltr">
-                        الهاتف: {selectedCustomer.phone_number}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </FormItem>
-            )}
-          />
+          {/* إخفاء قسم العميل عند وجود بيانات مُحددة مسبقاً */}
+          {!hideCustomerSelector && (
+            <FormField
+              control={form.control}
+              name="customer_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-right flex items-center gap-2">
+                    العميل
+                    <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <div className="w-full">
+                    <CustomerSelector
+                      selectedCustomer={selectedCustomer}
+                      onCustomerSelect={handleCustomerSelect}
+                      placeholder="البحث عن عميل..."
+                        inputClassName="text-right"
+                    />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-right" />
+                  {selectedCustomer && (
+                    <div className="text-sm text-muted-foreground text-right bg-green-50 p-2 rounded">
+                      تم اختيار العميل: <span className="font-medium">{selectedCustomer.full_name}</span>
+                      {selectedCustomer.phone_number && (
+                        <span className="block ltr-text" dir="ltr">
+                          الهاتف: <span className="phone-number-ltr" dir="ltr">{selectedCustomer.phone_number}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}
@@ -219,13 +187,20 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
             name="start_date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-right">تاريخ البداية</FormLabel>
+                <FormLabel className="text-right">تاريخ بداية العقد</FormLabel>
                 <FormControl>
                   <DatePicker
                     date={field.value ? new Date(field.value) : undefined}
                     setDate={(date) => {
                       if (date) {
-                        field.onChange(date.toISOString().split('T')[0]);
+                        const startDate = date.toISOString().split('T')[0];
+                        field.onChange(startDate);
+                        
+                        // حساب تاريخ النهاية تلقائياً بناءً على مدة العقد
+                        const durationMonths = form.getValues('duration_months') || 12;
+                        const endDate = new Date(date);
+                        endDate.setMonth(endDate.getMonth() + durationMonths);
+                        form.setValue('end_date', endDate.toISOString().split('T')[0]);
                       } else {
                         field.onChange('');
                       }
@@ -241,24 +216,61 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
 
           <FormField
             control={form.control}
+            name="duration_months"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-right">مدة العقد (بالأشهر)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="120"
+                    placeholder="20"
+                    {...field}
+                    className="text-right"
+                    dir="rtl"
+                    onChange={(e) => {
+                      const months = parseInt(e.target.value) || 0;
+                      field.onChange(months);
+                      
+                      // حساب تاريخ النهاية تلقائياً
+                      const startDate = form.getValues('start_date');
+                      if (startDate && months > 0) {
+                        const start = new Date(startDate);
+                        const end = new Date(start);
+                        end.setMonth(end.getMonth() + months);
+                        form.setValue('end_date', end.toISOString().split('T')[0]);
+                      }
+                    }}
+                  />
+                </FormControl>
+                <div className="text-xs text-muted-foreground text-right">
+                  أدخل عدد الأشهر (مثال: 20 شهر) - سيتم حساب تاريخ النهاية تلقائياً
+                </div>
+                <FormMessage className="text-right" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="end_date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-right">تاريخ النهاية</FormLabel>
+                <FormLabel className="text-right">تاريخ نهاية العقد (محسوب تلقائياً)</FormLabel>
                 <FormControl>
-                  <DatePicker
-                    date={field.value ? new Date(field.value) : undefined}
-                    setDate={(date) => {
-                      if (date) {
-                        field.onChange(date.toISOString().split('T')[0]);
-                      } else {
-                        field.onChange('');
-                      }
-                    }}
-                    placeholder="اختر تاريخ النهاية"
-                    className="text-right"
+                  <Input 
+                    {...field} 
+                    className="text-right bg-gray-50" 
+                    dir="rtl"
+                    readOnly
+                    disabled
+                    placeholder="سيتم الحساب تلقائياً"
                   />
                 </FormControl>
+                <div className="text-xs text-muted-foreground text-right">
+                  يتم حساب تاريخ النهاية تلقائياً بناءً على تاريخ البداية ومدة العقد
+                </div>
                 <FormMessage className="text-right" />
               </FormItem>
             )}

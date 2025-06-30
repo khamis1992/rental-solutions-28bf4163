@@ -26,7 +26,7 @@ const createSampleCustomers = async () => {
       phone_number: '+97433123456',
       driver_license: 'DL123456',
       nationality: 'قطري',
-      address: 'الدوحة، قطر',
+      address: 'الدوحة - قطر',
       notes: 'عميل جديد',
       status: 'active',
       role: CUSTOMER_ROLE,
@@ -39,7 +39,7 @@ const createSampleCustomers = async () => {
       phone_number: '+97455987654',
       driver_license: 'DL789012',
       nationality: 'قطري',
-      address: 'الريان، قطر',
+      address: 'الدوحة - قطر',
       notes: 'عميل مميز',
       status: 'active',
       role: CUSTOMER_ROLE,
@@ -52,7 +52,7 @@ const createSampleCustomers = async () => {
       phone_number: '+97470456789',
       driver_license: 'DL345678',
       nationality: 'قطري',
-      address: 'الوكرة، قطر',
+      address: 'الدوحة - قطر',
       notes: 'عميل منتظم',
       status: 'active',
       role: CUSTOMER_ROLE,
@@ -144,6 +144,7 @@ export const useCustomerQueryService = (searchParams: SearchParams) => {
               address: profile.address || '',
               notes: profile.notes || '',
               status: (profile.status || 'active'),
+              id_card_image: profile.id_card_image || '', // إضافة صورة البطاقة الشخصية
               created_at: profile.created_at,
               updated_at: profile.updated_at,
             })) : [];
@@ -162,6 +163,7 @@ export const useCustomerQueryService = (searchParams: SearchParams) => {
           address: profile.address || '',
           notes: profile.notes || '',
           status: (profile.status || 'active'),
+          id_card_image: profile.id_card_image || '', // إضافة صورة البطاقة الشخصية
           created_at: profile.created_at,
           updated_at: profile.updated_at,
         })) : [];
@@ -211,6 +213,7 @@ export const useCustomerQueryService = (searchParams: SearchParams) => {
         address: data.address || '',
         notes: data.notes || '',
         status: (data.status || 'active'),
+        id_card_image: data.id_card_image || '', // ✅ إضافة صورة البطاقة الشخصية
         created_at: data.created_at,
         updated_at: data.updated_at,
       };

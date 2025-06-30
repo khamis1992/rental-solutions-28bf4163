@@ -166,10 +166,9 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
       <div className="rounded-md border p-8 flex flex-col items-center justify-center" dir="rtl">
         <User className="h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
         <h3 className="font-medium text-lg">لا توجد عملاء</h3>
-        <p className="text-muted-foreground text-sm mb-4">جرب تعديل مرشحات البحث أو أضف عميلاً جديداً.</p>
-        <Button asChild>
-          <Link to="/customers/add">إضافة عميل</Link>
-        </Button>
+        <p className="text-muted-foreground text-sm mb-4">
+          لا يوجد عملاء حالياً. يمكن إضافة عملاء جدد من خلال إنشاء عقود جديدة في الإجراءات السريعة.
+        </p>
       </div>
     );
   }

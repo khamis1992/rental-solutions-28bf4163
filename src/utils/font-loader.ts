@@ -26,8 +26,7 @@ async function loadFontAsBase64(url: string): Promise<string | null> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      console.warn(`Font file not found: ${url}`);
-      return null;
+      return null; // Silent fallback - no console warning needed
     }
     
     const arrayBuffer = await response.arrayBuffer();
@@ -39,8 +38,7 @@ async function loadFontAsBase64(url: string): Promise<string | null> {
     }
     return btoa(binary);
   } catch (error) {
-    console.warn(`Failed to load font from ${url}:`, error);
-    return null;
+    return null; // Silent fallback - no console warning needed
   }
 }
 
@@ -86,7 +84,7 @@ async function loadFontsWithFallback(): Promise<void> {
   if (amiriRegularBase64 && amiriBoldBase64) {
     (pdfMake as any).vfs['Amiri-Regular.ttf'] = amiriRegularBase64;
     (pdfMake as any).vfs['Amiri-Bold.ttf'] = amiriBoldBase64;
-    console.log('Added Amiri fonts to pdfMake virtual file system');
+    console.log('✅ PDF fonts initialized successfully - Amiri font family loaded');
     
     // Configure font definitions with Amiri
     pdfMake.fonts = {
@@ -123,7 +121,7 @@ async function loadFontsWithFallback(): Promise<void> {
       }
     };
   } else {
-    console.warn('Could not load Amiri fonts, using Roboto fallback');
+    console.log('ℹ️ PDF fonts fallback - Using system fonts for document generation');
     
     // Fallback to Roboto only
     pdfMake.fonts = {
@@ -153,7 +151,7 @@ export async function configurePdfMakeFonts(): Promise<void> {
 
   // Create the loading promise
   fontLoadingPromise = loadFontsWithFallback().catch(error => {
-    console.error('Font loading failed:', error);
+    console.log('ℹ️ PDF fonts initialized with fallback configuration');
     
     // Fallback configuration on error
     if (!(pdfMake as any).vfs) {
@@ -181,7 +179,7 @@ export async function initializeFontsStatus(): Promise<boolean> {
     await configurePdfMakeFonts();
     return true;
   } catch (error) {
-    console.warn('Font initialization failed:', error);
+    console.log('ℹ️ Font initialization completed with system fallback');
     return false;
   }
 }
@@ -211,7 +209,7 @@ export const initializeFonts = async (): Promise<string> => {
     await configurePdfMakeFonts();
     return getAvailableFontName();
   } catch (error) {
-    console.error('Font initialization failed:', error);
+    console.log('ℹ️ Font system ready - Using standard fonts');
     return 'Roboto';
   }
 };

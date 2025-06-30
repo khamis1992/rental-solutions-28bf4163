@@ -11,6 +11,7 @@ import {
   DollarSign, 
   CreditCard, 
   AlertCircle, 
+  AlertTriangle,
   TrendingUp, 
   Calendar,
   FileText,
@@ -34,12 +35,13 @@ interface FinancialSummary {
   totalOverdue: number;
   averagePayment: number;
   paymentProgress: number;
-  nextPaymentDue: string | null;
+  nextPaymentDue?: string; // تغيير إلى undefined بدلاً من null
   nextPaymentAmount: number;
   onTimePaymentRate: number;
   financialHealth: 'excellent' | 'good' | 'attention' | 'critical';
   totalContracts: number;
   activeContracts: number;
+  totalLateFees?: number; // إضافة حقل غرامات التأخير
 }
 
 export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ customerId }) => {
@@ -82,7 +84,7 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
 
       const customer = customerData[0];
 
-      // جلب العقود والدفعات
+      // جلب العقود مع استخدام النظام الصحيح للدفعات (payments table)
       const { data: agreements, error: agreementsError } = await supabase
         .from('leases')
         .select(`
@@ -91,130 +93,97 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
           rent_amount,
           start_date,
           end_date,
-          status,
-          unified_payments:unified_payments(
-            id,
-            amount,
-            payment_date,
-            original_due_date,
-            status,
-            payment_method
-          ),
-          payment_schedules:payment_schedules(
-            id,
-            amount,
-            due_date,
-            status,
-            actual_payment_date
-          )
+          status
         `)
         .eq('customer_id', customerId);
 
       if (agreementsError) {
         console.error('Error fetching agreements:', agreementsError);
-        // لا نرمي خطأ هنا، بل نستمر بدون بيانات عقود
         console.warn('Continuing without agreement data due to error:', agreementsError);
       }
 
-      // حساب الإحصائيات المالية
+      // جلب جميع الدفعات من جدول payments (النظام الصحيح)
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('due_date', { ascending: false });
+
+      if (paymentsError) {
+        console.error('Error fetching payments:', paymentsError);
+      }
+
+      // حساب الإحصائيات المالية باستخدام النظام الصحيح
       let totalPaid = 0;
       let totalPending = 0;
       let totalOverdue = 0;
-      let allPayments: any[] = [];
+      let totalLateFees = 0; // إضافة حساب غرامات التأخير
+      let allPayments: any[] = paymentsData || [];
       let onTimePayments = 0;
       let totalPayments = 0;
 
       const today = new Date();
-      let nextPaymentDue: string | null = null;
+      let nextPaymentDue: string | undefined = undefined;
       let nextPaymentAmount = 0;
 
-      // التحقق من وجود عقود قبل المعالجة
-      if (agreements && Array.isArray(agreements) && agreements.length > 0) {
-        agreements.forEach((agreement: any) => {
-        // معالجة unified_payments
-        if (agreement.unified_payments) {
-          agreement.unified_payments.forEach((payment: any) => {
-            allPayments.push({
-              ...payment,
-              agreement_number: agreement.agreement_number,
-              source: 'unified_payments'
-            });
+      // معالجة الدفعات باستخدام النظام الصحيح
+      if (paymentsData && paymentsData.length > 0) {
+        // فصل الدفعات المتأخرة عن المعلقة (نفس منطق LegalManagementDashboard)
+        const overduePayments = paymentsData.filter(payment => {
+          const dueDate = new Date(payment.due_date);
+          return dueDate < today && payment.status === 'overdue';
+        });
 
-            if (payment.status === 'paid') {
-              totalPaid += payment.amount;
-              // التحقق من الدفع في الوقت المحدد
-              if (payment.payment_date && payment.original_due_date) {
-                const paymentDate = new Date(payment.payment_date);
-                const dueDate = new Date(payment.original_due_date);
-                if (paymentDate <= dueDate) {
-                  onTimePayments++;
-                }
+        paymentsData.forEach((payment: any) => {
+          // إضافة بيانات العقد للدفعة
+          const relatedAgreement = agreements?.find(a => a.id === payment.lease_id);
+          payment.agreement_number = relatedAgreement?.agreement_number || 'غير محدد';
+
+          if (payment.status === 'paid' || payment.status === 'completed') {
+            totalPaid += payment.amount;
+            // التحقق من الدفع في الوقت المحدد
+            if (payment.payment_date && payment.due_date) {
+              const paymentDate = new Date(payment.payment_date);
+              const dueDate = new Date(payment.due_date);
+              if (paymentDate <= dueDate) {
+                onTimePayments++;
               }
-              totalPayments++;
-            } else if (payment.status === 'pending') {
-              const dueDate = payment.original_due_date ? new Date(payment.original_due_date) : null;
-              if (dueDate && dueDate < today) {
-                totalOverdue += payment.amount;
-              } else {
-                totalPending += payment.amount;
-                // العثور على أقرب دفعة مستحقة
-                if (dueDate && (!nextPaymentDue || dueDate < new Date(nextPaymentDue))) {
-                  nextPaymentDue = payment.original_due_date;
-                  nextPaymentAmount = payment.amount;
-                }
-              }
-              totalPayments++;
-            } else if (payment.status === 'overdue') {
+            }
+            totalPayments++;
+          } else if (payment.status === 'pending') {
+            const dueDate = payment.due_date ? new Date(payment.due_date) : null;
+            if (dueDate && dueDate < today) {
+              // هذه دفعة متأخرة
               totalOverdue += payment.amount;
-              totalPayments++;
-            }
-          });
-        }
-
-        // معالجة payment_schedules (كبديل إضافي)
-        if (agreement.payment_schedules) {
-          agreement.payment_schedules.forEach((schedule: any) => {
-            allPayments.push({
-              ...schedule,
-              agreement_number: agreement.agreement_number,
-              source: 'payment_schedules',
-              // تحويل حقول payment_schedules لتوافق unified_payments
-              original_due_date: schedule.due_date,
-              payment_date: schedule.actual_payment_date
-            });
-
-            if (schedule.status === 'completed') {
-              totalPaid += schedule.amount;
-              // التحقق من الدفع في الوقت المحدد
-              if (schedule.actual_payment_date && schedule.due_date) {
-                const paymentDate = new Date(schedule.actual_payment_date);
-                const dueDate = new Date(schedule.due_date);
-                if (paymentDate <= dueDate) {
-                  onTimePayments++;
-                }
+            } else {
+              // هذه دفعة معلقة
+              totalPending += payment.amount;
+              // العثور على أقرب دفعة مستحقة
+              if (dueDate && (!nextPaymentDue || dueDate < new Date(nextPaymentDue))) {
+                nextPaymentDue = payment.due_date;
+                nextPaymentAmount = payment.amount;
               }
-              totalPayments++;
-            } else if (schedule.status === 'pending') {
-              const dueDate = schedule.due_date ? new Date(schedule.due_date) : null;
-              if (dueDate && dueDate < today) {
-                totalOverdue += schedule.amount;
-              } else {
-                totalPending += schedule.amount;
-                // العثور على أقرب دفعة مستحقة
-                if (dueDate && (!nextPaymentDue || dueDate < new Date(nextPaymentDue))) {
-                  nextPaymentDue = schedule.due_date;
-                  nextPaymentAmount = schedule.amount;
-                }
-              }
-              totalPayments++;
-            } else if (schedule.status === 'overdue') {
-              totalOverdue += schedule.amount;
-              totalPayments++;
             }
-          });
-        }
-      });
-      } // إغلاق if statement للتحقق من وجود العقود
+            totalPayments++;
+          } else if (payment.status === 'overdue') {
+            totalOverdue += payment.amount;
+            totalPayments++;
+          }
+        });
+
+        // حساب غرامات التأخير مثل LegalManagementDashboard (3000 ريال لكل شهر متأخر)
+        const overdueMonthsCount = overduePayments.length; // كل دفعة متأخرة = شهر واحد
+        totalLateFees = overdueMonthsCount * 3000;
+
+        console.log('✅ استخدام النظام الصحيح - إحصائيات مطابقة للملخص المالي للمطالبة القانونية:', {
+          totalPaid: `${totalPaid.toLocaleString()} ر.ق`,
+          totalPending: `${totalPending.toLocaleString()} ر.ق`,
+          totalOverdue: `${totalOverdue.toLocaleString()} ر.ق`,
+          totalLateFees: `${totalLateFees.toLocaleString()} ر.ق (${overdueMonthsCount} شهر × 3000 ر.ق)`,
+          totalPayments: paymentsData.length,
+          overduePayments: overduePayments.length
+        });
+      }
 
       // حساب معدل الدفع في الوقت المحدد
       const onTimePaymentRate = totalPayments > 0 ? (onTimePayments / totalPayments) * 100 : 0;
@@ -225,16 +194,17 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
         ? completedPayments.reduce((sum, p) => sum + p.amount, 0) / completedPayments.length 
         : 0;
 
-      // حساب تقدم الدفعات
-      const totalAmount = totalPaid + totalPending + totalOverdue;
+      // حساب تقدم الدفعات (شامل غرامات التأخير)
+      const totalAmount = totalPaid + totalPending + totalOverdue + totalLateFees;
       const paymentProgress = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
 
-      // تحديد الصحة المالية
+      // تحديد الصحة المالية (مع الأخذ في الاعتبار غرامات التأخير)
       let financialHealth: 'excellent' | 'good' | 'attention' | 'critical' = 'excellent';
-      if (totalOverdue > 0) {
-        if (totalOverdue > totalPaid * 0.5) {
+      const totalOutstanding = totalOverdue + totalLateFees;
+      if (totalOutstanding > 0) {
+        if (totalOutstanding > totalPaid * 0.5) {
           financialHealth = 'critical';
-        } else if (totalOverdue > totalPaid * 0.25) {
+        } else if (totalOutstanding > totalPaid * 0.25) {
           financialHealth = 'attention';
         } else {
           financialHealth = 'good';
@@ -248,7 +218,7 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
       const summary: FinancialSummary = {
         totalPaid,
         totalPending,
-        totalOverdue,
+        totalOverdue: totalOverdue + totalLateFees, // إضافة غرامات التأخير للمبلغ المتأخر
         averagePayment,
         paymentProgress,
         nextPaymentDue,
@@ -256,7 +226,8 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
         onTimePaymentRate,
         financialHealth,
         totalContracts: agreements?.length || 0,
-        activeContracts: agreements?.filter(a => a.status === 'active').length || 0
+        activeContracts: agreements?.filter(a => a.status === 'active').length || 0,
+        totalLateFees
       };
 
       setFinancialData(summary);
@@ -265,7 +236,7 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
       
       // ترتيب جميع الدفعات حسب التاريخ
       const sortedAllPayments = allPayments
-        .sort((a, b) => new Date(b.payment_date || b.original_due_date || b.created_at).getTime() - new Date(a.payment_date || a.original_due_date || a.created_at).getTime());
+        .sort((a, b) => new Date(b.payment_date || b.due_date || b.created_at).getTime() - new Date(a.payment_date || a.due_date || a.created_at).getTime());
       
       setAllPayments(sortedAllPayments);
       
@@ -531,6 +502,28 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
             </div>
           </CardContent>
         </Card>
+
+        {/* بطاقة غرامات التأخير - محسوبة حسب النظام الصحيح */}
+        <Card className="border-l-4 border-l-orange-500">
+          <CardContent className="p-4">
+            <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-gray-500 mb-1">
+                  {language === 'ar' ? 'غرامات التأخير' : 'Late Fees'}
+                </p>
+                <p className="text-lg font-bold text-orange-600">
+                  {formatCurrency(financialData.totalLateFees || 0)}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {language === 'ar' ? '3000 ر.ق/شهر متأخر' : '3000 QAR/overdue month'}
+                </p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-full">
+                <AlertTriangle className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* مؤشر أداء الدفع وصحة مالية */}
@@ -695,7 +688,7 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
                 <div className="flex flex-col items-start gap-2">
                   {getPaymentStatusBadge(payment.status)}
                   <p className="text-sm text-muted-foreground text-left">
-                    {formatDate(payment.payment_date || payment.original_due_date)}
+                    {formatDate(payment.payment_date || payment.due_date)}
                   </p>
                 </div>
               </div>

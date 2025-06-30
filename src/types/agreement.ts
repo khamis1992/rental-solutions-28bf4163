@@ -1,4 +1,4 @@
-import { Database } from './database';
+import { Database } from './database.types';
 
 // Base Agreement type that matches the database schema exactly
 export type Agreement = Database['public']['Tables']['leases']['Row'] & {
@@ -10,11 +10,11 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
   // Computed/derived fields
   customer_name?: string;
   vehicle_info?: string;
-  terms_accepted?: boolean;
   license_plate?: string;
   vehicle_make?: string;
   vehicle_model?: string;
   next_payment_date?: string;
+  duration_months?: number; // مدة العقد بالأشهر
 };
 
 // Database operation types
@@ -55,7 +55,8 @@ export function createAgreementData(data: Partial<Agreement>): AgreementInsert {
     status,
     agreement_type,
     notes,
-    confirmation_email_sent
+    confirmation_email_sent,
+    duration_months // إضافة مدة العقد
   } = data;
 
   return {
@@ -74,7 +75,8 @@ export function createAgreementData(data: Partial<Agreement>): AgreementInsert {
     status,
     agreement_type,
     notes,
-    confirmation_email_sent
+    confirmation_email_sent,
+    duration_months
   } as AgreementInsert;
 }
 

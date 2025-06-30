@@ -104,24 +104,62 @@ async function generateModernReportPDF(reportType: string, data: any[]): Promise
  * إنشاء محتوى تقرير المخالفات المرورية
  */
 async function generateTrafficReportContent(data: any[]): Promise<string> {
-          const totalAmount = data.reduce((sum, item) => {
-            const amount = typeof item.fineAmount === 'string' 
-              ? parseFloat(item.fineAmount.replace(/[^\d.-]/g, ''))
-              : (item.fineAmount || 0);
-            return sum + (isNaN(amount) ? 0 : amount);
-          }, 0);
+  const totalAmount = data.reduce((sum, item) => {
+    const amount = typeof item.fineAmount === 'string' 
+      ? parseFloat(item.fineAmount.replace(/[^\d.-]/g, ''))
+      : (item.fineAmount || 0);
+    return sum + (isNaN(amount) ? 0 : amount);
+  }, 0);
           
   const totalFines = data.length;
   const paidFines = data.filter(fine => fine.status === 'paid').length;
   const pendingFines = totalFines - paidFines;
 
-  // إحصائيات سريعة
-  const summaryCards = `
-    <div class="summary-cards">
-      ${createSummaryCard('إجمالي المخالفات', totalFines, 'neutral', false, true)}
-      ${createSummaryCard('المخالفات المدفوعة', paidFines, 'positive', false, true)}
-      ${createSummaryCard('المخالفات المعلقة', pendingFines, 'warning', false, true)}
-      ${createSummaryCard('إجمالي المبلغ', totalAmount, 'neutral')}
+  // Header رسمي مبسط
+  const officialHeader = `
+    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 25px; page-break-inside: avoid;">
+      <div style="border: 2px solid #333; padding: 15px; margin-bottom: 15px;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #333;">تقرير المخالفات المرورية</h1>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: #666;">نظام إدارة تأجير المركبات</p>
+      </div>
+      <div style="display: flex; justify-content: space-between; text-align: center; border-top: 1px solid #ddd; padding-top: 15px;">
+        <div>
+          <strong>تاريخ الإصدار:</strong> ${formatDate(new Date())}
+        </div>
+        <div>
+          <strong>صالح لمدة:</strong> 30 يوماً من تاريخ الإصدار
+        </div>
+      </div>
+    </div>
+  `;
+
+  // ملخص مبسط
+  const simpleSummary = `
+    <div style="border: 1px solid #ddd; padding: 15px; margin: 15px 0; page-break-inside: avoid;">
+      <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #333; text-align: center; border-bottom: 1px solid #ddd; padding-bottom: 10px;">الملخص التنفيذي</h2>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+        <tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 10px; font-weight: bold; width: 50%;">إجمالي المخالفات:</td>
+          <td style="padding: 10px; text-align: left;"><strong>${totalFines}</strong> مخالفة</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 10px; font-weight: bold;">المخالفات المسددة:</td>
+          <td style="padding: 10px; text-align: left;"><strong>${paidFines}</strong> مخالفة</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 10px; font-weight: bold;">المخالفات المعلقة:</td>
+          <td style="padding: 10px; text-align: left;"><strong>${pendingFines}</strong> مخالفة</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold;">إجمالي المبلغ:</td>
+          <td style="padding: 10px; text-align: left;"><strong>${formatCurrency(totalAmount)}</strong> ريال قطري</td>
+        </tr>
+      </table>
+      
+      <div style="text-align: center; padding: 10px; background: #f5f5f5; border: 1px solid #ddd;">
+        <strong>معدل السداد: ${totalFines > 0 ? ((paidFines / totalFines) * 100).toFixed(1) : 0}%</strong>
+      </div>
     </div>
   `;
 
@@ -135,9 +173,9 @@ async function generateTrafficReportContent(data: any[]): Promise<string> {
     customerGroups[customerName].push(fine);
   });
 
-  // جداول المخالفات لكل عميل
+  // جداول المخالفات لكل عميل مبسطة
   let customerTables = '';
-  Object.entries(customerGroups).forEach(([customerName, customerFines]) => {
+  Object.entries(customerGroups).forEach(([customerName, customerFines], index) => {
     const customerTotal = customerFines.reduce((sum, fine) => {
       const amount = typeof fine.fineAmount === 'string' 
         ? parseFloat(fine.fineAmount.replace(/[^\d.-]/g, ''))
@@ -145,56 +183,106 @@ async function generateTrafficReportContent(data: any[]): Promise<string> {
       return sum + (isNaN(amount) ? 0 : amount);
     }, 0);
 
+    const customerPaid = customerFines.filter(fine => fine.status === 'paid').length;
+    const customerPending = customerFines.length - customerPaid;
+
     customerTables += `
-      <h3 class="section-header" style="background: #dc2626; color: white; padding: 12px; border-radius: 8px; margin-top: 30px;">
-        ${customerName} - المجموع: ${formatCurrency(customerTotal)} ر.ق
-      </h3>
+      <div style="margin: 20px 0; page-break-inside: avoid; break-inside: avoid;">
+        <div style="border: 2px solid #333; padding: 12px; margin-bottom: 1px; background: #f8f8f8;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 style="margin: 0; font-size: 16px; color: #333;">${customerName}</h3>
+              <small style="color: #666;">عميل رقم ${index + 1}</small>
+            </div>
+            <div style="text-align: left;">
+              <div style="font-weight: bold; font-size: 16px;">${formatCurrency(customerTotal)} ر.ق</div>
+              <small style="color: #666;">${customerPaid} مسددة | ${customerPending} معلقة</small>
+            </div>
+          </div>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #333; font-size: 12px;">
+          <thead>
+            <tr style="background: #f0f0f0;">
+              <th style="border: 1px solid #333; padding: 8px; text-align: center;">رقم المخالفة</th>
+              <th style="border: 1px solid #333; padding: 8px; text-align: center;">لوحة الترخيص</th>
+              <th style="border: 1px solid #333; padding: 8px; text-align: center;">تاريخ المخالفة</th>
+              <th style="border: 1px solid #333; padding: 8px; text-align: center;">نوع المخالفة</th>
+              <th style="border: 1px solid #333; padding: 8px; text-align: center;">المبلغ</th>
+              <th style="border: 1px solid #333; padding: 8px; text-align: center;">الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
     `;
 
-    const headers = ['رقم المخالفة', 'لوحة الترخيص', 'تاريخ المخالفة', 'نوع المخالفة', 'المبلغ', 'الحالة'];
-    const rows = customerFines.map(fine => [
-      fine.violationNumber || 'غير محدد',
-      fine.licensePlate || 'غير محدد',
-      fine.violationDate ? formatDate(fine.violationDate) : 'غير محدد',
-      fine.violationType || 'غير محدد',
-      formatCurrency(fine.fineAmount || 0) + ' ر.ق',
-      fine.status === 'paid' ? '✅ مدفوعة' : '⏳ معلقة'
-    ]);
+    customerFines.forEach(fine => {
+      customerTables += `
+        <tr>
+          <td style="border: 1px solid #333; padding: 6px; text-align: center;">${fine.violationNumber || 'غير محدد'}</td>
+          <td style="border: 1px solid #333; padding: 6px; text-align: center;">${fine.licensePlate || 'غير محدد'}</td>
+          <td style="border: 1px solid #333; padding: 6px; text-align: center;">${fine.violationDate ? formatDate(fine.violationDate) : 'غير محدد'}</td>
+          <td style="border: 1px solid #333; padding: 6px; text-align: center;">${fine.violationType || 'غير محدد'}</td>
+          <td style="border: 1px solid #333; padding: 6px; text-align: center;">${formatCurrency(fine.fineAmount || 0)} ر.ق</td>
+          <td style="border: 1px solid #333; padding: 6px; text-align: center;">${fine.status === 'paid' ? 'مسددة ✓' : 'معلقة'}</td>
+        </tr>
+      `;
+    });
 
-    customerTables += createDataTable(headers, rows);
+    customerTables += `
+          </tbody>
+        </table>
+      </div>
+    `;
   });
 
-  // تنبيهات هامة
-  const alerts = createHighlightBox(
-    `
-      <h4>🚨 تنبيهات مهمة:</h4>
-      <ul style="padding-right: 20px; line-height: 1.8;">
-        <li><strong>المخالفات المعلقة:</strong> يجب سداد ${pendingFines} مخالفة لتجنب المشاكل القانونية</li>
-        <li><strong>إجمالي المبلغ المطلوب:</strong> ${formatCurrency(totalAmount)} ريال قطري</li>
-        <li><strong>تاريخ التقرير:</strong> ${formatDate(new Date())}</li>
-        <li><strong>صالح لمدة:</strong> 30 يوماً من تاريخ الإصدار</li>
-      </ul>
-    `,
-    'alert'
-  );
+  // ملاحظات مبسطة
+  const simpleNotes = `
+    <div style="border: 1px solid #333; padding: 15px; margin: 20px 0; page-break-inside: avoid;">
+      <h2 style="margin: 0 0 15px 0; font-size: 16px; color: #333; text-align: center; border-bottom: 1px solid #333; padding-bottom: 8px;">ملاحظات هامة</h2>
+      
+      <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+        <div style="width: 48%;">
+          <h4 style="margin: 0 0 8px 0; font-size: 14px; color: #333;">إحصائيات التقرير:</h4>
+          <ul style="margin: 0; padding-right: 15px; font-size: 12px; line-height: 1.6;">
+            <li>عدد العملاء: ${Object.keys(customerGroups).length} عميل</li>
+            <li>متوسط المخالفات لكل عميل: ${(totalFines / Math.max(Object.keys(customerGroups).length, 1)).toFixed(1)} مخالفة</li>
+            <li>إجمالي المبلغ المطلوب: ${formatCurrency(totalAmount)} ريال قطري</li>
+          </ul>
+        </div>
+        
+        <div style="width: 48%;">
+          <h4 style="margin: 0 0 8px 0; font-size: 14px; color: #333;">الإجراءات المطلوبة:</h4>
+          ${pendingFines > 0 ? `
+            <ul style="margin: 0; padding-right: 15px; font-size: 12px; line-height: 1.6;">
+              <li>متابعة سداد ${pendingFines} مخالفة معلقة</li>
+              <li>التواصل مع العملاء لتحديد مواعيد السداد</li>
+              <li>المراجعة الدورية لحالة المخالفات</li>
+            </ul>
+          ` : `
+            <p style="margin: 0; font-size: 12px; color: #333;">جميع المخالفات مسددة. لا توجد إجراءات مطلوبة حالياً.</p>
+          `}
+        </div>
+      </div>
+      
+      <div style="border-top: 1px solid #ddd; padding-top: 15px; font-size: 11px; line-height: 1.5; color: #666;">
+        <h4 style="margin: 0 0 8px 0; font-size: 12px; color: #333; text-align: center;">بنود قانونية مهمة:</h4>
+        <p style="margin: 0 0 5px 0;"><strong>1.</strong> هذا التقرير صادر من نظام إدارة تأجير المركبات ويعتبر وثيقة رسمية لأغراض المتابعة الإدارية.</p>
+        <p style="margin: 0 0 5px 0;"><strong>2.</strong> جميع البيانات الواردة في هذا التقرير محدثة حتى تاريخ الإصدار المذكور أعلاه.</p>
+        <p style="margin: 0;"><strong>3.</strong> في حالة وجود استفسارات، يرجى التواصل مع قسم المخالفات المرورية في الشركة.</p>
+      </div>
+    </div>
+  `;
 
   return `
-    ${summaryCards}
+    ${officialHeader}
+    ${simpleSummary}
     
-    <h2 class="section-header">📊 ملخص التحليل</h2>
-    <div style="background: #fef2f2; border: 2px solid #dc2626; border-radius: 10px; padding: 20px; margin: 20px 0;">
-      <p style="margin: 0; font-size: 16px; line-height: 1.8;">
-        يحتوي هذا التقرير على <strong style="color: #dc2626;">${totalFines} مخالفة مرورية</strong> 
-        بإجمالي قيمة <strong style="color: #dc2626;">${formatCurrency(totalAmount)} ريال قطري</strong>. 
-        تم سداد <strong style="color: #16a34a;">${paidFines} مخالفة</strong> ولا يزال هناك 
-        <strong style="color: #f59e0b;">${pendingFines} مخالفة معلقة</strong> تحتاج إلى سداد.
-      </p>
+    <div style="page-break-inside: avoid;">
+      <h2 style="margin: 20px 0 15px 0; font-size: 18px; color: #333; text-align: center; border-bottom: 2px solid #333; padding-bottom: 8px;">تفاصيل المخالفات حسب العميل</h2>
+      ${customerTables}
     </div>
     
-    ${alerts}
-    
-    <h2 class="section-header">📋 تفاصيل المخالفات حسب العميل</h2>
-    ${customerTables}
+    ${simpleNotes}
   `;
 }
 

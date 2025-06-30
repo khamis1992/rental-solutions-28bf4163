@@ -125,7 +125,7 @@ export function AgreementOverviewCard({
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground">رقم الهاتف</p>
-              <p className="font-medium">{agreement.customers?.phone_number || 'غير متوفر'}</p>
+                              <p className="font-medium phone-number-ltr" dir="ltr">{agreement.customers?.phone_number || 'غير متوفر'}</p>
             </div>
           </CardContent>
         </Card>

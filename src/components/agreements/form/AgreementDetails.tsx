@@ -111,6 +111,9 @@ export const AgreementDetails = ({
             <SelectItem value="draft">مسودة</SelectItem>
             <SelectItem value="pending">معلق</SelectItem>
             <SelectItem value="active">نشط</SelectItem>
+            <SelectItem value="closed">مكتمل</SelectItem>
+            <SelectItem value="cancelled">ملغي</SelectItem>
+            <SelectItem value="expired">منتهي</SelectItem>
           </SelectContent>
         </Select>
       </div>

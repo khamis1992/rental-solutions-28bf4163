@@ -39,25 +39,11 @@ export const CustomerPageTabContent: React.FC<CustomerPageTabContentProps> = ({
           <div className="w-full">
             <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 bg-gray-100 h-auto">
               <TabsTrigger 
-                value="all" 
-                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+                value="blacklisted" 
+                className="hidden sm:flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
               >
-                <span>الكل</span>
-                <span className="text-xs bg-white rounded px-1">({getTabCount('all')})</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="active" 
-                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
-              >
-                <span>نشط</span>
-                <span className="text-xs bg-white rounded px-1">({getTabCount('active')})</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="inactive" 
-                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
-              >
-                <span>غير نشط</span>
-                <span className="text-xs bg-white rounded px-1">({getTabCount('inactive')})</span>
+                <span>محظور</span>
+                <span className="text-xs bg-white rounded px-1">({getTabCount('blacklisted')})</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="pending_review" 
@@ -68,11 +54,25 @@ export const CustomerPageTabContent: React.FC<CustomerPageTabContentProps> = ({
                 <span className="text-xs bg-white rounded px-1">({getTabCount('pending_review')})</span>
               </TabsTrigger>
               <TabsTrigger 
-                value="blacklisted" 
-                className="hidden sm:flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+                value="inactive" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
               >
-                <span>محظور</span>
-                <span className="text-xs bg-white rounded px-1">({getTabCount('blacklisted')})</span>
+                <span>غير نشط</span>
+                <span className="text-xs bg-white rounded px-1">({getTabCount('inactive')})</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="active" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <span>نشط</span>
+                <span className="text-xs bg-white rounded px-1">({getTabCount('active')})</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="all" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <span>الكل</span>
+                <span className="text-xs bg-white rounded px-1">({getTabCount('all')})</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -84,7 +84,7 @@ export const CustomerPageTabContent: React.FC<CustomerPageTabContentProps> = ({
                 value="blacklisted" 
                 className="flex items-center justify-center gap-2 p-3 text-sm"
               >
-                <span>العملاء المحظورون</span>
+                <span>مطور</span>
                 <span className="text-xs bg-white rounded px-2">({getTabCount('blacklisted')})</span>
               </TabsTrigger>
             </TabsList>

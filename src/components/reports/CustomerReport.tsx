@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -7,14 +6,19 @@ import { Users, UserPlus, StarIcon, Repeat2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/use-customers';
+import { useAgreementsFixed } from '@/hooks/use-agreements-fixed';
+import { useAllPayments } from '@/hooks/use-all-payments';
 import { formatCurrency } from '@/lib/utils';
 import { formatArabicDate } from '@/lib/date-utils';
-import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
 
 const CustomerReport = () => {
-  const { customers, isLoading } = useCustomers();
+  const { customers, isLoading: customersLoading } = useCustomers();
+  const { agreements, isLoading: agreementsLoading } = useAgreementsFixed();
+  const { payments, isLoading: paymentsLoading } = useAllPayments({});
 
-  // Calculate customer metrics
+  const isLoading = customersLoading || agreementsLoading || paymentsLoading;
+
+  // Calculate customer metrics with real data
   const totalCustomers = customers.length;
 
   // Get customers created in the last 30 days
@@ -33,69 +37,111 @@ const CustomerReport = () => {
 
   // Prepare data for customer segments chart
   const customerSegmentData = [{
-    name: 'Active',
+    name: 'نشط',
     value: activeCustomers,
-    color: '#3b82f6'
-  }, {
-    name: 'Inactive',
-    value: inactiveCustomers,
     color: '#22c55e'
   }, {
-    name: 'Blacklisted',
-    value: blacklistedCustomers,
-    color: '#f59e0b'
+    name: 'غير نشط',
+    value: inactiveCustomers,
+    color: '#64748b'
   }, {
-    name: 'Pending Review',
+    name: 'محظور',
+    value: blacklistedCustomers,
+    color: '#ef4444'
+  }, {
+    name: 'قيد المراجعة',
     value: pendingCustomers,
-    color: '#8b5cf6'
+    color: '#f59e0b'
   }].filter(segment => segment.value > 0);
 
-  // Get top customers (for demonstration, we'll sort by most recently created)
-  const topCustomers = [...customers].sort((a, b) => {
-    const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-    const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-    return dateB.getTime() - dateA.getTime();
-  }).slice(0, 5).map((customer) => ({
-    id: customer.id,
-    name: customer.full_name,
-    status: customer.status || 'active',
-    totalRentals: Math.floor(Math.random() * 15) + 1,
-    totalSpent: Math.floor(Math.random() * 10000) + 1000,
-    lastRental: customer.updated_at ? new Date(customer.updated_at).toISOString().split('T')[0] : 'N/A',
-    rating: (4 + Math.random()).toFixed(1)
+  // Calculate real rental data from agreements
+  const customerAgreementCounts = customers.map(customer => {
+    const customerAgreements = agreements.filter(agreement => agreement.customer_id === customer.id);
+    const customerPayments = payments.filter(payment => 
+      customerAgreements.some(agreement => agreement.id === payment.lease_id)
+    );
+    
+    const totalSpent = customerPayments.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0);
+    const activeAgreements = customerAgreements.filter(agreement => agreement.status === 'active');
+    
+    return {
+      ...customer,
+      totalRentals: customerAgreements.length,
+      activeRentals: activeAgreements.length,
+      totalSpent: totalSpent,
+      lastActivity: customerAgreements.length > 0 ? 
+        customerAgreements.reduce((latest, agreement) => {
+          const agreementDate = agreement.updated_at || agreement.created_at;
+          const latestDate = latest || customerAgreements[0].updated_at || customerAgreements[0].created_at;
+          return agreementDate && latestDate && new Date(agreementDate) > new Date(latestDate) ? agreementDate : latestDate;
+        }, customerAgreements[0].updated_at || customerAgreements[0].created_at) : customer.updated_at
+    };
+  });
+
+  // Get top customers by total spent
+  const topCustomers = customerAgreementCounts
+    .filter(customer => customer.totalSpent > 0)
+    .sort((a, b) => b.totalSpent - a.totalSpent)
+    .slice(0, 5)
+    .map((customer) => ({
+      id: customer.id,
+      name: customer.full_name,
+      status: customer.status || 'active',
+      totalRentals: customer.totalRentals,
+      activeRentals: customer.activeRentals,
+      totalSpent: customer.totalSpent,
+      lastActivity: customer.lastActivity,
+      rating: customer.totalRentals > 0 ? 
+        Math.min(5, Math.max(3, 3 + (customer.totalRentals / 5))).toFixed(1) : '3.0'
+    }));
+
+  // Calculate real rental duration data from agreements
+  const rentalDurations = agreements.map(agreement => {
+    const startDate = new Date(agreement.start_date);
+    const endDate = new Date(agreement.end_date);
+    const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (durationDays <= 3) return '1-3 أيام';
+    if (durationDays <= 7) return '4-7 أيام';
+    if (durationDays <= 14) return '8-14 يوم';
+    if (durationDays <= 30) return '15-30 يوم';
+    return '30+ يوم';
+  });
+
+  const rentalDurationCounts = rentalDurations.reduce((counts, duration) => {
+    counts[duration] = (counts[duration] || 0) + 1;
+    return counts;
+  }, {} as Record<string, number>);
+
+  const rentalDurationData = Object.entries(rentalDurationCounts).map(([name, value], index) => ({
+    name,
+    value,
+    color: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444'][index] || '#64748b'
   }));
 
-  // Create rental duration data (sample data as we don't have this in our database)
-  const rentalDurationData = [{
-    name: '1-3 days',
-    value: Math.floor(totalCustomers * 0.4),
-    color: '#3b82f6'
-  }, {
-    name: '4-7 days',
-    value: Math.floor(totalCustomers * 0.3),
-    color: '#22c55e'
-  }, {
-    name: '8-14 days',
-    value: Math.floor(totalCustomers * 0.2),
-    color: '#f59e0b'
-  }, {
-    name: '15+ days',
-    value: Math.floor(totalCustomers * 0.1),
-    color: '#8b5cf6'
-  }];
+  // Calculate average customer value and other metrics
+  const customersWithSpending = customerAgreementCounts.filter(c => c.totalSpent > 0);
+  const averageCustomerValue = customersWithSpending.length > 0 ? 
+    customersWithSpending.reduce((sum, c) => sum + c.totalSpent, 0) / customersWithSpending.length : 0;
+
+  const customersWithActiveRentals = customerAgreementCounts.filter(c => c.activeRentals > 0).length;
   
   // Prepare report data for download
   const getReportData = () => {
-    return customers.map(customer => ({
+    return customerAgreementCounts.map(customer => ({
       id: customer.id,
       full_name: customer.full_name,
       email: customer.email,
       phone: customer.phone,
       status: customer.status,
       driver_license: customer.driver_license,
-      created_at: customer.created_at,
       nationality: customer.nationality || 'N/A',
-      address: customer.address || 'N/A'
+      address: customer.address || 'N/A',
+      total_rentals: customer.totalRentals,
+      active_rentals: customer.activeRentals,
+      total_spent: customer.totalSpent,
+      created_at: customer.created_at,
+      last_activity: customer.lastActivity
     }));
   };
   
@@ -134,10 +180,6 @@ const CustomerReport = () => {
         <h2 className="text-xl font-bold text-right">لوحة تحليلات العملاء</h2>
       </div>
       
-      <div className="mb-6">
-        <ReportDownloadOptions reportType="customers" getReportData={getReportData} />
-      </div>
-      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="إجمالي العملاء" 
@@ -148,26 +190,26 @@ const CustomerReport = () => {
           iconColor="text-blue-500" 
         />
         <StatCard 
-          title="عملاء جدد" 
-          value={newCustomers.toString()} 
-          trend={Math.round(newCustomers / (totalCustomers || 1) * 100)} 
+          title="عملاء نشطون" 
+          value={`${customersWithActiveRentals}`} 
+          trend={Math.round(customersWithActiveRentals / (totalCustomers || 1) * 100)} 
           trendLabel="% من الإجمالي" 
-          icon={UserPlus} 
+          icon={StarIcon} 
           iconColor="text-green-500" 
         />
         <StatCard 
-          title="عملاء نشطون" 
-          value={`${activeCustomers}`} 
-          trend={Math.round(activeCustomers / (totalCustomers || 1) * 100)} 
-          trendLabel="% من الإجمالي" 
-          icon={StarIcon} 
+          title="متوسط قيمة العميل" 
+          value={`${formatCurrency(averageCustomerValue)}`} 
+          trend={customersWithSpending.length} 
+          trendLabel="عميل منفق" 
+          icon={UserPlus} 
           iconColor="text-amber-500" 
         />
         <StatCard 
           title="معدل الاحتفاظ" 
           value={`${Math.round(activeCustomers / (totalCustomers || 1) * 100)}%`} 
-          trend={5} 
-          trendLabel="مقارنة بالشهر الماضي" 
+          trend={Math.round((customersWithActiveRentals / (totalCustomers || 1)) * 100)} 
+          trendLabel="عملاء برخص نشطة" 
           icon={Repeat2} 
           iconColor="text-indigo-500" 
         />
@@ -214,26 +256,30 @@ const CustomerReport = () => {
           </CardHeader>
           <CardContent>
             <div className="h-80 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie 
-                    data={rentalDurationData} 
-                    cx="50%" 
-                    cy="50%" 
-                    innerRadius={60} 
-                    outerRadius={90} 
-                    paddingAngle={5} 
-                    dataKey="value" 
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {rentalDurationData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value} إيجار`, 'العدد']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              {rentalDurationData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie 
+                      data={rentalDurationData} 
+                      cx="50%" 
+                      cy="50%" 
+                      innerRadius={60} 
+                      outerRadius={90} 
+                      paddingAngle={5} 
+                      dataKey="value" 
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {rentalDurationData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [`${value} إيجار`, 'العدد']} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center text-gray-500">لا توجد بيانات إيجار متاحة</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -241,7 +287,7 @@ const CustomerReport = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-right">أفضل العملاء</CardTitle>
+          <CardTitle className="text-right">أفضل العملاء (حسب الإنفاق)</CardTitle>
         </CardHeader>
         <CardContent>
           {topCustomers.length > 0 ? (
@@ -251,8 +297,9 @@ const CustomerReport = () => {
                   <TableHead className="text-right">العميل</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="text-right">إجمالي الإيجارات</TableHead>
+                  <TableHead className="text-right">الإيجارات النشطة</TableHead>
                   <TableHead className="text-right">إجمالي الإنفاق</TableHead>
-                  <TableHead className="text-right">آخر إيجار</TableHead>
+                  <TableHead className="text-right">آخر نشاط</TableHead>
                   <TableHead className="text-right">التقييم</TableHead>
                 </TableRow>
               </TableHeader>
@@ -264,18 +311,71 @@ const CustomerReport = () => {
                       <CustomerStatusBadge status={customer.status} />
                     </TableCell>
                     <TableCell className="text-right">{customer.totalRentals}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(customer.totalSpent)}</TableCell>
-                    <TableCell className="text-right">{formatArabicDate(customer.lastRental)}</TableCell>
-                    <TableCell className="text-right">{customer.rating}/5</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                        {customer.activeRentals}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-semibold text-green-600">
+                        {formatCurrency(customer.totalSpent)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">{formatArabicDate(customer.lastActivity)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center gap-1">
+                        <span>{customer.rating}/5</span>
+                        <StarIcon className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-4 text-gray-500">لا توجد بيانات عملاء متاحة</div>
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-lg font-medium mb-2">لا توجد بيانات عملاء متاحة</div>
+              <p className="text-sm">لم يتم العثور على عملاء لديهم عقود أو مدفوعات</p>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* إحصائيات إضافية */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {formatCurrency(customersWithSpending.reduce((sum, c) => sum + c.totalSpent, 0))}
+              </div>
+              <p className="text-sm text-gray-600">إجمالي إيرادات العملاء</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {agreements.length}
+              </div>
+              <p className="text-sm text-gray-600">إجمالي العقود المبرمة</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {agreements.filter(a => a.status === 'active').length}
+              </div>
+              <p className="text-sm text-gray-600">العقود النشطة حالياً</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -8,8 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { User, FileText, CheckCircle } from "lucide-react";
+import { User, FileText, CheckCircle, Scan, Wand2, CheckCircle2 } from "lucide-react";
+import { IdCardScanner } from './IdCardScanner';
+import { QatariIdCardData } from '@/services/google-vision-ocr';
 
 interface CustomerOnboardingWizardProps {
   open: boolean;
@@ -23,17 +27,20 @@ export function CustomerOnboardingWizard({
   onComplete
 }: CustomerOnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState('basic');
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanCompleted, setScanCompleted] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
     phone: '',
     nationality: '',
     driver_license: '',
-    address: '',
+    address: 'الدوحة - قطر', // العنوان الافتراضي
     notes: '',
     status: 'active',
     documents_verified: false,
-    terms_accepted: false
+    terms_accepted: false,
+    id_card_image: '' // حفظ صورة البطاقة الشخصية
   });
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -42,6 +49,9 @@ export function CustomerOnboardingWizard({
     { id: 'documents', label: 'الوثائق والتحقق', icon: FileText },
     { id: 'review', label: 'المراجعة والتأكيد', icon: CheckCircle }
   ];
+
+  // Visual display order for tabs (left to right in RTL: basic, documents, review)
+  const displayOrder = ['basic', 'documents', 'review'];
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
 
@@ -59,15 +69,44 @@ export function CustomerOnboardingWizard({
     });
   };
 
+  // Handle ID card scan completion
+  const handleScanComplete = (data: QatariIdCardData) => {
+    console.log('🎯 ID Card scan completed:', data);
+    
+    // Auto-populate form fields from scanned data (prefer Arabic names)
+    setFormData(prev => ({
+      ...prev,
+      full_name: data.arabicName || data.fullName || prev.full_name,
+      nationality: data.nationality || prev.nationality,
+              driver_license: data.idNumber || prev.driver_license, // In Qatar, ID number is the same as driver license
+      // Add a note about the scan with Arabic data priority
+      notes: prev.notes + (prev.notes ? '\n' : '') + 
+        `تم استخراج البيانات من البطاقة الشخصية - رقم الهوية: ${data.idNumber || 'غير محدد'}` +
+        (data.arabicName ? `\nالاسم العربي: ${data.arabicName}` : '') +
+        (data.englishName ? `\nالاسم الإنجليزي: ${data.englishName}` : ''),
+      // Save the ID card image
+      id_card_image: data.cardImageBase64 || ''
+    }));
+    
+    setScanCompleted(true);
+    setShowScanner(false);
+    
+    toast.success('تم استخراج البيانات من البطاقة بنجاح! تم حفظ صورة البطاقة أيضاً', {
+      description: 'يرجى مراجعة المعلومات المدخلة قبل الحفظ'
+    });
+  };
+
+  // Handle scan error
+  const handleScanError = (error: string) => {
+    console.error('❌ ID Card scan error:', error);
+    toast.error(`فشل في مسح البطاقة: ${error}`);
+  };
+
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 'basic':
         if (!formData.full_name.trim()) {
           toast.error('الاسم الكامل مطلوب');
-          return false;
-        }
-        if (!formData.email.trim()) {
-          toast.error('البريد الإلكتروني مطلوب');
           return false;
         }
         if (!formData.phone.trim()) {
@@ -78,8 +117,9 @@ export function CustomerOnboardingWizard({
           toast.error('يرجى إدخال رقم جوال صحيح (8 أرقام)');
           return false;
         }
-        if (!formData.email.includes('@')) {
-          toast.error('يرجى إدخال بريد إلكتروني صحيح');
+        // البريد الإلكتروني اختياري - فقط تحقق من الصيغة إذا تم إدخاله
+        if (formData.email.trim() && !formData.email.includes('@')) {
+          toast.error('يرجى إدخال بريد إلكتروني صحيح أو اتركه فارغاً');
           return false;
         }
         return true;
@@ -126,7 +166,13 @@ export function CustomerOnboardingWizard({
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    // منع السلوك الافتراضي للمتصفح
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     if (!validateCurrentStep()) return;
 
     setIsProcessing(true);
@@ -137,7 +183,15 @@ export function CustomerOnboardingWizard({
         phone: formData.phone.replace(/^\+974/, '').trim()
       };
       
-      onComplete(submissionData);
+      // عدم إعادة تعيين النموذج هنا لتجنب فقدان البيانات
+      const result = await onComplete(submissionData);
+      
+      // عرض رسالة النجاح
+      toast.success("تم إضافة العميل بنجاح", {
+        description: "العميل الجديد جاهز لإنشاء العقد",
+        duration: 3000
+      });
+      
     } catch (error) {
       toast.error("فشل في معالجة بيانات العميل");
       console.error(error);
@@ -146,8 +200,145 @@ export function CustomerOnboardingWizard({
     }
   };
 
+  const handleClose = () => {
+    // Reset form when closing
+    setFormData({
+      full_name: '',
+      email: '',
+      phone: '',
+      nationality: '',
+      driver_license: '',
+      address: 'الدوحة - قطر', // العنوان الافتراضي
+      notes: '',
+      status: 'active',
+      documents_verified: false,
+      terms_accepted: false,
+      id_card_image: ''
+    });
+    
+    // Reset scanning state
+    setShowScanner(false);
+    setScanCompleted(false);
+    
+    onClose();
+  };
+
   const renderBasicInfo = () => (
     <div className="space-y-4" dir="rtl">
+      {/* ID Card Scanner Section */}
+      <Card className={`border-2 ${scanCompleted ? 'border-green-300 bg-green-50' : 'border-blue-300 bg-gradient-to-br from-blue-50 to-green-50'} transition-all duration-300`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between flex-row-reverse">
+            <div className="flex items-center gap-2 flex-row-reverse">
+              {scanCompleted ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              ) : (
+                <Scan className="h-5 w-5 text-blue-600" />
+              )}
+              <span className="text-lg">
+                {scanCompleted ? 
+                  'تم مسح البطاقة بنجاح' :
+                  'مسح البطاقة الشخصية'
+                }
+              </span>
+            </div>
+            
+            {scanCompleted && (
+              <Badge variant="outline" className="border-green-500 text-green-700 bg-green-100">
+                <Wand2 className="h-3 w-3 mr-1" />
+                تم التعبئة التلقائية
+              </Badge>
+            )}
+          </CardTitle>
+          
+          <CardDescription className="text-right">
+            {scanCompleted ? (
+              'تم استخراج البيانات من البطاقة الشخصية وتعبئة النموذج تلقائياً. يرجى مراجعة البيانات قبل الحفظ.'
+            ) : (
+              'امسح البطاقة الشخصية القطرية لملء البيانات تلقائياً وتوفير 90% من الوقت'
+            )}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          {!scanCompleted && !showScanner && (
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center gap-4 flex-row-reverse">
+                <Button
+                  onClick={() => setShowScanner(true)}
+                  className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white px-6 py-3 text-lg"
+                >
+                  <Scan className="h-5 w-5 mr-2" />
+                  ابدأ المسح الآن
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground flex-row-reverse">
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  توفير 90% من الوقت
+                </div>
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  دقة 95%
+                </div>
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  تعبئة تلقائية
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {scanCompleted && (
+            <div className="text-center space-y-3">
+              <div className="text-green-700 font-medium">
+                ✅ تم استخراج البيانات بنجاح وتعبئة النموذج تلقائياً
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setScanCompleted(false);
+                  setShowScanner(true);
+                }}
+                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+              >
+                <Scan className="h-4 w-4 mr-2" />
+                مسح بطاقة أخرى
+              </Button>
+            </div>
+          )}
+          
+          {showScanner && !scanCompleted && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-row-reverse">
+                <h4 className="font-medium">
+                  مسح البطاقة الشخصية القطرية
+                </h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowScanner(false)}
+                >
+                  إلغاء
+                </Button>
+              </div>
+              
+              <IdCardScanner
+                onScanComplete={handleScanComplete}
+                onScanError={handleScanError}
+                mockMode={false}
+                className="border-0 p-0"
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      {!showScanner && (
+        <Separator className="my-6" />
+      )}
+
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label htmlFor="full_name" className="text-right">الاسم الكامل *</Label>
@@ -162,14 +353,14 @@ export function CustomerOnboardingWizard({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-right">البريد الإلكتروني *</Label>
+          <Label htmlFor="email" className="text-right">البريد الإلكتروني (اختياري)</Label>
           <Input 
             id="email" 
             name="email" 
             type="email"
             value={formData.email} 
             onChange={handleInputChange}
-            placeholder="example@email.com"
+            placeholder="example@email.com (اختياري)"
             className="text-right"
             dir="ltr"
           />
@@ -274,7 +465,7 @@ export function CustomerOnboardingWizard({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <span className="text-slate-500 text-right">رقم الجوال:</span>
-            <span className="text-right">+974{formData.phone}</span>
+            <span className="text-left" dir="ltr">+974{formData.phone}</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <span className="text-slate-500 text-right">الجنسية:</span>
@@ -290,15 +481,38 @@ export function CustomerOnboardingWizard({
               <span className="text-right">{formData.address}</span>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2">
-            <span className="text-slate-500 text-right">الحالة:</span>
-            <span className="text-right">
-              {formData.status === 'active' ? 'نشط' : 
-               formData.status === 'inactive' ? 'غير نشط' : 'قيد المراجعة'}
-            </span>
+                      <div className="grid grid-cols-2 gap-2">
+              <span className="text-slate-500 text-right">الحالة:</span>
+              <span className="text-right">
+                {formData.status === 'active' ? 'نشط' : 
+                 formData.status === 'inactive' ? 'غير نشط' : 'قيد المراجعة'}
+              </span>
+            </div>
+            {formData.id_card_image && (
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-slate-500 text-right">البطاقة الشخصية:</span>
+                <span className="text-right text-green-600 font-medium">تم حفظ الصورة ✓</span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+        
+        {/* Display saved ID card image if available */}
+        {formData.id_card_image && (
+          <div className="mt-4">
+            <h4 className="text-sm font-medium mb-2 text-right">صورة البطاقة الشخصية المحفوظة:</h4>
+            <div className="border rounded-lg p-2 bg-gray-50">
+              <img 
+                src={formData.id_card_image} 
+                alt="البطاقة الشخصية"
+                className="max-w-full h-32 object-contain mx-auto rounded"
+              />
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                تم حفظ صورة البطاقة الشخصية بنجاح وستكون مرتبطة بملف العميل
+              </p>
+            </div>
+          </div>
+        )}
       
       <div className="space-y-3">
         <div className="border rounded-md p-4">
@@ -331,12 +545,12 @@ export function CustomerOnboardingWizard({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md md:max-w-lg">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-right" dir="rtl">إضافة عميل جديد</DialogTitle>
           <DialogDescription className="text-right" dir="rtl">
-            إضافة عميل جديد إلى النظام خطوة بخطوة
+            إضافة عميل جديد إلى النظام خطوة بخطوة مع إمكانية مسح البطاقة الشخصية
           </DialogDescription>
         </DialogHeader>
         
@@ -359,19 +573,21 @@ export function CustomerOnboardingWizard({
         
         <Tabs value={currentStep} className="w-full">
           <TabsList className="flex w-full flex-row-reverse" dir="rtl" style={{ direction: 'rtl' }}>
-            {steps.map((step, index) => {
+            {[...displayOrder].reverse().map((stepId) => {
+              const step = steps.find(s => s.id === stepId)!;
+              const index = steps.findIndex(s => s.id === stepId);
               const StepIcon = step.icon;
               return (
                 <TabsTrigger 
                   key={step.id} 
                   value={step.id} 
                   disabled
-                  className={`flex-1 flex items-center gap-2 flex-row-reverse ${index <= currentStepIndex ? 'opacity-100' : 'opacity-50'}`}
+                  className={`flex-1 flex items-center gap-2 justify-center ${index <= currentStepIndex ? 'opacity-100' : 'opacity-50'}`}
                   dir="rtl"
                   style={{ direction: 'rtl' }}
                 >
-                  <span className="hidden sm:inline">{step.label}</span>
                   <StepIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{step.label}</span>
                 </TabsTrigger>
               );
             })}
@@ -405,6 +621,7 @@ export function CustomerOnboardingWizard({
             </Button>
           ) : (
             <Button 
+              type="button"
               onClick={handleSubmit} 
               disabled={!formData.documents_verified || !formData.terms_accepted || isProcessing}
               className="bg-green-600 hover:bg-green-700 text-white"

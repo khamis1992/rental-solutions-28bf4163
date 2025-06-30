@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, DollarSign, User, UserCheck, Loader2, Calendar } from 'lucide-react';
+import { AlertTriangle, DollarSign, User, UserCheck, Loader2, Calendar, Zap } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import {
@@ -34,6 +34,7 @@ const TrafficFineReport = () => {
   const [assigningFine, setAssigningFine] = useState<string | null>(null);
   const [showInvalidDates, setShowInvalidDates] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const [autoAssigning, setAutoAssigning] = useState(false);
 
   // Ensure we have data to process even when trafficFines is undefined
   useEffect(() => {
@@ -46,12 +47,16 @@ const TrafficFineReport = () => {
     }
   }, [trafficFines]);
 
-  if (isLoading) {
+  if (isLoading || autoAssigning) {
     return (
       <div className="flex justify-center items-center p-6" dir="rtl">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">جاري تحميل بيانات المخالفات المرورية...</p>
+          <p className="text-sm text-muted-foreground">
+            {autoAssigning 
+              ? "جاري التعيين التلقائي للمخالفات المرورية..." 
+              : "جاري تحميل بيانات المخالفات المرورية..."}
+          </p>
         </div>
       </div>
     );
@@ -122,6 +127,59 @@ const TrafficFineReport = () => {
       });
     } finally {
       setIsCleaningUp(false);
+    }
+  };
+
+  // Handle auto-assigning all unassigned fines
+  const handleAutoAssignFines = async () => {
+    try {
+      setAutoAssigning(true);
+      toast.info("التعيين التلقائي للمخالفات", {
+        description: "جاري تعيين المخالفات للعملاء تلقائياً..."
+      });
+
+      let assignedCount = 0;
+      let failedCount = 0;
+      const pendingFines = (showInvalidDates ? filteredFines : validFines).filter(fine => !fine.customerId);
+
+      if (pendingFines.length === 0) {
+        toast.info("لا توجد مخالفات غير معينة للمعالجة");
+        setAutoAssigning(false);
+        return;
+      }
+
+      console.log(`محاولة تعيين ${pendingFines.length} مخالفة تلقائياً`);
+
+      for (const fine of pendingFines) {
+        if (!fine.licensePlate) {
+          console.log(`تخطي المخالفة ${fine.id} - لوحة أرقام مفقودة`);
+          continue;
+        }
+
+        try {
+          console.log(`تعيين المخالفة ${fine.id} للوحة ${fine.licensePlate}`);
+          await assignToCustomer.mutateAsync({ id: fine.id });
+          assignedCount++;
+        } catch (error) {
+          console.error(`فشل في تعيين المخالفة ${fine.id}:`, error);
+          failedCount++;
+        }
+      }
+
+      if (assignedCount > 0) {
+        toast.success(`تم تعيين ${assignedCount} من أصل ${pendingFines.length} مخالفة للعملاء بنجاح`);
+      } else {
+        toast.warning("لم يتم تعيين أي مخالفة للعملاء");
+      }
+
+      if (failedCount > 0) {
+        toast.error(`فشل في تعيين ${failedCount} مخالفة`);
+      }
+    } catch (error: any) {
+      console.error("خطأ في التعيين التلقائي:", error);
+      toast.error("حدث خطأ في تعيين المخالفات للعملاء: " + (error.message || "خطأ غير معروف"));
+    } finally {
+      setAutoAssigning(false);
     }
   };
 
@@ -245,27 +303,51 @@ const TrafficFineReport = () => {
           </label>
         </div>
 
-        {invalidAssignedFines.length > 0 && (
+        <div className="flex items-center gap-2">
+          {/* Auto Assign Button */}
           <Button 
-            variant="outline" 
+            variant="default" 
             size="sm" 
-            onClick={handleCleanupInvalidAssignments}
-            disabled={isCleaningUp}
-            className="flex items-center gap-1"
+            onClick={handleAutoAssignFines}
+            disabled={autoAssigning || unassignedFines === 0}
+            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
           >
-            {isCleaningUp ? (
+            {autoAssigning ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                Cleaning...
+                جاري التعيين...
               </>
             ) : (
               <>
-                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                Fix invalid assignments
+                <Zap className="h-3.5 w-3.5 mr-1" />
+                تعيين تلقائي ({unassignedFines})
               </>
             )}
           </Button>
-        )}
+
+          {/* Fix Invalid Assignments Button */}
+          {invalidAssignedFines.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCleanupInvalidAssignments}
+              disabled={isCleaningUp}
+              className="flex items-center gap-1"
+            >
+              {isCleaningUp ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  Cleaning...
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                  Fix invalid assignments
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
       
       {invalidAssignedFines.length > 0 && (

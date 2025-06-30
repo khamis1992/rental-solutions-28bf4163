@@ -3,14 +3,11 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { LeaseStatus, ValidationLeaseStatus } from '@/types/lease-types';
 
-// Enum for agreement status
+// Enum for agreement status - matches database exactly
 export const AgreementStatus = {
   ACTIVE: 'active',
-  PENDING: 'pending',
   CANCELLED: 'cancelled',
-  CLOSED: 'closed',
-  EXPIRED: 'expired',
-  DRAFT: 'draft'
+  CLOSED: 'closed'
 } as const;
 
 // Function to generate next agreement number
@@ -53,20 +50,20 @@ export const agreementSchema = z.object({
   agreement_number: z.string().optional(), // Make optional for auto-generation
   start_date: z.string().transform((str) => new Date(str)), // Handle string to date conversion
   end_date: z.string().transform((str) => new Date(str)),   // Handle string to date conversion
+  duration_months: z.number().min(1, "يجب أن تكون مدة العقد شهر واحد على الأقل").default(12),
   customer_id: z.string().min(1, "العميل مطلوب"),
   vehicle_id: z.string().min(1, "المركبة مطلوبة"),
-  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]).default("draft"),
+  status: z.enum(["active", "closed", "cancelled"]).default("active"),
   rent_amount: z.number().positive("يجب أن يكون مبلغ الإيجار أكبر من صفر"),
   deposit_amount: z.number().nonnegative("يجب أن يكون مبلغ الضمان صفر أو أكبر").default(0),
   total_amount: z.number().nonnegative("يجب أن يكون المبلغ الإجمالي صفر أو أكبر").default(0),
-  daily_late_fee: z.number().nonnegative("يجب أن تكون رسوم التأخير صفر أو أكبر").default(100),
-  agreement_type: z.enum(["short_term", "lease_to_own"]).default("short_term"),
+  daily_late_fee: z.number().nonnegative("يجب أن تكون رسوم التأخير صفر أو أكبر").default(120), // تحديد 120 كافتراضي
+  agreement_type: z.enum(["short_term", "lease_to_own"]).default("lease_to_own"), // دائماً إيجار منتهي بالتملك
   agreement_duration: z.string().optional(),
   notes: z.string().optional().default(""),
-  payment_frequency: z.enum(["weekly", "biweekly", "monthly", "quarterly"]).default("monthly"),
-  payment_day: z.number().min(1).max(31).default(1),
-  // Mark as optional with a default value so it's available in the UI but not sent to DB
-  terms_accepted: z.boolean().default(false).optional(),
+  payment_frequency: z.enum(["weekly", "biweekly", "monthly", "quarterly"]).default("monthly"), // دائماً شهري
+  payment_day: z.number().min(1).max(31).default(1), // دائماً يوم 1
+  // terms_accepted removed - not stored in database
 }).refine(
   (data) => {
     // Ensure end_date is after start_date
@@ -89,15 +86,14 @@ export const updateAgreementSchema = z.object({
   ).optional(),
   customer_id: z.string().min(1, "العميل مطلوب"),
   vehicle_id: z.string().min(1, "المركبة مطلوبة"),
-  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]).default("draft"),
+  status: z.enum(["active", "closed", "cancelled"]).default("active"),
   rent_amount: z.number().positive("يجب أن يكون مبلغ الإيجار أكبر من صفر"),
   deposit_amount: z.number().nonnegative("يجب أن يكون مبلغ الضمان صفر أو أكبر").default(0),
   total_amount: z.number().nonnegative("يجب أن يكون المبلغ الإجمالي صفر أو أكبر").default(0),
-  daily_late_fee: z.number().nonnegative("يجب أن تكون رسوم التأخير صفر أو أكبر").default(100),
-  agreement_type: z.enum(["short_term", "lease_to_own"]).default("short_term"),
+  daily_late_fee: z.number().nonnegative("يجب أن تكون رسوم التأخير صفر أو أكبر").default(120),
+  agreement_type: z.enum(["short_term", "lease_to_own"]).default("lease_to_own"), // دائماً إيجار منتهي بالتملك
   agreement_duration: z.string().optional(),
   notes: z.string().optional(),
-  terms_accepted: z.boolean().default(false).optional(),
   payment_frequency: z.enum(["weekly", "biweekly", "monthly", "quarterly"]).default("monthly").optional(),
   payment_day: z.number().min(1).max(31).default(1).optional(),
 }).refine(
@@ -148,7 +144,6 @@ export interface Agreement {
   notes?: string;
   customers?: any;
   vehicles?: any;
-  terms_accepted?: boolean;
   additional_drivers?: string[];
   rent_amount?: number;
   daily_late_fee?: number;

@@ -61,7 +61,8 @@ export async function generateModernLegalContractPDF(
   agreement: AgreementData,
   customer: CustomerData,
   vehicle: VehicleData,
-  payments: PaymentData[] = []
+  payments: PaymentData[] = [],
+  customerIdCardImage?: string
 ): Promise<void> {
   
   // معلومات أطراف العقد
@@ -340,6 +341,82 @@ export async function generateModernLegalContractPDF(
     </div>
     
     ${paymentsTable}
+    
+    ${customerIdCardImage ? `
+      <div style="page-break-before: always; margin: 30px 0;">
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; padding: 20px; text-align: center; margin: 30px 0; border-radius: 12px; box-shadow: 0 8px 25px rgba(30, 58, 138, 0.3);">
+          <h2 style="margin: 0; font-size: 24px;">📄 صورة البطاقة الشخصية للطرف الثاني (المستأجر)</h2>
+        </div>
+        
+        <div style="border: 3px solid #1e3a8a; padding: 25px; margin: 20px 0; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px;">
+          <div style="text-align: center; margin-bottom: 25px;">
+            <p style="font-size: 16px; font-weight: bold; color: #1e3a8a; margin: 0;">
+              بطاقة هوية: ${customer.full_name}
+            </p>
+            <p style="font-size: 14px; color: #64748b; margin: 8px 0;">
+              رقم الهوية/الإقامة: ${customer.id_number}
+            </p>
+            <p style="font-size: 14px; color: #64748b; margin: 8px 0;">
+              الجنسية: ${customer.nationality}
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="border: 3px solid #1e3a8a; padding: 20px; display: inline-block; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);">
+              <img 
+                src="${customerIdCardImage}"
+                alt="البطاقة الشخصية"
+                style="max-width: 650px; max-height: 450px; width: auto; height: auto; 
+                       border: 2px solid #e2e8f0; border-radius: 8px;"
+              />
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin-top: 25px;">
+            <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.6;">
+              📷 تم إرفاق صورة البطاقة الشخصية كجزء من وثائق العقد الرسمية
+            </p>
+            <p style="font-size: 12px; color: #64748b; margin: 8px 0; line-height: 1.6;">
+              هذه الصورة تؤكد هوية الطرف الثاني وتُعتبر جزءاً لا يتجزأ من هذا العقد القانوني
+            </p>
+          </div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #16a34a; padding: 20px; margin: 25px 0; border-radius: 12px;">
+          <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 15px; text-align: center; color: #16a34a;">
+            تأكيد صحة البيانات
+          </h3>
+          <p style="font-size: 13px; text-align: justify; line-height: 1.8; color: #166534; margin: 0;">
+            أقر أنا الطرف الثاني <strong>${customer.full_name}</strong> 
+            بأن البطاقة الشخصية المرفقة أعلاه هي بطاقتي الشخصية الصحيحة والسارية المفعول، 
+            وأن جميع البيانات الواردة فيها صحيحة ومطابقة للواقع، وأتحمل كامل المسؤولية القانونية 
+            عن صحة هذه البيانات. كما أوافق على استخدام هذه الصورة في العقود والمستندات القانونية ذات الصلة.
+          </p>
+          
+          <div style="text-align: center; margin-top: 25px;">
+            <div style="background: white; border: 2px solid #16a34a; border-radius: 8px; padding: 20px; display: inline-block;">
+              <div style="margin-bottom: 20px;">
+                <strong style="color: #16a34a; font-size: 14px;">اسم المستأجر</strong><br><br>
+                <span style="color: #166534; font-size: 16px; font-weight: bold;">
+                  ${customer.full_name}
+                </span><br><br>
+                <strong style="color: #16a34a; font-size: 12px;">التوقيع: _________________</strong>
+              </div>
+            </div>
+            
+            <div style="background: white; border: 2px solid #16a34a; border-radius: 8px; padding: 20px; display: inline-block; margin-left: 20px;">
+              <div style="margin-bottom: 20px;">
+                <strong style="color: #16a34a; font-size: 14px;">تاريخ التأكيد</strong><br><br>
+                <span style="color: #166534; font-size: 16px; font-weight: bold;">
+                  ${formatDate(new Date())}
+                </span><br><br>
+                <strong style="color: #16a34a; font-size: 12px;">الختم: _________________</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ` : ''}
     
     <div style="page-break-before: always; margin: 30px 0;">
       <div style="background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); color: white; padding: 20px; text-align: center; margin: 30px 0; border-radius: 12px;">

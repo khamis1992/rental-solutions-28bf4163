@@ -35,16 +35,17 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ sea
     <div className="flex items-center space-x-4">
       <div className="w-full">
         <Label htmlFor="search" className="sr-only">
-          Search by customer name...
+          البحث في العقود...
         </Label>
         <div className="relative">
           <Input
             type="search"
             id="search"
-            placeholder="Search by customer name..."
+            placeholder="البحث برقم العقد أو اسم العميل أو رقم السيارة..."
             value={search}
             onChange={handleSearchChange}
-            className="pr-10"
+            className="pr-10 text-right"
+            dir="rtl"
           />
           <Button
             type="submit"
@@ -54,7 +55,7 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ sea
             className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full"
           >
             <Search className="h-4 w-4" />
-            <span className="sr-only">Search</span>
+            <span className="sr-only">بحث</span>
           </Button>
         </div>
       </div>

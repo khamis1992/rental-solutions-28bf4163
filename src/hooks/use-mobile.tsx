@@ -14,7 +14,7 @@ export const BREAKPOINTS = {
  * @returns boolean indicating if the current viewport is mobile width
  */
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = React.useState<boolean>(false)
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${BREAKPOINTS.TABLET - 1}px)`)
@@ -32,7 +32,7 @@ export function useIsMobile() {
     return () => mql.removeEventListener("change", handleResize)
   }, [])
 
-  return isMobile === undefined ? false : isMobile
+  return isMobile
 }
 
 /**
@@ -40,7 +40,7 @@ export function useIsMobile() {
  * @returns boolean indicating if the current viewport is tablet width
  */
 export function useIsTablet() {
-  const [isTablet, setIsTablet] = React.useState<boolean | undefined>(undefined)
+  const [isTablet, setIsTablet] = React.useState<boolean>(false)
 
   React.useEffect(() => {
     const mql = window.matchMedia(
@@ -63,7 +63,7 @@ export function useIsTablet() {
     return () => mql.removeEventListener("change", handleResize)
   }, [])
 
-  return isTablet === undefined ? false : isTablet
+  return isTablet
 }
 
 /**

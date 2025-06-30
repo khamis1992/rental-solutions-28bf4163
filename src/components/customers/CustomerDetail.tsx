@@ -13,7 +13,7 @@ import { FormField } from "@/components/ui/form-components";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock, Save, X } from 'lucide-react';
+import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock, Save, X, User, Download } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
 import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
@@ -21,6 +21,7 @@ import { CustomerFinancialTab } from './CustomerFinancialTab';
 import { Customer } from '@/types/customer.types';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
 import { useCustomerService } from '@/hooks/services/useCustomerService';
 
 interface CustomerDetailProps {
@@ -122,6 +123,8 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         }
 
         console.log("CustomerDetail: Customer data fetched successfully:", data);
+        console.log("CustomerDetail: Checking id_card_image field:", data.id_card_image);
+        console.log("CustomerDetail: All fields in data:", Object.keys(data));
         setCustomer(data);
         setNotes(data.notes || "");
         setIsLoading(false);
@@ -195,6 +198,11 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         value: 'profile',
         label: language === 'ar' ? 'الملف الشخصي' : 'Profile',
         roles: ['admin', 'manager', 'staff', 'viewer'] // Everyone can see profile
+      },
+      {
+        value: 'attachments',
+        label: language === 'ar' ? 'المرفقات' : 'Attachments',
+        roles: ['admin', 'manager', 'staff', 'viewer'] // Everyone can see attachments
       },
       {
         value: 'financials',
@@ -299,6 +307,142 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     }
   };
 
+  // Handle contract PDF download with ID card
+  const handleDownloadContractPDF = async () => {
+    if (!customer || !customerId) {
+      toast({
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' ? 'لا توجد بيانات كافية' : 'Insufficient data',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: language === 'ar' ? 'جاري تحضير العقد...' : 'Preparing contract...',
+        description: language === 'ar' ? 'يتم جلب بيانات العقد وإنشاء ملف PDF' : 'Fetching contract data and creating PDF file'
+      });
+
+      // أولاً: البحث عن العقود النشطة
+      let { data: agreements, error: agreementsError } = await supabase
+        .from('leases')
+        .select(`
+          *,
+          customers:profiles(*),
+          vehicles(*)
+        `)
+        .eq('customer_id', customerId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      // إذا لم توجد عقود نشطة، ابحث عن جميع العقود
+      if (!agreements || agreements.length === 0) {
+        const { data: allAgreements, error: allAgreementsError } = await supabase
+          .from('leases')
+          .select(`
+            *,
+            customers:profiles(*),
+            vehicles(*)
+          `)
+          .eq('customer_id', customerId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (allAgreementsError) {
+          console.error('Error fetching all agreements:', allAgreementsError);
+          toast({
+            title: language === 'ar' ? 'خطأ في جلب العقود' : 'Error fetching agreements',
+            description: allAgreementsError.message,
+            variant: 'destructive'
+          });
+          return;
+        }
+
+        agreements = allAgreements;
+        agreementsError = allAgreementsError;
+      }
+
+      if (agreementsError) {
+        console.error('Error fetching agreements:', agreementsError);
+        toast({
+          title: language === 'ar' ? 'خطأ في جلب العقود' : 'Error fetching agreements',
+          description: agreementsError.message,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (!agreements || agreements.length === 0) {
+        toast({
+          title: language === 'ar' ? 'لا توجد عقود' : 'No agreements found',
+          description: language === 'ar' ? 'لا يوجد أي عقد لهذا العميل. يرجى إنشاء عقد أولاً.' : 'No agreements found for this customer. Please create an agreement first.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const agreement = agreements[0];
+      const isActiveAgreement = agreement.status === 'active';
+
+      // جلب الدفعات
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('agreement_id', agreement.id)
+        .order('due_date', { ascending: true });
+
+      // تحضير بيانات العقد
+      const agreementData = {
+        ...agreement,
+        start_date: agreement.start_date,
+        end_date: agreement.end_date,
+        created_at: agreement.created_at,
+        updated_at: agreement.updated_at,
+      };
+
+      // استخدام صورة البطاقة الشخصية مع تحقق آمن
+      const customerIdCardImage = (customer && 'id_card_image' in customer) ? (customer as any).id_card_image : undefined;
+
+      // إنشاء PDF مع أو بدون صورة البطاقة الشخصية
+      await generateModernAgreementPDF(
+        agreementData,
+        payments || [],
+        [], // المخالفات المرورية
+        customerIdCardImage // صورة البطاقة الشخصية
+      );
+
+      const statusMessage = isActiveAgreement 
+        ? (language === 'ar' ? 'العقد النشط' : 'Active contract')
+        : (language === 'ar' ? `أحدث عقد (${agreement.status})` : `Latest contract (${agreement.status})`);
+
+      if (customerIdCardImage) {
+        toast({
+          title: language === 'ar' ? 'تم إنشاء العقد بنجاح ✓' : 'Contract generated successfully ✓',
+          description: language === 'ar' ? 
+            `تم تحميل ${statusMessage} PDF مع إرفاق صورة البطاقة الشخصية في صفحة منفصلة قبل التوقيع` : 
+            `${statusMessage} PDF downloaded with ID card image attached on separate page before signature`
+        });
+      } else {
+        toast({
+          title: language === 'ar' ? 'تم إنشاء العقد بنجاح' : 'Contract generated successfully',
+          description: language === 'ar' ? 
+            `تم تحميل ${statusMessage} PDF. لم يتم إرفاق البطاقة الشخصية (غير متوفرة). يمكنك إضافة البطاقة الشخصية عبر تحديث ملف العميل.` : 
+            `${statusMessage} PDF downloaded. ID card not attached (not available). You can add ID card by updating customer profile.`
+        });
+      }
+
+    } catch (error: any) {
+      console.error('Error generating contract PDF:', error);
+      toast({
+        title: language === 'ar' ? 'خطأ في إنشاء العقد' : 'Error generating contract',
+        description: error.message || (language === 'ar' ? 'فشل في إنشاء ملف PDF' : 'Failed to create PDF file'),
+        variant: 'destructive'
+      });
+    }
+  };
+
   // Show explicit loading indicator
   if (isLoading) {
     console.log("CustomerDetail: Rendering loading state");
@@ -328,375 +472,503 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
 
   console.log("CustomerDetail: Rendering customer detail view for:", customer?.full_name || 'unknown customer');
   
-  return (
-    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Customer Header Card */}
-      <Card className="w-full border rounded-lg overflow-hidden">
-        <CardContent className="p-6">
-          <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-6 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
-            {/* Buttons */}
-            <div className={`flex gap-2 mb-4 md:mb-0 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <Button asChild variant="outline">
-                <Link to={`/customers/edit/${customerId}`}>
-                  <Edit className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                  {language === 'ar' ? 'تعديل' : 'Edit'}
-                </Link>
-              </Button>
-              <Button variant="destructive" onClick={handleDelete}>
-                <Trash2 className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                {language === 'ar' ? 'حذف' : 'Delete'}
-              </Button>
-            </div>
-            
-            {/* Customer Info */}
-            <div className={`flex items-center gap-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-              {/* Avatar */}
-              <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center text-lg font-bold">
-                {customer.full_name?.charAt(0) || "ع"}
-              </div>
-              <div className={language === 'ar' ? 'text-right' : 'text-left'}>
-                <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}> 
-                  <h2 className="text-2xl font-bold">{customer.full_name}</h2>
-                  <Badge className="bg-green-100 text-green-800 border-green-200">
-                    {language === 'ar' ? 'نشط' : 'Active'}
-                  </Badge>
-                </div>
-                <p className="text-gray-500">
-                  {language === 'ar' ? `عميل منذ ${formatDate(customer.created_at)}` : `Customer since ${formatDate(customer.created_at)}`}
-                </p>
-                <div className={`mt-2 flex gap-6 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <Mail className={`h-4 w-4 text-gray-500 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-                    <span className="text-sm">{customer.email || (language === 'ar' ? 'غير متوفر' : 'Not available')}</span>
-                  </div>
-                  <div className={`flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <Phone className={`h-4 w-4 text-gray-500 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-                    <span className="text-sm" dir="ltr">{formatQatarPhone(customer.phone_number)}</span>
-                  </div>
-                  <div className={`flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <FileText className={`h-4 w-4 text-gray-500 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-                    <span className="text-sm">{customer.nationality || (language === 'ar' ? 'غير متوفر' : 'Not available')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <div className={`bg-gray-50 p-4 rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-              <p className="text-gray-500 mb-1">
-                {language === 'ar' ? 'إجمالي العقود' : 'Total Agreements'}
-              </p>
-              <p className="text-3xl font-bold">{totalAgreements}</p>
-            </div>
-            <div className={`bg-gray-50 p-4 rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-              <p className="text-gray-500 mb-1">
-                {language === 'ar' ? 'العقود النشطة' : 'Active Agreements'}
-              </p>
-              <p className="text-3xl font-bold">{activeAgreements}</p>
-            </div>
-            <div className={`bg-gray-50 p-4 rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-              <p className="text-gray-500 mb-1">
-                {language === 'ar' ? 'آخر تحديث' : 'Last Updated'}
-              </p>
-              <p className="text-sm font-medium">{formatDate(customer.updated_at || customer.created_at)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Tabs for different sections */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <TabsList 
-          className={`w-full mb-4 ${
-            visibleTabs.length === 5 ? 'grid-cols-5' : 
-            visibleTabs.length === 4 ? 'grid-cols-4' : 
-            visibleTabs.length === 3 ? 'grid-cols-3' : 
-            visibleTabs.length === 2 ? 'grid-cols-2' : 'grid-cols-1'
-          } grid`}
-          style={{ 
-            direction: language === 'ar' ? 'rtl' : 'ltr',
-            textAlign: language === 'ar' ? 'right' : 'left'
-          }}
-        >
-          {visibleTabs.map((tab) => (
-            <TabsTrigger 
-              key={tab.value} 
-              value={tab.value}
-              className={`
-                relative transition-all duration-200 ease-in-out
-                data-[state=active]:bg-white 
-                data-[state=active]:text-blue-600 
-                data-[state=active]:shadow-sm
-                data-[state=active]:border-b-2 
-                data-[state=active]:border-blue-600
-                hover:bg-gray-50 
-                hover:text-gray-900
-                ${language === 'ar' ? 'text-right' : 'text-left'}
-              `}
-            >
-              {tab.label}
-            </TabsTrigger>
-          ))}
+      return (
+      <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        {/* Main Tabbed Interface */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4" dir="rtl">
+          <TabsTrigger value="profile" className="flex items-center gap-2 flex-row-reverse">
+            <User className="h-4 w-4" />
+            <span className="hidden sm:inline">نظرة عامة</span>
+          </TabsTrigger>
+          <TabsTrigger value="attachments" className="flex items-center gap-2 flex-row-reverse">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">المرفقات</span>
+          </TabsTrigger>
+          <TabsTrigger value="financials" className="flex items-center gap-2 flex-row-reverse">
+            <MapPin className="h-4 w-4" />
+            <span className="hidden sm:inline">الماليات</span>
+          </TabsTrigger>
+          <TabsTrigger value="agreements" className="flex items-center gap-2 flex-row-reverse">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">العقود</span>
+          </TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="profile" className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${language === 'ar' ? 'text-right' : ''}`}>
-          {/* Contact Information Card */}
-          <Card className="w-full" dir="rtl">
+
+        {/* Overview Tab */}
+        <TabsContent value="profile" className="space-y-6 mt-6">
+          {/* Header Card */}
+          <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <CardTitle className="text-lg font-semibold text-left flex items-center gap-2 flex-row-reverse">
-                    <Phone className="w-5 h-5" />
-                    {language === 'ar' ? 'معلومات التواصل' : 'Contact Information'}
-                  </CardTitle>
-                  <CardDescription className="text-left mt-1">
-                    {language === 'ar' ? 'تفاصيل الاتصال والتواصل مع العميل' : 'Customer contact and communication details'}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <p className="text-sm text-muted-foreground text-left">
-                    {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
-                  </p>
-                  <p className="font-medium text-left">{customer.email || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
-                </div>
-                <Mail className="h-5 w-5 text-primary/60 flex-shrink-0" />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <p className="text-sm text-muted-foreground text-left">
-                    {language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
-                  </p>
-                  <p className="font-medium text-left text-sm" dir="ltr">{formatQatarPhone(customer.phone_number)}</p>
-                </div>
-                <Phone className="h-5 w-5 text-primary/60 flex-shrink-0" />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <p className="text-sm text-muted-foreground text-left">
-                    {language === 'ar' ? 'العنوان' : 'Address'}
-                  </p>
-                  <p className="font-medium text-left">{customer.address || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
-                </div>
-                <MapPin className="h-5 w-5 text-primary/60 flex-shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Customer Details Card */}
-          <Card className="w-full">
-            <CardContent className="p-6">
-              <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                <FileText className="w-5 h-5" />
-                {language === 'ar' ? 'تفاصيل العميل' : 'Customer Details'}
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <p className="text-gray-500 mb-1">
-                    {language === 'ar' ? 'الحالة' : 'Status'}
-                  </p>
-                  <Badge className="bg-green-100 text-green-800 border-green-200">
-                    {language === 'ar' ? 'نشط' : 'Active'}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex gap-2">
+                  <Badge 
+                    variant="default"
+                    className="px-3 py-1 bg-green-100 text-green-800 border-green-200"
+                  >
+                    نشط
+                  </Badge>
+                  <Badge variant="outline" className="px-3 py-1">
+                    {customer.full_name || 'بدون اسم'}
                   </Badge>
                 </div>
-                
-                <div>
-                  <p className="text-gray-500 mb-1">
-                    {language === 'ar' ? 'رخصة القيادة' : 'Driver License'}
-                  </p>
-                  <p className="font-medium">{(customer as any).driver_license || (language === 'ar' ? 'غير متوفر' : 'Not available')}</p>
-                </div>
-                
-                <div>
-                  <p className="text-gray-500 mb-1">
-                    {language === 'ar' ? 'آخر تحديث' : 'Last Updated'}
-                  </p>
-                  <p className={`font-medium flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                    <Clock className="h-4 w-4" />
-                    {formatDate(customer.updated_at || customer.created_at)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Additional Notes with Edit Functionality */}
-          <Card className="w-full col-span-2" dir="rtl">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <CardTitle className="text-lg font-semibold text-left">
-                    {language === 'ar' ? 'ملاحظات إضافية' : 'Additional Notes'}
-                  </CardTitle>
-                  <CardDescription className="text-left mt-1">
-                    {language === 'ar' ? 'إدارة الملاحظات والتعليقات الخاصة بالعميل' : 'Manage customer notes and comments'}
+                <div className="text-right">
+                  <CardTitle className="text-xl font-bold text-right">نظرة عامة على العميل</CardTitle>
+                  <CardDescription className="text-right mt-1">
+                    معلومات العميل الأساسية والتفاصيل الشخصية
                   </CardDescription>
                 </div>
-                {!editingNotes ? (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setEditingNotes(true)}
-                    className="flex items-center gap-2 flex-row-reverse"
-                  >
-                    <Edit className="h-4 w-4" />
-                    {language === 'ar' ? 'تعديل الملاحظات' : 'Edit Notes'}
-                  </Button>
-                ) : (
-                  <div className="flex gap-2 flex-row-reverse">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleCancelEditNotes}
-                      className="flex items-center gap-2 flex-row-reverse"
-                    >
-                      <X className="h-4 w-4" />
-                      {language === 'ar' ? 'إلغاء' : 'Cancel'}
-                    </Button>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      onClick={handleSaveNotes}
-                      disabled={updateMutation.isPending}
-                      className="flex items-center gap-2 flex-row-reverse"
-                    >
-                      <Save className="h-4 w-4" />
-                      {language === 'ar' ? 'حفظ' : 'Save'}
-                    </Button>
-                  </div>
-                )}
               </div>
             </CardHeader>
-            <CardContent>
-              {!editingNotes ? (
-                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                  <div className="text-right">
-                    {(customer as any).notes ? (
-                      <>
-                        <h4 className="font-medium text-gray-900 text-sm mb-2">الملاحظات المحفوظة</h4>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                          {(customer as any).notes}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <h4 className="font-medium text-gray-500 text-sm mb-1">لا توجد ملاحظات إضافية</h4>
-                        <p className="text-xs text-muted-foreground">
-                          لم يتم إضافة أي ملاحظات لهذا العميل بعد
-                        </p>
-                      </>
-                    )}
+          </Card>
+
+          {/* Main Information Grid */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Contact Information Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-end gap-3">
+                  <span className="text-left">معلومات التواصل</span>
+                  <Phone className="h-5 w-5" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-right space-y-0">
+                  <p className="text-sm text-muted-foreground">البريد الإلكتروني</p>
+                  <p className="font-medium">{customer.email || 'غير متوفر'}</p>
+                </div>
+                <div className="text-right space-y-0">
+                  <p className="text-sm text-muted-foreground">رقم الهاتف</p>
+                  <p className="font-medium phone-number-ltr text-right" dir="ltr">{formatQatarPhone(customer.phone_number)}</p>
+                </div>
+                <div className="text-right space-y-0">
+                  <p className="text-sm text-muted-foreground">العنوان</p>
+                  <p className="font-medium">{customer.address || 'غير متوفر'}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Personal Details Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-end gap-3">
+                  <span className="text-left">التفاصيل الشخصية</span>
+                  <User className="h-5 w-5" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-right space-y-0">
+                  <p className="text-sm text-muted-foreground">الجنسية</p>
+                  <p className="font-medium">{customer.nationality || 'غير محدد'}</p>
+                </div>
+                <div className="text-right space-y-0">
+                  <p className="text-sm text-muted-foreground">رخصة القيادة</p>
+                  <p className="font-medium phone-number-ltr text-right" dir="ltr">{(customer as any).driver_license || 'غير متوفر'}</p>
+                </div>
+                <div className="text-right space-y-0">
+                  <p className="text-sm text-muted-foreground">رقم الهوية</p>
+                  <p className="font-medium phone-number-ltr text-right" dir="ltr">{(customer as any).id_number || 'غير متوفر'}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Account Information Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-end gap-3">
+                  <span className="text-left">معلومات الحساب</span>
+                  <Clock className="h-5 w-5" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">تاريخ الإنشاء</p>
+                  <p className="font-medium">{formatDate(customer.created_at)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">آخر تحديث</p>
+                  <p className="font-medium">{formatDate(customer.updated_at || customer.created_at)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">الحالة</p>
+                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                    نشط
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Agreements Statistics Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-end gap-3">
+                  <span className="text-left">إحصائيات العقود</span>
+                  <FileText className="h-5 w-5" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">إجمالي العقود</p>
+                  <p className="font-medium text-lg">{totalAgreements}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">العقود النشطة</p>
+                  <p className="font-medium text-lg text-green-600">{activeAgreements}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">معدل النشاط</p>
+                  <p className="font-medium">
+                    {totalAgreements > 0 ? `${Math.round((activeAgreements / totalAgreements) * 100)}%` : '0%'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Additional Details Card - ID Card Image */}
+          {customer && 'id_card_image' in customer && (customer as any).id_card_image && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-right flex items-center gap-2 flex-row-reverse">
+                  <FileText className="h-5 w-5" />
+                  البطاقة الشخصية المرفقة
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-200">
+                  <div className="text-center space-y-4">
+                    <div className="bg-white rounded-lg p-4 shadow-sm inline-block">
+                      <img 
+                        src={(customer as any).id_card_image} 
+                        alt="البطاقة الشخصية"
+                        className="max-w-full max-h-64 object-contain rounded border"
+                        style={{ maxWidth: '400px' }}
+                      />
+                    </div>
+                    
+                    <div className="text-sm text-gray-600">
+                      <p className="font-medium text-right">
+                        📷 صورة البطاقة الشخصية المحفوظة
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 text-right">
+                        تم حفظ هذه الصورة عند مسح البطاقة الشخصية أثناء إضافة العميل
+                      </p>
+                    </div>
+                    
+                    <div className="flex gap-2 justify-center flex-row-reverse">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = (customer as any).id_card_image;
+                          link.download = `id-card-${customer.full_name}-${new Date().toISOString().split('T')[0]}.jpg`;
+                          link.click();
+                        }}
+                        className="flex items-center gap-1 flex-row-reverse"
+                      >
+                        <FileText className="h-4 w-4" />
+                        تحميل الصورة
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const newWindow = window.open();
+                          if (newWindow) {
+                            newWindow.document.write(`
+                              <html>
+                                <head><title>البطاقة الشخصية - ${customer.full_name}</title></head>
+                                <body style="margin:0;padding:20px;background:#f5f5f5;display:flex;justify-content:center;align-items:center;min-height:100vh;">
+                                  <img src="${(customer as any).id_card_image}" style="max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);" />
+                                </body>
+                              </html>
+                            `);
+                          }
+                        }}
+                        className="flex items-center gap-1 flex-row-reverse"
+                      >
+                        <FileText className="h-4 w-4" />
+                        عرض كامل
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <FormField
-                  label={language === 'ar' ? 'ملاحظات العميل' : 'Customer Notes'}
-                  htmlFor="notes"
-                >
-                  <Textarea 
-                    id="notes"
-                    placeholder={language === 'ar' ? 'أدخل ملاحظات حول العميل...' : 'Enter notes about the customer...'}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-[100px] text-right"
-                    dir="rtl"
-                  />
-                </FormField>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          )}
 
-        <TabsContent value="financials">
-          {customerId && <CustomerFinancialTab customerId={customerId} />}
-        </TabsContent>
-        
-        <TabsContent value="agreements">
-          {(customer as any).agreements && (customer as any).agreements.length > 0 ? (
-            <div className="bg-white rounded-md shadow overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-              <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                      <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        {language === 'ar' ? 'رقم العقد' : 'Agreement Number'}
-                    </th>
-                      <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        {language === 'ar' ? 'تاريخ البدء' : 'Start Date'}
-                    </th>
-                      <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        {language === 'ar' ? 'تاريخ الانتهاء' : 'End Date'}
-                    </th>
-                      <th className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        {language === 'ar' ? 'الحالة' : 'Status'}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                    {(customer as any).agreements.map((agreement: any) => (
-                    <tr key={agreement.id} 
-                        className="hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => window.open(`/agreements/${agreement.id}`, '_blank')}>
-                        <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <div className="text-sm font-medium text-blue-600 hover:text-blue-800">{agreement.agreement_number}</div>
-                      </td>
-                        <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <div className="text-sm text-gray-500">{formatDate(agreement.start_date)}</div>
-                      </td>
-                        <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <div className="text-sm text-gray-500">{formatDate(agreement.end_date)}</div>
-                      </td>
-                        <td className={`px-6 py-4 whitespace-nowrap ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        <Badge className={
-                            agreement.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' : 
-                            agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
-                            'bg-gray-100 text-gray-800 border-gray-200'
-                        }>
-                            {language === 'ar' ? (
-                              agreement.status === 'active' ? 'نشط' : 
-                              agreement.status === 'pending' ? 'قيد الانتظار' : 
-                              agreement.status === 'completed' ? 'مكتمل' :
-                              agreement.status === 'cancelled' ? 'ملغي' : 'غير معروف'
-                            ) : (
-                              agreement.status === 'active' ? 'Active' : 
-                              agreement.status === 'pending' ? 'Pending' : 
-                              agreement.status === 'completed' ? 'Completed' :
-                              agreement.status === 'cancelled' ? 'Cancelled' : 'Unknown'
-                            )}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            </div>
-          ) : (
-            <Card className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-              <CardContent className="p-6 text-center">
-                <p className={`text-gray-500 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                  {language === 'ar' ? 'لا توجد عقود لهذا العميل.' : 'No agreements found for this customer.'}
-                </p>
+          {/* Additional Notes Card */}
+          {(customer as any).notes && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-right flex items-center gap-2 flex-row-reverse">
+                  <Edit className="h-5 w-5" />
+                  ملاحظات إضافية
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-lg">
+                  <div className="text-right">
+                    <h4 className="font-medium text-gray-900 text-sm mb-3 flex items-center gap-2 flex-row-reverse">
+                      <FileText className="h-4 w-4 text-gray-600" />
+                      الملاحظات المحفوظة
+                    </h4>
+                    <div className="bg-white p-3 rounded border border-gray-200">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed text-right">
+                        {(customer as any).notes}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        <TabsContent value="legal">
-          {customerId && <CustomerLegalObligationsPage customerId={customerId} />}
+        {/* Attachments Tab */}
+        <TabsContent value="attachments" className="space-y-6 mt-6">
+          {/* Contract PDF Generation Section */}
+          <Card className="w-full">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <CardTitle className="text-lg font-semibold flex items-center justify-end gap-3">
+                    <span className="text-left">تحميل عقد PDF</span>
+                    <Download className="w-5 h-5" />
+                  </CardTitle>
+                  <CardDescription className="mt-1 text-left">
+                    تحميل العقد بصيغة PDF (العقد النشط أو أحدث عقد متوفر) مع إرفاق صورة البطاقة الشخصية إذا كانت متوفرة
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {customer && 'id_card_image' in customer && (customer as any).id_card_image ? (
+                  /* ID Card available - show enhanced PDF option */
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3 flex-row-reverse">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-green-700 font-medium text-right">
+                        عقد PDF محسن متوفر ✓
+                      </span>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 border-2 border-dashed border-green-200">
+                      <div className="text-center space-y-4">
+                        <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                          <Download className="w-6 h-6 text-green-600" />
+                        </div>
+                        
+                        <div>
+                          <h3 className="font-medium text-gray-900 mb-2 text-right">
+                            عقد PDF مع البطاقة الشخصية
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-4 text-right">
+                            سيتم تحميل العقد النشط أو أحدث عقد متوفر. سيتم إرفاق صورة البطاقة الشخصية في صفحة منفصلة قبل التوقيع، مناسب للاستخدامات الرسمية والقانونية.
+                          </p>
+                        </div>
+                        
+                        <Button 
+                          onClick={handleDownloadContractPDF}
+                          className="w-full flex-row-reverse"
+                          size="lg"
+                        >
+                          <Download className="h-5 w-5" />
+                          تحميل العقد
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 text-xs text-green-700 space-y-1">
+                      <p className="flex items-center gap-2 flex-row-reverse">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                        يتضمن صورة البطاقة الشخصية في صفحة منفصلة
+                      </p>
+                      <p className="flex items-center gap-2 flex-row-reverse">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                        جاهز للطباعة بحجم A4
+                      </p>
+                      <p className="flex items-center gap-2 flex-row-reverse">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                        مناسب للاستخدامات الرسمية والقانونية
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  /* No ID Card - show improvement option */
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3 flex-row-reverse">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-blue-700 font-medium text-right">
+                        عقد PDF أساسي متوفر
+                      </span>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 border-2 border-dashed border-blue-200">
+                      <div className="text-center space-y-4">
+                        <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Download className="w-6 h-6 text-blue-600" />
+                        </div>
+                        
+                        <div>
+                          <h3 className="font-medium text-gray-900 mb-2 text-right">
+                            عقد PDF (بدون البطاقة الشخصية)
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-4 text-right">
+                            سيتم تحميل العقد النشط أو أحدث عقد متوفر. لن يتم إرفاق البطاقة الشخصية لأنها غير متوفرة في ملف العميل. يمكنك إضافة البطاقة لاحقاً لتحسين العقد.
+                          </p>
+                        </div>
+                        
+                        <Button 
+                          onClick={handleDownloadContractPDF}
+                          className="w-full flex-row-reverse"
+                          size="lg"
+                          variant="outline"
+                        >
+                          <Download className="h-5 w-5" />
+                          تحميل العقد الأساسي
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 text-xs text-blue-700 space-y-1">
+                      <p className="flex items-center gap-2 flex-row-reverse">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                        يمكن تحسين العقد بإضافة البطاقة الشخصية لاحقاً
+                      </p>
+                      <p className="flex items-center gap-2 flex-row-reverse">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                        سيتم إضافة صفحة لطلب المستندات المطلوبة
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Other Attachments Section */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-2 text-right flex items-center gap-2 flex-row-reverse">
+                    <FileText className="h-4 w-4 text-gray-600" />
+                    المرفقات الأخرى
+                  </h3>
+                  <p className="text-sm text-gray-600 text-right">
+                    قريباً - إمكانية إرفاق ملفات إضافية للعميل
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
-        
-        <TabsContent value="fines">
-          {customerId && <CustomerTrafficFines customerId={customerId} />}
+
+        {/* Financials Tab */}
+        <TabsContent value="financials" className="space-y-6 mt-6">
+          <CustomerFinancialTab 
+            customerId={customerId}
+          />
         </TabsContent>
+
+        {/* Agreements Tab */}
+        <TabsContent value="agreements" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-right">العقود المرتبطة</CardTitle>
+              <CardDescription className="text-right">
+                جميع العقود المرتبطة بهذا العميل
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(customer as any).agreements && (customer as any).agreements.length > 0 ? (
+                <div className="space-y-3">
+                  {(customer as any).agreements.map((agreement: any) => (
+                    <div key={agreement.id} className="border rounded-lg p-4 flex justify-between items-center">
+                      <Badge variant={agreement.status === 'active' ? 'default' : 'secondary'}>
+                        {agreement.status === 'active' ? 'نشط' : agreement.status}
+                      </Badge>
+                      <div className="text-right">
+                        <p className="font-medium">
+                          العقد رقم: {agreement.agreement_number}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          من {formatDate(agreement.start_date)} إلى {formatDate(agreement.end_date)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد عقود</h3>
+                  <p className="text-gray-600">لم يتم إنشاء أي عقد لهذا العميل بعد</p>
+                  <Button asChild className="mt-4">
+                    <Link to="/agreements/add">إضافة عقد جديد</Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Legal Tab */}
+        {visibleTabs.some(tab => tab.value === 'legal') && (
+          <TabsContent value="legal">
+            <CustomerLegalObligationsPage customerId={customerId} />
+          </TabsContent>
+        )}
+
+        {/* Traffic Fines Tab */}
+        {visibleTabs.some(tab => tab.value === 'fines') && (
+          <TabsContent value="fines">
+            <CustomerTrafficFines customerId={customerId} />
+          </TabsContent>
+        )}
       </Tabs>
+
+      {/* Edit Notes Dialog/Section */}
+      {editingNotes && (
+        <Card className="fixed inset-4 z-50 bg-white shadow-xl rounded-lg" dir="rtl">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-right">تعديل ملاحظات العميل</CardTitle>
+              <div className="flex gap-2 flex-row-reverse">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCancelEditNotes}
+                  className="flex items-center gap-2 flex-row-reverse"
+                >
+                  <X className="h-4 w-4" />
+                  إلغاء
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={handleSaveNotes}
+                  disabled={updateMutation.isPending}
+                  className="flex items-center gap-2 flex-row-reverse"
+                >
+                  <Save className="h-4 w-4" />
+                  حفظ
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Textarea 
+              placeholder="أدخل ملاحظات حول العميل..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="min-h-[120px] text-right resize-none"
+              dir="rtl"
+            />
+            <p className="text-xs text-muted-foreground text-right mt-2">
+              اكتب أي ملاحظات مهمة حول العميل، مثل تفضيلاته أو تاريخ التعامل معه
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

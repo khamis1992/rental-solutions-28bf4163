@@ -312,10 +312,10 @@ const Vehicles = () => {
                   dir="rtl"
                 >
                   <TabsList className="flex justify-end">
-                    <TabsTrigger value="all" className="text-right">الكل</TabsTrigger>
-                    <TabsTrigger value="available" className="text-right">متاحة</TabsTrigger>
-                    <TabsTrigger value="rented" className="text-right">مؤجرة</TabsTrigger>
                     <TabsTrigger value="maintenance" className="text-right">صيانة</TabsTrigger>
+                    <TabsTrigger value="rented" className="text-right">مؤجرة</TabsTrigger>
+                    <TabsTrigger value="available" className="text-right">متاحة</TabsTrigger>
+                    <TabsTrigger value="all" className="text-right">الكل</TabsTrigger>
                   </TabsList>
                 </Tabs>
                 

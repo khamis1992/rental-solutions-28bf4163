@@ -127,7 +127,7 @@ export function EnhancedPaymentHistorySection({
           description: notes || '',
           payment_method: method || 'cash',
           reference_number: reference || '',
-          lease_id: leaseId,
+          lease_id: leaseId || '',
           status: 'paid'
         };
         await onRecordPayment(newPayment);
@@ -293,21 +293,7 @@ export function EnhancedPaymentHistorySection({
         </Card>
       </div>
 
-      {/* Late Fees Alert */}
-      {paymentStats.totalLateFees > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3 text-right">
-              <DollarSign className="h-6 w-6 text-red-600" />
-              <div>
-                <p className="font-semibold text-red-800">إجمالي رسوم التأخير</p>
-                <p className="text-2xl font-bold text-red-600">{formatCurrency(paymentStats.totalLateFees)} ر.ق</p>
-                <p className="text-sm text-red-600">رسوم تأخير مُحتسبة بـ 120 ر.ق/يوم (حد أقصى 3000 ر.ق)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Payment History */}
       <Card>
@@ -503,7 +489,7 @@ export function EnhancedPaymentHistorySection({
         title="تسجيل دفعة"
         description={selectedPayment ? "تسوية هذه الدفعة" : "إضافة دفعة جديدة لهذا العقد"}
         leaseId={leaseId || ''}
-        rentAmount={rentAmount}
+        rentAmount={rentAmount || 0}
         selectedPayment={selectedPayment}
       />
 

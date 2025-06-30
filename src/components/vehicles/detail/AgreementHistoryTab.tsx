@@ -52,7 +52,7 @@ export const AgreementHistoryTab: React.FC<AgreementHistoryTabProps> = ({ vehicl
   const getStatusBadge = (status: string) => {
     const statusLabels = language === 'ar' ? {
       'active': 'نشطة',
-      'completed': 'مكتملة',
+      'closed': 'مكتملة',
       'cancelled': 'ملغاة',
       'pending': 'معلقة'
     } : {

@@ -89,6 +89,27 @@ export class LegalManagementService extends BaseService {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+      // تحديث حالة المدفوعات المتأخرة تلقائياً قبل التحليل
+      console.log('🔄 تحديث حالة المدفوعات المتأخرة...');
+      try {
+        const { ensureAllMonthlyPayments } = await import('../lib/payment-utils');
+        
+        // جلب جميع العقود النشطة لتحديث مدفوعاتها
+        const { data: activeAgreements } = await supabase
+          .from('leases')
+          .select('id')
+          .eq('status', 'active');
+
+        if (activeAgreements) {
+          for (const agreement of activeAgreements.slice(0, 5)) { // تحديث أول 5 عقود لتجنب التحميل الزائد
+            await ensureAllMonthlyPayments(agreement.id);
+          }
+        }
+        console.log('✅ تم تحديث حالة المدفوعات المتأخرة');
+      } catch (error) {
+        console.warn('⚠️ فشل في تحديث حالة المدفوعات:', error);
+      }
+
       const { data: agreements, error } = await supabase
         .from('leases')
         .select(`
@@ -112,10 +133,9 @@ export class LegalManagementService extends BaseService {
       const unpaidAgreements: UnpaidAgreement[] = [];
 
       for (const agreement of agreements || []) {
+        // فقط الدفعات التي حالتها 'overdue' رسمياً
         const unpaidPayments = agreement.unified_payments?.filter(
-          payment => 
-            payment.status === 'overdue' || 
-            (payment.status === 'pending' && new Date(payment.due_date) < thirtyDaysAgo)
+          payment => payment.status === 'overdue'
         ) || [];
 
         if (unpaidPayments.length === 0) continue;
@@ -136,8 +156,8 @@ export class LegalManagementService extends BaseService {
         unpaidAgreements.push({
           id: agreement.id,
           customer_id: agreement.customer_id,
-          customer_name: agreement.profiles?.full_name || 'Unknown Customer',
-          vehicle_license_plate: agreement.vehicles?.license_plate || 'Unknown',
+          customer_name: (agreement.profiles as any)?.full_name || 'Unknown Customer',
+          vehicle_license_plate: (agreement.vehicles as any)?.license_plate || 'Unknown',
           amount_owed: amountOwed,
           days_overdue: daysOverdue,
           last_payment_date: unpaidPayments[0]?.payment_date,
@@ -190,8 +210,8 @@ export class LegalManagementService extends BaseService {
 
         return {
           id: fine.id,
-          customer_id: fine.leases?.customer_id || '',
-          customer_name: fine.leases?.profiles?.full_name || 'Unknown Customer',
+          customer_id: (fine.leases as any)?.customer_id || '',
+          customer_name: (fine.leases as any)?.profiles?.full_name || 'Unknown Customer',
           violation_number: fine.violation_number,
           license_plate: fine.license_plate,
           fine_amount: fine.fine_amount,
@@ -449,7 +469,7 @@ export class LegalManagementService extends BaseService {
 
       // Replace variables in template content
       let content = template.content;
-      template.variables.forEach(variable => {
+      template.variables.forEach((variable: string) => {
         const value = customerData[variable] || `[${variable}]`;
         content = content.replace(new RegExp(`{{${variable}}}`, 'g'), value);
       });
@@ -520,4 +540,4 @@ export class LegalManagementService extends BaseService {
   }
 }
 
-export const legalManagementService = new LegalManagementService(); 
+export const legalManagementService = new LegalManagementService(supabase); 

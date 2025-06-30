@@ -36,6 +36,9 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
+const FixPaymentStatus = lazy(() => import("./pages/FixPaymentStatus"));
+const CheckAgreementDetails = lazy(() => import("./pages/CheckAgreementDetails"));
+const FinancialSummaryDemo = lazy(() => import("./pages/FinancialSummaryDemo"));
 
 // Lazy-loaded components with error boundaries
 const withErrorBoundary = (Component: React.LazyExoticComponent<any>) => (
@@ -58,7 +61,6 @@ const UserManagement = lazy(() => import("./pages/UserManagement"));
 
 // Customer Management
 const Customers = lazy(() => import("./pages/Customers"));
-const AddCustomer = lazy(() => import("./pages/AddCustomer"));
 const CustomerDetailPage = lazy(() => import("./pages/CustomerDetailPage"));
 const EditCustomer = lazy(() => import("./pages/EditCustomer"));
 
@@ -76,7 +78,6 @@ const LegalDocumentsPage = lazy(() => import("./pages/LegalDocumentsPage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const TrafficFines = lazy(() => import("./pages/TrafficFines"));
 const Financials = lazy(() => import("./pages/Financials"));
-const Payments = lazy(() => import("./pages/Payments"));
 
 // Maintenance Management
 const Maintenance = lazy(() => import("./pages/Maintenance"));
@@ -158,7 +159,6 @@ const AppContent = () => {
                 
                 {/* Customer Management */}
                 <Route path="/customers" element={withErrorBoundary(Customers)} />
-                <Route path="/customers/add" element={withErrorBoundary(AddCustomer)} />
                 <Route path="/customers/:id" element={withErrorBoundary(CustomerDetailPage)} />
                 <Route path="/customers/edit/:id" element={withErrorBoundary(EditCustomer)} />
                 
@@ -176,7 +176,6 @@ const AppContent = () => {
                 <Route path="/activity" element={withErrorBoundary(ActivityPage)} />
                 <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
                 <Route path="/financials" element={withErrorBoundary(Financials)} />
-                <Route path="/payments" element={withErrorBoundary(Payments)} />
                 
                 {/* Maintenance Management */}
                 <Route path="/maintenance" element={withErrorBoundary(Maintenance)} />
@@ -195,8 +194,11 @@ const AppContent = () => {
                 <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
                 <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />
                 <Route path="/whatsapp-notifications" element={withErrorBoundary(WhatsAppNotifications)} />
-                <Route path="/whatsapp-test" element={withErrorBoundary(WhatsAppTest)} />
-                <Route path="/settings" element={<Settings />} />
+                          <Route path="/whatsapp-test" element={withErrorBoundary(WhatsAppTest)} />
+          <Route path="/fix-payments" element={withErrorBoundary(FixPaymentStatus)} />
+          <Route path="/check-agreement" element={withErrorBoundary(CheckAgreementDetails)} />
+          <Route path="/financial-demo" element={withErrorBoundary(FinancialSummaryDemo)} />
+          <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/system" element={<Navigate to="/settings" replace />} />
                 <Route path="/users" element={withErrorBoundary(UserManagement)} />
                 <Route path="/user-settings" element={withErrorBoundary(UserSettings)} />

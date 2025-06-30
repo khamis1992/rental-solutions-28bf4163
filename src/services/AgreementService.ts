@@ -27,6 +27,8 @@ export interface AgreementFilters {
   start_date_before?: string;
   end_date_after?: string;
   end_date_before?: string;
+  created_date_after?: string;
+  created_date_before?: string;
   rent_min?: number;
   rent_max?: number;
   license_plate?: string;
@@ -84,6 +86,14 @@ export class AgreementService extends BaseService {
         query = query.lte('start_date', filters.start_date_before);
       }
 
+      if (filters?.created_date_after) {
+        query = query.gte('created_at', filters.created_date_after);
+      }
+
+      if (filters?.created_date_before) {
+        query = query.lte('created_at', filters.created_date_before);
+      }
+
       if (filters?.rent_min !== undefined) {
         query = query.gte('rent_amount', filters.rent_min);
       }
@@ -96,40 +106,97 @@ export class AgreementService extends BaseService {
         query = query.eq('vehicles.license_plate', filters.license_plate);
       }
 
-      // Search by customer name only (two-step: find customer IDs, then fetch agreements)
+      // Enhanced search functionality: search by customer name, vehicle license plate, or agreement number
       if (filters?.searchTerm && filters.searchTerm.trim() !== '') {
         const searchTerm = filters.searchTerm.trim();
-        // 1. Find matching customer IDs
-        const { data: customers, error: customerError } = await supabase
-          .from('profiles')
-          .select('id')
-          .ilike('full_name', `%${searchTerm}%`);
-        if (customerError) {
-          throw createServiceError(
-            'Failed to search customers by name',
-            { operation: 'fetchAgreements' }
-          );
-        }
-        const customerIds = (customers || []).map((c: any) => c.id);
-        if (customerIds.length === 0) {
-          return [];
-        }
-        // 2. Fetch agreements for those customer IDs, with full join
-        const { data: agreements, error: agreementError } = await supabase
+        
+        // First, search for agreement number directly
+        const { data: agreementsByNumber, error: agreementNumberError } = await supabase
           .from('leases')
           .select(`
             *,
             customers:profiles(*),
             vehicles(*)
           `)
-          .in('customer_id', customerIds);
-        if (agreementError) {
-          throw createServiceError(
-            'Failed to fetch agreements for matching customers',
-            { operation: 'fetchAgreements' }
-          );
+          .ilike('agreement_number', `%${searchTerm}%`);
+        
+        if (agreementNumberError) {
+          console.warn('Error searching by agreement number:', agreementNumberError);
         }
-        return (agreements || []) as unknown as Agreement[];
+        
+        // Second, search for vehicle license plates
+        const { data: vehiclesByPlate, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('id')
+          .ilike('license_plate', `%${searchTerm}%`);
+        
+        if (vehicleError) {
+          console.warn('Error searching vehicles by license plate:', vehicleError);
+        }
+        
+        const vehicleIds = (vehiclesByPlate || []).map((v: any) => v.id);
+        let agreementsByVehicle: any[] = [];
+        
+        if (vehicleIds.length > 0) {
+          const { data: vehicleAgreements, error: vehicleAgreementError } = await supabase
+            .from('leases')
+            .select(`
+              *,
+              customers:profiles(*),
+              vehicles(*)
+            `)
+            .in('vehicle_id', vehicleIds);
+          
+          if (vehicleAgreementError) {
+            console.warn('Error searching agreements by vehicle:', vehicleAgreementError);
+          } else {
+            agreementsByVehicle = vehicleAgreements || [];
+          }
+        }
+        
+        // Third, search for customer names
+        const { data: customers, error: customerError } = await supabase
+          .from('profiles')
+          .select('id')
+          .ilike('full_name', `%${searchTerm}%`);
+        
+        if (customerError) {
+          console.warn('Error searching customers by name:', customerError);
+        }
+        
+        const customerIds = (customers || []).map((c: any) => c.id);
+        let agreementsByCustomer: any[] = [];
+        
+        if (customerIds.length > 0) {
+          const { data: customerAgreements, error: customerAgreementError } = await supabase
+            .from('leases')
+            .select(`
+              *,
+              customers:profiles(*),
+              vehicles(*)
+            `)
+            .in('customer_id', customerIds);
+          
+          if (customerAgreementError) {
+            console.warn('Error searching agreements by customer:', customerAgreementError);
+          } else {
+            agreementsByCustomer = customerAgreements || [];
+          }
+        }
+        
+        // Combine all results and remove duplicates
+        const allResults = [
+          ...(agreementsByNumber || []),
+          ...agreementsByVehicle,
+          ...agreementsByCustomer
+        ];
+        
+        // Remove duplicates based on agreement ID
+        const uniqueResults = allResults.filter((agreement, index, self) => 
+          index === self.findIndex((a) => a.id === agreement.id)
+        );
+        
+        return uniqueResults as unknown as Agreement[];
       }
 
       const { data, error } = await query;
@@ -317,25 +384,34 @@ export class AgreementService extends BaseService {
         }
       }
 
+      // إنشاء object للتحديث يحتوي فقط على الحقول الموجودة في جدول leases
+      const updateData: any = {};
+      
+      // إضافة الحقول الموجودة فقط إذا كانت محددة
+      if (agreementData.vehicle_id !== undefined) updateData.vehicle_id = agreementData.vehicle_id;
+      if (agreementData.customer_id !== undefined) updateData.customer_id = agreementData.customer_id;
+      if (agreementNumber !== undefined) updateData.agreement_number = agreementNumber;
+      if (agreementData.start_date !== undefined) updateData.start_date = agreementData.start_date;
+      if (agreementData.end_date !== undefined) updateData.end_date = agreementData.end_date;
+      if (agreementData.status !== undefined) updateData.status = ensureValidLeaseStatus(agreementData.status);
+      if (agreementData.deposit_amount !== undefined) updateData.deposit_amount = agreementData.deposit_amount;
+      if (agreementData.total_amount !== undefined) updateData.total_amount = agreementData.total_amount;
+      if (agreementData.rent_amount !== undefined) updateData.rent_amount = agreementData.rent_amount;
+      if (agreementData.daily_late_fee !== undefined) updateData.daily_late_fee = agreementData.daily_late_fee;
+      if (agreementData.agreement_type !== undefined) updateData.agreement_type = agreementData.agreement_type;
+      if (agreementData.agreement_duration !== undefined) updateData.agreement_duration = agreementData.agreement_duration;
+      if (agreementData.payment_day !== undefined || agreementData.rent_due_day !== undefined) {
+        updateData.rent_due_day = agreementData.rent_due_day ?? agreementData.payment_day;
+      }
+      if (agreementData.notes !== undefined) updateData.notes = agreementData.notes;
+      if (agreementData.payment_frequency !== undefined) updateData.payment_frequency = agreementData.payment_frequency;
+      
+      // إضافة updated_at دائماً
+      updateData.updated_at = new Date().toISOString();
+
       const { data, error } = await supabase
         .from('leases')
-        .update({
-          vehicle_id: agreementData.vehicle_id,
-          customer_id: agreementData.customer_id,
-          agreement_number: agreementNumber,
-          start_date: agreementData.start_date,
-          end_date: agreementData.end_date,
-          status: ensureValidLeaseStatus(agreementData.status),
-          deposit_amount: agreementData.deposit_amount,
-          total_amount: agreementData.total_amount,
-          rent_amount: agreementData.rent_amount,
-          daily_late_fee: agreementData.daily_late_fee,
-          agreement_type: agreementData.agreement_type || 'short_term',
-          agreement_duration: agreementData.agreement_duration,
-          rent_due_day: agreementData.rent_due_day ?? agreementData.payment_day,
-          notes: agreementData.notes,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', asLeaseId(id))
         .select()
         .single();

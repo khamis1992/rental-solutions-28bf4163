@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Users, FileText, ArrowLeft } from 'lucide-react';
 import { CustomerOnboardingWizard } from '@/components/customers/CustomerOnboardingWizard';
 import AgreementForm from './AgreementForm';
+import CustomerSelector from '@/components/customers/CustomerSelector';
 import { CustomerInfo } from '@/types/customer';
 import { Agreement } from '@/types/agreement';
 import { Customer } from '@/lib/validation-schemas/customer';
@@ -17,7 +18,7 @@ interface AgreementWithCustomerStepsProps {
   isSubmitting?: boolean;
 }
 
-type Step = 'customer-choice' | 'agreement-creation';
+type Step = 'customer-choice' | 'customer-selection' | 'agreement-creation';
 
 const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   onSubmit,
@@ -36,10 +37,16 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
 
   const handleCustomerChoice = (choice: 'existing' | 'new') => {
     if (choice === 'existing') {
-      setCurrentStep('agreement-creation');
+      setCurrentStep('customer-selection');
     } else {
       setCustomerWizardOpen(true);
     }
+  };
+
+  const handleExistingCustomerSelect = (customer: CustomerInfo) => {
+    setSelectedCustomer(customer);
+    setCurrentStep('agreement-creation');
+    toast.success(`تم اختيار العميل: ${customer.full_name || 'غير محدد'}`);
   };
 
   const handleCustomerCreation = async (customerData: Customer) => {
@@ -49,13 +56,13 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
       
       // Convert the created customer to CustomerInfo format
       const customerInfo: CustomerInfo = {
-        id: newCustomer.id || '',
-        full_name: newCustomer.full_name || '',
-        email: newCustomer.email,
-        phone_number: newCustomer.phone || '',
-        driver_license: newCustomer.driver_license || '',
-        nationality: newCustomer.nationality || '',
-        address: newCustomer.address || ''
+        id: newCustomer.id ?? '',
+        full_name: newCustomer.full_name ?? '',
+        email: newCustomer.email ?? '',
+        phone_number: newCustomer.phone ?? '',
+        driver_license: newCustomer.driver_license ?? '',
+        nationality: newCustomer.nationality ?? '',
+        address: newCustomer.address ?? ''
       };
       
       setSelectedCustomer(customerInfo);
@@ -82,8 +89,17 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
         {/* Step Indicator */}
         <div className="flex items-center justify-center space-x-4 space-x-reverse mb-8">
           {steps.map((step, index) => {
-            const isActive = step.id === currentStep;
-            const isCompleted = getCurrentStepIndex() > index;
+            let isActive = false;
+            let isCompleted = false;
+            
+            if (step.id === 'customer-choice') {
+              isActive = currentStep === 'customer-choice' || currentStep === 'customer-selection';
+              isCompleted = currentStep === 'agreement-creation';
+            } else if (step.id === 'agreement-creation') {
+              isActive = currentStep === 'agreement-creation';
+              isCompleted = false;
+            }
+            
             const StepIcon = step.icon;
             
             return (
@@ -172,14 +188,109 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
     );
   }
 
+  if (currentStep === 'customer-selection') {
+    return (
+      <div className="space-y-6" dir="rtl">
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center space-x-4 space-x-reverse mb-8">
+          {steps.map((step, index) => {
+            let isActive = false;
+            let isCompleted = false;
+            
+            if (step.id === 'customer-choice') {
+              isActive = true; // customer-choice is active in customer-selection step
+              isCompleted = false;
+            } else if (step.id === 'agreement-creation') {
+              isActive = false;
+              isCompleted = false;
+            }
+            
+            const StepIcon = step.icon;
+            
+            return (
+              <div key={step.id} className="flex items-center">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                  isCompleted ? 'bg-green-500 border-green-500 text-white' :
+                  isActive ? 'bg-blue-500 border-blue-500 text-white' :
+                  'bg-gray-100 border-gray-300 text-gray-500'
+                }`}>
+                  {isCompleted ? <CheckCircle className="w-5 h-5" /> : <StepIcon className="w-5 h-5" />}
+                </div>
+                <span className={`mr-2 text-sm font-medium ${
+                  isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'
+                }`}>
+                  {step.title}
+                </span>
+                {index < steps.length - 1 && (
+                  <ArrowLeft className="w-4 h-4 text-gray-400 mx-4" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Customer Selection Step */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-right flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              اختر العميل من القائمة
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription className="text-right">
+                ابحث عن العميل المطلوب واختره لإنشاء العقد.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-4">
+              <label className="text-sm font-medium text-right block">
+                البحث عن العميل
+                <span className="text-red-500 mr-1">*</span>
+              </label>
+              <CustomerSelector
+                selectedCustomer={selectedCustomer}
+                onCustomerSelect={handleExistingCustomerSelect}
+                placeholder="البحث عن عميل بالاسم أو رقم الهاتف..."
+                inputClassName="text-right"
+              />
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="outline" onClick={() => setCurrentStep('customer-choice')}>
+                السابق
+              </Button>
+              {selectedCustomer && (
+                <Button onClick={() => setCurrentStep('agreement-creation')}>
+                  التالي
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (currentStep === 'agreement-creation') {
     return (
       <div className="space-y-6" dir="rtl">
         {/* Step Indicator */}
         <div className="flex items-center justify-center space-x-4 space-x-reverse mb-8">
           {steps.map((step, index) => {
-            const isActive = step.id === currentStep;
-            const isCompleted = getCurrentStepIndex() > index;
+            let isActive = false;
+            let isCompleted = false;
+            
+            if (step.id === 'customer-choice') {
+              isActive = false;
+              isCompleted = true; // customer-choice is completed when in agreement-creation
+            } else if (step.id === 'agreement-creation') {
+              isActive = true; // agreement-creation is active
+              isCompleted = false;
+            }
+            
             const StepIcon = step.icon;
             
             return (
@@ -213,7 +324,7 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
                 <div>
                   <div className="font-medium">تم اختيار العميل: {selectedCustomer.full_name}</div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedCustomer.phone_number && `الهاتف: ${selectedCustomer.phone_number}`}
+                    {selectedCustomer.phone_number && <span>الهاتف: <span className="phone-number-ltr" dir="ltr">{selectedCustomer.phone_number}</span></span>}
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setCurrentStep('customer-choice')}>

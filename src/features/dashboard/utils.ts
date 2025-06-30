@@ -1,4 +1,3 @@
-
 import { DashboardFilters, QuickAction } from './types';
 import { UserRole } from '@/types/user-types';
 
@@ -24,15 +23,6 @@ export const getQuickActions = (userRole: UserRole): QuickAction[] => {
       icon: 'Plus',
       path: '/vehicles/add',
       color: 'blue',
-      requiresRole: ['admin', 'staff'],
-    },
-    {
-      id: 'add-customer',
-      title: 'Add Customer',
-      description: 'Register a new customer',
-      icon: 'UserPlus',
-      path: '/customers/add',
-      color: 'green',
       requiresRole: ['admin', 'staff'],
     },
     {

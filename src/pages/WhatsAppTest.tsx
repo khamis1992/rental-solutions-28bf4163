@@ -281,7 +281,7 @@ const WhatsAppTest: React.FC = () => {
           phone_number: '+97433123456',
           driver_license: 'DL123456',
           nationality: 'قطري',
-          address: 'الدوحة، قطر',
+          address: 'الدوحة - قطر',
           notes: 'عميل جديد - تم إنشاؤه تلقائياً',
           status: 'active',
           role: 'customer'
@@ -292,7 +292,7 @@ const WhatsAppTest: React.FC = () => {
           phone_number: '+97455987654',
           driver_license: 'DL789012',
           nationality: 'قطري',
-          address: 'الريان، قطر',
+          address: 'الدوحة - قطر',
           notes: 'عميل مميز - تم إنشاؤه تلقائياً',
           status: 'active',
           role: 'customer'
@@ -303,7 +303,7 @@ const WhatsAppTest: React.FC = () => {
           phone_number: '+97470456789',
           driver_license: 'DL345678',
           nationality: 'قطري',
-          address: 'الوكرة، قطر',
+          address: 'الدوحة - قطر',
           notes: 'عميل منتظم - تم إنشاؤه تلقائياً',
           status: 'active',
           role: 'customer'
@@ -314,7 +314,7 @@ const WhatsAppTest: React.FC = () => {
           phone_number: '+97466654321',
           driver_license: 'DL567890',
           nationality: 'قطري',
-          address: 'الخور، قطر',
+          address: 'الدوحة - قطر',
           notes: 'عميل جديد - تم إنشاؤه تلقائياً',
           status: 'active',
           role: 'customer'
@@ -325,7 +325,7 @@ const WhatsAppTest: React.FC = () => {
           phone_number: '+97444321987',
           driver_license: 'DL098765',
           nationality: 'قطري',
-          address: 'أم صلال، قطر',
+          address: 'الدوحة - قطر',
           notes: 'عميل VIP - تم إنشاؤه تلقائياً',
           status: 'active',
           role: 'customer'
@@ -588,7 +588,7 @@ const WhatsAppTest: React.FC = () => {
             <div>
                                 <div className="font-medium">{customerData.full_name || 'عميل'}</div>
                                 <div className="text-xs text-gray-500">
-                                  {formatPhoneNumber(customerData.phone || customerData.phone_number || '')}
+                                  <span className="phone-number-ltr" dir="ltr">{formatPhoneNumber(customerData.phone || customerData.phone_number || '')}</span>
                                 </div>
                               </div>
                             </div>
@@ -646,7 +646,7 @@ const WhatsAppTest: React.FC = () => {
                     <Phone className="h-4 w-4 text-blue-600" />
                     <span className="text-gray-600">الهاتف:</span>
                     <span className="font-medium font-mono" dir="ltr">
-                      {formatPhoneNumber(selectedCustomer.phone)}
+                      <span className="phone-number-ltr" dir="ltr">{formatPhoneNumber(selectedCustomer.phone)}</span>
                     </span>
                   </div>
                   {selectedCustomer.email && (

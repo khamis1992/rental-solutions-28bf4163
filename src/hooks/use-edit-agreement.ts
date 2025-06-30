@@ -52,9 +52,33 @@ export function useEditAgreement(agreementId: string) {
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<Agreement>) => {
+      // تصفية البيانات لإرسال الحقول الموجودة في جدول leases فقط
+      const updateData: any = {};
+      
+      // إضافة الحقول الموجودة فقط إذا كانت محددة
+      if (updates.agreement_number !== undefined) updateData.agreement_number = updates.agreement_number;
+      if (updates.customer_id !== undefined) updateData.customer_id = updates.customer_id;
+      if (updates.vehicle_id !== undefined) updateData.vehicle_id = updates.vehicle_id;
+      if (updates.start_date !== undefined) updateData.start_date = updates.start_date;
+      if (updates.end_date !== undefined) updateData.end_date = updates.end_date;
+      if (updates.rent_amount !== undefined) updateData.rent_amount = updates.rent_amount;
+      if (updates.deposit_amount !== undefined) updateData.deposit_amount = updates.deposit_amount;
+      if (updates.down_payment !== undefined) updateData.down_payment = updates.down_payment;
+      if (updates.daily_late_fee !== undefined) updateData.daily_late_fee = updates.daily_late_fee;
+      if (updates.payment_frequency !== undefined) updateData.payment_frequency = updates.payment_frequency;
+      if (updates.payment_day !== undefined) updateData.payment_day = updates.payment_day;
+      if (updates.rent_due_day !== undefined) updateData.rent_due_day = updates.rent_due_day;
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.agreement_type !== undefined) updateData.agreement_type = updates.agreement_type;
+      if (updates.notes !== undefined) updateData.notes = updates.notes;
+      if (updates.confirmation_email_sent !== undefined) updateData.confirmation_email_sent = updates.confirmation_email_sent;
+      
+      // إضافة updated_at دائماً
+      updateData.updated_at = new Date().toISOString();
+
       const { data, error } = await supabase
         .from('leases')
-        .update(updates)
+        .update(updateData)
         .eq('id', agreementId)
         .select()
         .single();
