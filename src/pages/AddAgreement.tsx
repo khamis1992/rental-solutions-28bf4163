@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import AgreementWithCustomerSteps from '@/components/agreements/AgreementWithCustomerSteps';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
@@ -9,13 +9,38 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
+import { supabase } from '@/lib/supabase';
 
 const AddAgreement = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { createAgreement } = useAgreementService();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [formInteracted, setFormInteracted] = useState(false);
+
+  // استقبال البيانات من معالج العقود
+  const prefilledData = location.state?.prefilledData;
+  const fromContractProcessor = location.state?.fromContractProcessor;
+
+  // عرض رسالة ترحيب إذا جاءت البيانات من معالج العقود
+  useEffect(() => {
+    if (fromContractProcessor && prefilledData) {
+      console.log('📋 تم استقبال بيانات من معالج العقود:', prefilledData);
+      console.log('🔍 نوع البيانات:', typeof prefilledData);
+      console.log('🔍 مفاتيح البيانات:', Object.keys(prefilledData));
+      console.log('🔍 معرف العميل:', prefilledData.customer_id);
+      console.log('🔍 بيانات المركبة:', prefilledData.vehicle_data);
+      
+      toast.success('مرحباً! 🎉', {
+        description: 'تم تعبئة النموذج تلقائياً بالبيانات المستخرجة من العقد',
+        duration: 5000
+      });
+    } else {
+      console.log('❌ لم يتم استقبال بيانات من معالج العقود');
+      console.log('📋 location.state:', location.state);
+    }
+  }, [fromContractProcessor, prefilledData]);
 
   // تتبع تغييرات حالة الحماية
   useEffect(() => {
@@ -138,16 +163,114 @@ const AddAgreement = () => {
     };
   }, [hasUnsavedChanges, formInteracted, isSubmitting]);
 
+  // دالة لإنشاء أو البحث عن المركبة
+  const findOrCreateVehicle = async (vehicleData: any) => {
+    try {
+      // الحصول على رقم اللوحة من مصادر مختلفة
+      const plateNumber = vehicleData?.vehicle_plate_number || vehicleData?.vehicle_data?.plate_number;
+      
+      console.log('🔍 البحث عن مركبة برقم اللوحة:', plateNumber);
+      console.log('🔍 بيانات المركبة الواردة:', vehicleData);
+      
+      if (!plateNumber) {
+        console.log('❌ رقم اللوحة غير متوفر');
+        return null;
+      }
+
+      // البحث عن المركبة بالرقم أولاً
+      const { data: existingVehicle, error: searchError } = await supabase
+        .from('vehicles')
+        .select('id')
+        .eq('license_plate', plateNumber)
+        .single();
+
+      if (existingVehicle && !searchError) {
+        console.log('✅ تم العثور على مركبة موجودة:', existingVehicle.id);
+        return existingVehicle.id;
+      }
+
+      console.log('🆕 إنشاء مركبة جديدة...');
+
+      // إنشاء مركبة جديدة إذا لم توجد
+      const newVehicle = {
+        make: vehicleData.vehicle_data?.make || vehicleData.vehicle_make || 'غير محدد',
+        model: vehicleData.vehicle_data?.model || vehicleData.vehicle_model || 'غير محدد',
+        year: vehicleData.vehicle_data?.year || vehicleData.vehicle_year || new Date().getFullYear(),
+        license_plate: plateNumber,
+        color: vehicleData.vehicle_data?.color || vehicleData.vehicle_color || 'غير محدد',
+        vin: vehicleData.vehicle_data?.vin || vehicleData.vehicle_vin || '',
+        status: 'available' as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('🚗 بيانات المركبة الجديدة:', newVehicle);
+
+      const { data: createdVehicle, error: createError } = await supabase
+        .from('vehicles')
+        .insert(newVehicle)
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error('❌ خطأ في إنشاء المركبة:', createError);
+        return null;
+      }
+
+      console.log('✅ تم إنشاء مركبة جديدة:', createdVehicle.id);
+      return createdVehicle.id;
+    } catch (error) {
+      console.error('خطأ في العثور على أو إنشاء المركبة:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (data: Agreement) => {
+    console.log('🚀 handleSubmit called with data:', data);
     setIsSubmitting(true);
     // إيقاف الحماية عند بدء الحفظ
     setHasUnsavedChanges(false);
     setFormInteracted(false);
     try {
-      console.log('بدء إنشاء الاتفاقية:', data);
+      console.log('🔄 بدء إنشاء الاتفاقية:', data);
+      console.log('📊 البيانات المرسلة:', {
+        customer_id: data.customer_id,
+        vehicle_id: data.vehicle_id,
+        vehicle_plate_number: (data as any).vehicle_plate_number,
+        start_date: data.start_date,
+        rent_amount: data.rent_amount,
+        deposit_amount: data.deposit_amount
+      });
       
+      // التحقق من وجود البيانات المطلوبة
+      if (!data.customer_id) {
+        console.error('❌ معرف العميل مفقود');
+        throw new Error('معرف العميل مطلوب لإنشاء الاتفاقية');
+      }
+
+      // إنشاء أو البحث عن المركبة إذا كانت البيانات متوفرة
+      let vehicleId = data.vehicle_id;
+      console.log('🔍 فحص بيانات المركبة:', {
+        vehicle_id: data.vehicle_id,
+        vehicle_plate_number: (data as any).vehicle_plate_number,
+        vehicle_data: (data as any).vehicle_data
+      });
+      
+      if (!vehicleId && ((data as any).vehicle_plate_number || (data as any).vehicle_data?.plate_number)) {
+        console.log('🔍 البحث عن أو إنشاء مركبة من بيانات مسح العقد...');
+        vehicleId = await findOrCreateVehicle(data);
+        if (vehicleId) {
+          data.vehicle_id = vehicleId;
+          console.log('✅ تم تعيين معرف المركبة:', vehicleId);
+        }
+      }
+      
+      console.log('📞 استدعاء createAgreement...');
+      console.log('📞 استدعاء createAgreement...');
       // إنشاء الاتفاقية أولاً
       const result = await createAgreement(data);
+      console.log('📋 نتيجة createAgreement:', result);
+      console.log('📋 نتيجة createAgreement:', result);
       
       if (result) {
         console.log('تم إنشاء الاتفاقية بنجاح:', result);
@@ -247,6 +370,7 @@ const AddAgreement = () => {
             <AgreementWithCustomerSteps
               onSubmit={handleSubmit}
               isSubmitting={isSubmitting}
+              prefilledData={prefilledData}
             />
           </CardContent>
         </Card>

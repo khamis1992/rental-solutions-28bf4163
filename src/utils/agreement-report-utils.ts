@@ -612,7 +612,7 @@ export async function generateAgreementReportPdfmake(
   };
 
   try {
-    const fileName = prepareArabicForPDF(`تقرير-عقد-${agreement.agreement_number || 'غير-محدد'}.pdf`);
+    const fileName = prepareArabicForPDF(`تقرير-عقد-${agreement.agreement_number || 'عقد'}.pdf`);
     pdfMake.createPdf(docDefinition).download(fileName);
   } catch (error) {
     console.error('Error generating PDF:', error);

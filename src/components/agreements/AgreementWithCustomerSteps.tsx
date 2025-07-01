@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Users, FileText, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Users, FileText, ArrowLeft, Upload } from 'lucide-react';
 import { CustomerOnboardingWizard } from '@/components/customers/CustomerOnboardingWizard';
 import AgreementForm from './AgreementForm';
 import CustomerSelector from '@/components/customers/CustomerSelector';
+import CarRentalContractProcessor from './CarRentalContractProcessor';
 import { CustomerInfo } from '@/types/customer';
 import { Agreement } from '@/types/agreement';
 import { Customer } from '@/lib/validation-schemas/customer';
@@ -16,30 +17,87 @@ import { toast } from 'sonner';
 interface AgreementWithCustomerStepsProps {
   onSubmit: (data: Agreement) => Promise<void>;
   isSubmitting?: boolean;
+  prefilledData?: any; // البيانات المُعبأة مسبقاً من معالج العقود
 }
 
-type Step = 'customer-choice' | 'customer-selection' | 'agreement-creation';
+type Step = 'customer-choice' | 'customer-selection' | 'agreement-creation' | 'pdf-processing';
 
 const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   onSubmit,
-  isSubmitting = false
+  isSubmitting = false,
+  prefilledData
 }) => {
+  // تتبع البيانات الواردة
+  console.log('🔍 AgreementWithCustomerSteps received props:', {
+    isSubmitting,
+    prefilledData,
+    hasPrefilledData: !!prefilledData
+  });
+
   const [currentStep, setCurrentStep] = useState<Step>('customer-choice');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [customerWizardOpen, setCustomerWizardOpen] = useState(false);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [pdfProcessorOpen, setPdfProcessorOpen] = useState(false);
+  const [contractData, setContractData] = useState<any>(null);
   const { createCustomer } = useCustomers();
 
   const steps = [
-    { id: 'customer-choice', title: 'اختيار العميل', icon: Users },
-    { id: 'agreement-creation', title: 'تفاصيل الاتفاقية', icon: FileText }
+    { id: 'customer-choice' as const, title: 'اختيار العميل', icon: Users },
+    { id: 'agreement-creation' as const, title: 'تفاصيل الاتفاقية', icon: FileText }
   ];
 
-  const handleCustomerChoice = (choice: 'existing' | 'new') => {
+  // معالجة البيانات المُعبأة مسبقاً من معالج العقود
+  useEffect(() => {
+    console.log('🔄 useEffect triggered for prefilledData:', {
+      hasPrefilledData: !!prefilledData,
+      prefilledDataKeys: prefilledData ? Object.keys(prefilledData) : []
+    });
+    
+    if (prefilledData) {
+      console.log('🎯 تم استقبال بيانات مُعبأة مسبقاً:', prefilledData);
+      
+      // إنشاء بيانات العميل من prefilledData
+      if (prefilledData.customer) {
+        console.log('👤 بيانات العميل من معالج العقود:', prefilledData.customer);
+        setSelectedCustomer(prefilledData.customer);
+      } else if (prefilledData.customer_id) {
+        // العميل موجود بمعرف فقط، نحتاج لإنشاء كائن CustomerInfo
+        console.log('👤 معرف العميل:', prefilledData.customer_id);
+        const customerInfo: CustomerInfo = {
+          id: prefilledData.customer_id,
+          full_name: prefilledData.customer_name || 'عميل من معالج العقود',
+          email: prefilledData.customer_email || '',
+          phone_number: prefilledData.customer_phone || '',
+          driver_license: prefilledData.customer_license || '',
+          nationality: prefilledData.customer_nationality || '',
+          address: prefilledData.customer_address || ''
+        };
+        setSelectedCustomer(customerInfo);
+      }
+      
+      // تعيين بيانات العقد
+      setContractData(prefilledData);
+      
+      // الانتقال مباشرة لخطوة إنشاء الاتفاقية
+      console.log('🚀 الانتقال لخطوة إنشاء الاتفاقية...');
+      setCurrentStep('agreement-creation');
+      
+      toast.success('تم تعبئة النموذج تلقائياً! 🎉', {
+        description: 'البيانات من معالج العقود جاهزة للمراجعة'
+      });
+    } else {
+      console.log('❌ لم يتم استقبال بيانات مُعبأة مسبقاً');
+    }
+  }, [prefilledData]);
+
+  const handleCustomerChoice = (choice: 'existing' | 'new' | 'pdf') => {
     if (choice === 'existing') {
       setCurrentStep('customer-selection');
-    } else {
+    } else if (choice === 'new') {
       setCustomerWizardOpen(true);
+    } else if (choice === 'pdf') {
+      setPdfProcessorOpen(true);
     }
   };
 
@@ -79,6 +137,60 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
     }
   };
 
+  const handleContractDataExtracted = (customerData: CustomerInfo, contractData: any) => {
+    console.log('🔍 Contract Data Extracted:', { customerData, contractData });
+    
+    // 🎯 التأكد من تنسيق التاريخ الصحيح
+    let startDate = contractData.contract?.startDate || '';
+    console.log('📅 تاريخ البداية المستخرج:', startDate);
+    
+    // تحويل التاريخ إلى تنسيق YYYY-MM-DD إذا لم يكن كذلك
+    if (startDate && !startDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // إذا كان التاريخ بصيغة DD/MM/YYYY أو DD-MM-YYYY
+      const dateParts = startDate.split(/[\/\-\.]/);
+      if (dateParts.length === 3) {
+        const [day, month, year] = dateParts;
+        if (year.length === 4) {
+          startDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          console.log('🔄 تم تحويل التاريخ إلى:', startDate);
+        }
+      }
+    }
+    
+    // تحويل أسماء الحقول لتتطابق مع نموذج الاتفاقية
+    const formattedContractData = {
+      // بيانات التاريخ والمبالغ من العقد المستخرج
+      start_date: startDate, // التاريخ بالتنسيق الصحيح
+      monthly_rent: contractData.contract?.monthlyRent || 0,
+      contract_duration_months: contractData.contract?.contractDuration || 12,
+      deposit_amount: contractData.contract?.depositAmount || 0,
+      
+      // بيانات المركبة من العقد
+      vehicle_data: {
+        make: contractData.vehicle?.brand || '',
+        model: 'غير محدد', // لأننا حذفنا الموديل
+        year: contractData.vehicle?.manufacturingYear || new Date().getFullYear(),
+        plate_number: contractData.vehicle?.registrationNumber || '',
+        color: contractData.vehicle?.color || 'غير محدد',
+        vin: contractData.vehicle?.chassisNumber || ''
+      },
+      
+      // معلومات إضافية
+      confidence: contractData.confidence || 0,
+      extraction_method: contractData.debugInfo?.extractionMethod || 'unknown'
+    };
+    
+    console.log('✅ Formatted Contract Data for Form:', formattedContractData);
+    console.log('🎯 تاريخ البداية النهائي:', formattedContractData.start_date);
+    console.log('💰 مبلغ الضمان المستخرج:', formattedContractData.deposit_amount);
+    
+    setSelectedCustomer(customerData);
+    setContractData(formattedContractData);
+    setPdfProcessorOpen(false);
+    setCurrentStep('agreement-creation');
+    toast.success(`تم استخراج البيانات بنجاح من العقد! (دقة: ${formattedContractData.confidence}%)`);
+  };
+
   const getCurrentStepIndex = () => {
     return steps.findIndex(step => step.id === currentStep);
   };
@@ -89,13 +201,18 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
         {/* Step Indicator */}
         <div className="flex items-center justify-center space-x-4 space-x-reverse mb-8">
           {steps.map((step, index) => {
+            // Determine step status based on current step
+            const isFirstStep = index === 0;
+            const isLastStep = index === steps.length - 1;
+            
             let isActive = false;
             let isCompleted = false;
             
             if (step.id === 'customer-choice') {
               isActive = currentStep === 'customer-choice' || currentStep === 'customer-selection';
               isCompleted = currentStep === 'agreement-creation';
-            } else if (step.id === 'agreement-creation') {
+            } else {
+              // step.id === 'agreement-creation'
               isActive = currentStep === 'agreement-creation';
               isCompleted = false;
             }
@@ -142,23 +259,7 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
               </AlertDescription>
             </Alert>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="cursor-pointer border-2 hover:border-blue-500 transition-colors" 
-                    onClick={() => handleCustomerChoice('existing')}>
-                <CardContent className="p-6 text-center">
-                  <div className="flex flex-col items-center space-y-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <h3 className="text-lg font-medium">اختيار عميل موجود</h3>
-                    <p className="text-sm text-muted-foreground text-center">
-                      اختر من قائمة العملاء المسجلين في النظام
-                    </p>
-                    <Badge variant="secondary">الخيار الأسرع</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="cursor-pointer border-2 hover:border-green-500 transition-colors"
                     onClick={() => handleCustomerChoice('new')}>
                 <CardContent className="p-6 text-center">
@@ -174,6 +275,38 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
                   </div>
                 </CardContent>
               </Card>
+
+              <Card className="cursor-pointer border-2 hover:border-purple-500 transition-colors"
+                    onClick={() => handleCustomerChoice('pdf')}>
+                <CardContent className="p-6 text-center">
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Upload className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <h3 className="text-lg font-medium">معالجة عقد إيجار سيارة</h3>
+                    <p className="text-sm text-muted-foreground text-center">
+                      رفع عقد PDF واستخراج بيانات العميل والمركبة تلقائياً
+                    </p>
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700">استخراج ذكي</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer border-2 hover:border-blue-500 transition-colors" 
+                    onClick={() => handleCustomerChoice('existing')}>
+                <CardContent className="p-6 text-center">
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Users className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-medium">اختيار عميل موجود</h3>
+                    <p className="text-sm text-muted-foreground text-center">
+                      اختر من قائمة العملاء المسجلين في النظام
+                    </p>
+                    <Badge variant="secondary">الخيار الأسرع</Badge>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </CardContent>
         </Card>
@@ -183,6 +316,13 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
           open={customerWizardOpen}
           onClose={() => setCustomerWizardOpen(false)}
           onComplete={handleCustomerCreation}
+        />
+
+        {/* Car Rental Contract Processor Dialog */}
+        <CarRentalContractProcessor
+          open={pdfProcessorOpen}
+          onDataExtracted={handleContractDataExtracted}
+          onClose={() => setPdfProcessorOpen(false)}
         />
       </div>
     );
@@ -339,9 +479,50 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
         <AgreementForm
           onSubmit={onSubmit}
           isSubmitting={isSubmitting}
+          hideBasicDetails={!!contractData} // إخفاء التفاصيل الأساسية عند وجود بيانات من مسح العقد
           initialData={selectedCustomer ? {
             customer_id: selectedCustomer.id,
-            customers: selectedCustomer
+            customers: selectedCustomer,
+            // إضافة بيانات من PDF إذا كانت متوفرة - ملء تلقائي شامل
+            ...(contractData && {
+              // بيانات التاريخ والمبالغ
+              start_date: contractData.start_date,
+              rent_amount: contractData.monthly_rent,
+              contract_duration_months: contractData.contract_duration_months || 12,
+              
+              // بيانات المركبة من PDF
+              vehicle_make: contractData.vehicle_data?.make,
+              vehicle_model: contractData.vehicle_data?.model,
+              vehicle_year: contractData.vehicle_data?.year,
+              vehicle_plate_number: contractData.vehicle_data?.plate_number,
+              vehicle_color: contractData.vehicle_data?.color,
+              vehicle_vin: contractData.vehicle_data?.vin,
+              
+              // الحقول الافتراضية المحسوبة تلقائياً
+              payment_frequency: 'monthly', // دائماً شهري
+              payment_day: 1, // دائماً اليوم الأول
+              daily_late_fee: 120, // دائماً 120 ريال
+              agreement_type: 'lease_to_own', // إيجار منتهي بالتملك
+              status: 'active', // نشط
+              
+              // مبلغ الضمان - إدخال يدوي فقط (لا حساب تلقائي)
+              deposit_amount: contractData.deposit_amount || 0,
+              total_amount: contractData.monthly_rent && contractData.contract_duration_months 
+                ? (contractData.monthly_rent * contractData.contract_duration_months) + (contractData.deposit_amount || 0)
+                : 0,
+              
+              // تاريخ انتهاء العقد المحسوب
+              end_date: contractData.start_date && contractData.contract_duration_months 
+                ? new Date(new Date(contractData.start_date).setMonth(
+                    new Date(contractData.start_date).getMonth() + contractData.contract_duration_months
+                  )).toISOString().split('T')[0]
+                : undefined,
+              
+              // ملاحظات مع رقم العقد الأصلي
+              notes: contractData.original_contract_number 
+                ? `رقم العقد الأصلي: ${contractData.original_contract_number}\nتم استخراج البيانات تلقائياً من العقد المرفوع`
+                : 'تم استخراج البيانات تلقائياً من العقد المرفوع'
+            })
           } as any : undefined}
         />
       </div>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Calendar, Plus, RefreshCw, Clock, CheckCircle, AlertTriangle, CreditCard, DollarSign, Trash2, Edit, AlertCircle } from 'lucide-react';
+import { Calendar, Plus, RefreshCw, Clock, CheckCircle, AlertTriangle, CreditCard, DollarSign, Trash2, Edit } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
 
 import { Payment } from '@/types/payment.types';
@@ -233,7 +233,6 @@ export function EnhancedPaymentHistorySection({
   const [newLateFee, setNewLateFee] = useState('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
-  const [isUpdatingStatuses, setIsUpdatingStatuses] = useState(false);
 
   const {
     syncAll,
@@ -449,62 +448,6 @@ export function EnhancedPaymentHistorySection({
 
 
 
-  // دالة تحديث حالات الدفعات بناءً على التحليل الذكي
-  const updatePaymentStatuses = async () => {
-    if (!payments.length) return;
-    
-    setIsUpdatingStatuses(true);
-    let updatedCount = 0;
-    
-    try {
-      console.log('🔄 بدء تحديث حالات الدفعات...');
-      
-      for (const payment of payments) {
-        const smartAnalysis = getSmartPaymentStatus(payment);
-        const originalStatus = payment.status;
-        const smartStatus = smartAnalysis.status;
-        
-        // تحديث الحالة إذا كانت مختلفة
-        if (originalStatus !== smartStatus && smartStatus !== 'paid') {
-          console.log(`📝 تحديث دفعة ${payment.id}:`, {
-            from: originalStatus,
-            to: smartStatus,
-            reason: smartAnalysis.reason
-          });
-          
-          const updatedPayment: Partial<Payment> = {
-            id: payment.id,
-            status: smartStatus,
-            // إضافة ملاحظة عن التحديث الذكي
-            description: payment.description ? 
-              `${payment.description} [محدث ذكياً من ${originalStatus} إلى ${smartStatus}]` : 
-              `[محدث ذكياً من ${originalStatus} إلى ${smartStatus}]`
-          };
-          
-          const success = await onPaymentUpdated(updatedPayment);
-          if (success) {
-            updatedCount++;
-          }
-        }
-      }
-      
-      if (updatedCount > 0) {
-        toast.success(`تم تحديث ${updatedCount} دفعات بنجاح`);
-        // إعادة تحميل البيانات
-        if (typeof fetchPayments === 'function') {
-          fetchPayments();
-        }
-      } else {
-        toast.success('جميع حالات الدفعات محدثة ولا تحتاج تغيير');
-      }
-      
-    } catch (error) {
-      console.error('خطأ في تحديث حالات الدفعات:', error);
-      toast.error('فشل في تحديث حالات الدفعات');
-    } finally {
-      setIsUpdatingStatuses(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -521,43 +464,6 @@ export function EnhancedPaymentHistorySection({
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Smart Analysis Alert */}
-      <Alert className="border-blue-200 bg-blue-50">
-        <AlertCircle className="h-4 w-4 text-blue-600" />
-        <AlertTitle className="text-blue-800">🧠 نظام التحليل الذكي للدفعات</AlertTitle>
-        <AlertDescription className="text-blue-700">
-          النظام يحلل الآن نصوص الدفعات مثل "Monthly rent payment for March 2025" ويحدد الحالة الصحيحة بناءً على تحليل التاريخ والنص.
-          <br />
-          <strong>دفعات متأخرة ذكياً:</strong> {paymentStats.overdue} | <strong>غرامات التأخير:</strong> {paymentStats.totalLateFees.toLocaleString()} ر.ق
-          {paymentStats.needsUpdate > 0 && (
-            <>
-              <br />
-              <strong className="text-red-700">⚠️ {paymentStats.needsUpdate} دفعات تحتاج تحديث في قاعدة البيانات</strong>
-            </>
-          )}
-          <br />
-          <div className="mt-3">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={updatePaymentStatuses}
-              disabled={isUpdatingStatuses || paymentStats.needsUpdate === 0}
-              className={`${paymentStats.needsUpdate > 0 ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
-            >
-              {isUpdatingStatuses ? (
-                <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 ml-2" />
-              )}
-              {isUpdatingStatuses ? 'جاري التحديث...' : 
-               paymentStats.needsUpdate > 0 ? `تحديث ${paymentStats.needsUpdate} دفعات` : 'جميع الدفعات محدثة'}
-            </Button>
-            <span className="text-xs text-blue-600 mr-2">
-              سيتم تحديث حالات الدفعات في قاعدة البيانات
-            </span>
-          </div>
-        </AlertDescription>
-      </Alert>
 
       {/* Payment Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">

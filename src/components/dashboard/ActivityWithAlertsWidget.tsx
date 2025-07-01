@@ -463,7 +463,7 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {dialogData?.map((payment: any) => (
+            {Array.isArray(dialogData) && dialogData.map((payment: any) => (
               <Card key={payment.id} className="p-4 border-r-4 border-red-500">
                 <div className="flex justify-between items-start">
                   <div className="text-right">
@@ -498,7 +498,7 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {dialogData?.map((vehicle: any) => (
+            {Array.isArray(dialogData) && dialogData.map((vehicle: any) => (
               <Card key={vehicle.id} className="p-4 border-r-4 border-yellow-500">
                 <div className="flex justify-between items-start">
                   <div className="text-right">
@@ -532,7 +532,7 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {dialogData?.map((contract: any) => (
+            {Array.isArray(dialogData) && dialogData.map((contract: any) => (
               <Card key={contract.id} className="p-4 border-r-4 border-orange-500">
                 <div className="flex justify-between items-start">
                   <div className="text-right">
@@ -567,7 +567,7 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {dialogData?.map((vehicle: any) => (
+            {Array.isArray(dialogData) && dialogData.map((vehicle: any) => (
               <Card key={vehicle.id} className="p-4 border-r-4 border-blue-500">
                 <div className="flex justify-between items-start">
                   <div className="text-right">

@@ -20,12 +20,14 @@ interface AgreementFormProps {
   initialData?: Agreement;
   onSubmit: (data: Agreement) => Promise<void>;
   isSubmitting?: boolean;
+  hideBasicDetails?: boolean; // إخفاء قسم التفاصيل الأساسية عند مسح العقد
 }
 
 const AgreementForm = ({
   initialData,
   onSubmit,
-  isSubmitting = false
+  isSubmitting = false,
+  hideBasicDetails = false
 }: AgreementFormProps) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null as any);
@@ -124,7 +126,11 @@ const AgreementForm = ({
 
   // Enhanced form submission with payment generation
   const handleSubmit = async (data: Agreement) => {
-      if (!termsAccepted) {
+    console.log('🔘 handleSubmit called - termsAccepted:', termsAccepted);
+    console.log('🔘 Form data received:', data);
+    
+    if (!termsAccepted) {
+      console.error('❌ Terms not accepted - showing error');
       toast.error('يجب الموافقة على الشروط والأحكام');
       return;
     }
@@ -152,6 +158,7 @@ const AgreementForm = ({
         // terms_accepted removed - not stored in database
       };
 
+      console.log('🚀 Calling onSubmit with data:', agreementData);
       // Submit the agreement
       await onSubmit(agreementData);
       
@@ -203,6 +210,7 @@ const AgreementForm = ({
             onVehicleChange={handleVehicleChange}
             onCustomerChange={handleCustomerChange}
             hideCustomerSelector={!!initialData?.customer_id} // إخفاء قسم العميل إذا كان محدد مسبقاً
+            hideEntireSection={hideBasicDetails} // إخفاء القسم بالكامل عند مسح العقد
           />
           
           {selectedCustomer && (
@@ -242,6 +250,14 @@ const AgreementForm = ({
               type="submit" 
               className="bg-primary" 
               disabled={isSubmitting || isGeneratingAgreementNumber || !termsAccepted}
+              onClick={() => {
+                console.log('🔘 Button clicked - states:', {
+                  isSubmitting,
+                  isGeneratingAgreementNumber,
+                  termsAccepted,
+                  disabled: isSubmitting || isGeneratingAgreementNumber || !termsAccepted
+                });
+              }}
             >
               {isSubmitting ? (
                 <>

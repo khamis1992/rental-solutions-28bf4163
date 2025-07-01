@@ -15,6 +15,9 @@ export default defineConfig(({ mode }) => ({
       "d2cd0355-32f1-4a1c-8126-f471727111ab-00-2ovli70y4qqjz.pike.replit.dev",
       "rental-solutions-28-bf-4163-khamis4everever.replit.app"
     ],
+    fs: {
+      allow: ['..']
+    }
   },
   plugins: [
     react()
@@ -93,6 +96,11 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('node_modules')) {
             return 'vendor';
           }
+          
+          // PDF.js
+          if (id.includes('pdfjs-dist')) {
+            return 'pdfjs';
+          }
         },
         // تحسين أسماء الملفات
         entryFileNames: (chunkInfo) => {
@@ -130,7 +138,8 @@ export default defineConfig(({ mode }) => ({
         '@radix-ui/react-dropdown-menu',
         'lucide-react',
         '@tanstack/react-query',
-        '@supabase/supabase-js'
+        '@supabase/supabase-js',
+        'pdfjs-dist'
       ],
       exclude: [
         'jspdf',
@@ -139,6 +148,13 @@ export default defineConfig(({ mode }) => ({
         'recharts'
       ],
     },
+    define: {
+      // Fix for PDF.js worker
+      global: 'globalThis',
+    },
+    worker: {
+      format: 'es'
+    }
   },
   // تحسين خاص للجوال
   esbuild: {

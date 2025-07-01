@@ -100,7 +100,7 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
           body: [[
             {
               stack: [
-                createArabicTextBlock(`عقد إيجار مركبة رقم: ${agreement.agreement_number || 'غير محدد'}`, 'contractTitle'),
+                createArabicTextBlock(`عقد إيجار مركبة رقم: ${agreement.agreement_number || ''}`, 'contractTitle'),
                 createArabicTextBlock('اتفاقية إيجار مركبة بنظام التأجير التمويلي', 'contractSubtitle')
               ],
               fillColor: colors.primary,

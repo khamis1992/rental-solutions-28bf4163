@@ -17,6 +17,7 @@ interface AgreementBasicDetailsProps {
   onVehicleChange?: (vehicle: any) => void;
   onCustomerChange?: (customer: CustomerInfo) => void;
   hideCustomerSelector?: boolean; // إخفاء قسم اختيار العميل عند وجود بيانات مُحددة مسبقاً
+  hideEntireSection?: boolean; // إخفاء القسم بالكامل عند مسح العقد (جميع البيانات تُعبأ تلقائياً)
 }
 
 export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
@@ -24,7 +25,8 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
   isEdit = false,
   onVehicleChange,
   onCustomerChange,
-  hideCustomerSelector = false
+  hideCustomerSelector = false,
+  hideEntireSection = false
 }) => {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
@@ -67,6 +69,11 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
     };
     return translations[status] || status;
   };
+
+  // إخفاء القسم بالكامل عند مسح العقد
+  if (hideEntireSection) {
+    return null;
+  }
 
   return (
     <Card>

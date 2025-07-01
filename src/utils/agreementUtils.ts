@@ -227,23 +227,23 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
             body: [
               [
                 createArabicTextBlock(contractLabels.customerName.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.full_name || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.customers?.full_name || '', 'valueStyle')
               ],
               [
                 createArabicTextBlock(contractLabels.nationality.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.nationality || 'غير محدد', 'valueStyle')
+                createArabicTextBlock((agreement.customers as any)?.nationality || '', 'valueStyle')
               ],
               [
                 createArabicTextBlock(contractLabels.idNumber.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.driver_license || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.customers?.driver_license || '', 'valueStyle')
               ],
               [
                 createArabicTextBlock(contractLabels.phoneNumber.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.phone_number || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.customers?.phone_number || '', 'valueStyle')
               ],
               [
                 createArabicTextBlock(contractLabels.email.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.email || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.customers?.email || '', 'valueStyle')
               ]
             ]
           },
@@ -264,27 +264,27 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
             body: [
               [
                 createArabicTextBlock(contractLabels.make.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.make || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.vehicles?.make || '', 'valueStyle')
               ],
               [
                 createArabicTextBlock(contractLabels.model.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.model || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.vehicles?.model || '', 'valueStyle')
               ],
               [
                 createArabicTextBlock(contractLabels.year.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.year?.toString() || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.vehicles?.year?.toString() || '', 'valueStyle')
               ],
               [
                 createArabicTextBlock(contractLabels.licensePlate.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.license_plate || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.vehicles?.license_plate || '', 'valueStyle')
               ],
               [
                 createArabicTextBlock(contractLabels.color.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.color || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.vehicles?.color || '', 'valueStyle')
               ],
               [
                 createArabicTextBlock(contractLabels.vinNumber.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.vin || 'غير محدد', 'valueStyle')
+                createArabicTextBlock(agreement.vehicles?.vin || '', 'valueStyle')
               ]
             ]
           },
@@ -328,7 +328,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
               ],
               [
                 createArabicTextBlock(contractLabels.totalAmount.ar, 'labelStyle'),
-                createArabicTextBlock(formatArabicCurrency(agreement.total_amount), 'financialValue')
+                createArabicTextBlock(formatArabicCurrency((agreement as any).total_amount || 0), 'financialValue')
               ],
               [
                 createArabicTextBlock(contractLabels.depositAmount.ar, 'labelStyle'),
@@ -499,7 +499,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
     };
 
     // Generate and download the PDF
-    const fileName = prepareArabicForPDF(`عقد-إيجار-مركبة-${agreement.agreement_number || 'غير-محدد'}.pdf`);
+    const fileName = prepareArabicForPDF(`عقد-إيجار-مركبة-${agreement.agreement_number || 'عقد'}.pdf`);
     pdfMake.createPdf(docDefinition).download(fileName);
     
     return true;

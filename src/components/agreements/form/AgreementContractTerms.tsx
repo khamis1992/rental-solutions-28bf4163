@@ -174,7 +174,7 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
                   />
                 </FormControl>
                 <div className="text-xs text-muted-foreground text-right">
-                  اختياري - عادة ضعف قيمة الإيجار الشهري
+                  إدخال يدوي - مبلغ التأمين المطلوب من العميل
                 </div>
                 <FormMessage className="text-right" />
               </FormItem>

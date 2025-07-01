@@ -97,6 +97,9 @@ const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
 const WhatsAppNotifications = lazy(() => import("./pages/WhatsAppNotifications"));
 const WhatsAppTest = lazy(() => import("./pages/WhatsAppTest"));
 const SmartSystemUpdaterPage = lazy(() => import("./pages/SmartSystemUpdater"));
+const CarRentalContractTest = lazy(() => import("./pages/CarRentalContractTest"));
+const ChatGPTContractTest = lazy(() => import("./pages/ChatGPTContractTest"));
+const ChatGPTInfo = lazy(() => import("./pages/ChatGPTInfo"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Mobile Field Operations
@@ -195,8 +198,17 @@ const AppContent = () => {
                 <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
                 <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />
                 <Route path="/whatsapp-notifications" element={withErrorBoundary(WhatsAppNotifications)} />
-                          <Route path="/whatsapp-test" element={withErrorBoundary(WhatsAppTest)} />
+                <Route path="/whatsapp-test" element={withErrorBoundary(WhatsAppTest)} />
                 <Route path="/admin/smart-updater" element={withErrorBoundary(SmartSystemUpdaterPage)} />
+                
+                {/* Car Rental Contract Test */}
+                <Route path="/car-rental-contract-test" element={withErrorBoundary(CarRentalContractTest)} />
+                
+                {/* ChatGPT Contract Test */}
+                <Route path="/chatgpt-contract-test" element={withErrorBoundary(ChatGPTContractTest)} />
+                
+                {/* ChatGPT Info */}
+                <Route path="/chatgpt-info" element={withErrorBoundary(ChatGPTInfo)} />
           <Route path="/fix-payments" element={withErrorBoundary(FixPaymentStatus)} />
           <Route path="/check-agreement" element={withErrorBoundary(CheckAgreementDetails)} />
           <Route path="/financial-demo" element={withErrorBoundary(FinancialSummaryDemo)} />
