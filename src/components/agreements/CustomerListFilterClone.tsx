@@ -10,7 +10,7 @@ interface CustomerListFilterProps {
   onFilterChange: (filters: Record<string, any>) => void;
 }
 
-export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ searchTerm, onSearch }) => {
+export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ searchTerm, onSearch, onFilterChange }) => {
   const [search, setSearch] = useState(searchTerm || '');
   
   useEffect(() => {
@@ -26,6 +26,10 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ sea
     onSearch(search);
   };
   
+  const handleClearSearch = () => {
+    setSearch('');
+    onSearch('');
+  };
 
   return (
     <div className="flex items-center space-x-4">

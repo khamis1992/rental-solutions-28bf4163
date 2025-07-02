@@ -1,18 +1,20 @@
 
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { GradientButton } from "@/components/ui/gradient-button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, LogIn, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
 
 const loginSchema = z.object({
-  email: z.string().email("عنوان البريد الإلكتروني غير صالح"),
-  password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -21,8 +23,8 @@ const Login = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -37,6 +39,7 @@ const Login = () => {
       setIsLoading(true);
       await signIn(data.email, data.password);
       
+      // Redirect to the page they tried to visit or to dashboard
       const from = (location.state as any)?.from?.pathname || "/dashboard";
       navigate(from, { replace: true });
     } catch (error) {
@@ -46,89 +49,144 @@ const Login = () => {
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+      },
+    },
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Simple Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">العراف لتأجير السيارات</h1>
-          <p className="text-muted-foreground">نظام إدارة الأسطول</p>
-        </div>
-
-        {/* Simple Login Card */}
-        <div className="bg-card border border-border rounded-lg p-8 shadow-sm">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-semibold text-card-foreground mb-2">تسجيل الدخول</h2>
-            <p className="text-muted-foreground">ادخل بياناتك للوصول إلى النظام</p>
-          </div>
-
+    <motion.div
+      className="w-full max-w-md px-4"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <Card className="border-border/40 shadow-lg bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-md">
+        <CardHeader className="space-y-1">
+          <motion.div variants={itemVariants}>
+            <div className="mx-auto w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-blue-400/20 flex items-center justify-center mb-3">
+              <LogIn className="h-6 w-6 text-primary" />
+            </div>
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <CardDescription className="text-center">
+              Enter your credentials to access your account
+            </CardDescription>
+          </motion.div>
+        </CardHeader>
+        <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>البريد الإلكتروني</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="example@email.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>كلمة المرور</FormLabel>
-                    <FormControl>
+              <motion.div variants={itemVariants}>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
                       <div className="relative">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          className="pr-10"
-                          {...field}
-                        />
-                        <button
+                        <FormControl>
+                          <Input 
+                            placeholder="name@example.com" 
+                            {...field} 
+                            className="pl-10"
+                          />
+                        </FormControl>
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </motion.div>
+              <motion.div variants={itemVariants}>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input 
+                            type={showPassword ? "text" : "password"} 
+                            placeholder="••••••••" 
+                            {...field} 
+                            className="pl-10 pr-10"
+                          />
+                        </FormControl>
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <button 
                           type="button"
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
                           onClick={() => setShowPassword(!showPassword)}
                         >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري تسجيل الدخول...
-                  </>
-                ) : (
-                  "تسجيل الدخول"
-                )}
-              </Button>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </motion.div>
+              <motion.div variants={itemVariants}>
+                <GradientButton 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading}
+                  size="lg"
+                  glow
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign in"
+                  )}
+                </GradientButton>
+              </motion.div>
             </form>
           </Form>
-        </div>
-      </div>
-    </div>
+          <motion.div variants={itemVariants} className="mt-4 text-center">
+            <Link to="/auth/forgot-password" className="text-sm text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </motion.div>
+        </CardContent>
+        <CardFooter className="flex flex-col">
+          <motion.div variants={itemVariants} className="text-sm text-center text-muted-foreground">
+            Don't have an account?{" "}
+            <Link to="/auth/register" className="text-primary hover:underline">
+              Sign up
+            </Link>
+          </motion.div>
+        </CardFooter>
+      </Card>
+    </motion.div>
   );
 };
 

@@ -1,5 +1,5 @@
 
-
+import React from 'react';
 import { CustomerInfo } from '@/types/customer';
 
 interface CustomerSearchResultsProps {

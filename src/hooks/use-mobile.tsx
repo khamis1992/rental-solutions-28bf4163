@@ -3,10 +3,10 @@ import * as React from "react"
 
 // Define breakpoint constants for consistent usage
 export const BREAKPOINTS = {
-  MOBILE: 640, // sm
-  TABLET: 768, // md
+  MOBILE: 640,  // sm
+  TABLET: 768,  // md
   LAPTOP: 1024, // lg
-  DESKTOP: 1280, // xl
+  DESKTOP: 1280 // xl
 };
 
 /**

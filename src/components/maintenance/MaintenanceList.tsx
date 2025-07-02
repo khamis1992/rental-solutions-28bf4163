@@ -1,10 +1,7 @@
 
-// @ts-nocheck
-/* eslint-disable */
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { typeGuards } from '@/lib/database';
 

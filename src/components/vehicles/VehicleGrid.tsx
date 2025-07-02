@@ -1,7 +1,4 @@
-
-// @ts-nocheck
-/* eslint-disable */
-
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VehicleStatusBadge } from '@/components/vehicles/VehicleStatusBadge';

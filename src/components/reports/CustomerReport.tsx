@@ -1,12 +1,10 @@
-// @ts-nocheck
-/* eslint-disable */
-
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Users, UserPlus, StarIcon, Repeat2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
+import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/use-customers';
 import { useAgreementsFixed } from '@/hooks/use-agreements-fixed';
 import { useAllPayments } from '@/hooks/use-all-payments';

@@ -1,8 +1,7 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -10,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
+import { cn } from '@/lib/utils';
 import { VehicleStatus } from '@/types/vehicle';
-
+import { Button } from '@/components/ui/button';
+import { FilterX } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface VehicleFilterValues {

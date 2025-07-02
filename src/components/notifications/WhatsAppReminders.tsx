@@ -1,8 +1,9 @@
-// @ts-nocheck
-/* eslint-disable */
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -408,8 +409,8 @@ export const WhatsAppReminders: React.FC = () => {
             15, // total collections
             5, // overdue payments
             3, // new contracts
-            // 45000 - removed unused variable// total revenue
-            // 25 - removed unused variable// active vehicles
+            45000, // total revenue
+            25 // active vehicles
           );
           break;
       }

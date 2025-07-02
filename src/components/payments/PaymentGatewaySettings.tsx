@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,7 +43,10 @@ const PaymentGatewaySettings = () => {
     try {
       setLoading(true);
       
-      // Normally we would store this in a secure environment variable or Supabase // Table - removed unused variable// This is just for UI // demonstration - removed unused variable// Simulating API call to save settings
+      // Normally we would store this in a secure environment variable or Supabase Table
+      // This is just for UI demonstration
+      
+      // Simulating API call to save settings
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success("تم حفظ إعدادات بوابة الدفع بنجاح");

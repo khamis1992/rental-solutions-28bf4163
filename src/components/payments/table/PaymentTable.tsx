@@ -1,9 +1,8 @@
-// @ts-nocheck
-/* eslint-disable */
-
+import React from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Payment } from '@/types/payment.types';
 import { Edit, Trash } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface PaymentTableProps {
   payments: Payment[];

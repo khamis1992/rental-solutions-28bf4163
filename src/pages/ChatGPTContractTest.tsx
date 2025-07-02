@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
+import { Progress } from '@/components/ui/progress';
 import { 
   Brain, 
   Zap, 

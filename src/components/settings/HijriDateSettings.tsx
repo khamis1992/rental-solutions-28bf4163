@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Calendar, Globe, Settings } from 'lucide-react';
 

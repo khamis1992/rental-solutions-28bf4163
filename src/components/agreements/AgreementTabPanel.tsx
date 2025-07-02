@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { TabsContent } from '@/components/ui/tabs';
 import AgreementTable from '@/components/agreements/AgreementTable';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';

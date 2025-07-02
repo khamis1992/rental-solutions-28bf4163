@@ -1,7 +1,5 @@
-
-// @ts-nocheck
-/* eslint-disable */
-
+import React from 'react';
+import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/ui/section-header';
 import { LayoutDashboard, RefreshCw, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

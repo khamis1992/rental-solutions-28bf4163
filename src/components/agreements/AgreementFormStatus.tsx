@@ -1,5 +1,5 @@
 
-
+import React from 'react';
 
 interface AgreementFormStatusProps {
   updateProgress: number | ((progress: number) => void) | null | undefined;

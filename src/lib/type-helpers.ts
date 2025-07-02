@@ -3,7 +3,7 @@ import {
   type PostgrestResponse,
 } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-import { Result, createSuccessResult, createErrorResult } from '@/lib/errors/types';
+import { Result, createSuccessResult, createErrorResult } from '@/types/response.types';
 import { createDatabaseError } from '@/types/error.types';
 import { toAppError } from '@/lib/errors/error-handler';
 import {

@@ -1,9 +1,10 @@
-
+import React from 'react';
 import { usePWA } from '@/hooks/use-pwa';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Download, 

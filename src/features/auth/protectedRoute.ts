@@ -1,7 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
-
 import { UserRole } from '@/types/user-types';
 
 export interface RoutePermission {

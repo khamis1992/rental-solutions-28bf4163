@@ -125,3 +125,8 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
+
+// Helper function
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}

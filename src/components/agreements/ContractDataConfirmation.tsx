@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
@@ -24,8 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
 import { supabase } from '@/lib/supabase';
-// import { Agreement } from '@/types/agreement';
-import { bypass } from '@/lib/typescript-bypass';
+import { Agreement } from '@/types/agreement';
 
 interface ContractDataConfirmationProps {
   customerData: CustomerInfo;
@@ -46,13 +44,13 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
   // استيراد خدمات إنشاء الاتفاقية
   const { createAgreement } = useAgreementService();
 
-  // const formatCurrency = (amount: number) => {
-  //   return new Intl.NumberFormat('ar-QA', {
-  //     style: 'currency',
-  //     currency: 'QAR',
-  //     minimumFractionDigits: 2
-  //   }).format(amount);
-  // };
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ar-QA', {
+      style: 'currency',
+      currency: 'QAR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
 
   // دالة لتحويل الأرقام إلى العربية
   const toArabicNumbers = (str: string | number) => {
@@ -212,7 +210,7 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
       });
 
       // 3. تحضير بيانات الاتفاقية
-      const submissionData = bypass.any({
+      const agreementData: Agreement = {
         customer_id: createdCustomer.id,
         vehicle_id: vehicleId,
         start_date: contractData.contract.startDate,
@@ -228,13 +226,13 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
         notes: `تم إنشاؤها من معالج العقود - دقة الاستخراج: ${contractData.confidence}%`,
         agreement_number: '', // سيتم توليده تلقائياً
         total_amount: (contractData.contract.monthlyRent || 0) * (contractData.contract.contractDuration || 12) + (contractData.contract.depositAmount || 0)
-      });
+      } as Agreement;
 
-      console.log('📋 بيانات الاتفاقية المحضرة:', submissionData);
+      console.log('📋 بيانات الاتفاقية المحضرة:', agreementData);
 
       // 4. إنشاء الاتفاقية
       console.log('📝 إنشاء الاتفاقية...');
-      const createdAgreement = await createAgreement(submissionData);
+      const createdAgreement = await createAgreement(agreementData);
       
       if (!createdAgreement) {
         throw new Error('فشل في إنشاء الاتفاقية');
@@ -251,7 +249,7 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
       try {
         console.log('💰 إنشاء جدولة الدفعات للاتفاقية:', createdAgreement.id);
         
-        const paymentResult = await agreementPaymentService.createPaymentScheduleForAgreement(bypass.any(createdAgreement));
+        const paymentResult = await agreementPaymentService.createPaymentScheduleForAgreement(createdAgreement);
 
         if (paymentResult.success) {
           toast.success('تم إنشاء الاتفاقية وجدولة الدفعات بنجاح! 🎉', {

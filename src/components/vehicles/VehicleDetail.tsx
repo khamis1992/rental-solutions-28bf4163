@@ -1,5 +1,5 @@
 
-
+import React from 'react';
 import { VehicleData } from '@/types/vehicle.types';
 import { VehicleTabContent } from './detail/VehicleTabContent';
 import { useLanguage } from '@/contexts/LanguageContext';

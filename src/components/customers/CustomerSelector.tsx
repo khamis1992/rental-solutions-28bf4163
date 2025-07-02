@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown, Loader2, RefreshCw, AlertCircle, User } from 'lucide-react';
-
+import { cn } from '@/lib/utils';
 import { CustomerInfo } from '@/types/customer';
 import { useCustomerSelectorService } from '@/hooks/services/useCustomerSelectorService';
 import { toast } from 'sonner';
@@ -31,6 +30,7 @@ const CustomerSelector = ({
     customers,
     isLoading,
     error,
+    searchQuery,
     setSearchQuery,
     refreshCustomers
   } = useCustomerSelectorService();

@@ -1,9 +1,6 @@
 // No changes needed to the main component, already handling description correctly
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -20,7 +17,8 @@ import {
   TableHead, 
   TableCell 
 } from '@/components/ui/table';
-
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CalendarIcon, Loader2, RefreshCw, AlertTriangle, CheckCircle, Save } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
@@ -65,7 +63,8 @@ const PaymentScheduleEditor = ({
     paymentSchedule: persistedSchedule,
     isLoading: isLoadingPersisted,
     isGenerating,
-    generatePaymentSchedule
+    generatePaymentSchedule,
+    isPending
   } = usePaymentScheduleManagement(agreementId);
 
   // Validate input parameters

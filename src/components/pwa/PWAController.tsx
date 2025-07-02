@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useEffect, useState } from 'react';
 import { SmartInstallBanner } from './SmartInstallBanner';
 import { EnhancedInstallPrompt } from './EnhancedInstallPrompt';

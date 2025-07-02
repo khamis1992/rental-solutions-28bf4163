@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { memo, useMemo } from 'react';
 import MaintenanceTable from './MaintenanceTable';
 import { MaintenanceRecord } from '@/hooks/use-maintenance';

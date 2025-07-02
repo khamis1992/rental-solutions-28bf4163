@@ -1,7 +1,7 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState } from 'react';
-
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ChevronLeft } from 'lucide-react';
 import { usePaymentDetails } from '@/hooks/use-payment-details';

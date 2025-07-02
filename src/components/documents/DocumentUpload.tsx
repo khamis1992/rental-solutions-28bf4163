@@ -1,8 +1,7 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Select, 
@@ -11,7 +10,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { UploadCloud, File, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';

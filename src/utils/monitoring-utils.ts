@@ -31,7 +31,9 @@ export const logOperation = (
     errorMessage
   };
   
-  operationLogs.unshift(logEntry); // Add to beginning for chronological // order - removed unused variable// Keep only the last 100 logs to prevent memory issues
+  operationLogs.unshift(logEntry); // Add to beginning for chronological order
+  
+  // Keep only the last 100 logs to prevent memory issues
   if (operationLogs.length > 100) {
     operationLogs = operationLogs.slice(0, 100);
   }
@@ -88,7 +90,8 @@ export const monitorTrafficFineAssignment = (
     data.success ? undefined : data.message
   );
   
-  // In a real system, we would store this in the // database - removed unused variable// For now, just log it to console
+  // In a real system, we would store this in the database
+  // For now, just log it to console
   console.log('Traffic fine assignment monitored:', data);
   
   // Return the operation ID for reference

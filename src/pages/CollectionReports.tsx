@@ -1,4 +1,4 @@
-
+import React from 'react';
 import CollectionReportsPage from '@/components/financials/reports/CollectionReportsPage';
 
 const CollectionReports: React.FC = () => {

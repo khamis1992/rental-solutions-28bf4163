@@ -1,7 +1,8 @@
 
-
+import React from 'react';
 import { formatDate, formatCurrency } from '@/lib/formatters';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface MaintenanceRecordProps {
   record: any;

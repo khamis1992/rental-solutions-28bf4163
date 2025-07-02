@@ -1,1 +1,1 @@
-// OnboardingWizard // placeholder - removed unused variable
+// OnboardingWizard placeholder

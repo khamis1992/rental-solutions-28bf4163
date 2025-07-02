@@ -1,7 +1,7 @@
-
-import { FileText, Plus } from 'lucide-react';
+import React from 'react';
+import { Car, FileText, Wrench, Plus } from 'lucide-react';
 import { VehicleStatusBadge } from '@/components/vehicles/VehicleStatusBadge';
-
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';

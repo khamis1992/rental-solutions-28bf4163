@@ -1,7 +1,7 @@
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
 import { Loader2, AlertCircle, CheckCircle2, CircleDollarSign, CalendarDays } from 'lucide-react';
 import { format, differenceInMonths } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -180,7 +180,7 @@ export function AgreementTrafficFineAnalytics({ agreementId, startDate, endDate 
                       dataKey="value"
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
-                      {paymentStatusData.map((_, index) => (
+                      {paymentStatusData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

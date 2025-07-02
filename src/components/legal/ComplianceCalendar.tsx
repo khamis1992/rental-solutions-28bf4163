@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useEffect, useState } from 'react';
 import { 
   Card, 
@@ -9,8 +7,9 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
-
-import { AlertTriangle, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, Calendar as CalendarIcon, FileText } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import { supabase } from '@/lib/supabase';
 import type { VehicleData } from '@/types/vehicle.types';

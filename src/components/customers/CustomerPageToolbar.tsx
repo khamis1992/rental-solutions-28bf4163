@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { CustomerListFilter } from '@/components/customers/CustomerListFilter';
 import { Button } from '@/components/ui/button';
 import { Upload, RefreshCw, AlertTriangle } from 'lucide-react';

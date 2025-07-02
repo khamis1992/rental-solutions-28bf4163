@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 import {
   type PostgrestError,
   type PostgrestResponse,

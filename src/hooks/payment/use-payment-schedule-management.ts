@@ -1,7 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
-
 import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentScheduleService, PaymentScheduleItem } from '@/services/PaymentScheduleService';

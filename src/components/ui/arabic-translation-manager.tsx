@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArabicTranslationManager, ArabicTextValidator } from '../../utils/arabic-content-management';
 

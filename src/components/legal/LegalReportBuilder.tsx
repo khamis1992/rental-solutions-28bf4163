@@ -1,3 +1,4 @@
+import React from 'react';
 
 const LegalReportBuilder: React.FC = () => {
   return (

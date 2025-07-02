@@ -1,8 +1,6 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-
+import { Button } from '@/components/ui/button';
 import { FileText, CreditCard } from 'lucide-react';
 import { PaymentForAgreement } from './PaymentForAgreement';
 import { NewPaymentEntry } from './NewPaymentEntry';

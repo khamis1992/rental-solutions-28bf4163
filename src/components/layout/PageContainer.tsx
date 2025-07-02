@@ -1,8 +1,5 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-
 import { Header } from './Header';
 import Sidebar from './Sidebar';
 import { WifiOff } from 'lucide-react';

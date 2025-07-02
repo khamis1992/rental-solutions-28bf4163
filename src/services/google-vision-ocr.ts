@@ -1,4 +1,5 @@
-// Google Vision OCR Service - Complete // Implementation - removed unused variable// API Key: AIzaSyDerb68G9zDwHI0e9-gwHf4b3fKQmPrE_o
+// Google Vision OCR Service - Complete Implementation
+// API Key: AIzaSyDerb68G9zDwHI0e9-gwHf4b3fKQmPrE_o
 
 export interface QatariIdCardData {
   fullName: string;

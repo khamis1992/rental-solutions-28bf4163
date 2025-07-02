@@ -6,4 +6,4 @@ export { MaintenanceService, maintenanceService } from './MaintenanceService';
 export { UserService, userService } from './UserService';
 export { DocumentService } from './DocumentService';
 
-// Re-export base service types without // conflict - removed unused variable
+// Re-export base service types without conflict

@@ -1,9 +1,9 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -20,7 +20,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-// cn utility not used - removed
+import { cn } from '@/lib/utils';
 
 interface AgreementFiltersProps {
   onFilterChange: (filters: Record<string, any>) => void;

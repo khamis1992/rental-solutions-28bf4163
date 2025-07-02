@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useEffect, useRef } from 'react';
 import {
   Chart as ChartJS,
@@ -16,7 +14,7 @@ import {
   ChartData,
 } from 'chart.js';
 import { Line, Bar, Pie, Doughnut } from 'react-chartjs-2';
-
+import { cn } from '@/lib/utils';
 import { createRTLChartConfig, rtlChartConfig } from '@/utils/rtl-advanced-features';
 import { formatQatarRiyal } from '@/utils/arabic-rtl-utils';
 

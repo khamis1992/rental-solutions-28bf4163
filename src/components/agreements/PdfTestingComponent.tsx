@@ -1,10 +1,7 @@
-
 import { useState } from 'react';
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
 import { toast } from 'sonner';
 import { FileText, Bug, CheckCircle, XCircle } from 'lucide-react';
 import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
@@ -56,6 +53,9 @@ export function PdfTestingComponent() {
     color: 'أبيض'
   };
 
+  const samplePayment = {
+    down_payment: 4000
+  };
 
   const samplePayments = [
     {
@@ -139,6 +139,11 @@ export function PdfTestingComponent() {
       agreement_number: 'عقد-١٢٣'
     };
     
+    const arabicCustomer = {
+      ...sampleCustomer,
+      full_name: 'عبدالله محمد الخالدي الأنصاري',
+      nationality: 'قطري الجنسية'
+    };
 
     await generateModernAgreementPDF(
       arabicAgreement,

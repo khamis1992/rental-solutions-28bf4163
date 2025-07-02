@@ -1,5 +1,5 @@
-
-
+import React from 'react';
+import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'sold' | 'inactive' | 'reserved' | 'police_station' | 'accident' | 'stolen' | 'retired' | string;

@@ -2,13 +2,12 @@ import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-// import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Upload, 
   FileText, 
@@ -21,10 +20,10 @@ import {
   Save,
   Camera,
   Loader2,
-  // CreditCard,
-  // AlertTriangle,
-  // ArrowLeft,
-  // ArrowRight
+  CreditCard,
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 import { carRentalContractOcrService } from '@/services/car-rental-contract-ocr';
 import type { CarRentalContractData, ContractOcrResult } from '@/services/car-rental-contract-ocr';
@@ -49,7 +48,7 @@ interface CustomerInfo {
 
 const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
   open = false,
-  // onDataExtracted,
+  onDataExtracted,
   onClose
 }) => {
   const [currentStep, setCurrentStep] = useState(1);

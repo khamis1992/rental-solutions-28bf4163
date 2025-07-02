@@ -1,7 +1,7 @@
-
+import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Badge } from '@/components/ui/badge';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';

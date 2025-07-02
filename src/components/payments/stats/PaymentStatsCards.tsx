@@ -1,6 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
-
+import React from 'react';
 import { formatCurrency } from '@/lib/utils';
 
 interface PaymentStatsCardsProps {

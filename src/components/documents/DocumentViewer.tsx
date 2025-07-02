@@ -1,8 +1,6 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { Document as DocumentType } from '@/types/document.types';
-
+import { Button } from '@/components/ui/button';
 import { Loader2, Download, ExternalLink } from 'lucide-react';
 import { useDocumentsEnhanced } from '@/hooks/use-documents-enhanced';
 

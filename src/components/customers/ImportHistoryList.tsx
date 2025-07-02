@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -41,7 +41,7 @@ export function ImportHistoryList() {
         event: '*', 
         schema: 'public', 
         table: 'customer_import_logs' 
-      }, () => {
+      }, (payload) => {
         fetchImportLogs();
       })
       .subscribe();

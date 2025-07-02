@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-
+import { Button } from '@/components/ui/button';
 import { Loader2, FileDown, Plus, FileUp, RefreshCw } from 'lucide-react';
 import { CarInstallmentContract, CarInstallmentPayment } from '@/types/car-installment';
 import { useCarInstallments } from '@/hooks/use-car-installments';

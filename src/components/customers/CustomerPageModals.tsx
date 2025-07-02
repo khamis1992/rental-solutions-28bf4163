@@ -1,5 +1,5 @@
 
-
+import React from 'react';
 import { CSVImportModal } from '@/components/customers/CSVImportModal';
 import { CustomerDetailsSidebar } from '@/components/customers/CustomerDetailsSidebar';
 import type { CustomerInfo } from '@/types/customer';

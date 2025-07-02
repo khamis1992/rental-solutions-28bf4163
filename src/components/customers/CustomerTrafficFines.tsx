@@ -28,7 +28,7 @@ interface CustomerTrafficFinesProps {
 }
 
 export const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId }) => {
-  const [, setCustomerDetails] = useState<CustomerDetails>({
+  const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     id: '',
     full_name: '',
     email: '',

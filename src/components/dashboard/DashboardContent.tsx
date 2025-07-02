@@ -1,17 +1,17 @@
 
-
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DashboardStatsFixed as DashboardStats } from './DashboardComponentsFixed';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import DashboardStats from './DashboardStats';
 import VehicleStatusChart from './VehicleStatusChart';
 import { RealTimeStatsWidget } from './RealTimeStatsWidget';
-import { AdvancedAnalyticsPanelFixed as AdvancedAnalyticsPanel } from './DashboardComponentsFixed';
-import { QuickActionsFixed as QuickActions } from './DashboardComponentsFixed';
-import { SmartAlertsWidgetFixed as SmartAlertsWidget } from './DashboardComponentsFixed';
+import { AdvancedAnalyticsPanel } from './AdvancedAnalyticsPanel';
+import { QuickActions } from './QuickActions';
+import { SmartAlertsWidget } from './SmartAlertsWidget';
 import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
-
+import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface DashboardContentProps {
@@ -30,11 +30,12 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   isError,
   error,
   stats,
-  revenue: _revenue,
-  activity: _activity,
+  revenue,
+  activity,
   collapsedSections,
   onToggleSection
 }) => {
+  const { t } = useTranslation();
   const { language } = useLanguage();
   
   if (isError) {

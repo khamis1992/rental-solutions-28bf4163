@@ -22,7 +22,8 @@ import {
   Calendar, 
   Mail, 
   Phone,
-  Clock
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -227,7 +228,7 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
                 </TableCell>
                 <TableCell className="text-center">
                   <div className="flex justify-center">
-                    {getStatusBadge(customer.status || 'active')}
+                    {getStatusBadge(customer.status)}
                   </div>
                 </TableCell>
                 <TableCell className="text-center">

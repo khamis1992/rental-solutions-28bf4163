@@ -18,7 +18,8 @@ const EditCustomer = () => {
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempts, setFetchAttempts] = useState(0);
 
-  // Use a stable reference to id to prevent useCallback from // recreating - removed unused variable// the fetchCustomerData function on every render
+  // Use a stable reference to id to prevent useCallback from recreating
+  // the fetchCustomerData function on every render
   const fetchCustomerData = useCallback(async () => {
     if (!id) {
       setError("Customer ID not provided");

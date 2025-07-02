@@ -1,6 +1,6 @@
-
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Badge } from '@/components/ui/badge';
 import { CustomerStatusBadge } from './CustomerStatusBadge';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { 

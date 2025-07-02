@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';

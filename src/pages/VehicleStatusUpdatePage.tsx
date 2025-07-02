@@ -1,5 +1,5 @@
 
-
+import React from 'react';
 import { SectionHeader } from '@/components/ui/section-header';
 import PageContainer from '@/components/layout/PageContainer';
 import VehicleStatusUpdate from '@/components/vehicles/VehicleStatusUpdate';

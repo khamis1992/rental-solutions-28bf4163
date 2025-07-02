@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Image } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface VehicleImageGalleryProps {
   mainImage?: string | null;
