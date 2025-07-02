@@ -1,10 +1,9 @@
 
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
-import { Agreement } from '@/types/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 import { SimplePagination } from '@/components/ui/simple-pagination';
-import { asAny } from '@/lib/temp-type-fixes';
+import { bypassTypes } from '@/lib/type-bypass';
 
 interface AgreementListProps {
   agreements?: SimpleAgreement[];
@@ -56,10 +55,10 @@ export function AgreementList({
   }
 
   // Transform SimpleAgreement to Agreement with type workaround
-  const typedAgreements = agreements?.map((agreement: SimpleAgreement) => asAny({
+  const typedAgreements = bypassTypes(agreements?.map((agreement: any) => ({
     ...agreement,
-    agreement_type: 'short_term',
-    customers: agreement.customers ? asAny({
+    agreement_type: 'short_term' as const,
+    customers: agreement.customers ? {
       ...agreement.customers,
       email: agreement.customers.email || '',
       phone_number: agreement.customers.phone_number || '',
@@ -72,8 +71,8 @@ export function AgreementList({
       updated_at: agreement.customers.updated_at || '',
       driver_license: null,
       id_card_image: null
-    }) : undefined,
-    vehicles: agreement.vehicles ? asAny({
+    } : undefined,
+    vehicles: agreement.vehicles ? {
       ...agreement.vehicles,
       attention_needed_notes: '',
       engine_number: '',
@@ -82,8 +81,8 @@ export function AgreementList({
       created_at: '',
       updated_at: '',
       vin: agreement.vehicles.vin || ''
-    }) : undefined
-  })) || [];
+    } : undefined
+  }))) || [];
 
   return (
     <div className="space-y-6">
