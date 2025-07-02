@@ -1,6 +1,6 @@
 
 import { PaymentRecord } from '@/components/agreements/PaymentHistory.types';
-
+import { Badge } from '@/components/ui/badge';
 import { AlertCircle } from 'lucide-react';
 
 interface PaymentWarningSectionProps {

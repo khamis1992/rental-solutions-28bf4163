@@ -22,7 +22,6 @@ const VehicleSelector = ({
   value,
   onChange,
   placeholder = "Select a vehicle",
-  selectedVehicle,
   onVehicleSelect
 }: VehicleSelectorProps) => {
   const { data: vehicles, isLoading } = useQuery({

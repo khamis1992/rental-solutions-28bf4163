@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Agreement } from '@/types/agreement';
-import { flexRender, useReactTable, getCoreRowModel, getSortedRowModel, SortingState } from '@tanstack/react-table';
+import { flexRender, useReactTable, getCoreRowModel, getSortedRowModel } from '@tanstack/react-table';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { getAgreementColumns } from './columns';
 

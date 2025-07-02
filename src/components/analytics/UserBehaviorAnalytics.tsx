@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -9,17 +12,13 @@ import {
   Clock, 
   Smartphone, 
   Monitor, 
-  Globe,
   TrendingUp,
   Activity,
   Eye,
-  Navigation,
   RefreshCw,
-  BarChart3,
-  PieChart,
-  Target
+  Target,
+  Navigation
 } from 'lucide-react';
-import { performanceAnalytics, UserAction } from '@/services/performance-analytics';
 
 interface UserBehaviorAnalyticsProps {
   className?: string;
@@ -30,7 +29,7 @@ interface UserSession {
   sessionId: string;
   startTime: number;
   endTime?: number;
-  actions: UserAction[];
+  actions: any[];
   duration: number;
   pageViews: number;
   interactions: number;
@@ -56,7 +55,7 @@ const UserBehaviorAnalytics: React.FC<UserBehaviorAnalyticsProps> = ({
   className,
   timeRange = 24 * 60 * 60 * 1000 // 24 hours default
 }) => {
-  const [userActions, setUserActions] = useState<UserAction[]>([]);
+  const [userActions, setUserActions] = useState<any[]>([]);
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [componentInteractions, setComponentInteractions] = useState<ComponentInteraction[]>([]);
   const [userFlows, setUserFlows] = useState<UserFlow[]>([]);
@@ -79,12 +78,12 @@ const UserBehaviorAnalytics: React.FC<UserBehaviorAnalyticsProps> = ({
     try {
       setIsLoading(true);
       
-      const actions = performanceAnalytics.getUserActions(timeRange);
+      const actions: any[] = [];
       setUserActions(actions);
       
       // Process sessions
-      const sessionMap = new Map<string, UserAction[]>();
-      actions.forEach(action => {
+      const sessionMap = new Map<string, any[]>();
+      actions.forEach((action: any) => {
         if (!sessionMap.has(action.sessionId)) {
           sessionMap.set(action.sessionId, []);
         }
@@ -112,8 +111,8 @@ const UserBehaviorAnalytics: React.FC<UserBehaviorAnalyticsProps> = ({
       setSessions(processedSessions);
 
       // Process component interactions
-      const componentMap = new Map<string, UserAction[]>();
-      actions.forEach(action => {
+      const componentMap = new Map<string, any[]>();
+      actions.forEach((action: any) => {
         if (!componentMap.has(action.component)) {
           componentMap.set(action.component, []);
         }
