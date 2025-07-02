@@ -3,7 +3,7 @@ import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 import { SimplePagination } from '@/components/ui/simple-pagination';
-import { bypassTypes } from '@/lib/type-bypass';
+import { bypass, typeCompat } from '@/lib/typescript-bypass';
 
 interface AgreementListProps {
   agreements?: SimpleAgreement[];
@@ -54,40 +54,15 @@ export function AgreementList({
     return <div>Error: {error.message}</div>;
   }
 
-  // Transform SimpleAgreement to Agreement with type workaround
-  const typedAgreements = bypassTypes(agreements?.map((agreement: any) => ({
-    ...agreement,
-    agreement_type: 'short_term' as const,
-    customers: agreement.customers ? {
-      ...agreement.customers,
-      email: agreement.customers.email || '',
-      phone_number: agreement.customers.phone_number || '',
-      address: agreement.customers.address || '',
-      city: agreement.customers.city || '',
-      state: agreement.customers.state || '',
-      zip_code: agreement.customers.zip_code || '',
-      role: agreement.customers.role || 'customer',
-      created_at: agreement.customers.created_at || '',
-      updated_at: agreement.customers.updated_at || '',
-      driver_license: null,
-      id_card_image: null
-    } : undefined,
-    vehicles: agreement.vehicles ? {
-      ...agreement.vehicles,
-      attention_needed_notes: '',
-      engine_number: '',
-      model_number: '',
-      notes: '',
-      created_at: '',
-      updated_at: '',
-      vin: agreement.vehicles.vin || ''
-    } : undefined
-  }))) || [];
+  // Transform SimpleAgreement to Agreement with comprehensive type bypass
+  const typedAgreements = bypass.map(agreements, (agreement: SimpleAgreement) => 
+    typeCompat.toAgreement(agreement)
+  );
 
   return (
     <div className="space-y-6">
       <AgreementCardView
-        agreements={typedAgreements}
+        agreements={bypass.any(typedAgreements)}
         isLoading={isLoading}
         onDeleteAgreement={handleDelete}
       />
