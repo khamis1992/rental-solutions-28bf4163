@@ -212,9 +212,9 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
             
             if (step.id === 'customer-choice') {
               isActive = currentStep === 'customer-choice' || currentStep === 'customer-selection';
-              isCompleted = currentStep === 'agreement-creation';
+              isCompleted = (currentStep as string) === 'agreement-creation';
             } else if (step.id === 'agreement-creation') {
-              isActive = currentStep === 'agreement-creation';
+              isActive = (currentStep as string) === 'agreement-creation';
               isCompleted = false;
             }
             

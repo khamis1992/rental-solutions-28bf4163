@@ -67,9 +67,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
     }
   };
 
-  // Define the missing function properly
   const handleImport = async () => {
-    if (!selectedFile) {
       toast.error('الرجاء اختيار ملف CSV');
       return;
     }
