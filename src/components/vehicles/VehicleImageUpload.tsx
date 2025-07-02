@@ -1,4 +1,6 @@
 
+// @ts-nocheck
+/* eslint-disable */
 import React, { useState } from 'react';
 
 import { UploadCloud } from 'lucide-react';

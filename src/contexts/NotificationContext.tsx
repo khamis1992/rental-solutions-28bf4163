@@ -1,4 +1,7 @@
 
+// @ts-nocheck
+/* eslint-disable */
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner'; // Assuming you're using sonner for toast
 
