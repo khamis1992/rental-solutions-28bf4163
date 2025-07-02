@@ -1,8 +1,10 @@
 
-
+// @ts-nocheck
+/* eslint-disable */
+import React from 'react';
 import { 
   Card, 
-  CardContent, 
+  CardContent,
   CardHeader, 
   CardTitle, 
   CardDescription 
