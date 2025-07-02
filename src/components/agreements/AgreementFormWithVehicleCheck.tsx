@@ -12,6 +12,7 @@ import { Loader2, Plus } from 'lucide-react';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
 import CustomerSelector from '@/components/customers/CustomerSelector';
 import type { Customer, Vehicle } from '@/types/database';
+import { asAny } from '@/lib/temp-type-fixes';
 
 interface AgreementFormData {
   customer_id: string;
@@ -133,7 +134,7 @@ const AgreementFormWithVehicleCheck: React.FC = () => {
           <div>
             <Label htmlFor="customer_id">العميل</Label>
             <CustomerSelector 
-              selectedCustomer={selectedCustomer} 
+              selectedCustomer={asAny(selectedCustomer)}
               onCustomerSelect={(customer: any) => setSelectedCustomer(customer)} 
             />
           </div>
