@@ -10428,6 +10428,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      generate_missing_payment_records: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          agreement_number: string | null
+          lease_id: string | null
+          status: Database["public"]["Enums"]["lease_status"] | null
+          status_description: string | null
+        }[]
+      }
       generate_payment_reminders: {
         Args: Record<PropertyKey, never>
         Returns: undefined
