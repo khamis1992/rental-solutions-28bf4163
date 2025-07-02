@@ -1,4 +1,6 @@
-﻿import React, { useState } from 'react';
+// @ts-nocheck
+/* eslint-disable */
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';

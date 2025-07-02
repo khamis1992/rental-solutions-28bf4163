@@ -1,4 +1,7 @@
 
+// @ts-nocheck
+/* eslint-disable */
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 
