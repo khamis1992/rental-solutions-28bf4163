@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils';
+
 /**
  * Arabic RTL Utility Functions
  * Provides helper functions for Arabic-only UI with proper RTL layout
