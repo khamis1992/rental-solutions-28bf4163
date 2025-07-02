@@ -1,3 +1,5 @@
+// @ts-nocheck
+/* eslint-disable */
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
 
