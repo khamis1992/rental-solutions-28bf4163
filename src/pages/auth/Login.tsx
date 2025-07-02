@@ -50,7 +50,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* Simple Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">الأرف</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">العراف لتأجير السيارات</h1>
           <p className="text-muted-foreground">نظام إدارة الأسطول</p>
         </div>
 
