@@ -31,7 +31,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { Loader2, Save, AlertTriangle, Eye, Undo } from 'lucide-react';
 
-import { toast } from 'sonner';
+
 import { Edit3 } from 'lucide-react';
 import { ChangeSummaryDialog } from './ChangeSummaryDialog';
 
@@ -284,32 +284,6 @@ const AgreementEditor = () => {
     setChangesList([]);
   };
 
-  // دوال التسميات العربية
-  const getAgreementTypeLabel = (type: string) => {
-    const translations: { [key: string]: string } = {
-      'short_term': 'قصير المدى',
-      'lease_to_own': 'إيجار منتهي بالتملك'
-    };
-    return translations[type] || type;
-  };
-
-  const getStatusLabel = (status: string) => {
-    const translations: { [key: string]: string } = {
-      'active': 'نشط',
-      'closed': 'مكتمل',
-      'cancelled': 'ملغي'
-    };
-    return translations[status] || status;
-  };
-
-  const getPaymentFrequencyLabel = (frequency: string) => {
-    const translations: { [key: string]: string } = {
-      'weekly': 'أسبوعي',
-      'monthly': 'شهري',
-      'quarterly': 'ربع سنوي'
-    };
-    return translations[frequency] || frequency;
-  };
 
 
   if (isLoading) {

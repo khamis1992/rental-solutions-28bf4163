@@ -1,7 +1,7 @@
 
 import { Control } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -55,7 +55,7 @@ export const PaymentScheduleSection: React.FC<PaymentScheduleSectionProps> = ({ 
                     {...field}
                     className="text-right"
                     dir="rtl"
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => field.onChange(parseInt(e.target.value) || 1)}
                   />
                 </FormControl>
                 <FormMessage />

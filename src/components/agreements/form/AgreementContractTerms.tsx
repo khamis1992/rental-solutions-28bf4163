@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -82,16 +82,6 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
     }
   }, [rentAmount, depositAmount, startDate, endDate, paymentFrequency, form]);
 
-  // Get payment frequency labels in Arabic
-  const getPaymentFrequencyLabel = (frequency: string) => {
-    const translations: { [key: string]: string } = {
-      'weekly': 'أسبوعي',
-      'biweekly': 'كل أسبوعين',
-      'monthly': 'شهري',
-      'quarterly': 'ربع سنوي'
-    };
-    return translations[frequency] || frequency;
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ar-QA', {
@@ -145,7 +135,7 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
                     value={field.value ?? ''}
                     className="text-right"
                     dir="rtl"
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </FormControl>
                 <div className="text-xs text-muted-foreground text-right">
@@ -170,7 +160,7 @@ export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({
                     value={field.value ?? ''}
                     className="text-right"
                     dir="rtl"
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </FormControl>
                 <div className="text-xs text-muted-foreground text-right">

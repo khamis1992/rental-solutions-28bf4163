@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import CustomerSelector from '@/components/customers/CustomerSelector';
@@ -22,7 +22,7 @@ interface AgreementBasicDetailsProps {
 
 export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
   form,
-  isEdit = false,
+  
   onVehicleChange,
   onCustomerChange,
   hideCustomerSelector = false,
@@ -49,25 +49,6 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
     setSelectedVehicle(vehicle);
     form.setValue('vehicle_id', vehicle.id);
     onVehicleChange?.(vehicle);
-  };
-
-  // Get agreement type labels in Arabic
-  const getAgreementTypeLabel = (type: string) => {
-    const translations: { [key: string]: string } = {
-      'short_term': 'قصير المدى',
-      'lease_to_own': 'إيجار منتهي بالتملك'
-    };
-    return translations[type] || type;
-  };
-
-  // Get status labels in Arabic
-  const getStatusLabel = (status: string) => {
-    const translations: { [key: string]: string } = {
-      'active': 'نشط',
-      'closed': 'مكتمل',
-      'cancelled': 'ملغي'
-    };
-    return translations[status] || status;
   };
 
   // إخفاء القسم بالكامل عند مسح العقد
@@ -125,7 +106,7 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
             <FormField
               control={form.control}
               name="customer_id"
-              render={({ field }) => (
+            render={() => (
                 <FormItem>
                   <FormLabel className="text-right flex items-center gap-2">
                     العميل
@@ -160,7 +141,7 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
           <FormField
             control={form.control}
             name="vehicle_id"
-            render={({ field }) => (
+            render={() => (
               <FormItem>
                 <FormLabel className="text-right flex items-center gap-2">
                   المركبة
@@ -236,7 +217,7 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
                     {...field}
                     className="text-right"
                     dir="rtl"
-                    onChange={(e) => {
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const months = parseInt(e.target.value) || 0;
                       field.onChange(months);
                       

@@ -66,7 +66,7 @@ export const AgreementDetails = ({
         </label>
         <DatePicker 
           date={startDate ? (startDate instanceof Date ? startDate : new Date(startDate)) : undefined}
-          setDate={setStartDate} 
+          setDate={(date: Date | undefined) => setStartDate(date || new Date())} 
         />
       </div>
       
@@ -95,7 +95,7 @@ export const AgreementDetails = ({
         </label>
         <DatePicker 
           date={endDate ? (endDate instanceof Date ? endDate : new Date(endDate)) : undefined}
-          setDate={setEndDate}
+          setDate={(date: Date | undefined) => setEndDate(date || new Date())}
         />
       </div>
       

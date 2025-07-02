@@ -1,5 +1,6 @@
 
 import { X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ActiveFiltersProps {
   activeFilters: [string, string][];

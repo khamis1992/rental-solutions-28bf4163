@@ -154,7 +154,7 @@ export function AgreementDeletionDialog({
                     {validation.warnings.map((warning, index) => (
                       <div key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                         <AlertCircle className="h-3 w-3 mt-0.5 text-amber-500 flex-shrink-0" />
-                        <span>{warning}</span>
+                        <span>{String(warning)}</span>
                       </div>
                     ))}
                   </div>
