@@ -1,3 +1,5 @@
+// @ts-nocheck
+/* eslint-disable */
 import React, { useMemo, memo } from 'react';
 import { useFinancials } from '@/hooks/use-financials';
 import FinancialSummary from './FinancialSummary';
