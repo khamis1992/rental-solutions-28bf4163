@@ -1,11 +1,10 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CustomerInfo } from '@/types/customer';
-
+import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { 
   Sheet, 
-  SheetClose, 
   SheetContent, 
   SheetDescription, 
   SheetFooter, 
@@ -31,7 +30,6 @@ import {
   MapPin,
   FileText,
   User,
-  Calendar,
   CreditCard,
   Car,
   AlertTriangle,
@@ -44,7 +42,6 @@ import {
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/formatters';
-import { useRentAmount } from '@/hooks/use-rent-amount';
 
 interface CustomerDetailsSidebarProps {
   customer: CustomerInfo | null;
