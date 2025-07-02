@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Trash2, FileText, CreditCard, AlertCircle, Scale, Car } from 'lucide-react';
 import {
   Dialog,
@@ -9,6 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Alert, AlertDescription } from '@/components/ui/alert';

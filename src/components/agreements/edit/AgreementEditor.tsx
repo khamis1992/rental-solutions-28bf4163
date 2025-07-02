@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,6 +13,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -22,36 +25,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { LeaseStatus } from '@/types/lease-types';
 import { Loader2, Save, AlertTriangle, Eye, Undo } from 'lucide-react';
-import VehicleSelector from '@/components/vehicles/VehicleSelector';
-import CustomerSelector from '@/components/customers/CustomerSelector';
-import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
-import { PaymentScheduleSection } from '../form/PaymentScheduleSection';
-import { CustomerInfo } from '@/types/customer';
-import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
-import { paymentService } from '@/services/PaymentService';
-import { paymentScheduleService } from '@/services/PaymentScheduleService';
-import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
-import { generateAndStoreContract } from '@/utils/contract-generator';
+
 import { toast } from 'sonner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-
-import { Separator } from '@/components/ui/separator';
-import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
-
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Edit3 } from 'lucide-react';
 import { ChangeSummaryDialog } from './ChangeSummaryDialog';
+
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 // إصلاح schema مع القيم الصحيحة للحالة وجعل جميع الحقول اختيارية للتعديل
 const agreementUpdateSchema = z.object({
@@ -93,14 +81,11 @@ interface ChangeComparison {
 const AgreementEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast: useToastHook } = useToast();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("details");
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
   const [originalData, setOriginalData] = useState<any>(null);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   
   // حالات ملخص التعديلات
   const [showChangeSummary, setShowChangeSummary] = useState(false);
@@ -215,13 +200,8 @@ const AgreementEditor = () => {
         form.reset(formData);
         setOriginalData(formData);
         
-        // تعيين العميل والمركبة المختارين
-        if (agreement.customers) {
-          setSelectedCustomer(agreement.customers);
-        }
-        if (agreement.vehicles) {
-          setSelectedVehicle(agreement.vehicles);
-        }
+        // Note: Customer and vehicle selection functionality would be handled separately
+        // as this component focuses on editing existing agreement data
 
         toast.success('تم تحميل بيانات العقد بنجاح');
       }
@@ -331,32 +311,6 @@ const AgreementEditor = () => {
     return translations[frequency] || frequency;
   };
 
-  // دالة تنسيق القيم للعرض
-  const formatValueForDisplay = (field: string, value: any) => {
-    if (value === null || value === undefined) return 'غير محدد';
-    
-    switch (field) {
-      case 'agreement_type':
-        return getAgreementTypeLabel(value);
-      case 'status':
-        return getStatusLabel(value);
-      case 'payment_frequency':
-        return getPaymentFrequencyLabel(value);
-      case 'start_date':
-      case 'end_date':
-        if (value instanceof Date) {
-          return format(value, 'dd MMMM yyyy', { locale: ar });
-        }
-        return value;
-      case 'total_amount':
-      case 'rent_amount':
-      case 'deposit_amount':
-      case 'daily_late_fee':
-        return `${value} ر.ق`;
-      default:
-        return value;
-    }
-  };
 
   if (isLoading) {
     return (
