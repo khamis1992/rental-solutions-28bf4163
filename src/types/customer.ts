@@ -4,6 +4,7 @@ export interface CustomerInfo {
   full_name: string;
   email: string;
   phone_number: string;
+  phone?: string; // Add phone as alias for compatibility
   driver_license?: string;
   nationality?: string;
   address?: string;

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCustomerService } from '@/hooks/services/useCustomerService';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Customer } from '@/lib/validation-schemas/customer';
+
 import { CustomerStatus } from '@/types/customer.types';
 
 interface CustomerListProps {
@@ -129,7 +129,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                           className="text-destructive focus:text-destructive"
                           onClick={() => {
                             if (window.confirm(`هل أنت متأكد من حذف ${customer.full_name}؟`)) {
-                              deleteCustomer(customer.id!);
+                              deleteCustomer(customer.id || "");
                             }
                           }}
                         >

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { 
   Card, CardContent, 
   Badge, Button, 
@@ -9,7 +9,6 @@ import {
   CardTitle,
   CardDescription
 } from "@/components/ui";
-import { FormField } from "@/components/ui/form-components";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -19,10 +18,10 @@ import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
 import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
 import { CustomerFinancialTab } from './CustomerFinancialTab';
 import { Customer } from '@/types/customer.types';
-import { useTranslation } from '@/utils/translation-helper';
+
 import { useLanguage } from '@/contexts/LanguageContext';
 import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
-import { useCustomerService } from '@/hooks/services/useCustomerService';
+
 
 interface CustomerDetailProps {
   customerId: string;
@@ -57,10 +56,8 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
   const [activeTab, setActiveTab] = useState("profile");
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState("");
-  const { t } = useTranslation();
+  
   const { language } = useLanguage();
-  const { deleteCustomer } = useCustomerService();
-  const navigate = useNavigate();
 
   // Add debugging console logs
   console.log("CustomerDetail: Rendered with customerId:", customerId);
@@ -240,10 +237,6 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     }
   }, [activeTab, visibleTabs, defaultTab]);
 
-  const handleUpdateCustomer = async (data: any) => {
-    if (!customerId) return;
-    updateMutation.mutate({ id: customerId, data });
-  };
 
   const handleSaveNotes = () => {
     if (!customerId) return;
@@ -259,51 +252,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     setEditingNotes(false);
   };
 
-  const handleDelete = async () => {
-    if (!customerId) return;
-    if (!window.confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا العميل؟' : 'Are you sure you want to delete this customer?')) return;
-    try {
-      await deleteCustomer(customerId);
-      toast({
-        title: language === 'ar' ? 'تم حذف العميل بنجاح' : 'Customer deleted successfully',
-        variant: 'default',
-      });
-      navigate('/customers');
-    } catch (error: any) {
-      toast({
-        title: language === 'ar' ? 'فشل في حذف العميل' : 'Failed to delete customer',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
 
-  // Handle financial actions
-  const handleFinancialAction = (action: 'add' | 'reminder' | 'history' | 'report') => {
-    switch (action) {
-      case 'add':
-        toast({
-          title: language === 'ar' ? 'تسجيل دفعة جديدة' : 'Record New Payment',
-          description: language === 'ar' ? 'سيتم فتح نافذة تسجيل الدفعة قريباً' : 'Payment recording will open soon'
-        });
-        break;
-      case 'reminder':
-        toast({
-          title: language === 'ar' ? 'إرسال تذكير' : 'Send Reminder',
-          description: language === 'ar' ? 'تم إرسال تذكير للعميل' : 'Reminder sent to customer'
-        });
-        break;
-      case 'history':
-        navigate(`/customers/${customerId}/payments`);
-        break;
-      case 'report':
-        toast({
-          title: language === 'ar' ? 'تقرير مالي' : 'Financial Report',
-          description: language === 'ar' ? 'سيتم إنشاء التقرير المالي قريباً' : 'Financial report generation coming soon'
-        });
-        break;
-    }
-  };
 
   // Handle contract PDF download with ID card
   const handleDownloadContractPDF = async () => {

@@ -183,7 +183,7 @@ export function CustomerOnboardingWizard({
       };
       
       // عدم إعادة تعيين النموذج هنا لتجنب فقدان البيانات
-      const result = await onComplete(submissionData);
+      await onComplete(submissionData);
       
       // عرض رسالة النجاح
       toast.success("تم إضافة العميل بنجاح", {

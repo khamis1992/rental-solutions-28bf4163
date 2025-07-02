@@ -1,15 +1,15 @@
 
 import { CustomerCard } from './CustomerCard';
-import { Customer } from '@/lib/validation-schemas/customer';
-import { GridLayout } from '@/components/ui/grid-layout';
+import type { CustomerInfo } from '@/types/customer';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users } from 'lucide-react';
 
 interface CustomerGridViewProps {
-  customers: Customer[];
+  customers: CustomerInfo[];
   isLoading: boolean;
-  onCustomerSelect?: (customer: Customer) => void;
-  onEdit?: (customer: Customer) => void;
+  onCustomerSelect?: (customer: CustomerInfo) => void;
+  onEdit?: (customer: CustomerInfo) => void;
   onDelete?: (customerId: string) => void;
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   ColumnDef, 
   flexRender, 
@@ -42,7 +42,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -70,8 +69,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { UserRoleManager } from "./UserRoleManager";
-// Import with both named and default import to ensure compatibility
-import UserData, { UserData as UserDataType, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
+import { UserData as UserDataType, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
 import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from "@/types/permissions";
 
 type UserPermissions = RolePermissions;
@@ -215,66 +213,9 @@ const UserList = () => {
     }
   };
 
-  const handleDeleteKhamis = async () => {
-    if (!profile) {
-      toast.error("Cannot delete users: Your profile is not loaded");
-      return;
-    }
-
-    try {
-      setBulkDeletingUsers(true);
-      const khamisUsers = users.filter(user => 
-        user.email === "khamis-1992@hotmail.com" && user.id !== profile.id
-      );
-
-      if (!khamisUsers.length) {
-        toast.info("No duplicate Khamis accounts found");
-        setBulkDeletingUsers(false);
-        return;
-      }
-
-      const deletionPromises = khamisUsers.map(async (user) => {
-        const { error } = await supabase.from("profiles").delete().eq("id", user.id);
-        if (error) throw error;
-        return user.id;
-      });
-
-      await Promise.all(deletionPromises);
-      await fetchUsers();
-      toast.success(`Successfully deleted ${khamisUsers.length} duplicate Khamis account(s)`);
-    } catch (error: any) {
-      console.error("Error deleting Khamis duplicates:", error.message);
-      toast.error("Failed to delete users: " + error.message);
-    } finally {
-      setBulkDeletingUsers(false);
-    }
-  };
-
   const openDeleteDialog = (user: UserDataType) => {
     setUserToDelete(user);
     setShowDeleteDialog(true);
-  };
-
-  const updateAdminAccounts = async () => {
-    try {
-      const { error: tarekError } = await supabase
-        .from("profiles")
-        .update({ role: "admin" })
-        .eq("email", "tareklaribi25914@gmail.com");
-
-      if (tarekError) throw tarekError;
-
-      const { error: khamisError } = await supabase
-        .from("profiles")
-        .update({ role: "admin" })
-        .eq("email", "khamis-1992@hotmail.com");
-
-      if (khamisError) throw khamisError;
-
-      fetchUsers();
-    } catch (error: any) {
-      console.error("Error updating roles:", error.message);
-    }
   };
 
   const handleUpdateUserStatus = async (userId: string, newStatus: UserStatus) => {
@@ -376,7 +317,6 @@ const UserList = () => {
       header: "الدور",
       cell: ({ row }) => {
         const user = row.original;
-        const isAdmin = profile?.role === "admin";
         const isSelf = isCurrentUser(user.id);
         return (
           <UserRoleManager 

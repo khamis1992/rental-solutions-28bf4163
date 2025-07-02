@@ -8,15 +8,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Customer } from '@/lib/validation-schemas/customer';
+import type { CustomerInfo } from '@/types/customer';
 import { MoreVertical, Phone, Mail, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface CustomerCardProps {
-  customer: Customer;
-  onEdit?: (customer: Customer) => void;
+  customer: CustomerInfo;
+  onEdit?: (customer: CustomerInfo) => void;
   onDelete?: (customerId: string) => void;
-  onSelect?: (customer: Customer) => void;
+  onSelect?: (customer: CustomerInfo) => void;
 }
 
 export const CustomerCard: React.FC<CustomerCardProps> = ({
@@ -132,7 +132,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">رقم الهاتف</span>
                 <span className="text-sm font-medium text-left" dir="ltr">
-                  {customer.phone || 'غير متوفر'}
+                  {customer.phone || customer.phone_number || 'غير متوفر'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
