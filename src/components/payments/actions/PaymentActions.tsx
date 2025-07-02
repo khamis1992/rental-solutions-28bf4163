@@ -3,6 +3,7 @@
 
 
 import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
+import { Button } from '@/components/ui/button';
 import { FileText, Plus } from 'lucide-react';
 
 interface PaymentActionsProps {
