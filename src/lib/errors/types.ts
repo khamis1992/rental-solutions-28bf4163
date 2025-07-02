@@ -8,7 +8,7 @@ export {
   type ErrorCode,
   type ErrorDetails,
   type ErrorSeverity,
-  type // ErrorContext - removed unused variable// Functions
+  // Functions
   createErrorResult,
   createSuccessResult,
   createDatabaseError,
@@ -22,8 +22,8 @@ export {
   createApiError,
   createServiceError,
   createPaymentError,
-  // createUnknownError - removed unused variable// Type guards
+  // Type guards
   isAppError,
   isSuccessResult,
   isErrorResult
-} from '@/types/error.types'; 
+} from '@/types/error.types';
