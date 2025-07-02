@@ -2,6 +2,7 @@
 /* eslint-disable */
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 import { Wifi, WifiOff, Smartphone, AlertTriangle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';

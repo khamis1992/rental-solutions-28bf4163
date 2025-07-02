@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 import { useIsMobile, useBreakpoint } from '@/hooks/use-mobile';
 import { Menu, X, Home, Users, Car, FileText, CreditCard, Scale, BarChart3, Wrench, DollarSign } from 'lucide-react';
 
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 
 interface ResponsiveMobileLayoutProps {
   children: React.ReactNode;
