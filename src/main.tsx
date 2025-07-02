@@ -157,13 +157,17 @@ const initApp = async () => {
   // Initialize phone number LTR styling observer
   setTimeout(() => {
     initPhoneNumberObserver();
-  }, 1000); // Wait for app to // mount - removed unused variable// Mount React app
+  }, 1000); // Wait for app to mount
+  
+  // Mount React app
   const container = document.getElementById("root");
   if (container) {
     const root = createRoot(container);
-    root.render(<ErrorBoundary>
-      <App />
-    </ErrorBoundary>);
+    root.render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    );
   }
 };
 
