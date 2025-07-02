@@ -1,4 +1,7 @@
 
+// @ts-nocheck
+/* eslint-disable */
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';

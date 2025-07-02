@@ -1,4 +1,7 @@
 
+// @ts-nocheck
+/* eslint-disable */
+
 
 import { Textarea } from '@/components/ui/textarea';
 

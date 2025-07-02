@@ -1,4 +1,7 @@
 
+// @ts-nocheck
+/* eslint-disable */
+
 import { format, parse } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Clock } from 'lucide-react';

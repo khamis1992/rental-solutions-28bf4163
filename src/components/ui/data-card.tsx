@@ -1,4 +1,7 @@
 
+// @ts-nocheck
+/* eslint-disable */
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 

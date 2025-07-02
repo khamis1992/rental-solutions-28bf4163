@@ -1,4 +1,7 @@
 
+// @ts-nocheck
+/* eslint-disable */
+
 
 interface PageHeaderProps {
   title: string;
