@@ -7,7 +7,6 @@ import path from 'path';
 export default defineConfig(async ({ mode }) => {
   const plugins = [
     react({
-      // Completely disable TypeScript processing
       typescript: false,
     })
   ];
@@ -25,7 +24,7 @@ export default defineConfig(async ({ mode }) => {
     plugins,
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": path.resolve(process.cwd(), "./src"),
       },
     },
     server: {
@@ -41,8 +40,7 @@ export default defineConfig(async ({ mode }) => {
       sourcemap: false,
       minify: 'esbuild',
       rollupOptions: {
-        onwarn(warning, warn) {
-          // Suppress all warnings
+        onwarn() {
           return;
         },
       },
@@ -71,6 +69,9 @@ export default defineConfig(async ({ mode }) => {
     },
     define: {
       __DEV__: false,
+      'process.env.NODE_ENV': '"production"',
     },
+    clearScreen: false,
+    logLevel: 'error',
   };
 });

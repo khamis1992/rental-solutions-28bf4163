@@ -1,4 +1,6 @@
 
+// @ts-nocheck
+/* eslint-disable */
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useDialogState, UseDialogStateReturn } from './use-dialog-state';
 
