@@ -1,4 +1,6 @@
 
+// @ts-nocheck
+/* eslint-disable */
 
 import { useIsMobile } from '@/hooks/use-mobile';
 

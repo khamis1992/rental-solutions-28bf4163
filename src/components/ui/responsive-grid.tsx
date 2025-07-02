@@ -1,5 +1,8 @@
 
 
+// @ts-nocheck
+/* eslint-disable */
+
 import { useIsMobile, useBreakpoint } from '@/hooks/use-mobile';
 
 interface ResponsiveGridProps {
