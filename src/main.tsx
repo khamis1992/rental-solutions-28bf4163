@@ -14,6 +14,7 @@ import './index.css';
 
 // Global TypeScript suppression - import first to suppress all build errors
 import './lib/typescript-global-bypass';
+import './lib/global-dashboard-fix';
 
 // Import environment variables diagnostic test
 import './env-test.ts';
