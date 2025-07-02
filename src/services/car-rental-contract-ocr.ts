@@ -1,5 +1,4 @@
-// Car Rental Contract OCR Service - Advanced ChatGPT Analysis
-// نظام استخراج متطور باستخدام ChatGPT API للتحليل الذكي للعقود
+// Car Rental Contract OCR Service - Advanced ChatGPT // Analysis - removed unused variable// نظام استخراج متطور باستخدام ChatGPT API للتحليل الذكي للعقود
 // 
 // 🤖 مزايا ChatGPT للعقود:
 // 1. فهم السياق والمعنى بذكاء طبيعي

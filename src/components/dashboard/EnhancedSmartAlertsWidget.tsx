@@ -1,11 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { 
   AlertTriangle, 
@@ -29,7 +27,7 @@ import {
   BarChart3,
   Target
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';

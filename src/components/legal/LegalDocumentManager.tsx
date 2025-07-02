@@ -1,4 +1,4 @@
-import React from 'react';
+
 import LegalDocuments from './LegalDocuments';
 
 const LegalDocumentManager: React.FC = () => {

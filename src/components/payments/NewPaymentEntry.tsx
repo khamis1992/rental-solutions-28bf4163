@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
+
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+
 import { toast } from 'sonner';
 import { ChevronLeft } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import { Input } from '@/components/ui/input';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface NewPaymentEntryProps {

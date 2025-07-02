@@ -30,8 +30,8 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       }
       return result.data;
     },
-    staleTime: 600000, // 10 minutes
-    gcTime: 900000, // 15 minutes
+    staleTime: // 600000 - removed unused variable// 10 minutes
+    gcTime: // 900000 - removed unused variable// 15 minutes
   });
 
   // Function for getting agreement details

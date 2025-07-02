@@ -1,5 +1,5 @@
 
-import React from 'react';
+
 import { CustomerStatsCards } from '@/components/customers/CustomerStatsCards';
 import type { CustomerInfo } from '@/types/customer';
 

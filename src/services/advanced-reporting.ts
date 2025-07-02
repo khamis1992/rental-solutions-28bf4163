@@ -649,8 +649,7 @@ class AdvancedReportingService {
   }
 
   private async generateReportFile(template: ReportTemplate, data: any, options: ExportOptions): Promise<any> {
-    // In a real implementation, this would generate actual files
-    // For now, return mock file data
+    // In a real implementation, this would generate actual // files - removed unused variable// For now, return mock file data
     
     const mockSize = Math.floor(Math.random() * 1000000) + 100000; // 100KB - 1MB
     const mockDataPoints = Object.values(data).reduce((sum: number, sectionData: any) => {

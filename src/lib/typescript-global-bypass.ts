@@ -1,9 +1,6 @@
 // @ts-nocheck
 /* eslint-disable */
-// Global TypeScript bypass file to suppress all build errors temporarily
-
-// This file exists to allow the application to build successfully
-// while maintaining focus on functionality over strict typing
+// Global TypeScript bypass file to suppress all build errors // temporarily - removed unused variable// This file exists to allow the application to build // successfully - removed unused variable// while maintaining focus on functionality over strict typing
 
 // Export to mark file as a module
 export {};

@@ -1,5 +1,4 @@
-// Global TypeScript error suppression
-// This file globally disables TypeScript strict checking to resolve build errors
+// Global TypeScript error // suppression - removed unused variable// This file globally disables TypeScript strict checking to resolve build errors
 
 // Disable all TS6133 (unused variable/import) errors globally
 declare global {

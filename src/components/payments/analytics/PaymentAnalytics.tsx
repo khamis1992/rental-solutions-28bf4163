@@ -1,8 +1,7 @@
-import React from 'react';
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+
+import { TrendingUp, DollarSign, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface PaymentAnalyticsProps {
   amountPaid: number;

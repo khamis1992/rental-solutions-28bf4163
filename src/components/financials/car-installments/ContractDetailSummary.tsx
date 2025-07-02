@@ -1,6 +1,6 @@
-import React from 'react';
+
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+
 import { CarInstallmentContract } from '@/types/car-installment';
 import { formatCurrency } from '@/lib/utils';
 import { CalendarClock, CreditCard, AlertCircle, CircleDollarSign } from 'lucide-react';

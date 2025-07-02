@@ -13,7 +13,7 @@ import { FormField } from "@/components/ui/form-components";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock, Save, X, User, Download } from 'lucide-react';
+import { Edit, Phone, MapPin, FileText, Clock, Save, X, User, Download } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
 import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
@@ -146,9 +146,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
       setIsLoading(false);
       setError("No customer ID provided");
     }
-  }, [customerId, toast]); // Proper dependency array
-
-  // Handle customer updates
+  }, [customerId, toast]); // Proper dependency // array - removed unused variable// Handle customer updates
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       return await updateCustomer(id, data);

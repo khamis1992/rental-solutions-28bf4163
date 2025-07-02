@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
-import React from 'react';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Dialog,
@@ -17,8 +17,7 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+
 import { CarInstallmentPayment } from '@/types/car-installment';
 
 // Define schemas based on mode

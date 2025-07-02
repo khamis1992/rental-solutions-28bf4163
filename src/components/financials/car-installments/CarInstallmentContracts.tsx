@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCarInstallments } from '@/hooks/use-car-installments';
-import { Button } from '@/components/ui/button';
+
 import { Plus } from 'lucide-react';
 import { CarContractsList } from './CarContractsList';
 import { ContractSummaryCards } from './ContractSummaryCards';

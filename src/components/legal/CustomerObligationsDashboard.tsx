@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
+
 import { fetchCustomerObligations, CustomerObligation } from './CustomerLegalObligations';
 
 interface CustomerSummary {

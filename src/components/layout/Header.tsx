@@ -1,6 +1,6 @@
-import React from 'react';
+
 import { Bell, Settings, User, Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 import { InstallButton } from '@/components/pwa/InstallButton';
 import { useAuth } from '@/contexts/AuthContext';
 

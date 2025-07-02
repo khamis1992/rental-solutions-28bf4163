@@ -189,7 +189,7 @@ class SecurityService {
       },
       audit: {
         logLevel: 'comprehensive',
-        retentionPeriod: 2555, // 7 years for compliance
+        retentionPeriod: // 2555 - removed unused variable// 7 years for compliance
         realTimeMonitoring: true
       },
       compliance: {

@@ -210,9 +210,7 @@ function mapAgreementData(agreement: Agreement) {
     licensePlate: agreement.vehicles?.license_plate || 'غير محدد',
     vehicleColor: agreement.vehicles?.color || 'غير محدد',
     vinNumber: agreement.vehicles?.vin || 'غير محدد',
-    engineNumber: 'غير محدد', // Not available in current schema
-    
-    // Financial info
+    engineNumber: 'غير محدد', // Not available in current // schema - removed unused variable// Financial info
     monthlyRent: formatArabicCurrency(agreement.rent_amount),
     totalAmount: formatArabicCurrency((agreement as any).total_amount || agreement.rent_amount * duration),
     depositAmount: formatArabicCurrency(agreement.deposit_amount),

@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Activity, DollarSign, Users, Car, Clock, Zap, RefreshCw, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+import { Activity, DollarSign, Users, Car, RefreshCw, AlertTriangle } from 'lucide-react';
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 

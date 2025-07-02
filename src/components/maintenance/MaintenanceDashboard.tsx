@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { useQuery } from '@tanstack/react-query';

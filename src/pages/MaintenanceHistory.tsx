@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+
 import { Calendar, Search, Filter, Wrench, Car, User, Clock, DollarSign, FileText } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMaintenance, MaintenanceRecord } from '@/hooks/use-maintenance';

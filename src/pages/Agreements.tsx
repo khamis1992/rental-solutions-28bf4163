@@ -8,17 +8,16 @@ import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { BarChart4, Calendar, Database, Filter, Plus, RefreshCw, FileText } from 'lucide-react';
+import { Database, Filter, Plus, FileText } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { Card, CardContent } from '@/components/ui/card';
 import { CustomerInfo } from '@/types/customer';
 import { CustomerListFilterClone } from '@/components/agreements/CustomerListFilterClone';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
 
 import { AgreementTabPanel } from '@/components/agreements/AgreementTabPanel';
-import { Badge } from '@/components/ui/badge';
+
 import { AgreementViewSelectors } from '@/components/agreements/AgreementViewSelectors';
 import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
 import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPanel';

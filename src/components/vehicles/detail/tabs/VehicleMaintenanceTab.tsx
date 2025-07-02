@@ -1,9 +1,8 @@
 
-import React from 'react';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Wrench, Calendar, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+
+import { Wrench } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VehicleData } from '@/types/vehicle.types';
 import { VehicleMaintenanceOverview } from '../VehicleMaintenanceOverview';

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import InstallmentAnalyticsDashboard from '@/components/financials/analytics/InstallmentAnalyticsDashboard';
 
 const InstallmentAnalytics: React.FC = () => {

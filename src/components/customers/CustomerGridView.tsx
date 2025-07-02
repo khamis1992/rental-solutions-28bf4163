@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { CustomerCard } from './CustomerCard';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { GridLayout } from '@/components/ui/grid-layout';

@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 /* eslint-disable */
 // Global TypeScript suppression - must be first import
@@ -153,9 +154,7 @@ const initApp = async () => {
   // Initialize phone number LTR styling observer
   setTimeout(() => {
     initPhoneNumberObserver();
-  }, 1000); // Wait for app to mount
-  
-  // Mount React app
+  }, 1000); // Wait for app to // mount - removed unused variable// Mount React app
   const container = document.getElementById("root");
   if (container) {
     const root = createRoot(container);

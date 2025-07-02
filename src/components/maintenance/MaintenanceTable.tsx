@@ -1,9 +1,7 @@
 import React, { useState, memo, useMemo, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MaintenanceRecord } from '@/hooks/use-maintenance';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+
 import { ChevronDown, ChevronUp, Edit, Trash } from 'lucide-react';
 import { format } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';

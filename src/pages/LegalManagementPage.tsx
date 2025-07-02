@@ -1,4 +1,4 @@
-import React from 'react';
+
 import LegalManagementDashboard from '@/components/legal/LegalManagementDashboard';
 
 const LegalManagementPage = () => {

@@ -1,13 +1,12 @@
 
-import React from 'react';
+
 import { ColumnDef } from "@tanstack/react-table";
 import { Agreement } from '@/types/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+
 import { FileCheck, FileClock, FileX } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 export const getAgreementColumns = (compact = false): ColumnDef<Agreement>[] => {
   const allColumns: ColumnDef<Agreement>[] = [

@@ -1,9 +1,8 @@
-import React from 'react';
+
 import { AlertTriangle, RefreshCw, Info, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 
 interface ErrorMessageProps {
   title?: string;

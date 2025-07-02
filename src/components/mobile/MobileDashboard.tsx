@@ -1,8 +1,7 @@
 
-import React from 'react';
+
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+
 import { Car, Wrench, FileText, AlertTriangle } from 'lucide-react';
 
 export function MobileDashboard() {

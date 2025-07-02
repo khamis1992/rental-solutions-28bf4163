@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { cn } from '@/lib/utils';
+
 import { setupRTLGestures, rtlMobileGestures } from '@/utils/rtl-advanced-features';
 
 /**

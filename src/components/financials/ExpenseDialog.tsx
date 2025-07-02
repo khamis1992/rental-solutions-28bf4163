@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Button } from '@/components/ui/button';
+
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -32,7 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Calendar as CalendarIcon } from 'lucide-react';
+
 import { Switch } from '@/components/ui/switch';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -104,9 +104,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
       default:
         return addMonths(currentDate, 1);
     }
-  }, []); // Empty dependency array since date-fns functions are stable
-
-  // Update next payment date when interval changes
+  }, []); // Empty dependency array since date-fns functions are // stable - removed unused variable// Update next payment date when interval changes
   React.useEffect(() => {
     const interval = form.getValues('recurringInterval');
     const isRecurringValue = form.getValues('isRecurring');

@@ -1,14 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLegalCases, calculateAgreementAmountOwed } from '@/hooks/legal/useLegalCases';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, Plus, MoreVertical, Edit, Trash2 } from 'lucide-react';
+
+import { Loader2, AlertTriangle, Plus, Edit, Trash2 } from 'lucide-react';
 import LegalCaseForm, { LegalCaseFormValues } from './form/LegalCaseForm';
 import { LegalCaseType, CasePriority, LegalCaseStatus } from '@/types/legal-case';
 import type { LegalCase } from '@/types/legal-case';
 
-// If LegalCase type is imported from '@/types/legal-case', extend it to include agreement_id if missing
-// type LegalCaseWithAgreement = LegalCase & { agreement_id?: string };
+// If LegalCase type is imported from '@/types/legal-case', extend it to include agreement_id if // missing - removed unused variable// type LegalCaseWithAgreement = LegalCase & { agreement_id?: string };
 
 // Helper to get agreement ID from a case (supports both agreement_id and lease_id)
 const getAgreementId = (c: any) => c.agreement_id || c.lease_id;

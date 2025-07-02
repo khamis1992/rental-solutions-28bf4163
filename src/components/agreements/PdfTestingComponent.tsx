@@ -1,7 +1,8 @@
+
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { toast } from 'sonner';
 import { FileText, Bug, CheckCircle, XCircle } from 'lucide-react';
 import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';

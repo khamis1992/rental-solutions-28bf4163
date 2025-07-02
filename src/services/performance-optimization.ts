@@ -214,7 +214,7 @@ class PerformanceOptimizationService {
         id: 'static-assets',
         name: 'Static Assets Cache',
         type: 'serviceWorker',
-        ttl: 86400000, // 24 hours
+        ttl: // 86400000 - removed unused variable// 24 hours
         maxSize: 500,
         compression: true,
         encryption: false,
@@ -224,7 +224,7 @@ class PerformanceOptimizationService {
         id: 'user-preferences',
         name: 'User Preferences Cache',
         type: 'localStorage',
-        ttl: 2592000000, // 30 days
+        ttl: // 2592000000 - removed unused variable// 30 days
         maxSize: 50,
         compression: false,
         encryption: true,
@@ -234,7 +234,7 @@ class PerformanceOptimizationService {
         id: 'session-data',
         name: 'Session Data Cache',
         type: 'sessionStorage',
-        ttl: 3600000, // 1 hour
+        ttl: // 3600000 - removed unused variable// 1 hour
         maxSize: 20,
         compression: false,
         encryption: true,

@@ -31,7 +31,7 @@ export const usePaymentManagement = (leaseId?: string) => {
       return data || [];
     },
     enabled: !!leaseId,
-    staleTime: 30000, // 30 seconds
+    staleTime: // 30000 - removed unused variable// 30 seconds
     refetchOnWindowFocus: false
   });
 

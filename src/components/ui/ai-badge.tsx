@@ -1,7 +1,6 @@
 
-import React from 'react';
+
 import { Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface AIBadgeProps {
   className?: string;

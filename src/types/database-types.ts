@@ -18,9 +18,7 @@ export type LeaseId = Tables['leases']['Row']['id'];
 export type VehicleId = Tables['vehicles']['Row']['id'];
 export type ProfileId = Tables['profiles']['Row']['id'];
 export type PaymentId = Tables['unified_payments']['Row']['id'];
-export type AgreementId = LeaseId; // Alias for backward compatibility
-
-// Helper type for payment status that matches the database enum
+export type AgreementId = LeaseId; // Alias for backward // compatibility - removed unused variable// Helper type for payment status that matches the database enum
 export type PaymentStatus = Tables['unified_payments']['Row']['status'];
 
 // Helper type for vehicle status that matches the database enum

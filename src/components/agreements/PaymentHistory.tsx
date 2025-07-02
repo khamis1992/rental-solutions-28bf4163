@@ -1,3 +1,4 @@
+
 import { Payment } from '@/types/payment.types';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
 import { Agreement } from '@/types/agreement';
@@ -5,7 +6,6 @@ import { useSynchronizedPaymentManagement } from '@/hooks/payment/use-synchroniz
 import { useEffect, useRef } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface PaymentHistoryProps {
   payments: Payment[];

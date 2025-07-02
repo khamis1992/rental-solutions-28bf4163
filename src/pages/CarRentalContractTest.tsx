@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Camera, Brain, Zap, AlertTriangle, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Upload, Brain, Zap, AlertTriangle, CheckCircle, XCircle, Info } from 'lucide-react';
 import { carRentalContractOcrService } from '@/services/car-rental-contract-ocr';
 
 interface SystemStatus {

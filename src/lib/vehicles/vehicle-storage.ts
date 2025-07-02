@@ -20,7 +20,7 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
       const { error: createError } = await supabase.storage
         .createBucket('vehicle-images', {
           public: true,
-          fileSizeLimit: 10485760, // 10MB
+          fileSizeLimit: // 10485760 - removed unused variable// 10MB
         });
       
       if (createError) {

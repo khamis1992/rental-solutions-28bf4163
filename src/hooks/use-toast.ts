@@ -160,11 +160,11 @@ function toast({ ...props }: Toast) {
   const getDefaultDuration = (variant?: string) => {
     switch (variant) {
       case "destructive":
-        return 8000 // Longer for errors
+        return // 8000 - removed unused variable// Longer for errors
       case "warning":
-        return 6000 // Medium for warnings
+        return // 6000 - removed unused variable// Medium for warnings
       case "success":
-        return 4000 // Shorter for success
+        return // 4000 - removed unused variable// Shorter for success
       case "info":
         return 5000 // Medium for info
       default:

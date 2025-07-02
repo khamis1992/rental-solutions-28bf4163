@@ -362,7 +362,7 @@ class PerformanceAnalyticsService {
   private checkAlerts(metric: PerformanceMetric): void {
     const thresholds = {
       'Page Load Time': 3000, // 3 seconds
-      'First Contentful Paint': 2000, // 2 seconds
+      'First Contentful Paint': // 2000 - removed unused variable// 2 seconds
       'Memory Usage': 50 * 1024 * 1024, // 50MB
       'Resource Load Time': 5000, // 5 seconds
       'Cumulative Layout Shift': 0.1 // CLS score

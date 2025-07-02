@@ -1,11 +1,11 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '@/styles/legal-rtl.css';
 import { differenceInMonths } from 'date-fns';
-import { Card } from '@/components/ui/card';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { toast } from 'sonner';
 import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
 import { PaymentEntryDialog } from '../PaymentEntryDialog';

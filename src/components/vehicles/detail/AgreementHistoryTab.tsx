@@ -1,9 +1,8 @@
-import React from 'react';
+
 import { useVehicleAgreements } from '@/hooks/use-vehicle-agreements';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDate, formatCurrency } from '@/lib/formatters';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { Loader2, FileText, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';

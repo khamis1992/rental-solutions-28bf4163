@@ -1,5 +1,4 @@
-// Temporary TypeScript utility types to fix build errors
-// This file provides type utilities to resolve compatibility issues
+// Temporary TypeScript utility types to fix build // errors - removed unused variable// This file provides type utilities to resolve compatibility issues
 
 export type AnyObject = Record<string, any>;
 

@@ -3,7 +3,6 @@
  * Provides helper functions for Arabic-only UI with proper RTL layout
  */
 
-import { cn } from '@/lib/utils';
 
 /**
  * RTL-aware icon spacing classes

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import '@/styles/legal-rtl.css';
@@ -8,13 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AlertTriangle, FileText } from 'lucide-react';
+
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
 import { usePayments } from '@/hooks/use-payments';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { AgreementDetailWrapper } from '@/components/agreements/AgreementDetailWrapper';
 import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
@@ -404,9 +404,7 @@ const AgreementDetailPage = () => {
         const overduePaymentsCount = overduePayments.length;
         const monthlyRentAmount = rentAmount || 0;
         const totalOverdueAmount = overduePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        const totalLateFees = overduePaymentsCount * 3000; // 3000 QAR per month as per business rules
-        
-        // حساب إجمالي المخالفات المرورية لهذا العقد
+        const totalLateFees = overduePaymentsCount * 3000; // 3000 QAR per month as per business // rules - removed unused variable// حساب إجمالي المخالفات المرورية لهذا العقد
         const agreementTrafficFines = trafficFines?.filter(fine => 
           fine.leaseId === agreement.id
         ) || [];

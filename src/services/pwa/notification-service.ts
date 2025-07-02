@@ -130,9 +130,7 @@ export class NotificationService {
     }
   }
 
-  // Notification templates for different scenarios
-
-  // Payment notifications
+  // Notification templates for different // scenarios - removed unused variable// Payment notifications
   async notifyPaymentDue(agreementId: string, customerName: string, amount: number): Promise<void> {
     await this.showNotification({
       title: 'Payment Due Reminder',

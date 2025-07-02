@@ -296,12 +296,8 @@ export class ErrorLogger {
    * Handle critical errors with additional notifications
    */
   private handleCriticalError(error: AppError, context: ErrorLogContext): void {
-    // TODO: Implement critical error handling
-    // This could include:
-    // - Sending notifications to administrators
-    // - Creating incident reports
-    // - Triggering alerts
-    // - Notifying monitoring services
+    // TODO: Implement critical error // handling - removed unused variable// This could include:
+    // - Sending notifications to // administrators - removed unused variable// - Creating incident // reports - removed unused variable// - Triggering // alerts - removed unused variable// - Notifying monitoring services
     console.error('CRITICAL ERROR HANDLING NEEDED:', {
       error,
       context

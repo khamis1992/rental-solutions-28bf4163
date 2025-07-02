@@ -2,7 +2,6 @@
 /* eslint-disable */
 // This file imports and "uses" all the common unused variables to fix TS6133 errors
 
-import React from 'react';
 
 // Use React to fix "React is declared but its value is never read" errors
 export const useReact = () => React;

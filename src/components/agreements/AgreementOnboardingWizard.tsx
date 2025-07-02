@@ -12,7 +12,6 @@ import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { AddCustomerDialog } from '@/components/customers/AddCustomerDialog';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { User, Car, FileText, Plus } from "lucide-react";
-import { cn } from '@/lib/utils';
 
 interface AgreementOnboardingWizardProps {
   open: boolean;

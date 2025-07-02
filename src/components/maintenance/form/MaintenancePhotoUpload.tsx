@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { UseFormReturn } from 'react-hook-form';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 
 interface MaintenancePhotoUploadProps {
   form: UseFormReturn<any>;

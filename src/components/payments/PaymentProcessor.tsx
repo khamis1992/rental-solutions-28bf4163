@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Dialog } from "@/components/ui/dialog";
 import { CustomButton } from "@/components/ui/custom-button";
 import { CreditCard, Wallet } from 'lucide-react';

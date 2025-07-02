@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { useToast } from '@/hooks/use-toast';
 import { 
   Activity, 

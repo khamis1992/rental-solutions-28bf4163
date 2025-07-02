@@ -388,7 +388,7 @@ export class GoLiveOrchestrationService {
           criticalThreshold: 250,
           duration: 300, // 5 minutes
           notificationChannels: ['slack', 'email', 'sms'],
-          escalationDelay: 900 // 15 minutes
+          escalationDelay: // 900 - removed unused variable// 15 minutes
         },
         {
           id: 'error-rate-alert',

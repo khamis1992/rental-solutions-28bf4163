@@ -1,8 +1,7 @@
 // Global TypeScript fixes for build errors
-// This file imports and "uses" React in components that need it
-// to prevent TS6133 errors about unused React imports
+// This file imports and "uses" React in components that need // it - removed unused variable// to prevent TS6133 errors about unused React imports
 
-import React from 'react';
+
 import { bypass, reactHelpers } from './typescript-bypass';
 
 // Mark React as used globally

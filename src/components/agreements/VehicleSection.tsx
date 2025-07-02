@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { Car, Calendar, FileText } from 'lucide-react';
 import { Vehicle } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';

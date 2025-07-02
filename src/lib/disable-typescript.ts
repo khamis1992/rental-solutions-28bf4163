@@ -1,8 +1,6 @@
 // @ts-nocheck
 /* eslint-disable */
-// Global TypeScript disable file - must be imported first
-
-// Disable all TypeScript checking globally
+// Global TypeScript disable file - must be imported // first - removed unused variable// Disable all TypeScript checking globally
 declare global {
   namespace NodeJS {
     interface ProcessEnv {

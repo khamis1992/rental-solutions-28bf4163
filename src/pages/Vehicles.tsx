@@ -8,11 +8,11 @@ import { VehicleFilterParams, VehicleStatus, ExtendedVehicle } from '@/types/veh
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Car, Grid3x3, Plus, RefreshCw, TableProperties, Wrench } from 'lucide-react';
+
+import { Car, Grid3x3, Plus, RefreshCw, TableProperties } from 'lucide-react';
 import { VehicleStats } from '@/components/vehicles/VehicleStats';
 import { VehicleSearch } from '@/components/vehicles/VehicleSearch';
-import { Badge } from '@/components/ui/badge';
+
 import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useTranslation } from '@/utils/translation-helper';

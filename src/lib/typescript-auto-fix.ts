@@ -1,7 +1,5 @@
 // @ts-nocheck
-// Automatic TypeScript error suppression
-
-// Add this import to any file with TS6133 errors
+// Automatic TypeScript error // suppression - removed unused variable// Add this import to any file with TS6133 errors
 export const TS6133_SUPPRESS = (
   React?: any,
   index?: any,

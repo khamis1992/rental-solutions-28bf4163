@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, CheckCircle, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Camera, CheckCircle, X } from 'lucide-react';
 import { VehicleRow } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';

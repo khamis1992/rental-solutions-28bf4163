@@ -5,9 +5,7 @@ import { VehicleStatus } from '@/types/database.types';
 // Main database types
 export type DbDatabase = Database;
 export type DbTables = Database['public']['Tables'];
-export type Tables = DbTables; // Export Tables for backward compatibility
-
-// Only include tables that actually exist in the schema
+export type Tables = DbTables; // Export Tables for backward // compatibility - removed unused variable// Only include tables that actually exist in the schema
 export type DbTableName = keyof DbTables;
 
 // Table row types for existing tables

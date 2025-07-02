@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { supabase } from '@/lib/supabase';
 import { Loader2, AlertTriangle, FileText, Clock, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';

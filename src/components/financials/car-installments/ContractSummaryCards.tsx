@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Layers, DollarSign, CreditCard, Clock } from 'lucide-react';
 import { ContractSummary } from '@/types/car-installment';

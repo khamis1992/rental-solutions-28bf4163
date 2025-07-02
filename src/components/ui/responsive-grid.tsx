@@ -1,5 +1,5 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
+
+
 import { useIsMobile, useBreakpoint } from '@/hooks/use-mobile';
 
 interface ResponsiveGridProps {

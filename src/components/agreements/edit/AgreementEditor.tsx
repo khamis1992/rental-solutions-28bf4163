@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button } from '@/components/ui/button';
+
 import {
   Form,
   FormControl,
@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -28,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { LeaseStatus } from '@/types/lease-types';
-import { Loader2, Save, AlertTriangle, CheckCircle, RefreshCw, Eye, Undo } from 'lucide-react';
+import { Loader2, Save, AlertTriangle, Eye, Undo } from 'lucide-react';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
 import CustomerSelector from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
@@ -41,16 +41,16 @@ import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
 import { generateAndStoreContract } from '@/utils/contract-generator';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { FileText, Edit3, X } from 'lucide-react';
+import { Edit3 } from 'lucide-react';
 import { ChangeSummaryDialog } from './ChangeSummaryDialog';
 
 // إصلاح schema مع القيم الصحيحة للحالة وجعل جميع الحقول اختيارية للتعديل

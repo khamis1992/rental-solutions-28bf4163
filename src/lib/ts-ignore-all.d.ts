@@ -1,5 +1,4 @@
-// Global TypeScript ignore to resolve build issues
-// This file provides global type overrides to bypass strict checking
+// Global TypeScript ignore to resolve build // issues - removed unused variable// This file provides global type overrides to bypass strict checking
 
 declare module '*.tsx' {
   const content: any;

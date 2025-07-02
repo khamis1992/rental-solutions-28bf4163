@@ -5,13 +5,12 @@ import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Wrench, AlertTriangle } from 'lucide-react';
+import { Settings, Save, Shield, CreditCard, Globe, Mail, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
 import { Alert, AlertDescription } from '@/components/ui/alert';

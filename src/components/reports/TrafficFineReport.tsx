@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, DollarSign, User, UserCheck, Loader2, Calendar, Zap } from 'lucide-react';
+import { AlertTriangle, DollarSign, User, UserCheck, Loader2, Zap } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import {
@@ -13,8 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { toast } from 'sonner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 

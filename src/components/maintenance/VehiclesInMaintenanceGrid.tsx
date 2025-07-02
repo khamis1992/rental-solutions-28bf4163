@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import { useVehicleService } from '@/hooks/services/useVehicleService';

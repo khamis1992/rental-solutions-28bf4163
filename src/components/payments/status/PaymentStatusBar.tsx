@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface PaymentStatusBarProps {
   paidOnTime: number;

@@ -1,7 +1,6 @@
 
-import React from 'react';
+
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
 
 interface Column<T> {
   header: string;

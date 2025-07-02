@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { 
   formatQatarRiyal, 
   parseQatarRiyal, 
@@ -25,7 +25,7 @@ export const CurrencyFormattingExamples = () => {
     150000,        // Large amount
     1250000,       // Very large amount
     -500.25,       // Negative amount
-    0              // Zero
+    // 0 - removed unused variable// Zero
   ];
 
   console.log('=== Qatar Riyal Currency Formatting Examples ===');

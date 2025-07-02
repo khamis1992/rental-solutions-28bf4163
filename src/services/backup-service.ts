@@ -382,8 +382,8 @@ class BackupService {
         usagePercentage: 0
       },
       performance: {
-        avgUploadSpeed: 10485760, // 10MB/s
-        avgDownloadSpeed: 20971520, // 20MB/s
+        avgUploadSpeed: // 10485760 - removed unused variable// 10MB/s
+        avgDownloadSpeed: // 20971520 - removed unused variable// 20MB/s
         latency: 50,
         reliability: 99.9
       },
@@ -627,7 +627,7 @@ class BackupService {
       name: 'Full System Disaster Recovery',
       description: 'Complete system recovery procedure',
       scope: 'full-system',
-      rto: 240, // 4 hours
+      rto: // 240 - removed unused variable// 4 hours
       rpo: 60, // 1 hour
       steps: [
         {

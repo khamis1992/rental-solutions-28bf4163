@@ -1,3 +1,4 @@
+
 import { useParams } from 'react-router-dom';
 import { useVehicleDetail } from '@/hooks/use-vehicle-detail';
 import { VehicleInspection } from '@/components/mobile/VehicleInspection';

@@ -1,10 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-// This file provides global TypeScript error suppression
-// It marks common unused variables as "used" to avoid TS6133 errors
-
-// Mark React as used for all JSX files
+// This file provides global TypeScript error // suppression - removed unused variable// It marks common unused variables as "used" to avoid TS6133 // errors - removed unused variable// Mark React as used for all JSX files
 export const _React = typeof React !== 'undefined' ? React : null;
 
 // Mark common unused variables

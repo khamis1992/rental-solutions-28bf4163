@@ -1,6 +1,6 @@
-import React from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { AlertTriangle, Car, Clock, Settings, Wrench, Calendar } from 'lucide-react';

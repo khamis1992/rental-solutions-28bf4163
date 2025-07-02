@@ -1,5 +1,5 @@
 
-import React from 'react';
+
 import { AlertTriangle } from 'lucide-react';
 
 // Shim for Radix icons when not available

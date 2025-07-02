@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -57,9 +56,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
   useEffect(() => {
     console.log("LegalObligationsTab: useEffect triggered with customerId:", customerId);
     loadObligations();
-  }, [customerId]); // Keep customerId in dependency array
-
-  // Handle creating new legal case
+  }, [customerId]); // Keep customerId in dependency // array - removed unused variable// Handle creating new legal case
   const handleCreateLegalCase = async () => {
     if (!newCaseForm.case_type || !newCaseForm.description.trim()) {
       toast.error('يرجى ملء جميع الحقول المطلوبة');

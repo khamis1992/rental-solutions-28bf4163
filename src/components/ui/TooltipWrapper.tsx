@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './tooltip';
 import { useDocumentationMode } from '@/context/DocumentationModeContext';
 

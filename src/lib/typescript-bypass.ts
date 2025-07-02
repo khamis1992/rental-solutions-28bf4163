@@ -1,7 +1,4 @@
-// Comprehensive TypeScript bypass system for legacy codebase
-// This file provides utilities to handle strict TypeScript mode issues
-
-// Global type bypass - use sparingly but effectively
+// Comprehensive TypeScript bypass system for legacy // codebase - removed unused variable// This file provides utilities to handle strict TypeScript mode // issues - removed unused variable// Global type bypass - use sparingly but effectively
 export const bypass = {
   // Generic bypass for any value
   any: (value: unknown) => value as any,

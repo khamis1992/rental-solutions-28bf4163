@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import { Button } from '@/components/ui/button';
+
 import { Loader2 } from 'lucide-react';
 
 interface AgreementTrafficFinesProps {

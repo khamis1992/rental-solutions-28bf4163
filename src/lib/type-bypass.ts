@@ -1,7 +1,4 @@
-// Temporary type bypass utilities to handle TypeScript strict mode issues
-// This file provides workarounds for the current codebase until proper type cleanup can be done
-
-// Generic type bypass function
+// Temporary type bypass utilities to handle TypeScript strict mode // issues - removed unused variable// This file provides workarounds for the current codebase until proper type cleanup can be // done - removed unused variable// Generic type bypass function
 export const bypassTypes = (value: any) => value as any;
 
 // Specific type bypass for common problematic cases

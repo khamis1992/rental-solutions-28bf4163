@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { 
   Select, 
   SelectContent, 
@@ -6,7 +6,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+
 import { PaymentFilters } from '@/types/car-installment';
 import { useLanguage } from '@/contexts/LanguageContext';
 

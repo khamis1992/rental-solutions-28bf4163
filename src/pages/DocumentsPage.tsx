@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/ui/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { FileText, Filter } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import DocumentList from '@/components/documents/DocumentList';
 import { 
   Select, 
@@ -11,7 +11,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+
 import { DocumentCategory, DocumentType } from '@/types/document.types';
 import { Card, CardContent } from '@/components/ui/card';
 

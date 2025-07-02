@@ -1,4 +1,4 @@
-import React from 'react';
+
 import PageContainer from '@/components/layout/PageContainer';
 import SmartPaymentSystemUpdater from '@/components/admin/SmartPaymentSystemUpdater';
 

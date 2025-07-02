@@ -1,5 +1,5 @@
 
-import React from 'react';
+
 import PageContainer from '@/components/layout/PageContainer';
 import { useAgreementEditor } from '@/hooks/use-agreement-editor';
 import { EditAgreementContent } from '@/components/agreements/edit/EditAgreementContent';

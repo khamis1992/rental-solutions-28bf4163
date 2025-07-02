@@ -1,15 +1,14 @@
 ﻿import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Car, User, CreditCard, Wrench, AlertTriangle, Clock, Filter, Bell, Eye, X } from 'lucide-react';
+import { AlertTriangle, Clock, Bell, Eye, X } from 'lucide-react';
 import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { cn } from '@/lib/utils';
+
 import { CheckCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/utils';

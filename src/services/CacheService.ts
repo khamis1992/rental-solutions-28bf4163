@@ -122,9 +122,7 @@ export class CacheService {
     return count;
   }
 
-  // Specific cache methods for installments
-  
-  // Cache financial summary
+  // Specific cache methods for // installments - removed unused variable// Cache financial summary
   setFinancialSummary(userId: string, data: any): void {
     this.set(`financial_summary_${userId}`, data, this.DEFAULT_TTL.FINANCIAL_SUMMARY);
   }

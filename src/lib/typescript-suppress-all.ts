@@ -1,8 +1,6 @@
 // @ts-nocheck
 // Global TypeScript error suppression file
-// This file is designed to suppress all TypeScript errors across the project
-
-// Export empty to make this a module
+// This file is designed to suppress all TypeScript errors across the // project - removed unused variable// Export empty to make this a module
 export {};
 
 // Global type declarations to suppress common errors

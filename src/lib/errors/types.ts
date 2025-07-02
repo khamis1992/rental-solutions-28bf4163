@@ -8,9 +8,7 @@ export {
   type ErrorCode,
   type ErrorDetails,
   type ErrorSeverity,
-  type ErrorContext,
-
-  // Functions
+  type // ErrorContext - removed unused variable// Functions
   createErrorResult,
   createSuccessResult,
   createDatabaseError,
@@ -24,9 +22,7 @@ export {
   createApiError,
   createServiceError,
   createPaymentError,
-  createUnknownError,
-
-  // Type guards
+  // createUnknownError - removed unused variable// Type guards
   isAppError,
   isSuccessResult,
   isErrorResult

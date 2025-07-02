@@ -1,9 +1,8 @@
 
-import React from 'react';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { FileText, Calendar, DollarSign, Users, TrendingUp } from 'lucide-react';
+
+import { FileText, Calendar, DollarSign, TrendingUp } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCurrency } from '@/lib/formatters';
 import { VehicleData } from '@/types/vehicle.types';

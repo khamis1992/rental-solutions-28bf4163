@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Download, Smartphone, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Download, CheckCircle } from 'lucide-react';
+
 import { toast } from 'sonner';
 
 interface BeforeInstallPromptEvent extends Event {

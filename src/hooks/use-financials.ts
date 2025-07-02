@@ -263,8 +263,7 @@ export function useFinancials() {
     ['financialExpenses', JSON.stringify(expenseFilters)],
     async () => {
       try {
-        // For now, return estimated expenses based on business operations
-        // This can be expanded when a proper expenses tracking system is implemented
+        // For now, return estimated expenses based on business // operations - removed unused variable// This can be expanded when a proper expenses tracking system is implemented
         console.log("Getting estimated expenses data");
         
         const estimatedExpenses: FinancialTransaction[] = [

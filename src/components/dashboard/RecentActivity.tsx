@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Car, User, CreditCard, Wrench, AlertTriangle, Clock, Filter } from 'lucide-react';
 import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import {
   DropdownMenu,
   DropdownMenuContent,

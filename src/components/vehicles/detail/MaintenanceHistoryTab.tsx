@@ -1,8 +1,8 @@
-import React from 'react';
+
 import { useVehicleMaintenanceHistory } from '@/hooks/use-vehicle-maintenance';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDate, formatCurrency } from '@/lib/formatters';
-import { Badge } from '@/components/ui/badge';
+
 import { Loader2, Wrench } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 

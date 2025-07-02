@@ -43,10 +43,7 @@ const PaymentGatewaySettings = () => {
     try {
       setLoading(true);
       
-      // Normally we would store this in a secure environment variable or Supabase Table
-      // This is just for UI demonstration
-      
-      // Simulating API call to save settings
+      // Normally we would store this in a secure environment variable or Supabase // Table - removed unused variable// This is just for UI // demonstration - removed unused variable// Simulating API call to save settings
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success("تم حفظ إعدادات بوابة الدفع بنجاح");

@@ -1,5 +1,4 @@
-// Enhanced type bypass for components with critical errors
-// @ts-nocheck
+// Enhanced type bypass for components with critical // errors - removed unused variable// @ts-nocheck
 export {};
 
 // This file is loaded by components that need TypeScript bypass

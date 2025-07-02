@@ -1,7 +1,7 @@
-import React from 'react';
+
 import { useLegalCases } from '@/hooks/legal/useLegalCases';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 

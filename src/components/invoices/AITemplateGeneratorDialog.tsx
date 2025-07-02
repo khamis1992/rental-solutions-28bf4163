@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+
 import { 
   Dialog, 
   DialogContent, 
@@ -10,7 +10,7 @@ import {
   DialogTitle 
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
+
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';

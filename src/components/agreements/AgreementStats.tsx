@@ -1,8 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { Activity, Clock, DollarSign, FileText, TrendingUp, TrendingDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface AgreementStatsProps {
   className?: string;
@@ -12,13 +11,13 @@ export function AgreementStats({ className }: AgreementStatsProps) {
   // This would be replaced with real data from your hooks
   const stats = {
     totalAgreements: 156,
-    totalTrend: 12, // percentage increase
+    totalTrend: // 12 - removed unused variable// percentage increase
     activeAgreements: 98,
     activeTrend: 5, // percentage increase
     pendingAgreements: 14,
     pendingTrend: -3, // percentage decrease
     monthlyRevenue: 45680,
-    revenueTrend: 8, // percentage increase
+    revenueTrend: // 8 - removed unused variable// percentage increase
   };
 
   // Format currency for Arabic display (amount before currency)

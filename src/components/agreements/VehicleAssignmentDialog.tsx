@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
+
 import { useToast } from '@/components/ui/use-toast';
 import { Spinner } from '@/components/ui/spinner';
 import { PaymentWarningSection } from './vehicle-assignment/PaymentWarningSection';
@@ -71,8 +71,7 @@ export function VehicleAssignmentDialog({
           .eq('payment_status', asTrafficFineStatus('pending'));
         
         if (trafficFines && trafficFines.length > 0) {
-          // Add traffic fines to pending payments display
-          // This is a simplified example - you might want to format these differently
+          // Add traffic fines to pending payments // display - removed unused variable// This is a simplified example - you might want to format these differently
           setPendingPayments(prev => [
             ...prev,
             ...trafficFines.map((fine: any) => ({

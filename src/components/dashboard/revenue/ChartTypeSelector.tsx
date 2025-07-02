@@ -1,5 +1,5 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
+
+
 import { BarChart3, LineChart, AreaChart } from 'lucide-react';
 import { ChartType } from './types';
 import { useLanguage } from '@/contexts/LanguageContext';

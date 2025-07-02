@@ -14,7 +14,7 @@ import CrossReportAnalytics from '@/components/reports/CrossReportAnalytics';
 import TrendAnalysis from '@/components/reports/TrendAnalysis';
 import PageHeader from '@/components/ui/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Button } from '@/components/ui/button';
+
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';

@@ -1,9 +1,9 @@
-import React from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CircleDollarSign, TrendingUp, TrendingDown, Clock, AlertTriangle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { CircleDollarSign, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
+
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
 import FinancialExpensesBreakdown from '@/components/financials/FinancialExpensesBreakdown';

@@ -1,7 +1,6 @@
-import React from 'react';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Payment } from '@/types/payment.types';

@@ -9,10 +9,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+
 import { Separator } from '@/components/ui/separator';
 import { agreementDeletionService, DeletionValidationResult } from '@/services/AgreementDeletionService';
 import { toast } from 'sonner';

@@ -1,12 +1,11 @@
 
-
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Agreement } from '@/types/agreement';
 import { FileCheck, FileEdit, FileClock, FileText, FileX, MoreHorizontal, Car, User, Calendar, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from '@/components/ui/button';
+
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface AgreementCardViewProps {

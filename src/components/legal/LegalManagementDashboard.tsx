@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import '@/styles/legal-rtl.css';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
@@ -1263,8 +1262,6 @@ const LegalManagementDashboard = () => {
         </div>
       </div>
 
-
-
       {/* Dashboard Statistics */}
       {dashboardStats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3" dir="rtl">
@@ -1640,8 +1637,7 @@ const LegalManagementDashboard = () => {
                         </TableHeader>
                         <TableBody>
                           {selectedCandidate.unpaid_agreements.map((agreement) => {
-                            // النظام المُحدَّث: استخدام النظام الصحيح من CustomerFinancialTab
-                            // حساب الأشهر المتأخرة بناءً على عدد الدفعات المتأخرة وليس الأيام
+                            // النظام المُحدَّث: استخدام النظام الصحيح من // CustomerFinancialTab - removed unused variable// حساب الأشهر المتأخرة بناءً على عدد الدفعات المتأخرة وليس الأيام
                             
                             // نقدر الأشهر المتأخرة بناءً على مبلغ الإيجار الافتراضي
                             const monthlyRent = 3200; // متوسط الإيجار الشهري

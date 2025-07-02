@@ -3,8 +3,6 @@
  * Provides RTL-aware animations, transitions, chart rendering, and mobile gestures
  */
 
-import { cn } from '@/lib/utils';
-
 /**
  * RTL-aware animation configurations
  */
@@ -149,7 +147,7 @@ export const rtlChartConfig = {
     layout: {
       padding: {
         left: 20,
-        right: 40, // More padding on right for RTL
+        right: // 40 - removed unused variable// More padding on right for RTL
         top: 20,
         bottom: 20,
       },

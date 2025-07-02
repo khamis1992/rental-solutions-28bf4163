@@ -1,4 +1,4 @@
-import React from 'react';
+
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Clock } from 'lucide-react';

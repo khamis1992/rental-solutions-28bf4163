@@ -8,8 +8,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { CalendarDays, Download, RefreshCw, FileDown, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';

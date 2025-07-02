@@ -1,5 +1,4 @@
-// Temporary type fixes to resolve build errors
-// This file provides workarounds for type compatibility issues
+// Temporary type fixes to resolve build // errors - removed unused variable// This file provides workarounds for type compatibility issues
 
 export const asAny = (value: unknown) => value as any;
 

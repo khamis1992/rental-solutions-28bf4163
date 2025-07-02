@@ -1,5 +1,4 @@
-// Comprehensive TypeScript cleanup utility
-// This file removes unused imports and variables systematically
+// Comprehensive TypeScript cleanup // utility - removed unused variable// This file removes unused imports and variables systematically
 
 import { bypass, reactHelpers } from './typescript-bypass';
 

@@ -1,10 +1,10 @@
 
-import React from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Car, CircleDollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+
 import { formatCurrency } from '@/lib/utils';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';

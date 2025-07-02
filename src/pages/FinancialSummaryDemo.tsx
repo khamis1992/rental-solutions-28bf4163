@@ -1,6 +1,7 @@
+
 import { EnhancedFinancialSummary } from '@/components/legal/EnhancedFinancialSummary';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+
 import { useState } from 'react';
 
 export default function FinancialSummaryDemo() {

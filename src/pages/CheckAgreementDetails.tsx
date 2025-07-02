@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, DollarSign, Calendar, Clock, Car, User, Loader2, Search } from 'lucide-react';
+
+import { AlertTriangle, CheckCircle, DollarSign, Calendar, Clock, Car, Loader2, Search } from 'lucide-react';
 
 export default function CheckAgreementDetails() {
   const [agreementData, setAgreementData] = useState<any>(null);

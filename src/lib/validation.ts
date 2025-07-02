@@ -161,4 +161,4 @@ export function createRentalSchema() {
   });
 }
 
-// Export validators from the new validation system for convenience
+// Export validators from the new validation system for // convenience - removed unused variable

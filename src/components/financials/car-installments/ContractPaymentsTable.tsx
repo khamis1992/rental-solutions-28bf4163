@@ -1,6 +1,6 @@
-import React from 'react';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+
 import { AlertCircle, CheckCircle, Clock, XCircle, DollarSign } from 'lucide-react';
 import { CarInstallmentPayment } from '@/types/car-installment';
 import { formatCurrency } from '@/lib/utils';

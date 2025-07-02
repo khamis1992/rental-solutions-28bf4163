@@ -1,5 +1,5 @@
 
-import React from 'react';
+
 import { useLegalCases } from '@/hooks/legal/useLegalCases';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 

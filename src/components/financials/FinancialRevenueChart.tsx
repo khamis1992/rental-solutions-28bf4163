@@ -11,7 +11,7 @@ import {
   Legend
 } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+
 import { LineChart, BarChart } from 'lucide-react';
 import {
   Select,

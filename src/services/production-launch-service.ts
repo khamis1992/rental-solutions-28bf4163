@@ -297,7 +297,7 @@ export class ProductionLaunchService {
         id: 'load-test',
         name: 'Load Testing',
         type: 'performance',
-        timeout: 300000, // 5 minutes
+        timeout: // 300000 - removed unused variable// 5 minutes
         retries: 1,
         status: 'pending'
       },
@@ -313,7 +313,7 @@ export class ProductionLaunchService {
         id: 'throughput-test',
         name: 'Throughput Testing',
         type: 'performance',
-        timeout: 180000, // 3 minutes
+        timeout: // 180000 - removed unused variable// 3 minutes
         retries: 1,
         status: 'pending'
       },
@@ -323,7 +323,7 @@ export class ProductionLaunchService {
         id: 'security-scan',
         name: 'Security Vulnerability Scan',
         type: 'service',
-        timeout: 600000, // 10 minutes
+        timeout: // 600000 - removed unused variable// 10 minutes
         retries: 1,
         status: 'pending'
       },
@@ -394,7 +394,7 @@ export class ProductionLaunchService {
       {
         id: 'database-rollback',
         name: 'Database Schema Rollback',
-        estimatedTime: 900, // 15 minutes
+        estimatedTime: // 900 - removed unused variable// 15 minutes
         riskLevel: 'high',
         dataLossRisk: true,
         approvalRequired: true,
@@ -1141,8 +1141,7 @@ export class ProductionLaunchService {
       // In real implementation, this would log to your monitoring system
       console.log('Launch Event:', logEntry);
       
-      // Could also log to Supabase
-      // await supabase.from('launch_logs').insert(logEntry);
+      // Could also log to // Supabase - removed unused variable// await supabase.from('launch_logs').insert(logEntry);
     } catch (error) {
       console.error('Failed to log launch event:', error);
     }

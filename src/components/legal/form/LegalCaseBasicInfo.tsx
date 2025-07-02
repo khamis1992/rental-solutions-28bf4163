@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+
 import { LegalCaseFormValues } from './LegalCaseForm';
 import { useAgreements } from '@/hooks/use-agreements';
 import { calculateAgreementAmountOwed } from '@/hooks/legal/useLegalCases';

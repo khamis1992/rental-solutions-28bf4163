@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { formatDate } from '@/lib/formatters';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+
 import { FileText, Car, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { VehicleImageSection } from './VehicleImageSection';

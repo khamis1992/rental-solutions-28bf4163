@@ -1,9 +1,8 @@
 // ID Card Scanner Component - Complete Implementation
 import React, { useState, useRef, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+
 import { Separator } from '@/components/ui/separator';
 import { useIdCardScanner, ScanResult } from '@/hooks/use-id-card-scanner';
 import { 

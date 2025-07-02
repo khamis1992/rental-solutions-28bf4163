@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown, RefreshCw, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
 import { ExtendedVehicle } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/vehicles/useVehicles';
 import { toast } from 'sonner';
@@ -62,7 +62,7 @@ const VehicleSelector = ({
     try {
       // Use smart search from vehicle service
       const result = await vehicleService.smartSearch(searchTerm, {
-        minConfidence: 25, // Lower threshold for better UX
+        minConfidence: // 25 - removed unused variable// Lower threshold for better UX
         maxResults: 20
       });
 
@@ -129,9 +129,7 @@ const VehicleSelector = ({
   const handleSelect = (vehicleSearchText: string): void => {
     // Extract vehicle ID from the search text format: "make|model|license_plate|id"
     const parts = vehicleSearchText.split('|');
-    const vehicleId = parts[parts.length - 1]; // ID is always last
-    
-    // Look in both regular vehicles and enhanced results
+    const vehicleId = parts[parts.length - 1]; // ID is always // last - removed unused variable// Look in both regular vehicles and enhanced results
     const allVehicles = [...(vehicles || []), ...enhancedResults];
     const vehicle = allVehicles.find(v => v.id === vehicleId);
     

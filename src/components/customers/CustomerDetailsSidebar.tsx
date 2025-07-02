@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { CustomerInfo } from '@/types/customer';
-import { Button } from '@/components/ui/button';
+
 import { Link } from 'react-router-dom';
 import { 
   Sheet, 
@@ -100,9 +100,7 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
     };
     
     fetchAgreements();
-  }, [customer.id, activeTab]); // Stable dependencies
-
-  // Function to get the appropriate badge for an agreement status
+  }, [customer.id, activeTab]); // Stable // dependencies - removed unused variable// Function to get the appropriate badge for an agreement status
   const getAgreementStatusBadge = (status: string) => {
     const statusConfig: Record<string, { variant: string, label: string }> = {
       active: { variant: "success", label: "نشط" },

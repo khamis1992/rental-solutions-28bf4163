@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { cn } from '@/lib/utils';
+
 import { applyRTLPrintLayout } from '@/utils/rtl-advanced-features';
 import { formatQatarRiyal, formatArabicDate } from '@/utils/arabic-rtl-utils';
-import { Button } from '@/components/ui/button';
-import { Printer, Download, FileText } from 'lucide-react';
+
+import { Printer, Download } from 'lucide-react';
 
 interface RTLPrintLayoutProps {
   children: React.ReactNode;

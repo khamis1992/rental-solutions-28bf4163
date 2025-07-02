@@ -3,13 +3,12 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { findVehicleByLicensePlate, updateVehicleStatus } from '@/utils/vehicle-update';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { VehicleStatus } from '@/types/vehicle';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+
 import { CarFront, Loader2, Search } from 'lucide-react';
 
 interface VehicleSearchFormValues {

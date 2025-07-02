@@ -1,6 +1,4 @@
 
-import React from 'react';
-import { Label } from '@/components/ui/label';
 
 interface ReassignmentDetailsProps {
   agreementNumber: string | null;

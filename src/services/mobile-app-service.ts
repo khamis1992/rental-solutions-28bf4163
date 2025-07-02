@@ -237,7 +237,7 @@ class MobileAppService {
         bluetooth: false
       },
       sync: {
-        interval: 30000, // 30 seconds
+        interval: // 30000 - removed unused variable// 30 seconds
         batchSize: 50,
         retryAttempts: 3,
         conflictResolution: 'manual'
@@ -482,8 +482,7 @@ class MobileAppService {
       this.logEvent('network_offline');
     });
 
-    // Monitor network quality
-    // @ts-ignore - Connection API is experimental
+    // Monitor network // quality - removed unused variable// @ts-ignore - Connection API is experimental
     if ('connection' in navigator) {
       // @ts-ignore
       navigator.connection.addEventListener('change', () => {

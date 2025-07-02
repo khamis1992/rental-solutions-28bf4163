@@ -1,7 +1,4 @@
-// Global TypeScript warning suppression for unused variables
-// This file provides a comprehensive solution for TS6133 errors
-
-// React import usage helper - prevents React is declared but never read error
+// Global TypeScript warning suppression for unused // variables - removed unused variable// This file provides a comprehensive solution for TS6133 // errors - removed unused variable// React import usage helper - prevents React is declared but never read error
 export const suppressReactWarning = () => {
   // @ts-ignore - React is used for JSX
   return true;

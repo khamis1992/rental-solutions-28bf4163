@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { 

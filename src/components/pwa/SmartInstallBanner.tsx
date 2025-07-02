@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, Smartphone, Star, Shield, Zap, Users, ArrowUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { X, Download, Smartphone, Star, Shield, Zap, Users } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -87,9 +86,7 @@ export const SmartInstallBanner: React.FC<SmartInstallBannerProps> = ({
 
   // Smart banner display logic
   useEffect(() => {
-    if (isInStandaloneMode) return; // Already installed
-
-    // Check dismissal history
+    if (isInStandaloneMode) return; // Already // installed - removed unused variable// Check dismissal history
     const bannerDismissed = localStorage.getItem('smart-banner-dismissed');
     const dismissedTime = bannerDismissed ? parseInt(bannerDismissed) : 0;
     const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24);

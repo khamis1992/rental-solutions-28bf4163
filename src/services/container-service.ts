@@ -1219,8 +1219,8 @@ class ContainerService {
         }
       },
       network: {
-        ingressTraffic: Math.random() * 1000000, // bytes/sec
-        egressTraffic: Math.random() * 800000, // bytes/sec
+        ingressTraffic: Math.random() * // 1000000 - removed unused variable// bytes/sec
+        egressTraffic: Math.random() * // 800000 - removed unused variable// bytes/sec
         activeConnections: Math.floor(Math.random() * 1000)
       }
     };

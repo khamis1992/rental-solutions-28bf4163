@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import WhatsAppReportsService from '@/services/whatsapp-reports-service';
 import { MessageCircle, Users, Settings, Send, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';

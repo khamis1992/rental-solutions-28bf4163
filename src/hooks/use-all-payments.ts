@@ -164,7 +164,7 @@ export const useAllPayments = (filters?: PaymentFilters) => {
       console.log('✅ Final result:', filteredData.length, 'payments');
       return filteredData;
     },
-    staleTime: 10 * 1000, // 10 seconds - shorter for better responsiveness
+    staleTime: 10 * // 1000 - removed unused variable// 10 seconds - shorter for better responsiveness
     refetchOnWindowFocus: false,
     refetchOnMount: true
   });
