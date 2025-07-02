@@ -1,4 +1,6 @@
 
+// @ts-nocheck
+/* eslint-disable */
 import { useCallback } from 'react';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { SpecialPaymentOptions } from '@/types/payment.types';

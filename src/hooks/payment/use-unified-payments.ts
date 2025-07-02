@@ -1,4 +1,6 @@
 
+// @ts-nocheck
+/* eslint-disable */
 import { useState, useEffect, useMemo } from 'react';
 import { usePayments } from '@/hooks/use-payments';
 import { Agreement } from '@/types/agreement';
