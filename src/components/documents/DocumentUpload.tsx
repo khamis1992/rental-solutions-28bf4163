@@ -55,7 +55,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     maxFiles: 1,
-    maxSize: // 20971520 - removed unused variable// 20MB
+    maxSize: 20971520, // 20MB
   });
   
   const handleSubmit = async () => {
