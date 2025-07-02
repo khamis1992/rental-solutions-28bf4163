@@ -9,15 +9,16 @@ const UNUSED_PATTERNS = [
   /^import React from 'react';\s*$/gm,
   /^import \{ React \} from 'react';\s*$/gm,
   
-  // Specific unused imports (examples from the errors)
-  /^import \{ Calendar[^}]*\} from 'lucide-react';\s*$/gm,
-  /^import \{ formatCurrency \} from '@\/lib\/utils';\s*$/gm,
-  /^import \{ Button \} from '@\/components\/ui\/button';\s*$/gm,
+  // Specific unused imports from the error list
+  /^import \{ cn \} from '@\/lib\/utils';\s*$/gm,
   /^import \{ Label \} from '@\/components\/ui\/label';\s*$/gm,
   /^import \{ Input \} from '@\/components\/ui\/input';\s*$/gm,
   /^import \{ Progress \} from '@\/components\/ui\/progress';\s*$/gm,
   /^import \{ Badge \} from '@\/components\/ui\/badge';\s*$/gm,
   /^import \{ ScrollArea \} from '@\/components\/ui\/scroll-area';\s*$/gm,
+  /^import \{ Button \} from '@\/components\/ui\/button';\s*$/gm,
+  /^import \{ Card \} from '@\/components\/ui\/card';\s*$/gm,
+  /^import \{ CardFooter \} from '@\/components\/ui\/card';\s*$/gm,
 ];
 
 // Function to remove unused imports from a file
@@ -25,6 +26,24 @@ function removeUnusedImports(filePath) {
   try {
     let content = fs.readFileSync(filePath, 'utf8');
     let modified = false;
+    
+    // Add React import if JSX is used but React is not imported
+    if (/<[A-Z]/.test(content) && !content.includes('import React') && filePath.endsWith('.tsx')) {
+      content = `import React from 'react';\n${content}`;
+      modified = true;
+    }
+    
+    // Remove unused React import if no JSX is used
+    if (!/<[A-Z]/.test(content) && /^import React from 'react';\s*$/m.test(content)) {
+      content = content.replace(/^import React from 'react';\s*$/m, '');
+      modified = true;
+    }
+    
+    // Remove standalone React imports that aren't being used
+    if (!/\bReact\b/.test(content.replace(/^import React from 'react';\s*$/m, ''))) {
+      content = content.replace(/^import React from 'react';\s*$/m, '');
+      modified = true;
+    }
     
     // Apply each pattern
     UNUSED_PATTERNS.forEach(pattern => {
@@ -51,6 +70,18 @@ function removeUnusedImports(filePath) {
       } else if (usedImports.length !== importList.length) {
         modified = true;
         return `import { ${usedImports.join(', ')} } from 'lucide-react';`;
+      }
+      return match;
+    });
+    
+    // Remove unused variables by commenting them out
+    content = content.replace(/(\s+)(\w+),?\s*(?=\/\/|$)/g, (match, space, varName) => {
+      // Don't remove if it's used elsewhere in the file
+      const usageRegex = new RegExp(`\\b${varName}\\b`, 'g');
+      const matches = content.match(usageRegex);
+      if (matches && matches.length <= 1) {
+        modified = true;
+        return `${space}// ${varName} - removed unused variable`;
       }
       return match;
     });

@@ -11,7 +11,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { AddCustomerDialog } from '@/components/customers/AddCustomerDialog';
 import { Customer } from '@/lib/validation-schemas/customer';
-import { User, Car, FileText, Plus, Calendar } from "lucide-react";
+import { User, Car, FileText, Plus } from "lucide-react";
 import { cn } from '@/lib/utils';
 
 interface AgreementOnboardingWizardProps {
@@ -31,7 +31,7 @@ export function AgreementOnboardingWizard({
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [showAddCustomerDialog, setShowAddCustomerDialog] = useState(false);
-  const [vehicles, setVehicles] = useState([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
         agreement_number: '',
