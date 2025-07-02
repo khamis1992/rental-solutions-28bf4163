@@ -179,10 +179,7 @@ const Login = () => {
         </CardContent>
         <CardFooter className="flex flex-col">
           <motion.div variants={itemVariants} className="text-sm text-center text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/auth/register" className="text-primary hover:underline">
-              Sign up
-            </Link>
+            Fleet Management System
           </motion.div>
         </CardFooter>
       </Card>
