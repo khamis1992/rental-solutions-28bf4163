@@ -5,6 +5,8 @@ import '@/styles/legal-rtl.css';
 import { differenceInMonths } from 'date-fns';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 import { toast } from 'sonner';
 import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
@@ -138,8 +140,13 @@ export function RedesignedAgreementDetail({
         };
         
         // استخدام النظام الجديد المتطور مع صورة البطاقة الشخصية
-        await generateModernAgreementPDF(
-          agreementData,
+        await generateModernAgreementPDF({
+          ...agreementData,
+          start_date: agreementData.start_date.toISOString(),
+          end_date: agreementData.end_date.toISOString(),
+          created_at: agreementData.created_at.toISOString(),
+          updated_at: agreementData.updated_at.toISOString(),
+        },
           payments || [], // الدفعات
           [], // المخالفات المرورية - يمكن إضافتها لاحقاً
           customerIdCardImage // صورة البطاقة الشخصية
@@ -198,9 +205,12 @@ export function RedesignedAgreementDetail({
   
   // Convert onGenerateDocument to a Promise
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
-    if (onGenerateDocument) {
-      onGenerateDocument();
-    }
+    return new Promise<void>((resolve) => {
+      if (onGenerateDocument) {
+        onGenerateDocument();
+      }
+      resolve();
+    });
   }, [onGenerateDocument]);
 
   if (!agreement) {

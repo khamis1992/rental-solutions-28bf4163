@@ -23,9 +23,10 @@ interface AddAgreementFormProps {
 }
 
 export function AddAgreementForm({ initialData, onSubmit, isSubmitting = false }: AddAgreementFormProps) {
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm({
+  const form = useForm({
     defaultValues: initialData || {}
   });
+  const { register, handleSubmit, formState: { errors }, setValue } = form;
   
   const { standardTemplateExists, specificUrlCheck } = useTemplateSetup();
   
@@ -51,7 +52,7 @@ export function AddAgreementForm({ initialData, onSubmit, isSubmitting = false }
   }, [initialData, setValue]);
   
   return (
-    <div className="space-y-6" dir="rtl">
+    <Form {...form}>
       <AgreementTemplateStatus 
         standardTemplateExists={Boolean(standardTemplateExists?.accessible)} 
         specificUrlCheck={Boolean(specificUrlCheck?.accessible)}
@@ -130,7 +131,7 @@ export function AddAgreementForm({ initialData, onSubmit, isSubmitting = false }
           </Button>
         </div>
       </form>
-    </div>
+    </Form>
   );
 }
 
