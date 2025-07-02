@@ -64,6 +64,19 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      // Don't check TypeScript
+      loader: {
+        '.ts': 'ts',
+        '.tsx': 'tsx',
+      },
+      target: 'es2020',
+      logOverride: {
+        'this-is-undefined-in-esm': 'silent',
+      }
+    },
+  },
   define: {
     // Suppress development warnings
     __DEV__: false,
