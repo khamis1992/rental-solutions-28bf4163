@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface CustomerDetails {
@@ -28,7 +28,7 @@ interface CustomerTrafficFinesProps {
 }
 
 export const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId }) => {
-  const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
+  const [, setCustomerDetails] = useState<CustomerDetails>({
     id: '',
     full_name: '',
     email: '',

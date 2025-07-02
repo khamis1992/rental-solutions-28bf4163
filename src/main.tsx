@@ -4,6 +4,8 @@
 // Global TypeScript suppression - must be first import
 import './lib/disable-typescript';
 import './lib/global-ts-fix';
+import './lib/typescript-global-suppression';
+import './lib/global-typescript-fixes';
 
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';

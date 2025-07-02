@@ -1,10 +1,11 @@
 // ID Card Scanner Component - Complete Implementation
 import React, { useState, useRef, useCallback } from 'react';
-
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
 import { Separator } from '@/components/ui/separator';
-import { useIdCardScanner, ScanResult } from '@/hooks/use-id-card-scanner';
+import { useIdCardScanner } from '@/hooks/use-id-card-scanner';
 import { 
   Camera, 
   Upload, 
@@ -23,7 +24,6 @@ import {
   Download
 } from 'lucide-react';
 import { QatariIdCardData } from '@/services/google-vision-ocr';
-import { toast } from 'sonner';
 
 export interface IdCardScannerProps {
   onScanComplete?: (data: QatariIdCardData) => void;
@@ -45,13 +45,12 @@ export const IdCardScanner: React.FC<IdCardScannerProps> = ({
   const {
     isScanning,
     lastResult,
-    scanIdCard,
     scanFromCamera,
     scanFromDrop,
     clearResult,
     testWithMockData,
     options
-  } = useIdCardScanner({
+} = useIdCardScanner({
     mockData: mockMode,
     maxFileSize: 10,
     allowedTypes: ['image/jpeg', 'image/png', 'image/jpg']
@@ -190,9 +189,9 @@ export const IdCardScanner: React.FC<IdCardScannerProps> = ({
                 
                 {/* Action Buttons */}
                 <div className="flex justify-center gap-3 mt-6">
-                  <Button
-                    variant="outline"
-                    onClick={(e) => {
+                   <Button
+                     variant="outline"
+                     onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       triggerFileInput();
                     }}
@@ -202,9 +201,9 @@ export const IdCardScanner: React.FC<IdCardScannerProps> = ({
                     رفع ملف
                   </Button>
                   
-                  <Button
-                    variant="outline"
-                    onClick={(e) => {
+                   <Button
+                     variant="outline"
+                     onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       triggerFileInput();
                     }}
@@ -215,9 +214,9 @@ export const IdCardScanner: React.FC<IdCardScannerProps> = ({
                   </Button>
                   
                   {mockMode && (
-                    <Button
-                      variant="outline"
-                      onClick={(e) => {
+                     <Button
+                       variant="outline"
+                       onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         handleTestScan();
                       }}

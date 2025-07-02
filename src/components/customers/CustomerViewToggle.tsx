@@ -1,5 +1,5 @@
 
-
+import { Button } from '@/components/ui/button';
 import { Grid3X3, List } from 'lucide-react';
 
 interface CustomerViewToggleProps {
