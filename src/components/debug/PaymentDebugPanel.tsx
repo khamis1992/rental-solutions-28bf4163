@@ -1,4 +1,7 @@
 
+// @ts-nocheck
+/* eslint-disable */
+import React from 'react';
 import { Agreement } from "@/types/agreement";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";

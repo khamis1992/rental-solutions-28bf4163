@@ -6,7 +6,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ChartControlsProps {
@@ -18,7 +17,6 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
   selectedFilter,
   onFilterChange
 }) => {
-  const { t } = useTranslation();
   const { language } = useLanguage();
   
   return (
