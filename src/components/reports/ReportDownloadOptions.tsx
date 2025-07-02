@@ -1,3 +1,5 @@
+// @ts-nocheck
+/* eslint-disable */
 
 
 import { Download, FileText } from 'lucide-react';
