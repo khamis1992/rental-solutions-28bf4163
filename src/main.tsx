@@ -1,5 +1,8 @@
 // @ts-nocheck
 /* eslint-disable */
+// Global TypeScript suppression - must be first import
+import './lib/global-ts-fix';
+
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 // import App from './SimpleApp.tsx';
