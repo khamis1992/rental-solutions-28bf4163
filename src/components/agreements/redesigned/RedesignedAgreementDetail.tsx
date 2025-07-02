@@ -5,7 +5,7 @@ import '@/styles/legal-rtl.css';
 import { differenceInMonths } from 'date-fns';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 import { toast } from 'sonner';
@@ -139,7 +139,7 @@ export function RedesignedAgreementDetail({
           total_amount: contractAmount || 0,
         };
         
-        // استخدام النظام الجديد المتطور مع صورة البطاقة الشخصية
+        // استخدام النظام الجديد المتطور مع صورة البطاقة الشخصية  
         await generateModernAgreementPDF({
           ...agreementData,
           start_date: agreementData.start_date.toISOString(),
@@ -349,7 +349,7 @@ export function RedesignedAgreementDetail({
         onOpenChange={() => closeDialog('delete')}
         agreementId={agreement.id}
         agreementNumber={agreement.agreement_number || 'غير معروف'}
-        onConfirmDelete={confirmDelete}
+        onConfirmDelete={async () => confirmDelete()}
       />
 
       {isDialogVisible('payment') && (

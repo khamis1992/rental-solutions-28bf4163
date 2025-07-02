@@ -65,8 +65,7 @@ const PaymentScheduleEditor = ({
     paymentSchedule: persistedSchedule,
     isLoading: isLoadingPersisted,
     isGenerating,
-    generatePaymentSchedule,
-    isPending
+    generatePaymentSchedule
   } = usePaymentScheduleManagement(agreementId);
 
   // Validate input parameters

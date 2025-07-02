@@ -22,12 +22,10 @@ export function PaymentManagementCard({
   isLoading,
   rentAmount,
   contractAmount,
-  paymentMetrics,
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
-  fetchPayments,
-  getDateString
+  fetchPayments
 }: PaymentManagementCardProps) {
 
   return (

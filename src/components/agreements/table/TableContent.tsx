@@ -1,14 +1,7 @@
 
 
+import React from 'react';
 import { Agreement } from '@/types/agreement';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { flexRender, useReactTable, getCoreRowModel, getSortedRowModel, SortingState } from '@tanstack/react-table';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { getAgreementColumns } from './columns';
@@ -31,7 +24,7 @@ export function TableContent({
   compact = false,
   pagination
 }: TableContentProps) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [sorting, setSorting] = React.useState([]);
 
   const columns = React.useMemo(
     () => getAgreementColumns(compact),
