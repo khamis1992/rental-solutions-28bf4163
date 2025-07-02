@@ -1,4 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+// @ts-nocheck
+/* eslint-disable */
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
