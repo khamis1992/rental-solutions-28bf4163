@@ -144,8 +144,6 @@ export function RedesignedAgreementDetail({
           ...agreementData,
           start_date: agreementData.start_date.toISOString(),
           end_date: agreementData.end_date.toISOString(),
-          created_at: agreementData.created_at.toISOString(),
-          updated_at: agreementData.updated_at.toISOString(),
         },
           payments || [], // الدفعات
           [], // المخالفات المرورية - يمكن إضافتها لاحقاً
