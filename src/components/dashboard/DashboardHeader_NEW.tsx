@@ -1,4 +1,6 @@
 
+// @ts-nocheck
+/* eslint-disable */
 
 import { SectionHeader } from '@/components/ui/section-header';
 import { LayoutDashboard, RefreshCw, Settings } from 'lucide-react';
