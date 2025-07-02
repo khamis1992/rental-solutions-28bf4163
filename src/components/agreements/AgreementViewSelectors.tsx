@@ -1,6 +1,7 @@
 
 import { Toggle } from '@/components/ui/toggle';
 import { Grid, List, Table } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AgreementViewSelectorsProps {
   viewMode: 'card' | 'table' | 'compact';

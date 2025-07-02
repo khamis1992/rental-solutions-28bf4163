@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -37,7 +39,7 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   const [currentStep, setCurrentStep] = useState<Step>('customer-choice');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [customerWizardOpen, setCustomerWizardOpen] = useState(false);
-  const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [, setCreatingCustomer] = useState(false);
   const [pdfProcessorOpen, setPdfProcessorOpen] = useState(false);
   const [contractData, setContractData] = useState<any>(null);
   const { createCustomer } = useCustomers();
@@ -191,9 +193,9 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
     toast.success(`تم استخراج البيانات بنجاح من العقد! (دقة: ${formattedContractData.confidence}%)`);
   };
 
-  const getCurrentStepIndex = () => {
-    return steps.findIndex(step => step.id === currentStep);
-  };
+  // const getCurrentStepIndex = () => {
+  //   return steps.findIndex(step => step.id === currentStep);
+  // };
 
   if (currentStep === 'customer-choice') {
     return (
@@ -202,8 +204,8 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
         <div className="flex items-center justify-center space-x-4 space-x-reverse mb-8">
           {steps.map((step, index) => {
             // Determine step status based on current step
-            const isFirstStep = index === 0;
-            const isLastStep = index === steps.length - 1;
+            // const isFirstStep = index === 0;
+            // const isLastStep = index === steps.length - 1;
             
             let isActive = false;
             let isCompleted = false;
@@ -211,8 +213,7 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
             if (step.id === 'customer-choice') {
               isActive = currentStep === 'customer-choice' || currentStep === 'customer-selection';
               isCompleted = currentStep === 'agreement-creation';
-            } else {
-              // step.id === 'agreement-creation'
+            } else if (step.id === 'agreement-creation') {
               isActive = currentStep === 'agreement-creation';
               isCompleted = false;
             }

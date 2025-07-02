@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 
 import { Form } from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
 import { Agreement } from '@/types/agreement';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -12,7 +13,7 @@ import { AgreementContractTerms } from './form/AgreementContractTerms';
 import { VehicleDetailsCard } from './form/VehicleDetailsCard';
 import CustomerSection from './CustomerSection';
 import { CustomerInfo } from '@/types/customer';
-import { agreementPaymentService } from '@/services/AgreementPaymentService';
+// import { agreementPaymentService } from '@/services/AgreementPaymentService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
