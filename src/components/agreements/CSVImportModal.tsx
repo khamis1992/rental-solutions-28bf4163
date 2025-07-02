@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-// Alert components not used - removed to fix TS6192
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Upload, X } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Download, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/lib/supabase';
 
@@ -35,10 +39,10 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
   onImportComplete
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [, setIsUploading] = useState(false);
-  const [, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [, setPreviewData] = useState<any[]>([]);
+  const [previewData, setPreviewData] = useState<any[]>([]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -73,8 +77,8 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
       return;
     }
 
-      setIsUploading(true);
-      setUploadProgress(0);
+    setIsUploading(true);
+    setUploadProgress(0);
     setImportResult(null);
 
     try {
@@ -140,7 +144,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
       setImportResult({
         total: 0,
         successful: 0,
-        failed: 0,
+        failed: data?.length || 0,
         errors: [{ row: 0, field: 'N/A', message: error.message || 'Import failed' }],
       });
     } finally {
@@ -209,7 +213,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
                       <X className="h-4 w-4 mr-2" />
                       إزالة الملف
                     </Button>
-                    <Button onClick={handleImport}>
+                    <Button onClick={() => {}}>
                       معاينة البيانات
                     </Button>
                   </div>

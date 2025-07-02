@@ -78,7 +78,8 @@ export function CustomerOnboardingWizard({
       ...prev,
       full_name: data.arabicName || data.fullName || prev.full_name,
       nationality: data.nationality || prev.nationality,
-              driver_license: data.idNumber || prev.driver_license, // In Qatar, ID number is the same as driver // license - removed unused variable// Add a note about the scan with Arabic data priority
+              driver_license: data.idNumber || prev.driver_license, // In Qatar, ID number is the same as driver license
+      // Add a note about the scan with Arabic data priority
       notes: prev.notes + (prev.notes ? '\n' : '') + 
         `تم استخراج البيانات من البطاقة الشخصية - رقم الهوية: ${data.idNumber || 'غير محدد'}` +
         (data.arabicName ? `\nالاسم العربي: ${data.arabicName}` : '') +
@@ -183,7 +184,7 @@ export function CustomerOnboardingWizard({
       };
       
       // عدم إعادة تعيين النموذج هنا لتجنب فقدان البيانات
-      await onComplete(submissionData);
+      const result = await onComplete(submissionData);
       
       // عرض رسالة النجاح
       toast.success("تم إضافة العميل بنجاح", {

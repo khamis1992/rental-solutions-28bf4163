@@ -1,13 +1,11 @@
-
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '@/styles/legal-rtl.css';
 import { differenceInMonths } from 'date-fns';
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
 import { PaymentEntryDialog } from '../PaymentEntryDialog';
@@ -139,28 +137,9 @@ export function RedesignedAgreementDetail({
           total_amount: contractAmount || 0,
         };
         
-        // استخدام النظام الجديد المتطور مع صورة البطاقة الشخصية  
-        await generateModernAgreementPDF({
-          ...agreementData,
-          start_date: agreementData.start_date.toISOString(),
-          end_date: agreementData.end_date.toISOString(),
-          customers: agreementData.customers ? {
-            full_name: agreementData.customers.full_name,
-            phone_number: agreementData.customers.phone_number || undefined,
-            nationality: (agreementData.customers as any).nationality || undefined,
-            driver_license: agreementData.customers.driver_license || undefined,
-            email: agreementData.customers.email || undefined,
-            id_number: (agreementData.customers as any).id_number || undefined,
-          } : undefined,
-          vehicles: agreementData.vehicles ? {
-            make: agreementData.vehicles.make || undefined,
-            model: agreementData.vehicles.model || undefined,
-            year: agreementData.vehicles.year || undefined,
-            license_plate: agreementData.vehicles.license_plate || undefined,
-            color: agreementData.vehicles.color || undefined,
-            vin: agreementData.vehicles.vin || undefined,
-          } : undefined,
-        },
+        // استخدام النظام الجديد المتطور مع صورة البطاقة الشخصية
+        await generateModernAgreementPDF(
+          agreementData,
           payments || [], // الدفعات
           [], // المخالفات المرورية - يمكن إضافتها لاحقاً
           customerIdCardImage // صورة البطاقة الشخصية
@@ -219,12 +198,9 @@ export function RedesignedAgreementDetail({
   
   // Convert onGenerateDocument to a Promise
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
-    return new Promise<void>((resolve) => {
-      if (onGenerateDocument) {
-        onGenerateDocument();
-      }
-      resolve();
-    });
+    if (onGenerateDocument) {
+      onGenerateDocument();
+    }
   }, [onGenerateDocument]);
 
   if (!agreement) {
@@ -363,7 +339,7 @@ export function RedesignedAgreementDetail({
         onOpenChange={() => closeDialog('delete')}
         agreementId={agreement.id}
         agreementNumber={agreement.agreement_number || 'غير معروف'}
-        onConfirmDelete={async () => confirmDelete()}
+        onConfirmDelete={confirmDelete}
       />
 
       {isDialogVisible('payment') && (

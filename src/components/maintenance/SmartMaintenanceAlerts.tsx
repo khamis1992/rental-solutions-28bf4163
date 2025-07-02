@@ -1,8 +1,8 @@
-// @ts-nocheck
-/* eslint-disable */
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { 
@@ -18,7 +18,7 @@ import {
   Activity
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface SmartAlert {

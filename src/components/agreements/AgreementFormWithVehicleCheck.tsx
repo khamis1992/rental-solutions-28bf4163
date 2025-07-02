@@ -2,18 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Plus } from 'lucide-react';
-import VehicleSelector from '@/components/vehicles/VehicleSelector';
-import CustomerSelector from '@/components/customers/CustomerSelector';
-import type { Customer, Vehicle } from '@/types/database';
-import { asAny } from '@/lib/temp-type-fixes';
+import { Loader2, Plus, Car, User, FileText, DollarSign } from 'lucide-react';
+import { VehicleSelector } from '@/components/vehicles/VehicleSelector';
+import { CustomerSelector } from '@/components/customers/CustomerSelector';
+import type { Customer, Vehicle, PaymentRecord } from '@/types/database';
 
 interface AgreementFormData {
   customer_id: string;
@@ -53,9 +51,8 @@ const AgreementFormWithVehicleCheck: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // Simplified function without PaymentRecord type
-  const generatePaymentSchedule = (startDate: Date, endDate: Date, monthlyRent: number, paymentDay: number) => {
-    const payments: any[] = [];
+  const generatePaymentSchedule = (startDate: Date, endDate: Date, monthlyRent: number, paymentDay: number): PaymentRecord[] => {
+    const payments: PaymentRecord[] = [];
     const current = new Date(startDate);
     let paymentId = 1;
 
@@ -134,14 +131,11 @@ const AgreementFormWithVehicleCheck: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="customer_id">العميل</Label>
-            <CustomerSelector 
-              selectedCustomer={asAny(selectedCustomer)}
-              onCustomerSelect={(customer: any) => setSelectedCustomer(customer)} 
-            />
+            <CustomerSelector onCustomerSelect={setSelectedCustomer} />
           </div>
           <div>
             <Label htmlFor="vehicle_id">المركبة</Label>
-            <VehicleSelector onVehicleSelect={(vehicle: any) => setSelectedVehicle(vehicle)} />
+            <VehicleSelector onVehicleSelect={setSelectedVehicle} />
           </div>
           <div>
             <Label htmlFor="lease_start">تاريخ البداية</Label>

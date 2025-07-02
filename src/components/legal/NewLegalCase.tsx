@@ -1,5 +1,5 @@
 
-
+import React from 'react';
 import LegalCaseCard from './LegalCaseCard';
 import { useParams } from 'react-router-dom';
 

@@ -1,10 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-
-import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { 
+  Form,
+  FormControl,
+  FormField,
+  FormItem, 
+  FormLabel,
+  FormMessage 
+} from '@/components/ui/form';
 import { useTemplateSetup } from '@/hooks/form/useTemplateSetup';
 import { AgreementTemplateStatus } from './AgreementTemplateStatus';
 import { Agreement } from '@/types/agreement';
@@ -16,10 +21,9 @@ interface AddAgreementFormProps {
 }
 
 export function AddAgreementForm({ initialData, onSubmit, isSubmitting = false }: AddAgreementFormProps) {
-  const form = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm({
     defaultValues: initialData || {}
   });
-  const { register, handleSubmit, formState: { errors }, setValue } = form;
   
   const { standardTemplateExists, specificUrlCheck } = useTemplateSetup();
   
@@ -45,10 +49,10 @@ export function AddAgreementForm({ initialData, onSubmit, isSubmitting = false }
   }, [initialData, setValue]);
   
   return (
-    <Form {...form}>
+    <div className="space-y-6" dir="rtl">
       <AgreementTemplateStatus 
-        standardTemplateExists={Boolean(standardTemplateExists?.accessible)} 
-        specificUrlCheck={Boolean(specificUrlCheck?.accessible)}
+        standardTemplateExists={standardTemplateExists} 
+        specificUrlCheck={specificUrlCheck} 
       />
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -110,10 +114,10 @@ export function AddAgreementForm({ initialData, onSubmit, isSubmitting = false }
               placeholder="0.00"
               className="text-right"
               dir="rtl"
-              {...register('rent_amount', { required: 'المبلغ مطلوب' })}
+              {...register('total_amount', { required: 'المبلغ مطلوب' })}
             />
-            {errors.rent_amount && (
-              <p className="text-sm text-red-500 text-right">{errors.rent_amount.message}</p>
+            {errors.total_amount && (
+              <p className="text-sm text-red-500 text-right">{errors.total_amount.message}</p>
             )}
           </div>
         </div>
@@ -124,7 +128,7 @@ export function AddAgreementForm({ initialData, onSubmit, isSubmitting = false }
           </Button>
         </div>
       </form>
-    </Form>
+    </div>
   );
 }
 

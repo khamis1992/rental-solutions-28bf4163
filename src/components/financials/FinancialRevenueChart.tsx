@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -13,7 +11,7 @@ import {
   Legend
 } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-
+import { Button } from '@/components/ui/button';
 import { LineChart, BarChart } from 'lucide-react';
 import {
   Select,

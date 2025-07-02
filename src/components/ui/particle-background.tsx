@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
 import React, { useEffect, useRef } from 'react';
 
 interface Particle {

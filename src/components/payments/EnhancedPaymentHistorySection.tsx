@@ -1,10 +1,9 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Plus, RefreshCw, Clock, CheckCircle, AlertTriangle, CreditCard, Trash2, Edit } from 'lucide-react';
+import { Calendar, Plus, RefreshCw, Clock, CheckCircle, AlertTriangle, CreditCard, DollarSign, Trash2, Edit } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
 
 import { Payment } from '@/types/payment.types';
@@ -12,7 +11,8 @@ import { Agreement } from '@/types/agreement';
 import { useAgreementPaymentSync } from '@/hooks/payment/use-agreement-payment-sync';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 interface EnhancedPaymentHistorySectionProps {

@@ -27,7 +27,8 @@ const checkEnvironmentConfig = () => {
   //   issues.push("Edge functions not available");
   // }
 
-  // Supabase configuration is optional for this // application - removed unused variable// if (!import.meta.env.VITE_SUPABASE_URL) {
+  // Supabase configuration is optional for this application
+  // if (!import.meta.env.VITE_SUPABASE_URL) {
   //   issues.push("Supabase URL not configured");
   // }
 

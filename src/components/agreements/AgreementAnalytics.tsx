@@ -1,7 +1,7 @@
-
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { BarChart4, Calendar, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function AgreementAnalytics() {
   return (

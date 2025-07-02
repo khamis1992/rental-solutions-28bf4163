@@ -1,8 +1,8 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { 
   Calendar, 
@@ -28,7 +28,8 @@ import { Agreement } from '@/types/agreement';
 import { useAgreementPaymentSync } from '@/hooks/payment/use-agreement-payment-sync';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 interface PaymentHistorySectionProps {

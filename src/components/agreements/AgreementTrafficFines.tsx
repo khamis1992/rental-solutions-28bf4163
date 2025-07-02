@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
-
-import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -113,7 +112,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
             </tr>
           </thead>
           <tbody>
-            {filteredFines.map((fine: any) => {
+            {filteredFines.map((fine) => {
               const violationDate = fine.violationDate instanceof Date 
                 ? fine.violationDate 
                 : new Date(fine.violationDate);

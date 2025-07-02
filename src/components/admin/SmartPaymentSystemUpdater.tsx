@@ -1,12 +1,10 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
 import { 
   RefreshCw, 
   CheckCircle, 
@@ -443,7 +441,7 @@ export default function SmartPaymentSystemUpdater() {
           <CardContent>
             <ScrollArea className="h-96">
               <div className="space-y-3">
-                {results.map((result) => (
+                {results.map((result, index) => (
                   <div key={result.agreementId} className="border rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">

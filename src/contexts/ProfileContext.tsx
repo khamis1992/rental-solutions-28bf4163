@@ -1,7 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';

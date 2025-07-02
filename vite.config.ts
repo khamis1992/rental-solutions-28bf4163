@@ -26,10 +26,7 @@ export default defineConfig(async ({ mode }) => {
     }
   },
   plugins: [
-    react({
-      // Disable TypeScript error checking in development
-      tsDecorators: true,
-    }),
+    react(),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
@@ -169,25 +166,6 @@ export default defineConfig(async ({ mode }) => {
   // تحسين خاص للجوال
   esbuild: {
     drop: mode === 'production' ? ['console', 'debugger'] : [],
-    // Disable TypeScript checking during build
-    target: 'es2020',
-    logOverride: {
-      'this-is-undefined-in-esm': 'silent'
-    },
-    // Override TypeScript configuration to suppress errors
-    tsconfigRaw: mode === 'production' ? {} : {
-      compilerOptions: {
-        skipLibCheck: true,
-        noUnusedLocals: false,
-        noUnusedParameters: false,
-        strict: false,
-        noImplicitAny: false,
-        noImplicitReturns: false,
-        exactOptionalPropertyTypes: false,
-        noPropertyAccessFromIndexSignature: false,
-        noUncheckedIndexedAccess: false
-      }
-    }
   },
   };
 });

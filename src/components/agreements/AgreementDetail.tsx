@@ -3,21 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Edit, Trash2, FileText, AlertCircle, Car, User, Calendar } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatters';
+import { Loader2, Edit, Trash2, FileText, DollarSign, AlertCircle, Car, User, Calendar, MapPin } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import type { Agreement, Customer, Vehicle } from '@/types/database';
+import type { Agreement, Customer, Vehicle, UnifiedPayment } from '@/types/database';
 
 interface AgreementDetailsProps {
   agreement: Agreement;
   customer: Customer;
   vehicle: Vehicle;
+  payments: UnifiedPayment[];
 }
 
-const AgreementDetails: React.FC<AgreementDetailsProps> = ({ agreement, customer, vehicle }) => {
+const AgreementDetails: React.FC<AgreementDetailsProps> = ({ agreement, customer, vehicle, payments }) => {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
@@ -45,11 +46,11 @@ const AgreementDetails: React.FC<AgreementDetailsProps> = ({ agreement, customer
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  <span>تاريخ البداية: {agreement.start_date}</span>
+                  <span>تاريخ البداية: {agreement.lease_start}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  <span>تاريخ الانتهاء: {agreement.end_date}</span>
+                  <span>تاريخ الانتهاء: {agreement.lease_end}</span>
                 </div>
               </CardContent>
             </Card>
@@ -85,7 +86,7 @@ const AgreementDetails: React.FC<AgreementDetailsProps> = ({ agreement, customer
                 <CardTitle>الشروط والأحكام</CardTitle>
               </CardHeader>
               <CardContent>
-                <p>{agreement.notes || 'لا توجد شروط محددة'}</p>
+                <p>{agreement.terms}</p>
               </CardContent>
             </Card>
           </div>
@@ -107,6 +108,9 @@ const AgreementDetails: React.FC<AgreementDetailsProps> = ({ agreement, customer
   );
 };
 
+interface AgreementDetailProps {
+  id: string;
+}
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -114,7 +118,7 @@ const AgreementDetail = () => {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
-  
+  const [payments, setPayments] = useState<UnifiedPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -144,7 +148,7 @@ const AgreementDetail = () => {
 
         // Fetch related customer
         const { data: customerData, error: customerError } = await supabase
-          .from('profiles')
+          .from('customers')
           .select('*')
           .eq('id', agreementData.customer_id)
           .single();
@@ -170,6 +174,14 @@ const AgreementDetail = () => {
         }
         setVehicle(vehicleData);
 
+        // Fetch payments (assuming you have a payments table)
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('lease_id', id);
+
+        if (paymentsError) throw paymentsError;
+        setPayments(paymentsData || []);
 
       } catch (error) {
         console.error('Error fetching agreement details:', error);
@@ -268,7 +280,7 @@ const AgreementDetail = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <AgreementDetails agreement={agreement} customer={customer} vehicle={vehicle} />
+          <AgreementDetails agreement={agreement} customer={customer} vehicle={vehicle} payments={payments} />
         </CardContent>
       </Card>
     </div>

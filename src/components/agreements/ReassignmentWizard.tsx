@@ -5,11 +5,10 @@
  * between agreements while maintaining business rules and data integrity.
  */
 
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
 import { useLeaseReassignment } from '@/hooks/use-lease-reassignment';
@@ -76,7 +75,7 @@ const ReassignmentWizard = ({
                   <SelectValue placeholder="Select a vehicle" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableVehicles.map((vehicle: any) => (
+                  {availableVehicles.map((vehicle) => (
                     <SelectItem key={vehicle.id} value={vehicle.id}>
                       {vehicle.make} {vehicle.model} ({vehicle.license_plate})
                     </SelectItem>

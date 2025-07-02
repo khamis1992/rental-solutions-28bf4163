@@ -1,7 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
-
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { createQuery } from '@/utils/query-factory';
 import { createMutation } from '@/utils/mutation-factory';

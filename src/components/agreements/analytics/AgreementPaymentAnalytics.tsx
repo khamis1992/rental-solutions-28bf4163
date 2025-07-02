@@ -1,7 +1,6 @@
-
+import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-
 import { formatCurrency } from '@/lib/utils';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 

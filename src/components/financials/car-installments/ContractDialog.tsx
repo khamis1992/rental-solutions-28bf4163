@@ -1,6 +1,4 @@
-
-// @ts-nocheck
-/* eslint-disable */
+import React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +17,8 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form';
-
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { CarInstallmentContract } from '@/types/car-installment';
 import { useLanguage } from '@/contexts/LanguageContext';
 

@@ -1,10 +1,8 @@
 
-// @ts-nocheck
-/* eslint-disable */
 import React from 'react';
 import { 
   Card, 
-  CardContent,
+  CardContent, 
   CardHeader, 
   CardTitle, 
   CardDescription 
@@ -17,7 +15,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-
+import { Badge } from '@/components/ui/badge';
 import { addMonths, addWeeks, addDays } from 'date-fns';
 import { Calendar, RefreshCw } from 'lucide-react';
 import { FinancialTransaction } from '@/hooks/use-financials';

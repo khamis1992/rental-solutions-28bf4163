@@ -1,10 +1,7 @@
 
-// @ts-nocheck
-/* eslint-disable */
-
-
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 interface DataCardProps {

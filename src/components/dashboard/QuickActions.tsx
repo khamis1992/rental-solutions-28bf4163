@@ -1,13 +1,11 @@
-// @ts-nocheck
-/* eslint-disable */
-// Fixed QuickActions without TypeScript errors
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Car, TrendingUp, Gavel, Brain } from 'lucide-react';
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
+import { useTranslation } from '@/utils/translation-helper';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export const QuickActions = () => {
   const navigate = useNavigate();
@@ -92,6 +90,4 @@ export const QuickActions = () => {
       />
     </>
   );
-};
-
-export default QuickActions;
+}; 

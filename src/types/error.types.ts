@@ -81,24 +81,22 @@ export interface AppError {
 /**
  * Creates a standardized error result
  */
-export function createErrorResult<T>(error: AppError, message?: string): ErrorResult<T> {
+export function createErrorResult<T>(error: AppError): ErrorResult<T> {
   return {
     success: false,
     error,
-    data: null,
-    message: message || error.message
+    data: null
   };
 }
 
 /**
  * Creates a standardized success result
  */
-export function createSuccessResult<T>(data: T, message?: string): SuccessResult<T> {
+export function createSuccessResult<T>(data: T): SuccessResult<T> {
   return {
     success: true,
     data,
-    error: null,
-    message
+    error: null
   };
 }
 

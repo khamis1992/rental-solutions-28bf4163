@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
+import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogCancel, AlertDialogAction, AlertDialogFooter } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import PageContainer from '@/components/layout/PageContainer';
 import { Separator } from '@/components/ui/separator';
-
+import { Pencil, Trash2, Calendar, Car, ClipboardList, CreditCard, MapPin, User, CheckCircle, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const MaintenanceDetailPage = () => {
   const { id } = useParams<{ id: string }>();

@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { formatQatarPhone } from '@/utils/phone-display-utils';
 
 interface PhoneDisplayProps {

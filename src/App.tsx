@@ -28,10 +28,12 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AuthLayout from "./pages/auth/AuthLayout";
 import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
 // Pages
+import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 const FixPaymentStatus = lazy(() => import("./pages/FixPaymentStatus"));
@@ -107,6 +109,7 @@ const VehicleInspectionPage = lazy(() => import("./pages/mobile/VehicleInspectio
 
 import initializeApp from "./utils/app-initializer";
 import { DocumentationModeProvider } from '@/context/DocumentationModeContext';
+import { DocumentationToggleButton } from '@/components/DocumentationToggleButton';
 
 // Main App Content Component
 const AppContent = () => {
@@ -114,12 +117,12 @@ const AppContent = () => {
 
   return (
     <Routes>
-      {/* Redirect root to login */}
-      <Route path="/" element={<Navigate to="/auth/login" replace />} />
+      <Route path="/" element={<Index />} />
       
       {/* Auth Routes */}
       <Route path="auth" element={<AuthLayout />}>
         <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
       </Route>
@@ -242,7 +245,7 @@ function App() {
   }));
 
   // تحسينات الأداء للجوال
-  useMobilePerformanceOptimization();
+  const { optimizationsEnabled } = useMobilePerformanceOptimization();
 
   useEffect(() => {
     initializeApp();

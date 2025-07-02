@@ -25,7 +25,8 @@ export const recordVehicleReassignment = async (
     // Get current timestamp for the record
     const reassignedAt = new Date().toISOString();
     
-    // First, create the reassignment history record using generic insert to avoid type // issues - removed unused variable// Using 'any' type to bypass TypeScript's deep instantiation issue
+    // First, create the reassignment history record using generic insert to avoid type issues
+    // Using 'any' type to bypass TypeScript's deep instantiation issue
     const { data, error } = await (supabase as any)
       .from('vehicle_reassignments')
       .insert({

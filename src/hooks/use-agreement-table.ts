@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
 import { useAgreements } from './use-agreements';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';

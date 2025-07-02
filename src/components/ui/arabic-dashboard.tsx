@@ -1,8 +1,7 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   LayoutDashboard, 
@@ -21,6 +20,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { formatQatarRiyal } from '@/utils/arabic-rtl-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { cn } from '@/lib/utils';
 
 interface ArabicDashboardProps {
   stats?: {

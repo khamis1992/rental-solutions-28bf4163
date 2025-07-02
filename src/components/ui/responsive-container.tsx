@@ -1,4 +1,6 @@
 
+import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface ResponsiveContainerProps {
   children: React.ReactNode;

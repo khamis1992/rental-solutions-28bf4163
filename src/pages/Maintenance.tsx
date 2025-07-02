@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-
+import { Button } from '@/components/ui/button';
 import { Plus, Calendar, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,7 +13,7 @@ import { QuickActionsPanel } from '@/components/maintenance/QuickActionsPanel';
 import { useMaintenance, MaintenanceRecord } from '@/hooks/use-maintenance';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import { Wrench } from 'lucide-react';

@@ -1,13 +1,12 @@
-
-// @ts-nocheck
-/* eslint-disable */
-
-
+import React from 'react';
+import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createArabicFormLayout, arabicValidationMessages, createArabicErrorMessage } from '@/utils/arabic-rtl-utils';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 
 interface ArabicFormFieldProps {
   label: string;

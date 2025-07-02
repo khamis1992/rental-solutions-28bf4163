@@ -1,6 +1,6 @@
-
+import React from 'react';
 import { useForm } from 'react-hook-form';
-
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { LegalCaseBasicInfo } from './LegalCaseBasicInfo';
 import { LegalCaseCaseDetails } from './LegalCaseCaseDetails';

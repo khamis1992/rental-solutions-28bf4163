@@ -1,12 +1,11 @@
-
-// @ts-nocheck
-/* eslint-disable */
+import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CarInstallmentContract, ContractFilters } from '@/types/car-installment';
 import { formatCurrency } from '@/lib/utils';
-
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { Eye, Search } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 

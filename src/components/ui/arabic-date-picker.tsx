@@ -1,14 +1,13 @@
-
-// @ts-nocheck
-/* eslint-disable */
-
+import React from 'react';
 import { format, parse } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { Clock } from 'lucide-react';
-
+import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface ArabicDatePickerProps {
   value?: Date;

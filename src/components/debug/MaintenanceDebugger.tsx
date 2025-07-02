@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface MaintenanceDebuggerProps {
   activeRecords: any[];

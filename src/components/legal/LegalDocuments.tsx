@@ -1,13 +1,11 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DocumentList from '@/components/documents/DocumentList';
 import AILegalLetterGenerator from './AILegalLetterGenerator';
 import { DocumentEntityType } from '@/types/document.types';
-import { Brain, FileText } from 'lucide-react';
+import { Brain, FileText, Upload } from 'lucide-react';
 
 const LegalDocuments = () => {
   return (

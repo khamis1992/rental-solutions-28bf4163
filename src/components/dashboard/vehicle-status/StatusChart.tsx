@@ -1,5 +1,6 @@
-
+import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { StatusConfig } from './types';
 
 interface StatusChartProps {
   data: Array<{

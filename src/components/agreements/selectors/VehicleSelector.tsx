@@ -1,5 +1,5 @@
 
-
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Select,
@@ -22,6 +22,7 @@ const VehicleSelector = ({
   value,
   onChange,
   placeholder = "Select a vehicle",
+  selectedVehicle,
   onVehicleSelect
 }: VehicleSelectorProps) => {
   const { data: vehicles, isLoading } = useQuery({

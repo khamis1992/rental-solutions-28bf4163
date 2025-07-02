@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,7 +17,8 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
   useEffect(() => {
     console.log("CustomerLegalObligationsPage: useEffect with customerId:", customerId);
     
-    // This is a placeholder for the future API // call - removed unused variable// For now, just simulate loading and then show empty state
+    // This is a placeholder for the future API call
+    // For now, just simulate loading and then show empty state
     const timer = setTimeout(() => {
       setIsLoading(false);
       // Don't set any data for now, just finish loading state

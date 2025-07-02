@@ -1,4 +1,4 @@
-
+import React from 'react';
 import InteractiveChart from './InteractiveChart';
 import { VehicleUtilizationData } from '@/utils/cross-report-data-processors';
 import { formatCurrency } from '@/lib/utils';

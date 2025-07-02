@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
 import { useState, useCallback } from 'react';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/lib/supabase';

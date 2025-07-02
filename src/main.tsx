@@ -1,20 +1,7 @@
-
-// @ts-nocheck
-/* eslint-disable */
-// Global TypeScript suppression - must be first import
-import './lib/disable-typescript';
-import './lib/global-ts-fix';
-import './lib/typescript-global-suppression';
-import './lib/global-typescript-fixes';
-
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 // import App from './SimpleApp.tsx';
 import './index.css';
-
-// Global TypeScript suppression - import first to suppress all build errors
-import './lib/typescript-global-bypass';
-import './lib/global-dashboard-fix';
 
 // Import environment variables diagnostic test
 import './env-test.ts';
@@ -163,11 +150,9 @@ const initApp = async () => {
   const container = document.getElementById("root");
   if (container) {
     const root = createRoot(container);
-    root.render(
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    );
+    root.render(<ErrorBoundary>
+      <App />
+    </ErrorBoundary>);
   }
 };
 

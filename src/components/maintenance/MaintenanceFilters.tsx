@@ -1,10 +1,9 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState } from 'react';
-
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, X } from 'lucide-react';
-
+import { Card } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 
 interface MaintenanceFiltersProps {

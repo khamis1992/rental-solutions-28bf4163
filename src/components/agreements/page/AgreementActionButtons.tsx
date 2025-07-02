@@ -1,14 +1,16 @@
-
-
+import React from 'react';
+import { Button } from '@/components/ui/button';
 import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
 import { 
+  Link, 
+  Download, 
+  Upload, 
   Plus, 
   FileUp, 
   MoreHorizontal, 
   FileDown,
   Printer 
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,11 +23,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 interface AgreementActionButtonsProps {
+  isImportModalOpen: boolean;
   setIsImportModalOpen: (open: boolean) => void;
   isEdgeFunctionAvailable: boolean;
 }
 
 export function AgreementActionButtons({ 
+  isImportModalOpen, 
   setIsImportModalOpen, 
   isEdgeFunctionAvailable 
 }: AgreementActionButtonsProps) {

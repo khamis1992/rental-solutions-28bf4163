@@ -1,4 +1,5 @@
-// ChatGPT Contract Extractor Service - Advanced AI Text // Analysis - removed unused variable// نظام استخراج متطور باستخدام ChatGPT API لتحليل العقود بذكاء اصطناعي
+// ChatGPT Contract Extractor Service - Advanced AI Text Analysis
+// نظام استخراج متطور باستخدام ChatGPT API لتحليل العقود بذكاء اصطناعي
 // 
 // 🤖 مزايا ChatGPT للعقود:
 // 1. فهم السياق والمعنى بذكاء طبيعي

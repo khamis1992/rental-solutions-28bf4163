@@ -16,7 +16,7 @@ import {
   ErrorDetails
 } from '@/types/error.types';
 import { VehicleRepository } from '@/lib/database/vehicle-repository';
-import { createSuccessResult, createErrorResult, Result } from '@/lib/errors/types';
+import { createSuccessResult, createErrorResult, Result } from '@/types/response.types';
 import { 
   enhancedSearchVehicles, 
   searchVehiclesByLicensePlate,

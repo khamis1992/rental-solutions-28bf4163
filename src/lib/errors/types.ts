@@ -8,6 +8,8 @@ export {
   type ErrorCode,
   type ErrorDetails,
   type ErrorSeverity,
+  type ErrorContext,
+
   // Functions
   createErrorResult,
   createSuccessResult,
@@ -22,8 +24,10 @@ export {
   createApiError,
   createServiceError,
   createPaymentError,
+  createUnknownError,
+
   // Type guards
   isAppError,
   isSuccessResult,
   isErrorResult
-} from '@/types/error.types';
+} from '@/types/error.types'; 

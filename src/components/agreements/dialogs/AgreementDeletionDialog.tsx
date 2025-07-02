@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Trash2, FileText, CreditCard, AlertCircle, Scale, Car } from 'lucide-react';
 import {
   Dialog,
@@ -10,11 +10,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { agreementDeletionService, DeletionValidationResult } from '@/services/AgreementDeletionService';
 import { toast } from 'sonner';
@@ -154,7 +152,7 @@ export function AgreementDeletionDialog({
                     {validation.warnings.map((warning, index) => (
                       <div key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                         <AlertCircle className="h-3 w-3 mt-0.5 text-amber-500 flex-shrink-0" />
-                        <span>{String(warning)}</span>
+                        <span>{warning}</span>
                       </div>
                     ))}
                   </div>

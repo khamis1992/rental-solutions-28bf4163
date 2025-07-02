@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-/* eslint-disable */
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';

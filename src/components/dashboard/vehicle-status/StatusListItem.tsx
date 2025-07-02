@@ -1,9 +1,9 @@
-
-
+import React from 'react';
+import { cn } from '@/lib/utils';
 import { StatusConfig } from './types';
 import { LucideIcon } from 'lucide-react';
+import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { cn } from '@/lib/utils';
 
 interface StatusListItemProps {
   status: StatusConfig;
@@ -17,6 +17,7 @@ export const StatusListItem: React.FC<StatusListItemProps> = ({
   onClick
 }) => {
   const Icon = status.icon as LucideIcon;
+  const { t } = useTranslation();
   const { language } = useLanguage();
   
   return (

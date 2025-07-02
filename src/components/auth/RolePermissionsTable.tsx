@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +11,7 @@ import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from '@
 const RolePermissionsTable = () => {
   const [role, setRole] = useState<UserRole>('admin');
   const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_ROLE_PERMISSIONS['admin']);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -18,6 +19,7 @@ const RolePermissionsTable = () => {
   }, [role]);
 
   const fetchPermissions = async (selectedRole: UserRole) => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('permissions')
@@ -38,6 +40,8 @@ const RolePermissionsTable = () => {
     } catch (err: any) {
       console.error('خطأ في تحميل الصلاحيات:', err.message);
       toast.error('فشل في تحميل الصلاحيات');
+    } finally {
+      setLoading(false);
     }
   };
 

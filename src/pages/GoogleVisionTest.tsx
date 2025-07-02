@@ -1,9 +1,9 @@
 // Google Vision OCR Test Page
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
+import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { googleVisionOcrService } from '@/services/google-vision-ocr';
 

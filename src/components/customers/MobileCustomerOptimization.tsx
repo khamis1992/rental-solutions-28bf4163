@@ -1,3 +1,4 @@
+import React from 'react';
 
 // Hook مخصص للتحقق من الوضع المحمول
 const useMediaQuery = (query: string) => {

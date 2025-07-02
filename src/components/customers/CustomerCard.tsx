@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,15 +8,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import type { CustomerInfo } from '@/types/customer';
+import { CustomerStatusBadge } from './CustomerStatusBadge';
+import { Customer } from '@/lib/validation-schemas/customer';
 import { MoreVertical, Phone, Mail, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface CustomerCardProps {
-  customer: CustomerInfo;
-  onEdit?: (customer: CustomerInfo) => void;
+  customer: Customer;
+  onEdit?: (customer: Customer) => void;
   onDelete?: (customerId: string) => void;
-  onSelect?: (customer: CustomerInfo) => void;
+  onSelect?: (customer: Customer) => void;
 }
 
 export const CustomerCard: React.FC<CustomerCardProps> = ({
@@ -79,10 +80,10 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
             </div>
           </div>
           
-            <div className="flex items-center gap-2">
-              <Badge variant={getStatusVariant(customer.status || 'inactive')} className="text-xs px-3 py-1">
-                {getStatusText(customer.status || 'inactive')}
-              </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={getStatusVariant(customer.status)} className="text-xs px-3 py-1">
+              {getStatusText(customer.status)}
+            </Badge>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -132,7 +133,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">رقم الهاتف</span>
                 <span className="text-sm font-medium text-left" dir="ltr">
-                  {customer.phone || customer.phone_number || 'غير متوفر'}
+                  {customer.phone || 'غير متوفر'}
                 </span>
               </div>
               <div className="flex justify-between items-center">

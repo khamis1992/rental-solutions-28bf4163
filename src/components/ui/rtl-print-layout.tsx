@@ -1,11 +1,9 @@
-// @ts-nocheck
-/* eslint-disable */
 import React, { useEffect, useRef } from 'react';
-
+import { cn } from '@/lib/utils';
 import { applyRTLPrintLayout } from '@/utils/rtl-advanced-features';
 import { formatQatarRiyal, formatArabicDate } from '@/utils/arabic-rtl-utils';
-
-import { Printer, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Printer, Download, FileText } from 'lucide-react';
 
 interface RTLPrintLayoutProps {
   children: React.ReactNode;

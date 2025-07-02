@@ -5,13 +5,15 @@ import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
 import { generateModernCustomerFinancialPDF } from '@/utils/modern-customer-financial-pdf';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from "@/components/ui/use-toast";
-
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { 
   DollarSign, 
+  CreditCard, 
   AlertCircle, 
   AlertTriangle,
   TrendingUp, 
+  Calendar,
   FileText,
   Send,
   History,
@@ -54,7 +56,7 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
   const [allPayments, setAllPayments] = useState<any[]>([]);
   const { language } = useLanguage();
   const { toast } = useToast();
-  
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchFinancialData();

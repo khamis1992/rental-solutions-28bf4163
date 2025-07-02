@@ -19,6 +19,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, userData?: UserData) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserData: (data: UserData) => Promise<void>;
@@ -99,12 +100,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signUp = async (email: string, password: string, userData?: UserData) => {
+    try {
+      const { error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: userData,
+        }
+      });
+      if (error) throw error;
+      toast.success('Registration successful! Please check your email for verification.');
+    } catch (error) {
+      handleAuthError(error, 'Registration');
+    }
+  };
 
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      navigate('/auth/login');
+      navigate('/');
     } catch (error) {
       handleAuthError(error, 'Sign out');
     }
@@ -139,6 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session,
         loading,
         signIn,
+        signUp,
         signOut,
         resetPassword,
         updateUserData,

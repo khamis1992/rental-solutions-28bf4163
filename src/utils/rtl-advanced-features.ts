@@ -3,6 +3,8 @@
  * Provides RTL-aware animations, transitions, chart rendering, and mobile gestures
  */
 
+import { cn } from '@/lib/utils';
+
 /**
  * RTL-aware animation configurations
  */

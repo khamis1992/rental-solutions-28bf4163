@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, Info } from 'lucide-react';
-
+import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { isLicensePlatePattern } from '@/utils/searchUtils';

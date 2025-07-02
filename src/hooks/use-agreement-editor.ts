@@ -1,8 +1,7 @@
 
-// @ts-nocheck
-/* eslint-disable */
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useEditAgreement } from './use-edit-agreement';
 import { Agreement } from '@/types/agreement';
 

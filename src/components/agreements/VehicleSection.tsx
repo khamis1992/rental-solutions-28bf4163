@@ -1,15 +1,14 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
-import { Car, FileText } from 'lucide-react';
-import { VehicleRow } from '@/types/vehicle';
+import { Button } from '@/components/ui/button';
+import { Car, Calendar, FileText } from 'lucide-react';
+import { Vehicle } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 
 interface VehicleSectionProps {
-  vehicle?: VehicleRow;
+  vehicle?: Vehicle;
   vehicleId?: string; 
   leaseId?: string;
   onViewDetails?: () => void;
@@ -20,7 +19,7 @@ const VehicleSection = ({
   vehicleId,
   onViewDetails 
 }: VehicleSectionProps) => {
-  const [vehicle, setVehicle] = useState(initialVehicle || null as VehicleRow | null);
+  const [vehicle, setVehicle] = useState(initialVehicle || null as Vehicle | null);
   const [loading, setLoading] = useState(!initialVehicle && !!vehicleId as boolean);
 
   useEffect(() => {
@@ -37,7 +36,7 @@ const VehicleSection = ({
           if (error) throw error;
           
           if (data) {
-            setVehicle(data as VehicleRow);
+            setVehicle(data as Vehicle);
           }
         } catch (error) {
           console.error('Error fetching vehicle:', error);
@@ -129,10 +128,22 @@ const VehicleSection = ({
           <div className="space-y-4">
             <h3 className="font-semibold text-sm text-muted-foreground">Additional Details</h3>
             <div className="space-y-3">
-              {vehicle.notes && (
+              {vehicle.insurance_company && (
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span>Notes: {vehicle.notes}</span>
+                  <span>Insurance: {vehicle.insurance_company}</span>
+                </div>
+              )}
+              {vehicle.insurance_expiry && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>Expires: {new Date(vehicle.insurance_expiry).toLocaleDateString()}</span>
+                </div>
+              )}
+              {vehicle.mileage !== undefined && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Mileage:</span>
+                  <span>{vehicle.mileage.toLocaleString()} km</span>
                 </div>
               )}
             </div>

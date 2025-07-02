@@ -1,10 +1,7 @@
-
-// @ts-nocheck
-/* eslint-disable */
-
-// import { SectionHeader } from '@/components/ui/section-header';
-import { LayoutDashboard, RefreshCw } from 'lucide-react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
+import { SectionHeader } from '@/components/ui/section-header';
+import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { createRTLButtonClasses } from '@/utils/arabic-rtl-utils';
