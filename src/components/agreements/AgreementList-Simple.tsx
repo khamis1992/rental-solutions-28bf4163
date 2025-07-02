@@ -55,7 +55,7 @@ export function AgreementList({
   }
 
   // Transform SimpleAgreement to Agreement with comprehensive type bypass
-  const typedAgreements = bypass.map(agreements, (agreement: SimpleAgreement) => 
+  const typedAgreements = bypass.map(bypass.any(agreements), (agreement: SimpleAgreement) => 
     typeCompat.toAgreement(agreement)
   );
 

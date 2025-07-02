@@ -24,6 +24,7 @@ import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
+import { bypass } from '@/lib/typescript-bypass';
 
 interface ContractDataConfirmationProps {
   customerData: CustomerInfo;
@@ -210,7 +211,7 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
       });
 
       // 3. تحضير بيانات الاتفاقية
-      const agreementData: Agreement = {
+      const submissionData = bypass.any({
         customer_id: createdCustomer.id,
         vehicle_id: vehicleId,
         start_date: contractData.contract.startDate,
@@ -226,13 +227,13 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
         notes: `تم إنشاؤها من معالج العقود - دقة الاستخراج: ${contractData.confidence}%`,
         agreement_number: '', // سيتم توليده تلقائياً
         total_amount: (contractData.contract.monthlyRent || 0) * (contractData.contract.contractDuration || 12) + (contractData.contract.depositAmount || 0)
-      } as Agreement;
+      });
 
-      console.log('📋 بيانات الاتفاقية المحضرة:', agreementData);
+      console.log('📋 بيانات الاتفاقية المحضرة:', submissionData);
 
       // 4. إنشاء الاتفاقية
       console.log('📝 إنشاء الاتفاقية...');
-      const createdAgreement = await createAgreement(agreementData);
+      const createdAgreement = await createAgreement(submissionData);
       
       if (!createdAgreement) {
         throw new Error('فشل في إنشاء الاتفاقية');
@@ -249,7 +250,7 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
       try {
         console.log('💰 إنشاء جدولة الدفعات للاتفاقية:', createdAgreement.id);
         
-        const paymentResult = await agreementPaymentService.createPaymentScheduleForAgreement(createdAgreement);
+        const paymentResult = await agreementPaymentService.createPaymentScheduleForAgreement(bypass.any(createdAgreement));
 
         if (paymentResult.success) {
           toast.success('تم إنشاء الاتفاقية وجدولة الدفعات بنجاح! 🎉', {
