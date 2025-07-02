@@ -8,10 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Plus, Car, User, FileText, DollarSign } from 'lucide-react';
-import { VehicleSelector } from '@/components/vehicles/VehicleSelector';
-import { CustomerSelector } from '@/components/customers/CustomerSelector';
-import type { Customer, Vehicle, PaymentRecord } from '@/types/database';
+import { Loader2, Plus } from 'lucide-react';
+import VehicleSelector from '@/components/vehicles/VehicleSelector';
+import CustomerSelector from '@/components/customers/CustomerSelector';
+import type { Customer, Vehicle } from '@/types/database';
 
 interface AgreementFormData {
   customer_id: string;
@@ -51,8 +51,9 @@ const AgreementFormWithVehicleCheck: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const generatePaymentSchedule = (startDate: Date, endDate: Date, monthlyRent: number, paymentDay: number): PaymentRecord[] => {
-    const payments: PaymentRecord[] = [];
+  // Simplified function without PaymentRecord type
+  const generatePaymentSchedule = (startDate: Date, endDate: Date, monthlyRent: number, paymentDay: number) => {
+    const payments: any[] = [];
     const current = new Date(startDate);
     let paymentId = 1;
 
@@ -131,11 +132,14 @@ const AgreementFormWithVehicleCheck: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="customer_id">العميل</Label>
-            <CustomerSelector onCustomerSelect={setSelectedCustomer} />
+            <CustomerSelector 
+              selectedCustomer={selectedCustomer} 
+              onCustomerSelect={(customer: any) => setSelectedCustomer(customer)} 
+            />
           </div>
           <div>
             <Label htmlFor="vehicle_id">المركبة</Label>
-            <VehicleSelector onVehicleSelect={setSelectedVehicle} />
+            <VehicleSelector onVehicleSelect={(vehicle: any) => setSelectedVehicle(vehicle)} />
           </div>
           <div>
             <Label htmlFor="lease_start">تاريخ البداية</Label>
