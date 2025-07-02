@@ -35,10 +35,10 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
   onImportComplete
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [, setIsUploading] = useState(false);
+  const [, setUploadProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [, setPreviewData] = useState<any[]>([]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -68,12 +68,13 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
   };
 
   const handleImport = async () => {
+    if (!selectedFile) {
       toast.error('الرجاء اختيار ملف CSV');
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(0);
+      setIsUploading(true);
+      setUploadProgress(0);
     setImportResult(null);
 
     try {
@@ -208,7 +209,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
                       <X className="h-4 w-4 mr-2" />
                       إزالة الملف
                     </Button>
-                    <Button onClick={() => {}}>
+                    <Button onClick={handleImport}>
                       معاينة البيانات
                     </Button>
                   </div>
