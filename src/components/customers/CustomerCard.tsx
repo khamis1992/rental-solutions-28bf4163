@@ -79,10 +79,10 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Badge variant={getStatusVariant(customer.status)} className="text-xs px-3 py-1">
-              {getStatusText(customer.status)}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={getStatusVariant(customer.status || 'inactive')} className="text-xs px-3 py-1">
+                {getStatusText(customer.status || 'inactive')}
+              </Badge>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>

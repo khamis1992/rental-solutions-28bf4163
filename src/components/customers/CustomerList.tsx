@@ -129,7 +129,9 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                           className="text-destructive focus:text-destructive"
                           onClick={() => {
                             if (window.confirm(`هل أنت متأكد من حذف ${customer.full_name}؟`)) {
-                              deleteCustomer(customer.id || "");
+                              if (customer.id) {
+                                deleteCustomer(customer.id);
+                              }
                             }
                           }}
                         >
@@ -138,7 +140,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell>{getStatusBadge(customer.status)}</TableCell>
+                  <TableCell>{getStatusBadge(customer.status || 'inactive')}</TableCell>
                   <TableCell>{customer.created_at && customer.created_at.trim() !== '' ? new Date(customer.created_at).toLocaleDateString('ar-QA') : 'غير متوفر'}</TableCell>
                   <TableCell><span className="phone-number-ltr" dir="ltr">{customer.phone_number || customer.phone || 'غير متوفر'}</span></TableCell>
                   <TableCell className="font-medium text-right">
