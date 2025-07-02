@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+// import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Upload, 
   FileText, 
@@ -21,10 +21,10 @@ import {
   Save,
   Camera,
   Loader2,
-  CreditCard,
-  AlertTriangle,
-  ArrowLeft,
-  ArrowRight
+  // CreditCard,
+  // AlertTriangle,
+  // ArrowLeft,
+  // ArrowRight
 } from 'lucide-react';
 import { carRentalContractOcrService } from '@/services/car-rental-contract-ocr';
 import type { CarRentalContractData, ContractOcrResult } from '@/services/car-rental-contract-ocr';
@@ -49,7 +49,7 @@ interface CustomerInfo {
 
 const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
   open = false,
-  onDataExtracted,
+  // onDataExtracted,
   onClose
 }) => {
   const [currentStep, setCurrentStep] = useState(1);

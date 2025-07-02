@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,7 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
 import { supabase } from '@/lib/supabase';
-import { Agreement } from '@/types/agreement';
+// import { Agreement } from '@/types/agreement';
 import { bypass } from '@/lib/typescript-bypass';
 
 interface ContractDataConfirmationProps {
@@ -44,13 +46,13 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
   // استيراد خدمات إنشاء الاتفاقية
   const { createAgreement } = useAgreementService();
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ar-QA', {
-      style: 'currency',
-      currency: 'QAR',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
+  // const formatCurrency = (amount: number) => {
+  //   return new Intl.NumberFormat('ar-QA', {
+  //     style: 'currency',
+  //     currency: 'QAR',
+  //     minimumFractionDigits: 2
+  //   }).format(amount);
+  // };
 
   // دالة لتحويل الأرقام إلى العربية
   const toArabicNumbers = (str: string | number) => {
