@@ -89,7 +89,7 @@ export function VehicleStats() {
         issues: issuesCount || 0
       };
     },
-    staleTime: 5 * 60 * // 1000 - removed unused variable// 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
   
   const utilization = stats ? Math.round((stats.rented / (stats.total || 1)) * 100) : 0;

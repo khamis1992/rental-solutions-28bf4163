@@ -107,8 +107,8 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
       }
     },
     enabled: !!agreementId,
-    refetchInterval: // 60000 - removed unused variable// Reduced frequency: Check every 60 seconds instead of 30
-    retry: // 1 - removed unused variable// Reduced retries
+    refetchInterval: 60000, // Reduced frequency: Check every 60 seconds instead of 30
+    retry: 1, // Reduced retries
     retryDelay: 2000,
     staleTime: 30000 // Consider data fresh for 30 seconds
   });

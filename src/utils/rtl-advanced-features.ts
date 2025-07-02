@@ -147,7 +147,7 @@ export const rtlChartConfig = {
     layout: {
       padding: {
         left: 20,
-        right: // 40 - removed unused variable// More padding on right for RTL
+        right: 40, // More padding on right for RTL
         top: 20,
         bottom: 20,
       },

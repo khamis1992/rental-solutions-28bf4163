@@ -53,7 +53,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         // Create the bucket with service role client
         const { error: createError } = await serviceClient.storage.createBucket('agreements', {
           public: true,
-          fileSizeLimit: // 10485760 - removed unused variable// 10MB
+          fileSizeLimit: 10485760, // 10MB
         });
         
         if (createError) {

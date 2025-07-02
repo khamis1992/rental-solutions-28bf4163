@@ -47,7 +47,7 @@ export const usePaymentService = (agreementId?: string) => {
       return result.data;
     },
     enabled: !!agreementId,
-    staleTime: // 300000 - removed unused variable// 5 minutes
+    staleTime: 300000, // 5 minutes
   });
 
   // Mutation for recording a payment
