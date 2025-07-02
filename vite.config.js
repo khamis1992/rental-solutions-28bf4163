@@ -47,20 +47,12 @@ export default defineConfig(async ({ mode }) => {
     },
     esbuild: {
       target: 'es2020',
-      loader: {
-        '.ts': 'js',
-        '.tsx': 'jsx',
-      },
       logOverride: {
         'this-is-undefined-in-esm': 'silent',
       },
     },
     optimizeDeps: {
       esbuildOptions: {
-        loader: {
-          '.ts': 'js',
-          '.tsx': 'jsx',
-        },
         target: 'es2020',
         logOverride: {
           'this-is-undefined-in-esm': 'silent',
