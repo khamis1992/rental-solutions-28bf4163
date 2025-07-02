@@ -5,6 +5,7 @@ import { Agreement } from '@/types/agreement';
 import { useSynchronizedPaymentManagement } from '@/hooks/payment/use-synchronized-payment-management';
 import { useEffect, useRef } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface PaymentHistoryProps {
@@ -30,8 +31,6 @@ export function PaymentHistory({
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
-  leaseStartDate,
-  leaseEndDate,
   leaseId,
   agreement,
   fetchPayments
@@ -73,13 +72,6 @@ export function PaymentHistory({
     syncCheckPerformed: syncCheckRef.current
   });
 
-  // Convert dates to strings for the PaymentHistorySection
-  const startDateString = leaseStartDate 
-    ? (typeof leaseStartDate === 'string' ? leaseStartDate : leaseStartDate.toISOString()) 
-    : null;
-  const endDateString = leaseEndDate 
-    ? (typeof leaseEndDate === 'string' ? leaseEndDate : leaseEndDate.toISOString()) 
-    : null;
 
   return (
     <div className="space-y-4" dir="rtl">

@@ -26,10 +26,6 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ sea
     onSearch(search);
   };
   
-  const handleClearSearch = () => {
-    setSearch('');
-    onSearch('');
-  };
 
   return (
     <div className="flex items-center space-x-4">
