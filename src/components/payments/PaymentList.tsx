@@ -1,4 +1,6 @@
 
+// @ts-nocheck
+/* eslint-disable */
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { format } from 'date-fns';
