@@ -5,7 +5,13 @@ import path from "path";
 // import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(async ({ mode }) => {
+  // Dynamically import componentTagger for development mode
+  const componentTagger = mode === 'development' 
+    ? (await import('lovable-tagger')).componentTagger 
+    : null;
+
+  return {
   server: {
     host: "::",
     port: 8080,
@@ -20,7 +26,8 @@ export default defineConfig(({ mode }) => ({
     }
   },
   plugins: [
-    react()
+    react(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -160,4 +167,5 @@ export default defineConfig(({ mode }) => ({
   esbuild: {
     drop: mode === 'production' ? ['console', 'debugger'] : [],
   },
-}));
+  };
+});
