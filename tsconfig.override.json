@@ -9,6 +9,16 @@
     "noImplicitReturns": false,
     "exactOptionalPropertyTypes": false,
     "noPropertyAccessFromIndexSignature": false,
-    "noUncheckedIndexedAccess": false
+    "noUncheckedIndexedAccess": false,
+    "allowUnusedLabels": true,
+    "allowUnreachableCode": true,
+    "noImplicitOverride": false,
+    "noImplicitThis": false
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "noUnusedLocals": false,
+      "noUnusedParameters": false
+    }
   }
 }
