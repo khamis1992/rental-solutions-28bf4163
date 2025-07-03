@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+/// <reference types="vitest" />
 // PWA plugin disabled in development mode
 // import { VitePWA } from 'vite-plugin-pwa';
 
@@ -33,6 +34,29 @@ export default defineConfig(async ({ mode }) => {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  // إعدادات Vitest للاختبارات
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/__tests__/setup.ts'],
+    css: true,
+    reporters: ['verbose'],
+    coverage: {
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/__tests__/',
+        '**/*.d.ts',
+        '**/*.config.*',
+        '**/dist/**',
+        '**/build/**'
+      ]
+    },
+    // Mock patterns
+    deps: {
+      inline: ['@testing-library/jest-dom']
+    }
   },
   build: {
     // تحسين للجوال
