@@ -293,6 +293,20 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               isActive={isActive('/admin/smart-updater')}
               onClick={handleNavClick}
             />
+            <NavLink
+              to="/admin/system-logs"
+              icon={<Activity className="h-4 w-4 flex-shrink-0" />}
+              label="إدارة السجلات الشاملة"
+              isActive={isActive('/admin/system-logs')}
+              onClick={handleNavClick}
+            />
+            <NavLink
+              to="/admin/system-logs-test"
+              icon={<AlertTriangle className="h-4 w-4 flex-shrink-0" />}
+              label="اختبار نظام التسجيل"
+              isActive={isActive('/admin/system-logs-test')}
+              onClick={handleNavClick}
+            />
           </NavGroup>
         </nav>
       </div>

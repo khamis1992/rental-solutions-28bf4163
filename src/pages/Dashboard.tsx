@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { useComprehensiveLogging } from '@/hooks/use-comprehensive-logging';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -36,22 +37,45 @@ const Dashboard = () => {
   // Use error handler
   const { error: errorState, handleError, clearError } = useErrorHandler();
   
+  // Use comprehensive logging
+  const { logInfo, logUserAction, logError, logWarn } = useComprehensiveLogging('Dashboard');
+  
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     
     try {
+      // Log the refresh action
+      await logUserAction('تحديث لوحة التحكم', 'system', undefined, {
+        action: 'dashboard_refresh',
+        timestamp: new Date().toISOString()
+      });
+      
       // Clear cache when refreshing
       CacheManager.clear();
       
       // Invalidate and refetch dashboard queries instead of full page reload
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       
+      await logInfo('تم تحديث لوحة التحكم بنجاح', {
+        action: 'dashboard_refresh_success',
+        queries_invalidated: ['dashboard']
+      });
+      
       toast({
         title: "تم تحديث لوحة التحكم",
         description: "تم تحديث جميع البيانات بأحدث المعلومات."
       });
-    } catch (error) {
-      handleError(error, {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorStack = err instanceof Error ? err.stack : undefined;
+      
+      await logError('فشل في تحديث لوحة التحكم', {
+        error_message: errorMessage,
+        error_stack: errorStack,
+        action: 'dashboard_refresh_failed'
+      } as any);
+      
+      handleError(err, {
         showToast: true,
         logError: true,
         context: { page: 'dashboard', action: 'refresh' }
@@ -59,7 +83,7 @@ const Dashboard = () => {
     } finally {
       setIsRefreshing(false);
     }
-  }, [queryClient]);
+  }, [queryClient, logUserAction, logInfo, logError]);
   
   const toggleSection = useCallback((section: string) => {
     setCollapsedSections(prev => ({ 

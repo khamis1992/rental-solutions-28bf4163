@@ -102,6 +102,8 @@ const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
 const WhatsAppNotifications = lazy(() => import("./pages/WhatsAppNotifications"));
 const WhatsAppTest = lazy(() => import("./pages/WhatsAppTest"));
 const SmartSystemUpdaterPage = lazy(() => import("./pages/SmartSystemUpdater"));
+const SystemLogsManagement = lazy(() => import("./pages/SystemLogsManagement"));
+const SystemLogsTestPage = lazy(() => import("./pages/SystemLogsTestPage"));
 const CarRentalContractTest = lazy(() => import("./pages/CarRentalContractTest"));
 const ChatGPTContractTest = lazy(() => import("./pages/ChatGPTContractTest"));
 const ChatGPTInfo = lazy(() => import("./pages/ChatGPTInfo"));
@@ -205,6 +207,8 @@ const AppContent = () => {
                 <Route path="/whatsapp-notifications" element={withErrorBoundary(WhatsAppNotifications)} />
                 <Route path="/whatsapp-test" element={withErrorBoundary(WhatsAppTest)} />
                 <Route path="/admin/smart-updater" element={withErrorBoundary(SmartSystemUpdaterPage)} />
+                <Route path="/admin/system-logs" element={withErrorBoundary(SystemLogsManagement)} />
+                <Route path="/admin/system-logs-test" element={withErrorBoundary(SystemLogsTestPage)} />
                 
                 {/* Car Rental Contract Test */}
                 <Route path="/car-rental-contract-test" element={withErrorBoundary(CarRentalContractTest)} />
