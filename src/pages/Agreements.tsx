@@ -8,6 +8,8 @@ import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 import { BarChart4, Calendar, Database, Filter, Plus, RefreshCw, FileText } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,6 +51,9 @@ const Agreements = () => {
   
   useRealtimeUpdates();
   
+  // Use error handler
+  const { error: errorState, handleError, clearError } = useErrorHandler();
+  
   // Add state for customer search functionality
   const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
   
@@ -70,11 +75,19 @@ const Agreements = () => {
     }
     
     const checkAvailability = async () => {
-      const available = await checkEdgeFunctionAvailability('process-agreement-imports');
-      setIsEdgeFunctionAvailable(available);
-      if (!available) {
-        toast.error("خدمة استيراد ملفات CSV غير متاحة. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم الفني.", {
-          duration: 6000,
+      try {
+        const available = await checkEdgeFunctionAvailability('process-agreement-imports');
+        setIsEdgeFunctionAvailable(available);
+        if (!available) {
+          toast.error("خدمة استيراد ملفات CSV غير متاحة. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم الفني.", {
+            duration: 6000,
+          });
+        }
+      } catch (error) {
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { page: 'agreements', action: 'checkEdgeFunctionAvailability' }
         });
       }
     };
@@ -89,7 +102,11 @@ const Agreements = () => {
         console.log("Running automatic payment schedule maintenance check");
         await runPaymentScheduleMaintenanceJob();
       } catch (error) {
-        console.error("Error running payment maintenance job:", error);
+        handleError(error, {
+          showToast: false,
+          logError: true,
+          context: { page: 'agreements', action: 'runPaymentScheduleMaintenanceJob' }
+        });
       }
     };
     
@@ -242,6 +259,21 @@ const Agreements = () => {
           
           {/* Content Area */}
           <CardContent className="p-0">
+            {/* Error Display */}
+            {errorState.hasError && (
+              <div className="p-4">
+                <ErrorDisplay
+                  error={errorState.error}
+                  variant="card"
+                  showRetry={true}
+                  onRetry={() => {
+                    clearError();
+                    refetch();
+                  }}
+                />
+              </div>
+            )}
+            
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full sm:w-auto" dir="rtl">
               <TabsList className="justify-start">
                 <TabsTrigger value="agreements" className="text-right">جميع العقود</TabsTrigger>

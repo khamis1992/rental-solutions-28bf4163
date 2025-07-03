@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import { ResponsiveMobileLayout } from "./components/layout/ResponsiveMobileLayout";
 import { LoadingFallback } from "./components/ui/loading-fallback";
-import { ErrorBoundary } from "./components/ui/error-boundary";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { getRetryConfig } from "./lib/api/retry-utils";
 import { useIsMobile } from "./hooks/use-mobile";
 
@@ -41,8 +41,13 @@ const CheckAgreementDetails = lazy(() => import("./pages/CheckAgreementDetails")
 const FinancialSummaryDemo = lazy(() => import("./pages/FinancialSummaryDemo"));
 
 // Lazy-loaded components with error boundaries
-const withErrorBoundary = (Component: React.LazyExoticComponent<any>) => (
-  <ErrorBoundary>
+const withErrorBoundary = (Component: React.LazyExoticComponent<any>, context?: Record<string, any>) => (
+  <ErrorBoundary 
+    context={{ level: 'component', ...context }}
+    showRetry={true}
+    showHome={false}
+    showBack={true}
+  >
     <Suspense fallback={<LoadingFallback />}>
       <Component />
     </Suspense>
@@ -277,7 +282,12 @@ function App() {
                       
                       <Toaster />
                       <Sonner />
-                      <ErrorBoundary>
+                      <ErrorBoundary 
+                        context={{ level: 'app', environment: process.env.NODE_ENV }}
+                        showRetry={true}
+                        showHome={true}
+                        showBack={false}
+                      >
                         <AppContent />
                       </ErrorBoundary>
                     </TooltipProvider>

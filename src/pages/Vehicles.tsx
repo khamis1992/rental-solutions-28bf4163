@@ -20,6 +20,8 @@ import PageHeader from '@/components/ui/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { vehicleService } from '@/services/VehicleService';
 import { enhancedVehicleSearch } from '@/utils/searchUtils';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -43,7 +45,6 @@ const Vehicles = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [activeTab, setActiveTab] = useState<string>('all');
-  const [error, setError] = useState<Error | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -52,6 +53,9 @@ const Vehicles = () => {
   
   // Use the vehicle service hook
   const { loading, error: serviceError, getAllVehicles } = useVehicleService();
+  
+  // Use error handler
+  const { error: errorState, handleError, clearError, retry, setRetryHandler } = useErrorHandler();
 
   // Update vehicles state with proper type
   const [vehicles, setVehicles] = useState<ExtendedVehicle[]>([]);
@@ -82,7 +86,7 @@ const Vehicles = () => {
   // Fetch vehicles when filters or pagination changes
   const fetchVehicles = async () => {
     try {
-      setError(null);
+      clearError();
       
       // If there's a search term, use enhanced search
       if (filters.searchTerm?.trim()) {
@@ -186,7 +190,11 @@ const Vehicles = () => {
       }
       return [];
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch vehicles'));
+      handleError(err, {
+        showToast: true,
+        logError: true,
+        context: { page: 'vehicles', action: 'fetchVehicles' }
+      });
       return [];
     }
   };
@@ -448,15 +456,24 @@ const Vehicles = () => {
                 />
               )}
               
-              {(error || serviceError) && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm mt-4 text-right" dir="rtl">
-                  <p className="font-medium">
-                    خطأ في تحميل المركبات
-                  </p>
-                  <p>
-                    {(error || serviceError)?.message || 'خطأ غير معروف'}
-                  </p>
-                </div>
+              {(errorState.hasError || serviceError) && (
+                <ErrorDisplay
+                  error={errorState.error || serviceError}
+                  variant="card"
+                  showRetry={true}
+                  onRetry={() => {
+                    clearError();
+                    setRetryHandler(() => {
+                      const loadVehicles = async () => {
+                        const data = await fetchVehicles();
+                        setVehicles(data);
+                      };
+                      loadVehicles();
+                    });
+                    retry?.();
+                  }}
+                  className="mt-4"
+                />
               )}
               
               <PaginationControls

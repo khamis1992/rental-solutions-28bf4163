@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -25,7 +25,49 @@ interface DashboardContentProps {
   onToggleSection: (section: string) => void;
 }
 
-export const DashboardContent: React.FC<DashboardContentProps> = ({
+// Memoized section header component
+const SectionHeader = memo(({ 
+  title, 
+  sectionKey, 
+  isCollapsed, 
+  onToggle, 
+  badge 
+}: {
+  title: string;
+  sectionKey: string;
+  isCollapsed: boolean;
+  onToggle: (section: string) => void;
+  badge?: string;
+}) => {
+  const handleToggle = useCallback(() => {
+    onToggle(sectionKey);
+  }, [onToggle, sectionKey]);
+
+  return (
+    <div className="flex items-center justify-between mb-4 flex-row-reverse">
+      <div className="flex items-center gap-2 space-x-reverse">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2"
+          onClick={handleToggle}
+        >
+          {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+        </Button>
+        {badge && (
+          <Badge variant="outline" className="bg-background">
+            {badge}
+          </Badge>
+        )}
+      </div>
+      <h2 className="text-lg font-semibold text-right">{title}</h2>
+    </div>
+  );
+});
+
+SectionHeader.displayName = 'SectionHeader';
+
+export const DashboardContent: React.FC<DashboardContentProps> = memo(({
   isLoading,
   isError,
   error,
@@ -37,6 +79,15 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 }) => {
   const { t } = useTranslation();
   const { language } = useLanguage();
+
+  // Memoized direction and style calculations
+  const direction = useMemo(() => language === 'ar' ? 'rtl' : 'ltr', [language]);
+  
+  // Memoized badge text
+  const fleetBadgeText = useMemo(() => 
+    isLoading ? 'جاري التحميل...' : 'إجمالي المركبات',
+    [isLoading]
+  );
   
   if (isError) {
     return (
@@ -48,73 +99,49 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   }
 
   return (
-    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="space-y-6" dir={direction}>
       {/* 1. المؤشرات الرئيسية */}
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('kpis')}
-          >
-            {collapsedSections['kpis'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right">المؤشرات الرئيسية</h2>
-        </div>
+        <SectionHeader
+          title="المؤشرات الرئيسية"
+          sectionKey="kpis"
+          isCollapsed={collapsedSections['kpis']}
+          onToggle={onToggleSection}
+        />
         {!collapsedSections['kpis'] && <DashboardStats stats={stats} loading={isLoading} />}
       </div>
 
       {/* 2. الإجراءات السريعة */}
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('quickActions')}
-          >
-            {collapsedSections['quickActions'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right">الإجراءات السريعة</h2>
-        </div>
+        <SectionHeader
+          title="الإجراءات السريعة"
+          sectionKey="quickActions"
+          isCollapsed={collapsedSections['quickActions']}
+          onToggle={onToggleSection}
+        />
         {!collapsedSections['quickActions'] && <QuickActions />}
       </div>
 
       {/* 3. تحليلات النظام */}
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('analytics')}
-          >
-            {collapsedSections['analytics'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right">تحليلات النظام</h2>
-        </div>
+        <SectionHeader
+          title="تحليلات النظام"
+          sectionKey="analytics"
+          isCollapsed={collapsedSections['analytics']}
+          onToggle={onToggleSection}
+        />
         {!collapsedSections['analytics'] && <AdvancedAnalyticsPanel />}
       </div>
       
       {/* 4. حالة الأسطول */}
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <div className="flex items-center gap-2 space-x-reverse">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2"
-              onClick={() => onToggleSection('fleet')}
-            >
-              {collapsedSections['fleet'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-            </Button>
-            <Badge variant="outline" className="bg-background">
-              {isLoading ? 'جاري التحميل...' : 'إجمالي المركبات'}
-            </Badge>
-          </div>
-          <h2 className="text-lg font-semibold text-right">حالة الأسطول</h2>
-        </div>
+        <SectionHeader
+          title="حالة الأسطول"
+          sectionKey="fleet"
+          isCollapsed={collapsedSections['fleet']}
+          onToggle={onToggleSection}
+          badge={fleetBadgeText}
+        />
         {!collapsedSections['fleet'] && (
           isLoading ? <Skeleton className="h-[300px] w-full rounded-lg" /> : <VehicleStatusChart data={stats?.vehicleStats} />
         )}
@@ -122,35 +149,25 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
       {/* 5. الإحصائيات */}
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('realtime')}
-          >
-            {collapsedSections['realtime'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right">الإحصائيات</h2>
-        </div>
+        <SectionHeader
+          title="الإحصائيات"
+          sectionKey="realtime"
+          isCollapsed={collapsedSections['realtime']}
+          onToggle={onToggleSection}
+        />
         {!collapsedSections['realtime'] && <RealTimeStatsWidget />}
       </div>
 
-      {/* 6. التنبيهات - moved to bottom and renamed */}
+      {/* 6. التنبيهات */}
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('alerts')}
-          >
-            {collapsedSections['alerts'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right">التنبيهات</h2>
-        </div>
+        <SectionHeader
+          title="التنبيهات"
+          sectionKey="alerts"
+          isCollapsed={collapsedSections['alerts']}
+          onToggle={onToggleSection}
+        />
         {!collapsedSections['alerts'] && <SmartAlertsWidget />}
       </div>
     </div>
   );
-};
+});

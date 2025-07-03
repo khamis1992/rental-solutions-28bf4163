@@ -26,6 +26,9 @@ import { useMaintenance } from '@/hooks/use-maintenance';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { FileText, Calendar, AlertCircle } from 'lucide-react';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 const Reports = () => {
   const { language } = useLanguage();
@@ -33,6 +36,9 @@ const Reports = () => {
   const location = useLocation();
   const [selectedTab, setSelectedTab] = useState('fleet');
   const [selectedMainTab, setSelectedMainTab] = useState('standard-reports');
+  
+  // Error handler
+  const { error, handleError, clearError, retry, setRetryHandler } = useErrorHandler();
   
   // Set the initial tab based on the URL path
   useEffect(() => {
@@ -61,10 +67,15 @@ const Reports = () => {
   useEffect(() => {
     const fetchMaintenance = async () => {
       try {
+        clearError();
         const data = await getAllRecords();
         setMaintenanceData(data || []);
       } catch (error) {
-        console.error("خطأ في جلب بيانات الصيانة:", error);
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { page: 'reports', section: 'maintenance' }
+        });
       }
     };
     
@@ -84,13 +95,22 @@ const Reports = () => {
   
   const [isGenerating, setIsGenerating] = useState(false);
   
-  const handleGenerateScheduledReport = () => {
+  const handleGenerateScheduledReport = async () => {
     setIsGenerating(true);
     
-    setTimeout(() => {
-      setIsGenerating(false);
+    try {
+      // Simulate report generation
+      await new Promise(resolve => setTimeout(resolve, 2000));
       toast.success('تم إنشاء التقرير المجدول بنجاح');
-    }, 2000);
+    } catch (error) {
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { page: 'reports', action: 'generateScheduledReport' }
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const getReportData = () => {
@@ -148,125 +168,171 @@ const Reports = () => {
           </TabsList>
           
           <TabsContent value="standard-reports">
-            <Card className="mb-16">
-              <CardContent className="pt-5">
-                <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full" dir="rtl">
-                  <TabsList className="grid grid-cols-6 mb-6 gap-2">
-                    <TabsTrigger value="fleet" className="text-sm">تقرير الأسطول</TabsTrigger>
-                    <TabsTrigger value="financial" className="text-sm">التقرير المالي</TabsTrigger>
-                    <TabsTrigger value="customers" className="text-sm">تقرير العملاء</TabsTrigger>
-                    <TabsTrigger value="maintenance" className="text-sm">تقرير الصيانة</TabsTrigger>
-                    <TabsTrigger value="traffic" className="text-sm">المخالفات المرورية</TabsTrigger>
-                    <TabsTrigger value="legal" className="text-sm">التقرير القانوني</TabsTrigger>
-                  </TabsList>
-                  
-                  <div className="space-y-5">
-                    <TabsContent value="fleet" className="mt-0">
-                      <div className="mb-5 px-4">
-                        <ReportDownloadOptions 
-                          reportType="fleet" 
-                          getReportData={() => reportData?.vehicles || []} 
-                        />
-                      </div>
-                      <FleetReport />
-                    </TabsContent>
+            <ErrorBoundary>
+              <Card className="mb-16">
+                <CardContent className="pt-5">
+                  <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full" dir="rtl">
+                    <TabsList className="grid grid-cols-6 mb-6 gap-2">
+                      <TabsTrigger value="fleet" className="text-sm">تقرير الأسطول</TabsTrigger>
+                      <TabsTrigger value="financial" className="text-sm">التقرير المالي</TabsTrigger>
+                      <TabsTrigger value="customers" className="text-sm">تقرير العملاء</TabsTrigger>
+                      <TabsTrigger value="maintenance" className="text-sm">تقرير الصيانة</TabsTrigger>
+                      <TabsTrigger value="traffic" className="text-sm">المخالفات المرورية</TabsTrigger>
+                      <TabsTrigger value="legal" className="text-sm">التقرير القانوني</TabsTrigger>
+                    </TabsList>
                     
-                    <TabsContent value="financial" className="mt-0">
-                      <div className="mb-5 px-4">
-                        <ReportDownloadOptions 
-                          reportType="financial" 
-                          getReportData={() => transactions || []} 
+                    <div className="space-y-5">
+                      {error.hasError && (
+                        <ErrorDisplay
+                          error={error.error}
+                          variant="alert"
+                          showRetry={true}
+                          onRetry={() => {
+                            clearError();
+                            setRetryHandler(() => {
+                              // Retry the specific report data loading
+                              const fetchMaintenance = async () => {
+                                try {
+                                  const data = await getAllRecords();
+                                  setMaintenanceData(data || []);
+                                } catch (error) {
+                                  handleError(error, {
+                                    showToast: true,
+                                    logError: true,
+                                    context: { page: 'reports', section: 'maintenance' }
+                                  });
+                                }
+                              };
+                              fetchMaintenance();
+                            });
+                            retry?.();
+                          }}
                         />
-                      </div>
-                      <FinancialReport />
-                    </TabsContent>
-                    
-                    <TabsContent value="customers" className="mt-0">
-                      <div className="mb-5 px-4">
-                        <ReportDownloadOptions 
-                          reportType="customers" 
-                          getReportData={() => customers || []} 
-                        />
-                      </div>
-                      <CustomerReport />
-                    </TabsContent>
-                    
-                    <TabsContent value="maintenance" className="mt-0">
-                      <div className="mb-5 px-4">
-                        <ReportDownloadOptions 
-                          reportType="maintenance" 
-                          getReportData={() => maintenanceData || []} 
-                        />
-                      </div>
-                      <MaintenanceReport />
-                    </TabsContent>
-                    
-                    <TabsContent value="traffic" className="mt-0">
-                      <div className="mb-5 px-4">
-                        <ReportDownloadOptions 
-                          reportType="traffic" 
-                          getReportData={() => trafficFines || []} 
-                        />
-                      </div>
-                      <TrafficFineReport />
-                    </TabsContent>
-                    
-                    <TabsContent value="legal" className="mt-0">
-                      <div className="mb-5 px-4">
-                        <ReportDownloadOptions 
-                          reportType="legal" 
-                          getReportData={() => []} 
-                        />
-                      </div>
-                      <LegalReport />
-                    </TabsContent>
-                  </div>
-                </Tabs>
-              </CardContent>
-            </Card>
+                      )}
+                      
+                      <TabsContent value="fleet" className="mt-0">
+                        <ErrorBoundary>
+                          <div className="mb-5 px-4">
+                            <ReportDownloadOptions 
+                              reportType="fleet" 
+                              getReportData={() => reportData?.vehicles || []} 
+                            />
+                          </div>
+                          <FleetReport />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="financial" className="mt-0">
+                        <ErrorBoundary>
+                          <div className="mb-5 px-4">
+                            <ReportDownloadOptions 
+                              reportType="financial" 
+                              getReportData={() => transactions || []} 
+                            />
+                          </div>
+                          <FinancialReport />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="customers" className="mt-0">
+                        <ErrorBoundary>
+                          <div className="mb-5 px-4">
+                            <ReportDownloadOptions 
+                              reportType="customers" 
+                              getReportData={() => customers || []} 
+                            />
+                          </div>
+                          <CustomerReport />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="maintenance" className="mt-0">
+                        <ErrorBoundary>
+                          <div className="mb-5 px-4">
+                            <ReportDownloadOptions 
+                              reportType="maintenance" 
+                              getReportData={() => maintenanceData || []} 
+                            />
+                          </div>
+                          <MaintenanceReport />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="traffic" className="mt-0">
+                        <ErrorBoundary>
+                          <div className="mb-5 px-4">
+                            <ReportDownloadOptions 
+                              reportType="traffic" 
+                              getReportData={() => trafficFines || []} 
+                            />
+                          </div>
+                          <TrafficFineReport />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="legal" className="mt-0">
+                        <ErrorBoundary>
+                          <div className="mb-5 px-4">
+                            <ReportDownloadOptions 
+                              reportType="legal" 
+                              getReportData={() => []} 
+                            />
+                          </div>
+                          <LegalReport />
+                        </ErrorBoundary>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </ErrorBoundary>
           </TabsContent>
           
           <TabsContent value="cross-domain">
-            <CrossReportAnalytics />
+            <ErrorBoundary>
+              <CrossReportAnalytics />
+            </ErrorBoundary>
           </TabsContent>
           
           <TabsContent value="trend-analysis">
-            <TrendAnalysis 
-              title="تحليل الاتجاهات المالية"
-              description="تحليل الاتجاهات المالية عبر الزمن مع طرق مقارنة مختلفة"
-              data={transactions || []}
-              timeField="date"
-              metrics={[
-                { key: 'amount', name: 'مبلغ المعاملة', color: '#3b82f6', formatter: formatCurrency },
-                { key: 'balance', name: 'رصيد الحساب', color: '#22c55e', formatter: formatCurrency }
-              ]}
-              comparisonOptions={[
-                { 
-                  key: 'year-over-year', 
-                  name: 'سنة بعد سنة', 
-                  calculate: (data, timeField, metric) => 
-                    calculateYearOverYear(data, timeField, metric)
-                },
-                { 
-                  key: 'month-over-month', 
-                  name: 'شهر بعد شهر', 
-                  calculate: (data, timeField, metric) => 
-                    calculateMonthOverMonth(data, timeField, metric)
-                },
-                { 
-                  key: 'moving-average', 
-                  name: 'المتوسط المتحرك (3 فترات)', 
-                  calculate: (data, timeField, metric) => 
-                    calculateMovingAverage(data, timeField, metric, 3)
-                },
-                { 
-                  key: 'cumulative', 
-                  name: 'المجموع التراكمي', 
-                  calculate: (data, timeField, metric) => 
-                    calculateCumulativeSum(data, timeField, metric)
-                }
-              ]}
-            />
+            <ErrorBoundary>
+              <TrendAnalysis 
+                title="تحليل الاتجاهات المالية"
+                description="تحليل الاتجاهات المالية عبر الزمن مع طرق مقارنة مختلفة"
+                data={transactions || []}
+                timeField="date"
+                metrics={[
+                  { key: 'amount', name: 'مبلغ المعاملة', color: '#3b82f6', formatter: formatCurrency },
+                  { key: 'balance', name: 'رصيد الحساب', color: '#22c55e', formatter: formatCurrency }
+                ]}
+                comparisonOptions={[
+                  { 
+                    key: 'year-over-year', 
+                    name: 'سنة بعد سنة', 
+                    calculate: (data, timeField, metric) => 
+                      calculateYearOverYear(data, timeField, metric)
+                  },
+                  { 
+                    key: 'month-over-month', 
+                    name: 'شهر بعد شهر', 
+                    calculate: (data, timeField, metric) => 
+                      calculateMonthOverMonth(data, timeField, metric)
+                  },
+                  { 
+                    key: 'moving-average', 
+                    name: 'المتوسط المتحرك (3 فترات)', 
+                    calculate: (data, timeField, metric) => 
+                      calculateMovingAverage(data, timeField, metric, 3)
+                  },
+                  { 
+                    key: 'cumulative', 
+                    name: 'المجموع التراكمي', 
+                    calculate: (data, timeField, metric) => 
+                      calculateCumulativeSum(data, timeField, metric)
+                  }
+                ]}
+              />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </PageContainer>

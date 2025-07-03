@@ -55,27 +55,36 @@ export interface MaintenanceRecord {
 
 /**
  * Extended vehicle information including maintenance and rental history
+ * Based on the actual database schema
  */
-export interface ExtendedVehicle extends Database['public']['Tables']['vehicles']['Row'] {
-  make: string;
-  model: string;
-  year: number;
-  vin: string;
-  license_plate?: string;
-  status: VehicleStatus;
-  location: string;
-  vehicle_type_id: string;
-  mileage: number;
+export interface ExtendedVehicle {
+  // Base fields from database
+  id: string;
+  make: string | null;
+  model: string | null;
+  license_plate: string | null;
+  year: number | null;
+  vin: string | null;
+  color: string | null;
+  status: VehicleStatus | null;
+  attention_needed_notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  engine_number: string | null;
+  model_number: string | null;
+  notes: string | null;
+  
+  // Additional computed or optional fields that might be added by the application
+  location?: string;
+  vehicle_type_id?: string;
+  mileage?: number;
   last_maintenance_date?: string;
   next_maintenance_date?: string;
-  daily_rate: number;
-  weekly_rate: number;
-  monthly_rate: number;
+  daily_rate?: number;
+  weekly_rate?: number;
+  monthly_rate?: number;
   images?: string[];
   features?: string[];
-  notes?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 /**

@@ -65,17 +65,54 @@ export interface ErrorDetails {
 }
 
 /**
+ * Error patterns for handling
+ */
+export type ErrorPattern = 'SILENT' | 'TOAST_ONLY' | 'CONSOLE_ONLY' | 'FULL';
+
+/**
  * Base error interface for all application errors
  */
 export interface AppError {
-  code: ErrorCode;
+  code: string;
   message: string;
-  details?: ErrorDetails;
-  originalError?: unknown;
-  status?: number;
-  retryable?: boolean;
   severity?: ErrorSeverity;
-  context?: ErrorContext;
+  retryable?: boolean;
+  context?: Record<string, any>;
+  details?: Record<string, any>;
+}
+
+/**
+ * Error handling configuration
+ */
+export interface ErrorConfig {
+  pattern?: ErrorPattern;
+  context?: Record<string, any>;
+  customMessage?: string;
+  severity?: ErrorSeverity;
+  showToast?: boolean;
+  logError?: boolean;
+}
+
+/**
+ * Error state for hooks
+ */
+export interface ErrorState {
+  error: AppError | null;
+  isError: boolean;
+  hasError: boolean;
+  errorMessage: string | null;
+  severity: ErrorSeverity;
+}
+
+/**
+ * Form error state
+ */
+export interface FormErrorState {
+  fieldErrors: Record<string, string[]>;
+  generalError: AppError | null;
+  isError: boolean;
+  hasFieldErrors: boolean;
+  hasGeneralError: boolean;
 }
 
 /**

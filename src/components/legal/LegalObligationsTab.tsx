@@ -78,8 +78,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
             description: newCaseForm.description,
             amount_owed: newCaseForm.amount_owed,
             status: 'active',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            // تم حذف created_at و updated_at لأن Supabase ينشئهما تلقائياً
           }
         ])
         .select()

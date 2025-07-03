@@ -19,6 +19,9 @@ import PageHeader from '@/components/ui/PageHeader';
 import { Wrench } from 'lucide-react';
 import { MaintenanceSchedulingWizard } from '@/components/maintenance/MaintenanceSchedulingWizard';
 import { VehicleStatusManager } from '@/components/maintenance/VehicleStatusManager';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 const Maintenance = () => {
   const navigate = useNavigate();
@@ -41,6 +44,9 @@ const Maintenance = () => {
 
   const { getAllRecords, deleteMaintenanceRecord } = useMaintenance();
   const { getAllVehicles } = useVehicleService();
+  
+  // Error handler
+  const { error, handleError, clearError, retry, setRetryHandler } = useErrorHandler();
 
   // تحميل البيانات مرة واحدة فقط عند تحميل المكون
   useEffect(() => {
@@ -50,6 +56,7 @@ const Maintenance = () => {
       try {
         setIsLoading(true);
         setIsLoadingVehicles(true);
+        clearError();
 
         // تحميل سجلات الصيانة
         const records = await getAllRecords();
@@ -75,8 +82,11 @@ const Maintenance = () => {
         }
       } catch (error) {
         if (mounted) {
-          console.error('Error loading maintenance data:', error);
-          toast.error('فشل في تحميل بيانات الصيانة');
+          handleError(error, {
+            showToast: true,
+            logError: true,
+            context: { page: 'maintenance', action: 'loadData' }
+          });
           setIsLoading(false);
           setIsLoadingVehicles(false);
         }
@@ -145,6 +155,7 @@ const Maintenance = () => {
     try {
       setIsLoading(true);
       setIsLoadingVehicles(true);
+      clearError();
 
       const [records, vehicleData] = await Promise.all([
         getAllRecords(),
@@ -164,13 +175,16 @@ const Maintenance = () => {
       
       toast.success('تم تحديث البيانات بنجاح');
     } catch (error) {
-      console.error('Error refreshing data:', error);
-      toast.error('فشل في تحديث البيانات');
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { page: 'maintenance', action: 'handleManualRefresh' }
+      });
     } finally {
       setIsLoading(false);
       setIsLoadingVehicles(false);
     }
-  }, [getAllRecords, getAllVehicles]);
+  }, [getAllRecords, getAllVehicles, clearError, handleError]);
 
   // خيارات المركبات مع memoization
   const vehicleOptions = useMemo(() => 
@@ -423,6 +437,21 @@ const Maintenance = () => {
           </Card>
         )}
 
+        {/* Error Display */}
+        {error.hasError && (
+          <ErrorDisplay
+            error={error.error}
+            variant="alert"
+            showRetry={true}
+            onRetry={() => {
+              clearError();
+              setRetryHandler(() => handleManualRefresh());
+              retry?.();
+            }}
+            className="mb-6"
+          />
+        )}
+
         {/* Main Tabs System */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
           <TabsList className="grid w-full grid-cols-4 h-12" dir="rtl" style={{ direction: 'rtl' }}>
@@ -460,121 +489,129 @@ const Maintenance = () => {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <MaintenanceDashboard />
-            
-            {/* إضافة QuickActionsPanel */}
-            <QuickActionsPanel
-              onEmergencyMaintenance={handleEmergencyMaintenance}
-              onAssignTechnician={handleAssignTechnician}
-              onPostponeMaintenance={handlePostponeMaintenance}
-              onRequestParts={handleRequestParts}
-              onViewReports={handleViewReports}
-              onManageTeam={handleManageTeam}
-              urgentCount={activeRecords.filter(r => r.priority === 'urgent' || r.service_type?.includes('طارئ')).length}
-              pendingAssignments={activeRecords.filter(r => !r.assigned_technician).length}
-            />
-            
-            <MaintenanceFilters 
-              onFilterChange={handleFilterChange}
-              vehicleOptions={vehicleOptions}
-            />
+            <ErrorBoundary>
+              <MaintenanceDashboard />
+              
+              {/* إضافة QuickActionsPanel */}
+              <QuickActionsPanel
+                onEmergencyMaintenance={handleEmergencyMaintenance}
+                onAssignTechnician={handleAssignTechnician}
+                onPostponeMaintenance={handlePostponeMaintenance}
+                onRequestParts={handleRequestParts}
+                onViewReports={handleViewReports}
+                onManageTeam={handleManageTeam}
+                urgentCount={activeRecords.filter(r => r.priority === 'urgent' || r.service_type?.includes('طارئ')).length}
+                pendingAssignments={activeRecords.filter(r => !r.assigned_technician).length}
+              />
+              
+              <MaintenanceFilters 
+                onFilterChange={handleFilterChange}
+                vehicleOptions={vehicleOptions}
+              />
 
-            <Card className="p-4">
-              <CardHeader>
-                <CardTitle className="text-right">المركبات في الصيانة</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <VehicleMaintenanceCards 
-                  vehicles={vehicles || []}
-                  isLoading={isLoadingVehicles}
-                  onVehicleCardClick={handleVehicleCardClick}
-                />
-              </CardContent>
-            </Card>
+              <Card className="p-4">
+                <CardHeader>
+                  <CardTitle className="text-right">المركبات في الصيانة</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <VehicleMaintenanceCards 
+                    vehicles={vehicles || []}
+                    isLoading={isLoadingVehicles}
+                    onVehicleCardClick={handleVehicleCardClick}
+                  />
+                </CardContent>
+              </Card>
 
-            {/* إدارة حالات المركبات */}
-            <VehicleStatusManager
-              vehicles={vehicles || []}
-              isLoading={isLoadingVehicles}
-              onRefresh={handleManualRefresh}
-            />
+              {/* إدارة حالات المركبات */}
+              <VehicleStatusManager
+                vehicles={vehicles || []}
+                isLoading={isLoadingVehicles}
+                onRefresh={handleManualRefresh}
+              />
+            </ErrorBoundary>
           </TabsContent>
 
           {/* Active Maintenance Tab */}
           <TabsContent value="active" className="space-y-6">
-            {/* إضافة Timeline للصيانة النشطة */}
-            {activeRecords.length > 0 && (
-              <div className="grid gap-4">
-                {activeRecords.slice(0, 2).map((record) => (
-                  <MaintenanceTimeline
-                    key={record.id}
-                    stages={getSampleTimelineStages(record)}
-                    vehicleInfo={getVehicleInfo(record.vehicle_id)}
-                    maintenanceType={record.service_type || record.maintenance_type || 'صيانة عامة'}
-                  />
-                ))}
-              </div>
-            )}
+            <ErrorBoundary>
+              {/* إضافة Timeline للصيانة النشطة */}
+              {activeRecords.length > 0 && (
+                <div className="grid gap-4">
+                  {activeRecords.slice(0, 2).map((record) => (
+                    <MaintenanceTimeline
+                      key={record.id}
+                      stages={getSampleTimelineStages(record)}
+                      vehicleInfo={getVehicleInfo(record.vehicle_id)}
+                      maintenanceType={record.service_type || record.maintenance_type || 'صيانة عامة'}
+                    />
+                  ))}
+                </div>
+              )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-right flex items-center gap-2 flex-row-reverse">
-                  <AlertTriangle className="h-5 w-5 text-orange-500" />
-                  الصيانة النشطة والمجدولة
-                  <Badge variant="destructive">{activeRecords.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MaintenanceTable
-                  records={activeRecords}
-                  onEdit={handleEditMaintenance}
-                  onDelete={handleDeleteMaintenance}
-                  isLoading={isLoading}
-                />
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-right flex items-center gap-2 flex-row-reverse">
+                    <AlertTriangle className="h-5 w-5 text-orange-500" />
+                    الصيانة النشطة والمجدولة
+                    <Badge variant="destructive">{activeRecords.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MaintenanceTable
+                    records={activeRecords}
+                    onEdit={handleEditMaintenance}
+                    onDelete={handleDeleteMaintenance}
+                    isLoading={isLoading}
+                  />
+                </CardContent>
+              </Card>
+            </ErrorBoundary>
           </TabsContent>
 
           {/* Schedule Tab */}
           <TabsContent value="schedule" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-right flex items-center gap-2 flex-row-reverse">
-                  <Calendar className="h-5 w-5 text-blue-500" />
-                  الصيانة المجدولة
-                  <Badge variant="secondary">{scheduledRecords.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MaintenanceTable
-                  records={scheduledRecords}
-                  onEdit={handleEditMaintenance}
-                  onDelete={handleDeleteMaintenance}
-                  isLoading={isLoading}
-                />
-              </CardContent>
-            </Card>
+            <ErrorBoundary>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-right flex items-center gap-2 flex-row-reverse">
+                    <Calendar className="h-5 w-5 text-blue-500" />
+                    الصيانة المجدولة
+                    <Badge variant="secondary">{scheduledRecords.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MaintenanceTable
+                    records={scheduledRecords}
+                    onEdit={handleEditMaintenance}
+                    onDelete={handleDeleteMaintenance}
+                    isLoading={isLoading}
+                  />
+                </CardContent>
+              </Card>
+            </ErrorBoundary>
           </TabsContent>
 
           {/* History Tab */}
           <TabsContent value="history" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-right flex items-center gap-2 flex-row-reverse">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  سجل الصيانة المكتملة
-                  <Badge variant="outline">{completedRecords.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MaintenanceTable
-                  records={completedRecords}
-                  onEdit={handleEditMaintenance}
-                  onDelete={handleDeleteMaintenance}
-                  isLoading={isLoading}
-                />
-              </CardContent>
-            </Card>
+            <ErrorBoundary>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-right flex items-center gap-2 flex-row-reverse">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    سجل الصيانة المكتملة
+                    <Badge variant="outline">{completedRecords.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MaintenanceTable
+                    records={completedRecords}
+                    onEdit={handleEditMaintenance}
+                    onDelete={handleDeleteMaintenance}
+                    isLoading={isLoading}
+                  />
+                </CardContent>
+              </Card>
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
 

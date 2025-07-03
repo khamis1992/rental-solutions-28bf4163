@@ -4,6 +4,7 @@ import { CustomerService, customerService } from '@/services/CustomerService';
 import { Customer, CustomerFilterParams } from '@/types/customer.types';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/types/service.types';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 interface UseCustomerServiceOptions {
   filters?: CustomerFilterParams;
@@ -12,8 +13,11 @@ interface UseCustomerServiceOptions {
 export function useCustomerService(options: UseCustomerServiceOptions = {}) {
   const queryClient = useQueryClient();
 
-  // Always ensure filters is defined and searchTerm is present
-  const [filters, setFilters] = useState<CustomerFilterParams>({ searchTerm: '', ...(options.filters || {}) });
+  // Always ensure filters is defined and search is present
+  const [filters, setFilters] = useState<CustomerFilterParams>({ search: '', ...(options.filters || {}) });
+  
+  // Use error handler
+  const { handleError } = useErrorHandler();
 
   const listCustomers = useCallback(async () => {
     try {
@@ -23,11 +27,14 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
       }
       return result.data;
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to fetch customers: ${errorMessage}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'customer', action: 'listCustomers', filters }
+      });
       throw error;
     }
-  }, [filters]);
+  }, [filters, handleError]);
 
   const getCustomer = useCallback(async (id: string) => {
     try {
@@ -37,11 +44,14 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
       }
       return result.data;
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to fetch customer: ${errorMessage}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'customer', action: 'getCustomer', customerId: id }
+      });
       throw error;
     }
-  }, []);
+  }, [handleError]);
 
   const createCustomer = useCallback(async (data: Partial<Customer>) => {
     try {
@@ -51,11 +61,14 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
       }
       return result.data;
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to create customer: ${errorMessage}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'customer', action: 'createCustomer', data }
+      });
       throw error;
     }
-  }, []);
+  }, [handleError]);
 
   const updateCustomer = useCallback(async (id: string, data: Partial<Customer>) => {
     try {
@@ -65,11 +78,14 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
       }
       return result.data;
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to update customer: ${errorMessage}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'customer', action: 'updateCustomer', customerId: id, data }
+      });
       throw error;
     }
-  }, []);
+  }, [handleError]);
 
   const deleteCustomer = useCallback(async (id: string) => {
     try {
@@ -78,11 +94,14 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
         throw new Error(getErrorMessage(result.error));
       }
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to delete customer: ${errorMessage}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'customer', action: 'deleteCustomer', customerId: id }
+      });
       throw error;
     }
-  }, []);
+  }, [handleError]);
 
   const {
     data: customers = [],
@@ -98,7 +117,14 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
     mutationFn: createCustomer,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast.success('Customer created successfully');
+      toast.success('تم إنشاء العميل بنجاح');
+    },
+    onError: (error) => {
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'customer', action: 'createCustomerMutation' }
+      });
     },
   });
 
@@ -107,7 +133,14 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
       updateCustomer(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast.success('Customer updated successfully');
+      toast.success('تم تحديث العميل بنجاح');
+    },
+    onError: (error) => {
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'customer', action: 'updateCustomerMutation' }
+      });
     },
   });
 
@@ -115,7 +148,14 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
     mutationFn: deleteCustomer,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast.success('Customer deleted successfully');
+      toast.success('تم حذف العميل بنجاح');
+    },
+    onError: (error) => {
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'customer', action: 'deleteCustomerMutation' }
+      });
     },
   });
 

@@ -15,6 +15,7 @@ import {
   AppError,
   ErrorDetails
 } from '@/types/error.types';
+import { handleApiError } from '@/utils/unified-error-handler';
 import { VehicleRepository } from '@/lib/database/vehicle-repository';
 import { createSuccessResult, createErrorResult, Result } from '@/types/response.types';
 import { 

@@ -13,6 +13,9 @@ import { toast } from 'sonner';
 import { CacheSynchronization } from '@/utils/cache-synchronization';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Users } from 'lucide-react';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import '@/styles/customer-mobile.css';
 
 const Customers = () => {
@@ -33,6 +36,9 @@ const Customers = () => {
     setFilters,
     refetch
   } = useCustomerService();
+  
+  // Use error handler
+  const { error: errorState, handleError, clearError } = useErrorHandler();
 
   // Transform customers data to match CustomerInfo type
   const transformedCustomers: CustomerInfo[] = (customers || []).map(customer => ({
@@ -53,23 +59,35 @@ const Customers = () => {
   // Check if edge function for importing is available
   useEffect(() => {
     const checkAvailability = async () => {
-      const available = await checkEdgeFunctionAvailability('process-customer-imports', 2);
-      setIsEdgeFunctionAvailable(available);
+      try {
+        const available = await checkEdgeFunctionAvailability('process-customer-imports', 2);
+        setIsEdgeFunctionAvailable(available);
+      } catch (error) {
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { page: 'customers', action: 'checkEdgeFunctionAvailability' }
+        });
+      }
     };
     
     checkAvailability();
-  }, []);
+  }, [handleError]);
 
   // Handle refreshing the customer data
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
+      clearError();
       await CacheSynchronization.invalidateCustomerCaches();
       await refetch();
       toast.success(language === 'ar' ? 'تم تحديث بيانات العملاء' : 'Customer data refreshed');
     } catch (error) {
-      toast.error(language === 'ar' ? 'فشل في تحديث بيانات العملاء' : 'Failed to refresh customer data');
-      console.error('Refresh error:', error);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { page: 'customers', action: 'refresh' }
+      });
     } finally {
       setIsRefreshing(false);
     }
@@ -82,7 +100,7 @@ const Customers = () => {
     if (value === 'all') {
       setFilters({ ...filters, status: undefined });
     } else {
-      setFilters({ ...filters, status: value });
+      setFilters({ ...filters, status: value as any });
     }
   };
 
@@ -94,9 +112,17 @@ const Customers = () => {
 
   // Handle import complete
   const handleImportComplete = async () => {
-    await CacheSynchronization.invalidateCustomerCaches();
-    refetch();
-    setIsImportModalOpen(false);
+    try {
+      await CacheSynchronization.invalidateCustomerCaches();
+      refetch();
+      setIsImportModalOpen(false);
+    } catch (error) {
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { page: 'customers', action: 'importComplete' }
+      });
+    }
   };
 
   return (
@@ -114,41 +140,84 @@ const Customers = () => {
         dir="rtl"
         style={{ textAlign: 'right', direction: 'rtl' }}
       >
-        <CustomerPageStatsCards 
-          customers={transformedCustomers} 
-          isLoading={isLoading} 
-        />
+        {/* Error Display */}
+        {errorState.hasError && (
+          <ErrorDisplay
+            error={errorState.error}
+            variant="card"
+            showRetry={true}
+            onRetry={() => {
+              clearError();
+              handleRefresh();
+            }}
+          />
+        )}
         
-        <CustomerPageToolbar
-          filters={{ ...filters, search: filters?.search || '' }}
-          setFilters={setFilters}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          onImportClick={() => setIsImportModalOpen(true)}
-          isEdgeFunctionAvailable={isEdgeFunctionAvailable}
-        />
+        <ErrorBoundary 
+          context={{ page: 'customers', component: 'stats' }}
+          showRetry={true}
+          showBack={false}
+        >
+          <CustomerPageStatsCards 
+            customers={transformedCustomers} 
+            isLoading={isLoading} 
+          />
+        </ErrorBoundary>
         
-        <CustomerPageTabContent
-          selectedTab={selectedTab}
-          onTabChange={handleTabChange}
-          customers={transformedCustomers}
-          isLoading={isLoading}
-          onCustomerSelect={handleCustomerSelect}
-        />
+        <ErrorBoundary 
+          context={{ page: 'customers', component: 'toolbar' }}
+          showRetry={true}
+          showBack={false}
+        >
+          <CustomerPageToolbar
+            filters={{ ...filters, search: filters?.search || '' }}
+            setFilters={setFilters}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+            onImportClick={() => setIsImportModalOpen(true)}
+            isEdgeFunctionAvailable={isEdgeFunctionAvailable}
+          />
+        </ErrorBoundary>
         
-        <div className="mt-8">
-          <CustomerImportHistory />
-        </div>
+        <ErrorBoundary 
+          context={{ page: 'customers', component: 'content' }}
+          showRetry={true}
+          showBack={false}
+        >
+          <CustomerPageTabContent
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+            customers={transformedCustomers}
+            isLoading={isLoading}
+            onCustomerSelect={handleCustomerSelect}
+          />
+        </ErrorBoundary>
+        
+        <ErrorBoundary 
+          context={{ page: 'customers', component: 'history' }}
+          showRetry={true}
+          showBack={false}
+        >
+          <div className="mt-8">
+            <CustomerImportHistory />
+          </div>
+        </ErrorBoundary>
       </div>
       
-      <CustomerPageModals
-        isImportModalOpen={isImportModalOpen}
-        onImportModalChange={setIsImportModalOpen}
-        onImportComplete={handleImportComplete}
-        selectedCustomer={selectedCustomer}
-        isSidebarOpen={isSidebarOpen}
-        onSidebarChange={setIsSidebarOpen}
-      />
+      <ErrorBoundary 
+        context={{ page: 'customers', component: 'modals' }}
+        showRetry={true}
+        showBack={false}
+      >
+        <CustomerPageModals
+          isImportModalOpen={isImportModalOpen}
+          onImportModalChange={setIsImportModalOpen}
+          onImportComplete={handleImportComplete}
+          selectedCustomer={selectedCustomer}
+          isSidebarOpen={isSidebarOpen}
+          onSidebarChange={setIsSidebarOpen}
+        />
+      </ErrorBoundary>
     </PageContainer>
   );
 };

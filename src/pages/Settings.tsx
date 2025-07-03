@@ -4,6 +4,7 @@ import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/ui/PageHeader";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { UserCog, Sliders, Settings as SettingsIcon, Smartphone } from "lucide-react";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 const UserSettings = React.lazy(() => import("./UserSettings"));
 const SystemSettings = React.lazy(() => import("./SystemSettings"));
 const PWASettings = React.lazy(() => import("@/components/settings/PWASettings"));
@@ -40,33 +41,51 @@ const Settings: React.FC = () => {
           </TabsList>
           
           <TabsContent value="user" className="mt-4">
-            <React.Suspense fallback={
-              <div className={`text-center py-8 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                {language === 'ar' ? 'جاري تحميل إعدادات المستخدم...' : 'Loading User Settings...'}
-              </div>
-            }>
-              <UserSettings />
-            </React.Suspense>
+            <ErrorBoundary 
+              context={{ page: 'settings', tab: 'user' }}
+              showRetry={true}
+              showBack={false}
+            >
+              <React.Suspense fallback={
+                <div className={`text-center py-8 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'جاري تحميل إعدادات المستخدم...' : 'Loading User Settings...'}
+                </div>
+              }>
+                <UserSettings />
+              </React.Suspense>
+            </ErrorBoundary>
           </TabsContent>
           
           <TabsContent value="system" className="mt-4">
-            <React.Suspense fallback={
-              <div className={`text-center py-8 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                {language === 'ar' ? 'جاري تحميل إعدادات النظام...' : 'Loading System Settings...'}
-              </div>
-            }>
-              <SystemSettings />
-            </React.Suspense>
+            <ErrorBoundary 
+              context={{ page: 'settings', tab: 'system' }}
+              showRetry={true}
+              showBack={false}
+            >
+              <React.Suspense fallback={
+                <div className={`text-center py-8 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'جاري تحميل إعدادات النظام...' : 'Loading System Settings...'}
+                </div>
+              }>
+                <SystemSettings />
+              </React.Suspense>
+            </ErrorBoundary>
           </TabsContent>
           
           <TabsContent value="pwa" className="mt-4">
-            <React.Suspense fallback={
-              <div className={`text-center py-8 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                {language === 'ar' ? 'جاري تحميل إعدادات التطبيق...' : 'Loading App Settings...'}
-              </div>
-            }>
-              <PWASettings />
-            </React.Suspense>
+            <ErrorBoundary 
+              context={{ page: 'settings', tab: 'pwa' }}
+              showRetry={true}
+              showBack={false}
+            >
+              <React.Suspense fallback={
+                <div className={`text-center py-8 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'جاري تحميل إعدادات التطبيق...' : 'Loading App Settings...'}
+                </div>
+              }>
+                <PWASettings />
+              </React.Suspense>
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </div>

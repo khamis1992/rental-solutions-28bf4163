@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,45 +20,75 @@ interface CustomerCardProps {
   onSelect?: (customer: Customer) => void;
 }
 
-export const CustomerCard: React.FC<CustomerCardProps> = ({
+// Memoized helper functions to prevent recreation
+const statusVariantMap = {
+  active: 'default',
+  inactive: 'secondary',
+  under_review: 'outline',
+  default: 'secondary'
+} as const;
+
+const statusTextMap = {
+  active: 'نشط',
+  inactive: 'غير نشط',
+  under_review: 'قيد المراجعة',
+  blacklisted: 'محظور'
+} as const;
+
+export const CustomerCard: React.FC<CustomerCardProps> = memo(({
   customer,
   onEdit,
   onDelete,
   onSelect
 }) => {
-  const handleCardClick = () => {
+  // Memoized status variant
+  const statusVariant = useMemo(() => 
+    statusVariantMap[customer.status as keyof typeof statusVariantMap] || statusVariantMap.default,
+    [customer.status]
+  );
+
+  // Memoized status text
+  const statusText = useMemo(() => 
+    statusTextMap[customer.status as keyof typeof statusTextMap] || customer.status,
+    [customer.status]
+  );
+
+  // Memoized formatted date
+  const formattedDate = useMemo(() => 
+    new Date().toLocaleDateString('ar-SA'),
+    [] // Empty dependencies as we want daily updates
+  );
+
+  // Memoized handlers
+  const handleCardClick = useCallback(() => {
     if (onSelect) {
       onSelect(customer);
     }
-  };
+  }, [onSelect, customer]);
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'default';
-      case 'inactive':
-        return 'secondary';
-      case 'under_review':
-        return 'outline';
-      default:
-        return 'secondary';
+  const handleEdit = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEdit) {
+      onEdit(customer);
     }
-  };
+  }, [onEdit, customer]);
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'نشط';
-      case 'inactive':
-        return 'غير نشط';
-      case 'under_review':
-        return 'قيد المراجعة';
-      case 'blacklisted':
-        return 'محظور';
-      default:
-        return status;
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm(`هل أنت متأكد من حذف ${customer.full_name}؟`)) {
+      onDelete?.(customer.id!);
     }
-  };
+  }, [onDelete, customer.id, customer.full_name]);
+
+  const handleEmailClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(`mailto:${customer.email}`, '_blank');
+  }, [customer.email]);
+
+  const handlePhoneClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(`tel:${customer.phone}`, '_blank');
+  }, [customer.phone]);
 
   return (
     <Card 
@@ -81,8 +111,8 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
           </div>
           
           <div className="flex items-center gap-2">
-            <Badge variant={getStatusVariant(customer.status)} className="text-xs px-3 py-1">
-              {getStatusText(customer.status)}
+            <Badge variant={statusVariant} className="text-xs px-3 py-1">
+              {statusText}
             </Badge>
             
             <DropdownMenu>
@@ -99,19 +129,14 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
                   </Link>
                 </DropdownMenuItem>
                 {onEdit && (
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(customer); }} className="text-right">
+                  <DropdownMenuItem onClick={handleEdit} className="text-right">
                     تعديل العميل
                   </DropdownMenuItem>
                 )}
                 {onDelete && (
                   <DropdownMenuItem 
                     className="text-destructive focus:text-destructive text-right"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm(`هل أنت متأكد من حذف ${customer.full_name}؟`)) {
-                        onDelete(customer.id!);
-                      }
-                    }}
+                    onClick={handleDelete}
                   >
                     حذف العميل
                   </DropdownMenuItem>
@@ -172,7 +197,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
         <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
           <div className="text-right">
             <p className="text-xs text-muted-foreground">
-              آخر تحديث: {new Date().toLocaleDateString('ar-SA')}
+              آخر تحديث: {formattedDate}
             </p>
           </div>
           
@@ -182,10 +207,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
                 variant="outline"
                 size="sm"
                 className="h-8 px-3 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(`mailto:${customer.email}`, '_blank');
-                }}
+                onClick={handleEmailClick}
               >
                 <Mail className="h-3 w-3 ml-1" />
                 إيميل
@@ -197,10 +219,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
                 variant="outline"
                 size="sm"
                 className="h-8 px-3 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(`tel:${customer.phone}`, '_blank');
-                }}
+                onClick={handlePhoneClick}
               >
                 <Phone className="h-3 w-3 ml-1" />
                 اتصال
@@ -211,4 +230,4 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});

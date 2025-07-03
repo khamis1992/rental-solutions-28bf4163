@@ -4,6 +4,7 @@ import { Payment, PaymentRecord, isPaymentRecord } from '@/types/payment.types';
 import { PaymentInsert } from '@/types/payment-insert.types';
 import { toast } from 'sonner';
 import { ServiceResponse, ApiError } from '@/types/api.types';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 interface SpecialPaymentOptions {
   skipLateFee?: boolean;
@@ -28,6 +29,9 @@ function getErrorMessage(error: string | Error | null): string {
  */
 export const usePaymentService = (agreementId?: string) => {
   const queryClient = useQueryClient();
+  
+  // Use error handler
+  const { handleError } = useErrorHandler();
 
   // Query for fetching payments for an agreement
   const {
@@ -38,13 +42,22 @@ export const usePaymentService = (agreementId?: string) => {
   } = useQuery({
     queryKey: ['payments', agreementId],
     queryFn: async () => {
-      if (!agreementId) return [];
-      
-      const result = await paymentService.getPayments(agreementId);
-      if (!result.success) {
-        throw new Error(getErrorMessage(result.error));
+      try {
+        if (!agreementId) return [];
+        
+        const result = await paymentService.getPayments(agreementId);
+        if (!result.success) {
+          throw new Error(getErrorMessage(result.error));
+        }
+        return result.data;
+      } catch (error) {
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { service: 'payment', action: 'getPayments', agreementId }
+        });
+        throw error;
       }
-      return result.data;
     },
     enabled: !!agreementId,
     staleTime: 300000, // 5 minutes
@@ -60,11 +73,15 @@ export const usePaymentService = (agreementId?: string) => {
       return result.data;
     },
     onSuccess: () => {
-      toast.success('Payment recorded successfully');
+      toast.success('تم تسجيل الدفعة بنجاح');
       queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
     },
     onError: (error) => {
-      toast.error(`Failed to record payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'payment', action: 'recordPayment', agreementId }
+      });
     }
   });
 
@@ -78,11 +95,15 @@ export const usePaymentService = (agreementId?: string) => {
       return result.data;
     },
     onSuccess: () => {
-      toast.success('Payment updated successfully');
+      toast.success('تم تحديث الدفعة بنجاح');
       queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
     },
     onError: (error) => {
-      toast.error(`Failed to update payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'payment', action: 'updatePayment', agreementId }
+      });
     }
   });
 
@@ -96,11 +117,15 @@ export const usePaymentService = (agreementId?: string) => {
       return { success: true };
     },
     onSuccess: () => {
-      toast.success('Payment deleted successfully');
+      toast.success('تم حذف الدفعة بنجاح');
       queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
     },
     onError: (error) => {
-      toast.error(`Failed to delete payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'payment', action: 'deletePayment', agreementId }
+      });
     }
   });
 
@@ -143,13 +168,17 @@ export const usePaymentService = (agreementId?: string) => {
       return result.data;
     },
     onSuccess: (data) => {
-      toast.success('Special payment processed successfully');
+      toast.success('تم معالجة الدفعة الخاصة بنجاح');
       queryClient.invalidateQueries({
         queryKey: ['payments', data.lease_id],
       });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to process special payment');
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'payment', action: 'handleSpecialPayment', agreementId }
+      });
     },
   });
 
@@ -163,13 +192,17 @@ export const usePaymentService = (agreementId?: string) => {
       return result.data;
     },
     onSuccess: () => {
-      toast.success('Payment schedules checked and updated');
+      toast.success('تم فحص وتحديث جداول الدفعات بنجاح');
       if (agreementId) {
         queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
       }
     },
     onError: (error) => {
-      toast.error(`Payment schedule check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'payment', action: 'checkAndCreateMissingPayments', agreementId }
+      });
     }
   });
 
@@ -183,11 +216,15 @@ export const usePaymentService = (agreementId?: string) => {
       return result.data;
     },
     onSuccess: (data) => {
-      toast.success(`Payment records fixed successfully: ${data.fixedCount} issues resolved`);
+      toast.success(`تم إصلاح سجلات الدفعات بنجاح: تم حل ${data.fixedCount} مشكلة`);
       queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
     },
     onError: (error) => {
-      toast.error(`Failed to fix payments: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'payment', action: 'fixAgreementPayments', agreementId }
+      });
     }
   });
 
@@ -204,11 +241,15 @@ export const usePaymentService = (agreementId?: string) => {
       return result.data;
     },
     onSuccess: (data) => {
-      toast.success(`${data.updatedCount} historical payment records updated to completed status`);
+      toast.success(`تم تحديث ${data.updatedCount} سجل دفعة تاريخية إلى حالة مكتملة`);
       queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
     },
     onError: (error) => {
-      toast.error(`Failed to update payment statuses: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'payment', action: 'updateHistoricalPaymentStatuses', agreementId }
+      });
     }
   });
 

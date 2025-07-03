@@ -7,6 +7,9 @@ import { DashboardContent } from '@/components/dashboard/DashboardContent';
 import { CacheManager } from '@/lib/cache-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -30,6 +33,9 @@ const Dashboard = () => {
   const { language } = useLanguage();
   const queryClient = useQueryClient();
   
+  // Use error handler
+  const { error: errorState, handleError, clearError } = useErrorHandler();
+  
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     
@@ -45,11 +51,10 @@ const Dashboard = () => {
         description: "تم تحديث جميع البيانات بأحدث المعلومات."
       });
     } catch (error) {
-      console.error('Error refreshing dashboard:', error);
-      toast({
-        title: "خطأ في التحديث",
-        description: "حدث خطأ أثناء تحديث البيانات. يرجى المحاولة مرة أخرى.",
-        variant: "destructive"
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { page: 'dashboard', action: 'refresh' }
       });
     } finally {
       setIsRefreshing(false);
@@ -270,22 +275,49 @@ const Dashboard = () => {
         dir={language === 'ar' ? 'rtl' : 'ltr'} 
         className={`${language === 'ar' ? 'arabic-dashboard' : ''} min-h-screen`}
       >
-        <DashboardHeader 
-          currentDate={currentDate}
-          isRefreshing={isRefreshing}
-          onRefresh={handleRefresh}
-        />
+        <ErrorBoundary 
+          context={{ page: 'dashboard', component: 'header' }}
+          showRetry={true}
+          showBack={false}
+        >
+          <DashboardHeader 
+            currentDate={currentDate}
+            isRefreshing={isRefreshing}
+            onRefresh={handleRefresh}
+          />
+        </ErrorBoundary>
         
-        <DashboardContent 
-          isLoading={isLoading}
-          isError={isError}
-          error={error}
-          stats={stats}
-          revenue={revenue}
-          activity={activity}
-          collapsedSections={collapsedSections}
-          onToggleSection={toggleSection}
-        />
+        {/* Error Display for unified error handler */}
+        {errorState.hasError && (
+          <div className="p-4 mb-4">
+            <ErrorDisplay
+              error={errorState.error}
+              variant="card"
+              showRetry={true}
+              onRetry={() => {
+                clearError();
+                handleRefresh();
+              }}
+            />
+          </div>
+        )}
+        
+        <ErrorBoundary 
+          context={{ page: 'dashboard', component: 'content' }}
+          showRetry={true}
+          showBack={false}
+        >
+          <DashboardContent 
+            isLoading={isLoading}
+            isError={isError}
+            error={error}
+            stats={stats}
+            revenue={revenue}
+            activity={activity}
+            collapsedSections={collapsedSections}
+            onToggleSection={toggleSection}
+          />
+        </ErrorBoundary>
       </div>
     </PageContainer>
   );

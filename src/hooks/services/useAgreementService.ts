@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { AgreementStatus } from '@/types/agreement-types';
 import { Agreement } from '@/types/agreement';
 import { getErrorMessage } from '@/types/service.types';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 /**
  * Hook for working with the Agreement Service
@@ -13,6 +14,9 @@ import { getErrorMessage } from '@/types/service.types';
 export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
   const queryClient = useQueryClient();
+  
+  // Use error handler
+  const { handleError } = useErrorHandler();
 
   // Query for fetching agreements with filters
   const {
@@ -23,12 +27,21 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: async () => {
-      console.log('Fetching agreements with filters:', searchParams);
-      const result = await agreementService.fetchAgreements(searchParams);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to fetch agreements');
+      try {
+        console.log('Fetching agreements with filters:', searchParams);
+        const result = await agreementService.fetchAgreements(searchParams);
+        if (!result.success) {
+          throw new Error(result.error?.toString() || 'Failed to fetch agreements');
+        }
+        return result.data;
+      } catch (error) {
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { service: 'agreement', action: 'fetchAgreements', searchParams }
+        });
+        throw error;
       }
-      return result.data;
     },
     staleTime: 600000, // 10 minutes
     gcTime: 900000, // 15 minutes
@@ -36,11 +49,20 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
 
   // Function for getting agreement details
   const getAgreementDetails = async (id: string) => {
-    const result = await agreementService.getAgreementById(id);
-    if (!result.success) {
-      throw new Error(result.error?.toString() || 'Failed to fetch agreement details');
+    try {
+      const result = await agreementService.getAgreementById(id);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to fetch agreement details');
+      }
+      return result.data;
+    } catch (error) {
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'agreement', action: 'getAgreementDetails', agreementId: id }
+      });
+      throw error;
     }
-    return result.data;
   };
 
   // Mutation for updating an agreement
@@ -84,12 +106,16 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       return result.data;
     },
     onSuccess: () => {
-      toast.success('Agreement updated successfully');
+      toast.success('تم تحديث العقد بنجاح');
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
     onError: (error) => {
       console.error('❌ updateAgreement onError:', error);
-      toast.error(`Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'agreement', action: 'updateAgreement' }
+      });
     }
   });
 
@@ -103,11 +129,15 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       return result.data;
     },
     onSuccess: () => {
-      toast.success('Status updated successfully');
+      toast.success('تم تحديث حالة العقد بنجاح');
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
     onError: (error) => {
-      toast.error(`Status update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'agreement', action: 'changeStatus' }
+      });
     }
   });
 
@@ -135,23 +165,35 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     },
     onSuccess: (data) => {
       console.log('Delete mutation onSuccess called with:', data);
-      toast.success(`Agreement deleted successfully. ${data.deletionResult?.message || ''}`);
+      toast.success(`تم حذف العقد بنجاح. ${data.deletionResult?.message || ''}`);
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
     onError: (error) => {
       console.error('Delete mutation onError called with:', error);
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Deletion failed: ${errorMessage}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'agreement', action: 'deleteAgreement' }
+      });
     }
   });
 
   // Function to validate deletion before attempting
   const validateDeletion = async (id: string) => {
-    const result = await agreementDeletionService.validateDeletion(id);
-    if (!result.success) {
-      throw new Error(result.error?.toString() || 'Failed to validate deletion');
+    try {
+      const result = await agreementDeletionService.validateDeletion(id);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to validate deletion');
+      }
+      return result.data;
+    } catch (error) {
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'agreement', action: 'validateDeletion', agreementId: id }
+      });
+      throw error;
     }
-    return result.data;
   };
 
   // Calculate remaining amount (not implemented in AgreementService, so use a placeholder)
@@ -175,11 +217,15 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       return result.data;
     },
     onSuccess: () => {
-      toast.success('Agreement created successfully');
+      toast.success('تم إنشاء العقد بنجاح');
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
     onError: (error) => {
-      toast.error(`Creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, {
+        showToast: true,
+        logError: true,
+        context: { service: 'agreement', action: 'createAgreement' }
+      });
     }
   });
 

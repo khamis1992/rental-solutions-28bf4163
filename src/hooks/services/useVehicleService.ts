@@ -1,16 +1,16 @@
 import { useState, useCallback } from 'react';
 import { ExtendedVehicle } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
-import { handleError } from '@/utils/error-handler';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 export const useVehicleService = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const { error: errorState, handleError, clearError } = useErrorHandler();
 
   const getAllVehicles = useCallback(async (): Promise<ExtendedVehicle[]> => {
     try {
       setLoading(true);
-      setError(null);
+      clearError();
 
       const { data, error: supabaseError } = await supabase
         .from('vehicles')
@@ -23,18 +23,21 @@ export const useVehicleService = () => {
 
       return data as ExtendedVehicle[];
     } catch (err) {
-      const error = handleError(err);
-      setError(error);
-      throw error;
+      handleError(err, {
+        showToast: true,
+        logError: true,
+        context: { service: 'vehicle', action: 'getAllVehicles' }
+      });
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearError, handleError]);
 
   const getVehicleById = useCallback(async (id: string): Promise<ExtendedVehicle | null> => {
     try {
       setLoading(true);
-      setError(null);
+      clearError();
 
       const { data, error: supabaseError } = await supabase
         .from('vehicles')
@@ -48,18 +51,21 @@ export const useVehicleService = () => {
 
       return data as ExtendedVehicle;
     } catch (err) {
-      const error = handleError(err);
-      setError(error);
-      throw error;
+      handleError(err, {
+        showToast: true,
+        logError: true,
+        context: { service: 'vehicle', action: 'getVehicleById', id }
+      });
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearError, handleError]);
 
   const createVehicle = useCallback(async (vehicle: Omit<ExtendedVehicle, 'id' | 'created_at' | 'updated_at'>): Promise<ExtendedVehicle> => {
     try {
       setLoading(true);
-      setError(null);
+      clearError();
 
       const { data, error: supabaseError } = await supabase
         .from('vehicles')
@@ -73,18 +79,21 @@ export const useVehicleService = () => {
 
       return data as ExtendedVehicle;
     } catch (err) {
-      const error = handleError(err);
-      setError(error);
-      throw error;
+      handleError(err, {
+        showToast: true,
+        logError: true,
+        context: { service: 'vehicle', action: 'createVehicle' }
+      });
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearError, handleError]);
 
   const updateVehicle = useCallback(async (id: string, vehicle: Partial<ExtendedVehicle>): Promise<ExtendedVehicle> => {
     try {
       setLoading(true);
-      setError(null);
+      clearError();
 
       const { data, error: supabaseError } = await supabase
         .from('vehicles')
@@ -99,18 +108,21 @@ export const useVehicleService = () => {
 
       return data as ExtendedVehicle;
     } catch (err) {
-      const error = handleError(err);
-      setError(error);
-      throw error;
+      handleError(err, {
+        showToast: true,
+        logError: true,
+        context: { service: 'vehicle', action: 'updateVehicle', id }
+      });
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearError, handleError]);
 
   const deleteVehicle = useCallback(async (id: string): Promise<void> => {
     try {
       setLoading(true);
-      setError(null);
+      clearError();
 
       const { error: supabaseError } = await supabase
         .from('vehicles')
@@ -121,17 +133,20 @@ export const useVehicleService = () => {
         throw new Error(supabaseError.message);
       }
     } catch (err) {
-      const error = handleError(err);
-      setError(error);
-      throw error;
+      handleError(err, {
+        showToast: true,
+        logError: true,
+        context: { service: 'vehicle', action: 'deleteVehicle', id }
+      });
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearError, handleError]);
 
   return {
     loading,
-    error,
+    error: errorState,
     getAllVehicles,
     getVehicleById,
     createVehicle,

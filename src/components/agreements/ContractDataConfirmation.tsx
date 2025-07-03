@@ -139,8 +139,7 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
         color: vehicleData.color || 'غير محدد',
         vin: vehicleData.chassisNumber || '',
         status: 'available' as const,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        // تم حذف created_at و updated_at لأن Supabase ينشئهما تلقائياً
       };
 
       console.log('🚗 بيانات المركبة الجديدة:', newVehicle);
