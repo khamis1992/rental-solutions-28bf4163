@@ -14,8 +14,8 @@ import { useIsMobile } from "./hooks/use-mobile";
 // PWA Components
 import { PWAController } from "./components/pwa/PWAController";
 
-// Mobile Performance Components
-import { MobilePerformanceMonitor, useMobilePerformanceOptimization } from "./components/ui/mobile-performance-monitor";
+// Mobile Performance Components (removed monitor display for cleaner UX)
+import { useMobilePerformanceOptimization } from "./components/ui/mobile-performance-monitor";
 
 // Performance Optimizer
 import { performanceOptimizer } from "./utils/performance-optimizer";
@@ -566,8 +566,7 @@ function App() {
                           />
                         )}
                         
-                        {/* مراقب الأداء للجوال */}
-                        <MobilePerformanceMonitor />
+
                         
                         <Toaster />
                         <Sonner />

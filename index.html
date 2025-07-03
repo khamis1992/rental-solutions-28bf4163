@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
     <!-- تحسينات خاصة بالجوال -->
     <meta name="format-detection" content="telephone=no" />
@@ -140,16 +140,50 @@
         background: #ffffff;
       }
       
-      /* تحسين الأداء للجوال */
+      /* تحسين الأداء والانسابية للجوال */
       @media (max-width: 768px) {
         body {
           font-size: 14px;
           touch-action: manipulation;
           -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          scroll-behavior: smooth;
+          position: relative;
+          min-height: 100vh;
+          min-height: -webkit-fill-available;
+        }
+        
+        html {
+          height: -webkit-fill-available;
         }
         
         input, select, textarea {
           font-size: 16px; /* منع zoom في iOS */
+          touch-action: manipulation;
+        }
+        
+        /* تحسين النقر والإيماءات */
+        * {
+          -webkit-tap-highlight-color: transparent;
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          user-select: none;
+        }
+        
+        /* السماح بالتحديد للحقول النصية */
+        input, textarea, [contenteditable] {
+          -webkit-user-select: text;
+          user-select: text;
+        }
+        
+        /* تحسين التمرير */
+        ::-webkit-scrollbar {
+          display: none;
+        }
+        
+        * {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
       }
     </style>
@@ -264,36 +298,12 @@
         deferredPrompt = null;
       });
       
-      // Handle offline/online status with mobile optimizations
+      // Handle offline/online status - simplified for mobile
       function updateOnlineStatus() {
         const isOnline = navigator.onLine;
         document.body.classList.toggle('offline', !isOnline);
         
-        // إضافة مؤشر بصري للجوال
-        const statusIndicator = document.createElement('div');
-        statusIndicator.id = 'connection-status';
-        statusIndicator.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          background: ${isOnline ? '#10b981' : '#ef4444'};
-          color: white;
-          padding: 4px 12px;
-          border-radius: 0 0 8px 8px;
-          font-size: 12px;
-          z-index: 10000;
-          transition: transform 0.3s ease;
-          transform: translateX(-50%) ${isOnline ? 'translateY(-100%)' : 'translateY(0)'};
-        `;
-        statusIndicator.textContent = isOnline ? 'متصل' : 'غير متصل';
-        
-        // إزالة المؤشر السابق وإضافة الجديد
-        const existing = document.getElementById('connection-status');
-        if (existing) existing.remove();
-        if (!isOnline) document.body.appendChild(statusIndicator);
-        
-        // Dispatch custom event
+        // Dispatch custom event for app components to handle
         window.dispatchEvent(new CustomEvent('connection-changed', { 
           detail: { online: isOnline } 
         }));

@@ -20,6 +20,9 @@
 /* Import Day 8 mobile application styles */
 @import './styles/mobile.css';
 
+/* Import advanced mobile optimizations */
+@import './styles/mobile-optimizations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

@@ -155,7 +155,7 @@ export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
   // Mobile layout - NO HEADER, only content and bottom nav
   if (isMobile || breakpoint === 'tablet') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen-mobile bg-gray-50 overflow-hidden">
         {/* Hidden sidebar that can be opened via floating menu button */}
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <div className="fixed top-4 right-4 z-50">
@@ -175,11 +175,14 @@ export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
         </Sheet>
         
         <main 
-          className="px-4 py-4"
+          className="px-4 py-4 overflow-y-auto"
           style={{ 
             paddingBottom: showBottomNav ? 'calc(80px + var(--safe-area-bottom, 0px))' : 'var(--safe-area-bottom, 0px)',
             paddingTop: 'calc(16px + var(--safe-area-top, 0px))',
-            minHeight: '100vh'
+            minHeight: '100vh',
+            maxHeight: '100vh',
+            overflowX: 'hidden',
+            WebkitOverflowScrolling: 'touch'
           }}
         >
           <div className="max-w-full mx-auto">

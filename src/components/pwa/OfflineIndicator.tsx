@@ -3,6 +3,7 @@ import { WifiOff, RefreshCw, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export const OfflineIndicator: React.FC = () => {
   const [isOnline, setIsOnline] = useState(true); // Default to online for SSR
@@ -10,6 +11,7 @@ export const OfflineIndicator: React.FC = () => {
   const [showReconnected, setShowReconnected] = useState(false);
   const [isBrowser, setIsBrowser] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Check if we're in browser environment
@@ -22,15 +24,16 @@ export const OfflineIndicator: React.FC = () => {
       setIsOnline(true);
       setShowReconnected(true);
       
-      // Show reconnected message for 3 seconds
+      // Show reconnected message for 2 seconds (shorter for mobile)
       setTimeout(() => {
         setShowReconnected(false);
-      }, 3000);
+      }, isMobile ? 2000 : 3000);
       
+      // Less intrusive toast for mobile
       toast({
-        title: "Back Online",
-        description: "Your connection has been restored.",
-        duration: 3000,
+        title: isMobile ? "متصل" : "Back Online",
+        description: isMobile ? "تم استعادة الاتصال" : "Your connection has been restored.",
+        duration: isMobile ? 2000 : 3000,
       });
     };
 
@@ -38,12 +41,15 @@ export const OfflineIndicator: React.FC = () => {
       setIsOnline(false);
       setShowReconnected(false);
       
-      toast({
-        title: "You're Offline",
-        description: "Some features may be limited.",
-        variant: "destructive",
-        duration: 5000,
-      });
+      // Only show toast for desktop, mobile indicator is sufficient
+      if (!isMobile) {
+        toast({
+          title: "You're Offline",
+          description: "Some features may be limited.",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
     };
 
     // Listen for connection changes
@@ -98,36 +104,40 @@ export const OfflineIndicator: React.FC = () => {
       {!isOnline && (
         <motion.div
           key="offline"
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: isMobile ? -10 : -20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white shadow-lg"
+          exit={{ opacity: 0, y: isMobile ? -10 : -20 }}
+          className={`fixed z-50 text-white shadow-lg ${
+            isMobile 
+              ? 'bottom-4 left-4 right-4 bg-red-500/90 backdrop-blur-sm rounded-lg p-3' 
+              : 'top-0 left-0 right-0 bg-red-500 py-3'
+          }`}
         >
-          <div className="container mx-auto px-4 py-3">
+          <div className={isMobile ? '' : 'container mx-auto px-4'}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <WifiOff className="w-5 h-5" />
-                <div>
-                  <p className="font-medium">You're offline</p>
-                  <p className="text-sm opacity-90">Check your internet connection</p>
+              <div className="flex items-center gap-2">
+                <WifiOff className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                <div className={isMobile ? 'text-sm' : ''}>
+                  <p className="font-medium">{isMobile ? 'غير متصل' : 'You\'re offline'}</p>
+                  {!isMobile && <p className="text-sm opacity-90">Check your internet connection</p>}
                 </div>
               </div>
               <Button
-                size="sm"
+                size={isMobile ? "xs" : "sm"}
                 variant="outline"
                 onClick={handleRetry}
                 disabled={isRetrying}
-                className="bg-white text-red-500 hover:bg-red-50 border-white"
+                className="bg-white text-red-500 hover:bg-red-50 border-white text-xs"
               >
                 {isRetrying ? (
                   <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Retrying...
+                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                    {isMobile ? 'جارٍ...' : 'Retrying...'}
                   </>
                 ) : (
                   <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Retry
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    {isMobile ? 'إعادة' : 'Retry'}
                   </>
                 )}
               </Button>
@@ -139,15 +149,21 @@ export const OfflineIndicator: React.FC = () => {
       {showReconnected && (
         <motion.div
           key="reconnected"
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: isMobile ? -10 : -20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-green-500 text-white shadow-lg"
+          exit={{ opacity: 0, y: isMobile ? -10 : -20 }}
+          className={`fixed z-50 text-white shadow-lg ${
+            isMobile 
+              ? 'bottom-4 left-4 right-4 bg-green-500/90 backdrop-blur-sm rounded-lg p-3' 
+              : 'top-0 left-0 right-0 bg-green-500 py-3'
+          }`}
         >
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Check className="w-5 h-5" />
-              <p className="font-medium">Back online</p>
+          <div className={isMobile ? '' : 'container mx-auto px-4'}>
+            <div className="flex items-center gap-2">
+              <Check className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+              <p className={`font-medium ${isMobile ? 'text-sm' : ''}`}>
+                {isMobile ? 'تم الاتصال' : 'Back online'}
+              </p>
             </div>
           </div>
         </motion.div>
