@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -23,74 +23,128 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
-const Maintenance = () => {
+// Global State Management & Communication
+import { 
+  useFilterState,
+  useLoadingState,
+  useCacheState,
+  useSelectionState
+} from '@/hooks/use-global-state-management';
+import { 
+  useComponentMessaging, 
+  useComponentLifecycle 
+} from '@/components/providers/CommunicationProvider';
+import { EVENTS } from '@/utils/component-communication';
+
+const Maintenance = memo(() => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  
+  // Global State Management
+  const { filter: globalFilters, setFilter } = useFilterState('maintenance');
+  const { isLoading: globalLoading, withLoading } = useLoadingState('maintenance');
+  const { cache: cachedMaintenance, setCache: setCachedMaintenance } = useCacheState('maintenance');
+  const { selection, setSelection } = useSelectionState('maintenance');
+  
+  // Communication & Event Bus
+  const messaging = useComponentMessaging();
+  useComponentLifecycle('MaintenancePage');
+  
+  // Local state - enhanced with global state integration
+  const [activeTab, setActiveTab] = useState(globalFilters?.tab || 'overview');
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<MaintenanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | undefined>(undefined);
-  const [filters, setFilters] = useState<MaintenanceFilterOptions>({
-    searchTerm: '',
-    status: '',
-    vehicle: '',
-    dateFrom: undefined,
-    dateTo: undefined,
-    maintenanceType: ''
-  });
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | undefined>(
+    selection?.vehicle?.id || undefined
+  );
+  const [filters, setFilters] = useState<MaintenanceFilterOptions>(
+    globalFilters?.maintenance || {
+      searchTerm: '',
+      status: '',
+      vehicle: '',
+      dateFrom: undefined,
+      dateTo: undefined,
+      maintenanceType: ''
+    }
+  );
 
   const { getAllRecords, deleteMaintenanceRecord } = useMaintenance();
   const { getAllVehicles } = useVehicleService();
   
   // Error handler
-  const { error, handleError, clearError, retry, setRetryHandler } = useErrorHandler();
+  const { error, handleError, clearError } = useErrorHandler();
 
-  // تحميل البيانات مرة واحدة فقط عند تحميل المكون
+  // تحميل البيانات مرة واحدة فقط عند تحميل المكون مع Global State Management
   useEffect(() => {
     let mounted = true;
 
     const loadData = async () => {
-      try {
-        setIsLoading(true);
-        setIsLoadingVehicles(true);
-        clearError();
+      return withLoading(async () => {
+        try {
+          setIsLoading(true);
+          setIsLoadingVehicles(true);
+          clearError();
 
-        // تحميل سجلات الصيانة
-        const records = await getAllRecords();
-        if (mounted) {
-          setMaintenanceRecords(records);
-          setFilteredRecords(records);
-          setIsLoading(false);
-        }
+          // Emit loading event
+          messaging.emit(EVENTS.DATA_LOADING, { entity: 'maintenance', action: 'initial_load' });
 
-        // تحميل المركبات - جميع المركبات لإمكانية تغيير الحالة
-        const vehicleData = await getAllVehicles();
-        if (mounted) {
-          // عرض جميع المركبات لإمكانية تغيير حالتها، مع التركيز على الصيانة والحوادث
-          const sortedVehicles = vehicleData.sort((a, b) => {
-            // إعطاء أولوية للمركبات في الصيانة والحوادث
-            const priorityStatus = ['maintenance', 'accident'];
-            const aPriority = priorityStatus.includes(a.status) ? 0 : 1;
-            const bPriority = priorityStatus.includes(b.status) ? 0 : 1;
-            return aPriority - bPriority;
-          });
-          setVehicles(sortedVehicles);
-          setIsLoadingVehicles(false);
+          // تحميل سجلات الصيانة
+          const records = await getAllRecords();
+          if (mounted) {
+            setMaintenanceRecords(records);
+            setFilteredRecords(records);
+            setIsLoading(false);
+            
+            // Cache maintenance records
+            setCachedMaintenance({ records, timestamp: Date.now() });
+            
+            // Emit success event
+            messaging.emit(EVENTS.DATA_UPDATED, { 
+              entity: 'maintenance', 
+              type: 'records',
+              count: records.length 
+            });
+          }
+
+          // تحميل المركبات - جميع المركبات لإمكانية تغيير الحالة
+          const vehicleData = await getAllVehicles();
+          if (mounted) {
+            // عرض جميع المركبات لإمكانية تغيير حالتها، مع التركيز على الصيانة والحوادث
+            const sortedVehicles = vehicleData.sort((a, b) => {
+              // إعطاء أولوية للمركبات في الصيانة والحوادث
+              const priorityStatus = ['maintenance', 'accident'];
+              const aPriority = priorityStatus.includes(a.status) ? 0 : 1;
+              const bPriority = priorityStatus.includes(b.status) ? 0 : 1;
+              return aPriority - bPriority;
+            });
+            setVehicles(sortedVehicles);
+            setIsLoadingVehicles(false);
+            
+            // Emit vehicles loaded event
+            messaging.emit(EVENTS.DATA_UPDATED, { 
+              entity: 'vehicles', 
+              type: 'for_maintenance',
+              count: sortedVehicles.length 
+            });
+          }
+        } catch (error) {
+          if (mounted) {
+            handleError(error, {
+              showToast: true,
+              logError: true,
+              context: { page: 'maintenance', action: 'loadData' }
+            });
+            setIsLoading(false);
+            setIsLoadingVehicles(false);
+            
+            // Emit error event
+            messaging.emit(EVENTS.ERROR_OCCURRED, { entity: 'maintenance', error });
+          }
         }
-      } catch (error) {
-        if (mounted) {
-          handleError(error, {
-            showToast: true,
-            logError: true,
-            context: { page: 'maintenance', action: 'loadData' }
-          });
-          setIsLoading(false);
-          setIsLoadingVehicles(false);
-        }
-      }
+      });
     };
 
     loadData();
@@ -98,9 +152,9 @@ const Maintenance = () => {
     return () => {
       mounted = false;
     };
-  }, []); // Empty dependency array - تحميل مرة واحدة فقط
+  }, [withLoading, messaging, handleError, getAllRecords, getAllVehicles, clearError, setCachedMaintenance]);
 
-  // تطبيق الفلاتر على سجلات الصيانة
+  // تطبيق الفلاتر على سجلات الصيانة مع Event Bus
   useEffect(() => {
     if (!maintenanceRecords || maintenanceRecords.length === 0) {
       setFilteredRecords([]);
@@ -117,6 +171,13 @@ const Maintenance = () => {
         (record.description && record.description.toLowerCase().includes(search)) ||
         (record.notes && record.notes.toLowerCase().includes(search))
       );
+      
+      // Emit search event
+      messaging.emit(EVENTS.SEARCH_PERFORMED, { 
+        entity: 'maintenance', 
+        query: filters.searchTerm,
+        results: filtered.length 
+      });
     }
     
     // Apply status filter
@@ -148,43 +209,95 @@ const Maintenance = () => {
     }
     
     setFilteredRecords(filtered);
-  }, [filters, maintenanceRecords]);
+    
+    // Update global filters
+    setFilter({ ...globalFilters, maintenance: filters });
+    
+    // Emit filter applied event
+    messaging.emit(EVENTS.FILTER_CHANGED, { 
+      entity: 'maintenance', 
+      filters, 
+      resultCount: filtered.length 
+    });
+  }, [filters, maintenanceRecords, globalFilters, setFilter, messaging]);
 
-  // دالة تحديث يدوي
+  // دالة تحديث يدوي محسنة مع Global State Management
   const handleManualRefresh = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setIsLoadingVehicles(true);
-      clearError();
+    return withLoading(async () => {
+      try {
+        setIsLoading(true);
+        setIsLoadingVehicles(true);
+        clearError();
 
-      const [records, vehicleData] = await Promise.all([
-        getAllRecords(),
-        getAllVehicles()
-      ]);
+        // Emit refresh event
+        messaging.emit(EVENTS.DATA_REFRESH, { entity: 'maintenance' });
 
-      setMaintenanceRecords(records);
-      setFilteredRecords(records);
-      // تحديث جميع المركبات مع إعطاء أولوية للصيانة والحوادث
-      const sortedVehicles = vehicleData.sort((a, b) => {
-        const priorityStatus = ['maintenance', 'accident'];
-        const aPriority = priorityStatus.includes(a.status) ? 0 : 1;
-        const bPriority = priorityStatus.includes(b.status) ? 0 : 1;
-        return aPriority - bPriority;
-      });
-      setVehicles(sortedVehicles);
-      
-      toast.success('تم تحديث البيانات بنجاح');
-    } catch (error) {
-      handleError(error, {
-        showToast: true,
-        logError: true,
-        context: { page: 'maintenance', action: 'handleManualRefresh' }
-      });
-    } finally {
-      setIsLoading(false);
-      setIsLoadingVehicles(false);
-    }
-  }, [getAllRecords, getAllVehicles, clearError, handleError]);
+        const [records, vehicleData] = await Promise.all([
+          getAllRecords(),
+          getAllVehicles()
+        ]);
+
+        setMaintenanceRecords(records);
+        setFilteredRecords(records);
+        
+        // Cache updated data
+        setCachedMaintenance({ records, timestamp: Date.now() });
+        
+        // تحديث جميع المركبات مع إعطاء أولوية للصيانة والحوادث
+        const sortedVehicles = vehicleData.sort((a, b) => {
+          const priorityStatus = ['maintenance', 'accident'];
+          const aPriority = priorityStatus.includes(a.status) ? 0 : 1;
+          const bPriority = priorityStatus.includes(b.status) ? 0 : 1;
+          return aPriority - bPriority;
+        });
+        setVehicles(sortedVehicles);
+        
+        // Emit success events
+        messaging.emit(EVENTS.DATA_UPDATED, { 
+          entity: 'maintenance', 
+          action: 'refresh',
+          recordsCount: records.length,
+          vehiclesCount: sortedVehicles.length 
+        });
+        
+        messaging.showSuccess('تحديث مكتمل', 'تم تحديث البيانات بنجاح');
+      } catch (error) {
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { page: 'maintenance', action: 'handleManualRefresh' }
+        });
+        
+        // Emit error event
+        messaging.emit(EVENTS.ERROR_OCCURRED, { entity: 'maintenance', error });
+      } finally {
+        setIsLoading(false);
+        setIsLoadingVehicles(false);
+      }
+    });
+  }, [withLoading, messaging, getAllRecords, getAllVehicles, clearError, handleError, setCachedMaintenance]);
+
+  // Enhanced tab change handler
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Update global state
+    setFilter({ ...globalFilters, tab: value });
+    
+    // Emit tab change event
+    messaging.emit(EVENTS.USER_ACTION, { action: 'tab_change', tab: value, entity: 'maintenance' });
+  };
+
+  // Enhanced filter change handler
+  const handleFilterChange = (newFilters: MaintenanceFilterOptions) => {
+    setFilters(newFilters);
+    
+    // Update global state
+    setFilter({ ...globalFilters, maintenance: newFilters });
+    
+    // Emit filter change event
+    messaging.emit(EVENTS.FILTER_CHANGED, { entity: 'maintenance', filters: newFilters });
+  };
 
   // خيارات المركبات مع memoization
   const vehicleOptions = useMemo(() => 
@@ -219,11 +332,6 @@ const Maintenance = () => {
     completed: completedRecords.length,
     total: maintenanceRecords.length
   }), [activeRecords.length, scheduledRecords.length, completedRecords.length, maintenanceRecords.length]);
-
-  // معالجات الأحداث مع memoization
-  const handleFilterChange = useCallback((newFilters: MaintenanceFilterOptions) => {
-    setFilters(newFilters);
-  }, []);
 
   const handleAddMaintenance = useCallback(() => {
     setIsCreateDialogOpen(true);
@@ -445,15 +553,14 @@ const Maintenance = () => {
             showRetry={true}
             onRetry={() => {
               clearError();
-              setRetryHandler(() => handleManualRefresh());
-              retry?.();
+              handleManualRefresh();
             }}
             className="mb-6"
           />
         )}
 
         {/* Main Tabs System */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full" dir="rtl">
           <TabsList className="grid w-full grid-cols-4 h-12" dir="rtl" style={{ direction: 'rtl' }}>
             {/* ترتيب التبويبات من اليمين لليسار: نظرة عامة، الصيانة النشطة، الجدولة، السجل */}
             <TabsTrigger value="overview" className="flex items-center gap-2 flex-row-reverse" style={{ order: 1 }}>
@@ -631,6 +738,6 @@ const Maintenance = () => {
       </div>
     </PageContainer>
   );
-};
+});
 
 export default Maintenance;

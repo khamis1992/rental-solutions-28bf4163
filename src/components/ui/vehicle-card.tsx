@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,34 @@ interface VehicleCardProps {
   onSelect?: (id: string) => void;
 }
 
-const VehicleCard = ({
+// Memoized status colors to prevent recreation
+const STATUS_COLORS = {
+  available: 'bg-green-100 text-green-800',
+  rented: 'bg-blue-100 text-blue-800',
+  reserved: 'bg-purple-100 text-purple-800',
+  maintenance: 'bg-amber-100 text-amber-800',
+  police_station: 'bg-sky-100 text-sky-800',
+  accident: 'bg-red-100 text-red-800',
+  stolen: 'bg-rose-100 text-rose-800',
+  retired: 'bg-gray-100 text-gray-800'
+} as const;
+
+// Memoized model types
+const MODEL_TYPES = ['B70', 'T33', 'T99', 'A30', 'TERRITORY', 'GS3', 'MG5', 'Alsvin'] as const;
+
+// Memoized fallback images
+const FALLBACK_IMAGES = {
+  t77: '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png',
+  gac: '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png',
+  mg: '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png',
+  mg5: '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png',
+  gs3: '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png',
+  b70: '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png',
+  t33: '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png',
+  default: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop'
+} as const;
+
+const VehicleCard = memo(({
   id,
   make,
   model,
@@ -39,18 +66,17 @@ const VehicleCard = ({
   const [actualImageUrl, setActualImageUrl] = useState<string>('');
   const [isImageLoading, setIsImageLoading] = useState(true);
   
-  const statusColors = {
-    available: 'bg-green-100 text-green-800',
-    rented: 'bg-blue-100 text-blue-800',
-    reserved: 'bg-purple-100 text-purple-800',
-    maintenance: 'bg-amber-100 text-amber-800',
-    police_station: 'bg-sky-100 text-sky-800',
-    accident: 'bg-red-100 text-red-800',
-    stolen: 'bg-rose-100 text-rose-800',
-    retired: 'bg-gray-100 text-gray-800'
-  };
-
-  const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
+  // Memoized status color
+  const statusColor = useMemo(() => STATUS_COLORS[status] || STATUS_COLORS.retired, [status]);
+  
+  // Memoized vehicle title
+  const vehicleTitle = useMemo(() => `${make} ${model}`, [make, model]);
+  
+  // Memoized vehicle details
+  const vehicleDetails = useMemo(() => ({
+    make: make?.toString().toLowerCase().trim() || '',
+    model: model?.toString().toLowerCase().trim() || ''
+  }), [make, model]);
   
   useEffect(() => {
     async function loadVehicleImage() {
@@ -60,11 +86,8 @@ const VehicleCard = ({
         // Check model-specific images
         const modelToCheck = model || '';
         
-        // Models to check for specific storage images
-        const modelTypes = ['B70', 'T33', 'T99', 'A30', 'TERRITORY', 'GS3', 'MG5', 'Alsvin'];
-        
         // Find if current vehicle matches any known model
-        const matchedModelType = modelTypes.find(type => 
+        const matchedModelType = MODEL_TYPES.find(type => 
           modelToCheck.toUpperCase().includes(type) || 
           modelToCheck.toLowerCase().includes(type.toLowerCase())
         );
@@ -165,11 +188,11 @@ const VehicleCard = ({
         }
       } 
       else {
-        setActualImageUrl(defaultCarImage);
+        setActualImageUrl(FALLBACK_IMAGES.default);
       }
     } catch (error) {
       console.error('Error setting vehicle image:', error);
-      setActualImageUrl(defaultCarImage);
+      setActualImageUrl(FALLBACK_IMAGES.default);
     } finally {
       setIsImageLoading(false);
     }
@@ -189,16 +212,16 @@ const VehicleCard = ({
           </div>
         ) : (
           <img 
-            src={actualImageUrl || defaultCarImage} 
-            alt={`${make} ${model}`}
+            src={actualImageUrl || FALLBACK_IMAGES.default} 
+            alt={vehicleTitle}
             className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
             onError={(e) => {
               console.log('Image failed to load, using fallback:', e.currentTarget.src);
-              e.currentTarget.src = defaultCarImage;
+              e.currentTarget.src = FALLBACK_IMAGES.default;
             }}
           />
         )}
-        <Badge className={cn("absolute top-3 right-3 z-20", statusColors[status])}>
+        <Badge className={cn("absolute top-3 right-3 z-20", statusColor)}>
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </Badge>
       </div>
@@ -251,6 +274,8 @@ const VehicleCard = ({
       </CardFooter>
     </Card>
   );
-};
+});
+
+VehicleCard.displayName = 'VehicleCard';
 
 export { VehicleCard };

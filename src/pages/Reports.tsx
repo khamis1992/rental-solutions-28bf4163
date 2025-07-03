@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,35 +25,72 @@ import { useCustomers } from '@/hooks/use-customers';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { useVehicles } from '@/hooks/use-vehicles';
-import { FileText, Calendar, AlertCircle } from 'lucide-react';
+import { FileText, Calendar, AlertCircle, RefreshCw } from 'lucide-react';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
-const Reports = () => {
+// Global State Management & Communication
+import { 
+  useFilterState,
+  useLoadingState,
+  useCacheState,
+  useSelectionState
+} from '@/hooks/use-global-state-management';
+import { 
+  useComponentMessaging, 
+  useComponentLifecycle 
+} from '@/components/providers/CommunicationProvider';
+import { EVENTS } from '@/utils/component-communication';
+
+const Reports = memo(() => {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const [selectedTab, setSelectedTab] = useState('fleet');
-  const [selectedMainTab, setSelectedMainTab] = useState('standard-reports');
+  
+  // Global State Management
+  const { filter: globalFilters, setFilter } = useFilterState('reports');
+  const { isLoading: globalLoading, withLoading } = useLoadingState('reports');
+  const { cache: cachedReports, setCache: setCachedReports } = useCacheState('reports');
+  const { selection, setSelection } = useSelectionState('reports');
+  
+  // Communication & Event Bus
+  const messaging = useComponentMessaging();
+  useComponentLifecycle('ReportsPage');
+  
+  // Local state - enhanced with global state integration
+  const [selectedTab, setSelectedTab] = useState(globalFilters?.tab || 'fleet');
+  const [selectedMainTab, setSelectedMainTab] = useState(globalFilters?.mainTab || 'standard-reports');
   
   // Error handler
-  const { error, handleError, clearError, retry, setRetryHandler } = useErrorHandler();
+  const { error, handleError, clearError } = useErrorHandler();
   
   // Set the initial tab based on the URL path
   useEffect(() => {
     const path = location.pathname;
+    let tab = 'fleet';
+    let mainTab = 'standard-reports';
+    
     if (path === '/reports/financial') {
-      setSelectedTab('financial');
-      setSelectedMainTab('standard-reports');
+      tab = 'financial';
     } else if (path === '/reports/operational') {
-      setSelectedTab('fleet');
-      setSelectedMainTab('standard-reports');
-    } else {
-      setSelectedTab('fleet');
-      setSelectedMainTab('standard-reports');
+      tab = 'fleet';
     }
-  }, [location.pathname]);
+    
+    setSelectedTab(tab);
+    setSelectedMainTab(mainTab);
+    
+    // Update global state
+    setFilter({ ...globalFilters, tab, mainTab });
+    
+    // Emit navigation event
+    messaging.emit(EVENTS.USER_ACTION, { 
+      action: 'navigate_to_report', 
+      path, 
+      tab, 
+      mainTab 
+    });
+  }, [location.pathname, globalFilters, setFilter, messaging]);
 
   const { reportData } = useFleetReport();
   const { transactions } = useFinancials();
@@ -64,53 +101,191 @@ const Reports = () => {
   const { data: vehicles = [] } = vehiclesHook.useList();
   const [maintenanceData, setMaintenanceData] = useState<any[]>([]);
   
+  // Enhanced data loading with Global State Management
   useEffect(() => {
     const fetchMaintenance = async () => {
-      try {
-        clearError();
-        const data = await getAllRecords();
-        setMaintenanceData(data || []);
-      } catch (error) {
-        handleError(error, {
-          showToast: true,
-          logError: true,
-          context: { page: 'reports', section: 'maintenance' }
-        });
-      }
+      return withLoading(async () => {
+        try {
+          clearError();
+          
+          // Emit loading event
+          messaging.emit(EVENTS.DATA_LOADING, { entity: 'reports', type: 'maintenance' });
+          
+          const data = await getAllRecords();
+          setMaintenanceData(data || []);
+          
+          // Cache the data
+          setCachedReports({ 
+            maintenance: data, 
+            timestamp: Date.now(), 
+            type: 'maintenance' 
+          });
+          
+          // Emit success event
+          messaging.emit(EVENTS.DATA_UPDATED, { 
+            entity: 'reports', 
+            type: 'maintenance',
+            count: data?.length || 0 
+          });
+        } catch (error) {
+          handleError(error, {
+            showToast: true,
+            logError: true,
+            context: { page: 'reports', section: 'maintenance' }
+          });
+          
+          // Emit error event
+          messaging.emit(EVENTS.ERROR_OCCURRED, { entity: 'reports', error });
+        }
+      });
     };
     
     fetchMaintenance();
-  }, []);
+  }, [withLoading, messaging, getAllRecords, clearError, handleError, setCachedReports]);
   
   useEffect(() => {
     if (trafficFines) {
       console.log("تم تحميل بيانات المخالفات المرورية في التقارير:", trafficFines.length);
+      
+      // Emit traffic fines data loaded event
+      messaging.emit(EVENTS.DATA_UPDATED, { 
+        entity: 'reports', 
+        type: 'traffic_fines',
+        count: trafficFines.length 
+      });
     }
-  }, [trafficFines]);
+  }, [trafficFines, messaging]);
   
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    endDate: new Date()
+    startDate: globalFilters?.dateRange?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    endDate: globalFilters?.dateRange?.endDate || new Date()
   });
   
   const [isGenerating, setIsGenerating] = useState(false);
   
+  // Enhanced report generation with event handling
   const handleGenerateScheduledReport = async () => {
-    setIsGenerating(true);
+    return withLoading(async () => {
+      setIsGenerating(true);
+      
+      try {
+        // Emit report generation start event
+        messaging.emit('report:generation:start', { 
+          type: 'scheduled', 
+          timestamp: Date.now() 
+        });
+        
+        // Simulate report generation
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Emit success event
+        messaging.emit('report:generation:complete', { 
+          type: 'scheduled', 
+          timestamp: Date.now() 
+        });
+        
+        messaging.showSuccess('تقرير مكتمل', 'تم إنشاء التقرير المجدول بنجاح');
+      } catch (error) {
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { page: 'reports', action: 'generateScheduledReport' }
+        });
+        
+        // Emit error event
+        messaging.emit('report:generation:error', { 
+          type: 'scheduled', 
+          error, 
+          timestamp: Date.now() 
+        });
+      } finally {
+        setIsGenerating(false);
+      }
+    });
+  };
+
+  // Enhanced tab change handlers
+  const handleMainTabChange = (value: string) => {
+    setSelectedMainTab(value);
     
-    try {
-      // Simulate report generation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success('تم إنشاء التقرير المجدول بنجاح');
-    } catch (error) {
-      handleError(error, {
-        showToast: true,
-        logError: true,
-        context: { page: 'reports', action: 'generateScheduledReport' }
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+    // Update global state
+    setFilter({ ...globalFilters, mainTab: value });
+    
+    // Emit tab change event
+    messaging.emit(EVENTS.USER_ACTION, { 
+      action: 'main_tab_change', 
+      tab: value, 
+      entity: 'reports' 
+    });
+  };
+
+  const handleTabChange = (value: string) => {
+    setSelectedTab(value);
+    
+    // Update global state
+    setFilter({ ...globalFilters, tab: value });
+    
+    // Emit tab change event
+    messaging.emit(EVENTS.USER_ACTION, { 
+      action: 'report_tab_change', 
+      tab: value, 
+      entity: 'reports' 
+    });
+  };
+
+  // Enhanced date range handler
+  const handleDateRangeChange = (newDateRange: { startDate: Date; endDate: Date }) => {
+    setDateRange(newDateRange);
+    
+    // Update global state
+    setFilter({ ...globalFilters, dateRange: newDateRange });
+    
+    // Emit date range change event
+    messaging.emit(EVENTS.FILTER_CHANGED, { 
+      entity: 'reports', 
+      dateRange: newDateRange 
+    });
+  };
+
+  // Enhanced refresh function
+  const handleRefresh = async () => {
+    return withLoading(async () => {
+      try {
+        clearError();
+        
+        // Emit refresh event
+        messaging.emit(EVENTS.DATA_REFRESH, { entity: 'reports' });
+        
+        // Refresh maintenance data
+        const data = await getAllRecords();
+        setMaintenanceData(data || []);
+        
+        // Update cache
+        setCachedReports({ 
+          maintenance: data, 
+          timestamp: Date.now(), 
+          type: 'maintenance' 
+        });
+        
+        // Emit success event
+        messaging.emit(EVENTS.DATA_UPDATED, { 
+          entity: 'reports', 
+          action: 'refresh',
+          count: data?.length || 0 
+        });
+        
+        messaging.showSuccess('تحديث مكتمل', 'تم تحديث بيانات التقارير بنجاح');
+      } catch (error) {
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { page: 'reports', action: 'refresh' }
+        });
+        
+        // Emit error event
+        messaging.emit(EVENTS.ERROR_OCCURRED, { entity: 'reports', error });
+      }
+    });
   };
 
   const getReportData = () => {
@@ -132,6 +307,21 @@ const Reports = () => {
     }
   };
 
+  // Error handling
+  const currentError = error?.error;
+
+  if (currentError) {
+    return (
+      <PageContainer>
+        <ErrorDisplay 
+          error={currentError} 
+          onRetry={handleRefresh}
+          title="خطأ في تحميل التقارير"
+        />
+      </PageContainer>
+    );
+  }
+
   return (
     <div dir="rtl">
       <PageContainer className="pb-20">
@@ -142,14 +332,27 @@ const Reports = () => {
           align="right"
           dir="rtl"
         >
-          <Button 
-            variant="outline"
-            onClick={() => navigate('/reports/scheduled')}
-            className="flex items-center gap-2 h-9 text-sm"
-          >
-            <Calendar className="h-3 w-3" />
-            <span>التقارير المجدولة</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isGenerating || globalLoading}
+              className="flex items-center gap-2 h-9 text-sm"
+            >
+              <RefreshCw className={`h-3 w-3 ${(isGenerating || globalLoading) ? 'animate-spin' : ''}`} />
+              <span>تحديث</span>
+            </Button>
+            
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/reports/scheduled')}
+              className="flex items-center gap-2 h-9 text-sm"
+            >
+              <Calendar className="h-3 w-3" />
+              <span>التقارير المجدولة</span>
+            </Button>
+          </div>
         </PageHeader>
         
         <Alert className="mb-5">
@@ -160,7 +363,7 @@ const Reports = () => {
           </AlertDescription>
         </Alert>
         
-        <Tabs value={selectedMainTab} onValueChange={setSelectedMainTab} className="w-full" dir="rtl">
+        <Tabs value={selectedMainTab} onValueChange={handleMainTabChange} className="w-full" dir="rtl">
           <TabsList className="mb-3">
             <TabsTrigger value="standard-reports" className="text-sm">التقارير المعيارية</TabsTrigger>
             <TabsTrigger value="cross-domain" className="text-sm">التحليلات متعددة المجالات</TabsTrigger>
@@ -171,7 +374,7 @@ const Reports = () => {
             <ErrorBoundary>
               <Card className="mb-16">
                 <CardContent className="pt-5">
-                  <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full" dir="rtl">
+                  <Tabs value={selectedTab} onValueChange={handleTabChange} className="w-full" dir="rtl">
                     <TabsList className="grid grid-cols-6 mb-6 gap-2">
                       <TabsTrigger value="fleet" className="text-sm">تقرير الأسطول</TabsTrigger>
                       <TabsTrigger value="financial" className="text-sm">التقرير المالي</TabsTrigger>
@@ -182,105 +385,62 @@ const Reports = () => {
                     </TabsList>
                     
                     <div className="space-y-5">
-                      {error.hasError && (
-                        <ErrorDisplay
-                          error={error.error}
-                          variant="alert"
-                          showRetry={true}
-                          onRetry={() => {
-                            clearError();
-                            setRetryHandler(() => {
-                              // Retry the specific report data loading
-                              const fetchMaintenance = async () => {
-                                try {
-                                  const data = await getAllRecords();
-                                  setMaintenanceData(data || []);
-                                } catch (error) {
-                                  handleError(error, {
-                                    showToast: true,
-                                    logError: true,
-                                    context: { page: 'reports', section: 'maintenance' }
-                                  });
-                                }
-                              };
-                              fetchMaintenance();
-                            });
-                            retry?.();
-                          }}
+                      <TabsContent value="fleet">
+                        <FleetReport 
+                          dateRange={dateRange} 
+                          onDateRangeChange={handleDateRangeChange}
+                          isLoading={globalLoading}
                         />
-                      )}
-                      
-                      <TabsContent value="fleet" className="mt-0">
-                        <ErrorBoundary>
-                          <div className="mb-5 px-4">
-                            <ReportDownloadOptions 
-                              reportType="fleet" 
-                              getReportData={() => reportData?.vehicles || []} 
-                            />
-                          </div>
-                          <FleetReport />
-                        </ErrorBoundary>
                       </TabsContent>
                       
-                      <TabsContent value="financial" className="mt-0">
-                        <ErrorBoundary>
-                          <div className="mb-5 px-4">
-                            <ReportDownloadOptions 
-                              reportType="financial" 
-                              getReportData={() => transactions || []} 
-                            />
-                          </div>
-                          <FinancialReport />
-                        </ErrorBoundary>
+                      <TabsContent value="financial">
+                        <FinancialReport 
+                          dateRange={dateRange} 
+                          onDateRangeChange={handleDateRangeChange}
+                          isLoading={globalLoading}
+                        />
                       </TabsContent>
                       
-                      <TabsContent value="customers" className="mt-0">
-                        <ErrorBoundary>
-                          <div className="mb-5 px-4">
-                            <ReportDownloadOptions 
-                              reportType="customers" 
-                              getReportData={() => customers || []} 
-                            />
-                          </div>
-                          <CustomerReport />
-                        </ErrorBoundary>
+                      <TabsContent value="customers">
+                        <CustomerReport 
+                          dateRange={dateRange} 
+                          onDateRangeChange={handleDateRangeChange}
+                          isLoading={globalLoading}
+                        />
                       </TabsContent>
                       
-                      <TabsContent value="maintenance" className="mt-0">
-                        <ErrorBoundary>
-                          <div className="mb-5 px-4">
-                            <ReportDownloadOptions 
-                              reportType="maintenance" 
-                              getReportData={() => maintenanceData || []} 
-                            />
-                          </div>
-                          <MaintenanceReport />
-                        </ErrorBoundary>
+                      <TabsContent value="maintenance">
+                        <MaintenanceReport 
+                          dateRange={dateRange} 
+                          onDateRangeChange={handleDateRangeChange}
+                          isLoading={globalLoading}
+                          data={maintenanceData}
+                        />
                       </TabsContent>
                       
-                      <TabsContent value="traffic" className="mt-0">
-                        <ErrorBoundary>
-                          <div className="mb-5 px-4">
-                            <ReportDownloadOptions 
-                              reportType="traffic" 
-                              getReportData={() => trafficFines || []} 
-                            />
-                          </div>
-                          <TrafficFineReport />
-                        </ErrorBoundary>
+                      <TabsContent value="traffic">
+                        <TrafficFineReport 
+                          dateRange={dateRange} 
+                          onDateRangeChange={handleDateRangeChange}
+                          isLoading={globalLoading}
+                        />
                       </TabsContent>
                       
-                      <TabsContent value="legal" className="mt-0">
-                        <ErrorBoundary>
-                          <div className="mb-5 px-4">
-                            <ReportDownloadOptions 
-                              reportType="legal" 
-                              getReportData={() => []} 
-                            />
-                          </div>
-                          <LegalReport />
-                        </ErrorBoundary>
+                      <TabsContent value="legal">
+                        <LegalReport 
+                          dateRange={dateRange} 
+                          onDateRangeChange={handleDateRangeChange}
+                          isLoading={globalLoading}
+                        />
                       </TabsContent>
+                      
+                      <ReportDownloadOptions 
+                        reportType={selectedTab}
+                        reportData={getReportData()}
+                        dateRange={dateRange}
+                        isGenerating={isGenerating}
+                        onGenerate={handleGenerateScheduledReport}
+                      />
                     </div>
                   </Tabs>
                 </CardContent>
@@ -290,47 +450,20 @@ const Reports = () => {
           
           <TabsContent value="cross-domain">
             <ErrorBoundary>
-              <CrossReportAnalytics />
+              <CrossReportAnalytics 
+                dateRange={dateRange}
+                onDateRangeChange={handleDateRangeChange}
+                isLoading={globalLoading}
+              />
             </ErrorBoundary>
           </TabsContent>
           
           <TabsContent value="trend-analysis">
             <ErrorBoundary>
               <TrendAnalysis 
-                title="تحليل الاتجاهات المالية"
-                description="تحليل الاتجاهات المالية عبر الزمن مع طرق مقارنة مختلفة"
-                data={transactions || []}
-                timeField="date"
-                metrics={[
-                  { key: 'amount', name: 'مبلغ المعاملة', color: '#3b82f6', formatter: formatCurrency },
-                  { key: 'balance', name: 'رصيد الحساب', color: '#22c55e', formatter: formatCurrency }
-                ]}
-                comparisonOptions={[
-                  { 
-                    key: 'year-over-year', 
-                    name: 'سنة بعد سنة', 
-                    calculate: (data, timeField, metric) => 
-                      calculateYearOverYear(data, timeField, metric)
-                  },
-                  { 
-                    key: 'month-over-month', 
-                    name: 'شهر بعد شهر', 
-                    calculate: (data, timeField, metric) => 
-                      calculateMonthOverMonth(data, timeField, metric)
-                  },
-                  { 
-                    key: 'moving-average', 
-                    name: 'المتوسط المتحرك (3 فترات)', 
-                    calculate: (data, timeField, metric) => 
-                      calculateMovingAverage(data, timeField, metric, 3)
-                  },
-                  { 
-                    key: 'cumulative', 
-                    name: 'المجموع التراكمي', 
-                    calculate: (data, timeField, metric) => 
-                      calculateCumulativeSum(data, timeField, metric)
-                  }
-                ]}
+                dateRange={dateRange}
+                onDateRangeChange={handleDateRangeChange}
+                isLoading={globalLoading}
               />
             </ErrorBoundary>
           </TabsContent>
@@ -338,6 +471,8 @@ const Reports = () => {
       </PageContainer>
     </div>
   );
-};
+});
+
+Reports.displayName = 'Reports';
 
 export default Reports;

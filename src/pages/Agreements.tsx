@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, memo } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/ui/PageHeader';
 
@@ -28,15 +28,40 @@ import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 
-const Agreements = () => {
+// Global State Management & Communication
+import { 
+  useFilterState,
+  useLoadingState,
+  useCacheState,
+  useSelectionState
+} from '@/hooks/use-global-state-management';
+import { 
+  useComponentMessaging, 
+  useComponentLifecycle 
+} from '@/components/providers/CommunicationProvider';
+import { EVENTS } from '@/utils/component-communication';
+
+const Agreements = memo(() => {
   const navigate = useNavigate();
+  
+  // Global State Management
+  const { filter: globalFilters, setFilter } = useFilterState('agreements');
+  const { isLoading: globalLoading, withLoading } = useLoadingState('agreements');
+  const { cache: cachedAgreements, setCache: setCachedAgreements } = useCacheState('agreements');
+  const { selection, setSelection } = useSelectionState('agreements');
+  
+  // Communication & Event Bus
+  const messaging = useComponentMessaging();
+  useComponentLifecycle('AgreementsPage');
+  
+  // Local state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(() => urlSearchParams.get('searchTerm') || '');
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState('agreements');
-  const [viewMode, setViewMode] = useState('card' as 'card' | 'table' | 'compact');
+  const [activeTab, setActiveTab] = useState(globalFilters?.tab || 'agreements');
+  const [viewMode, setViewMode] = useState(globalFilters?.viewMode || 'card' as 'card' | 'table' | 'compact');
   
   // Use the agreement service hook
   const {
@@ -55,7 +80,9 @@ const Agreements = () => {
   const { error: errorState, handleError, clearError } = useErrorHandler();
   
   // Add state for customer search functionality
-  const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
+  const [selectedCustomer, setSelectedCustomer] = useState(
+    selection?.customer || null as CustomerInfo | null
+  );
   
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -75,38 +102,61 @@ const Agreements = () => {
     }
     
     const checkAvailability = async () => {
-      try {
-        const available = await checkEdgeFunctionAvailability('process-agreement-imports');
-        setIsEdgeFunctionAvailable(available);
-        if (!available) {
-          toast.error("خدمة استيراد ملفات CSV غير متاحة. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم الفني.", {
-            duration: 6000,
+      return withLoading(async () => {
+        try {
+          // Emit loading event
+          messaging.emit(EVENTS.DATA_LOADING, { entity: 'agreements', action: 'edge_function_check' });
+          
+          const available = await checkEdgeFunctionAvailability('process-agreement-imports');
+          setIsEdgeFunctionAvailable(available);
+          
+          if (!available) {
+            messaging.showError(
+              "خدمة الاستيراد غير متاحة",
+              "خدمة استيراد ملفات CSV غير متاحة. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع الدعم الفني."
+            );
+          }
+          
+          // Emit success event
+          messaging.emit(EVENTS.DATA_UPDATED, { entity: 'agreements', edgeFunctionAvailable: available });
+        } catch (error) {
+          handleError(error, {
+            showToast: true,
+            logError: true,
+            context: { page: 'agreements', action: 'checkEdgeFunctionAvailability' }
           });
+          
+          // Emit error event
+          messaging.emit(EVENTS.ERROR_OCCURRED, { entity: 'agreements', error });
         }
-      } catch (error) {
-        handleError(error, {
-          showToast: true,
-          logError: true,
-          context: { page: 'agreements', action: 'checkEdgeFunctionAvailability' }
-        });
-      }
+      });
     };
     
     checkAvailability();
-  }, []);
+  }, [withLoading, messaging, handleError]);
   
   // Run payment schedule maintenance job silently on page load
   React.useEffect(() => {
     const runMaintenanceJob = async () => {
       try {
         console.log("Running automatic payment schedule maintenance check");
+        
+        // Emit maintenance start event
+        messaging.emit('maintenance:payment_schedule:start', { timestamp: Date.now() });
+        
         await runPaymentScheduleMaintenanceJob();
+        
+        // Emit maintenance complete event
+        messaging.emit('maintenance:payment_schedule:complete', { timestamp: Date.now() });
       } catch (error) {
         handleError(error, {
           showToast: false,
           logError: true,
           context: { page: 'agreements', action: 'runPaymentScheduleMaintenanceJob' }
         });
+        
+        // Emit maintenance error event
+        messaging.emit('maintenance:payment_schedule:error', { error, timestamp: Date.now() });
       }
     };
     
@@ -116,21 +166,36 @@ const Agreements = () => {
     }, 3000);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [messaging, handleError]);
   
   const handleImportComplete = () => {
     // Reset filters and refresh data
     setSearchParams({});
+    
+    // Emit import complete event
+    messaging.emit(EVENTS.DATA_CREATED, { entity: 'agreements', action: 'import' });
+    messaging.showSuccess("استيراد مكتمل", "تم استيراد العقود بنجاح");
+    
     refetch();
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {
-    setSearchParams(filters); // Simplified to match CustomerListFilter behavior
+    setSearchParams(filters);
+    
+    // Update global filters
+    setFilter({ ...globalFilters, ...filters });
+    
+    // Emit filter change event
+    messaging.emit(EVENTS.FILTER_CHANGED, { entity: 'agreements', filters });
   };
 
   // Updated to ensure pagination resets when tab changes
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    
+    // Update global state
+    setFilter({ ...globalFilters, tab: value });
+    
     if (value === 'all' || value === 'agreements' || value === 'history') {
       setSearchParams({});
     } else if (
@@ -140,6 +205,9 @@ const Agreements = () => {
     ) {
       setSearchParams({ statuses: [value] });
     }
+    
+    // Emit tab change event
+    messaging.emit(EVENTS.USER_ACTION, { action: 'tab_change', tab: value });
   };
 
   // Handle search using the component - matching the CustomerListFilter behavior exactly
@@ -154,6 +222,20 @@ const Agreements = () => {
       newParams.delete('searchTerm');
     }
     setUrlSearchParams(newParams);
+    
+    // Emit search event
+    messaging.emit(EVENTS.SEARCH_PERFORMED, { entity: 'agreements', query });
+  };
+
+  // Handle view mode change
+  const handleViewModeChange = (mode: 'card' | 'table' | 'compact') => {
+    setViewMode(mode);
+    
+    // Update global state
+    setFilter({ ...globalFilters, viewMode: mode });
+    
+    // Emit view change event
+    messaging.emit(EVENTS.USER_ACTION, { action: 'view_mode_change', viewMode: mode });
   };
 
   // Create array of active filters for filter chips
@@ -169,8 +251,57 @@ const Agreements = () => {
 
   // Function to navigate to add agreement page
   const handleAddAgreement = () => {
+    // Emit navigation event
+    messaging.emit(EVENTS.USER_ACTION, { action: 'navigate_to_add', entity: 'agreements' });
+    
     navigate('/agreements/add');
   };
+
+  // Enhanced refresh function
+  const handleRefresh = async () => {
+    return withLoading(async () => {
+      try {
+        clearError();
+        
+        // Emit refresh event
+        messaging.emit(EVENTS.DATA_REFRESH, { entity: 'agreements' });
+        
+        await refetch();
+        
+        // Cache the results
+        setCachedAgreements(agreements);
+        
+        // Emit success event
+        messaging.emit(EVENTS.DATA_UPDATED, { entity: 'agreements', count: agreements?.length || 0 });
+        
+        messaging.showSuccess("تحديث مكتمل", "تم تحديث بيانات العقود بنجاح");
+      } catch (error) {
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { page: 'agreements', action: 'refresh' }
+        });
+        
+        // Emit error event
+        messaging.emit(EVENTS.ERROR_OCCURRED, { entity: 'agreements', error });
+      }
+    });
+  };
+
+  // Error handling
+  const currentError = errorState?.error;
+
+  if (currentError) {
+    return (
+      <PageContainer>
+        <ErrorDisplay 
+          error={currentError} 
+          onRetry={handleRefresh}
+          title="خطأ في تحميل العقود"
+        />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer 
@@ -205,7 +336,10 @@ const Agreements = () => {
             <div className="flex flex-col sm:flex-row-reverse justify-between items-start sm:items-center gap-4">
               {/* View Mode Selector */}
               <div className="flex items-center gap-2">
-                <AgreementViewSelectors viewMode={viewMode} setViewMode={setViewMode} />
+                <AgreementViewSelectors 
+                  viewMode={viewMode} 
+                  setViewMode={handleViewModeChange} 
+                />
               </div>
             </div>
             
@@ -226,6 +360,17 @@ const Agreements = () => {
                 >
                   <Filter className="h-4 w-4 ml-2" />
                   {showFilters ? "إخفاء المرشحات" : "مرشحات متقدمة"}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isLoading || globalLoading}
+                  className="flex-row-reverse"
+                >
+                  <RefreshCw className={`h-4 w-4 ml-2 ${(isLoading || globalLoading) ? 'animate-spin' : ''}`} />
+                  تحديث
                 </Button>
                 
                 <Button 
@@ -259,21 +404,6 @@ const Agreements = () => {
           
           {/* Content Area */}
           <CardContent className="p-0">
-            {/* Error Display */}
-            {errorState.hasError && (
-              <div className="p-4">
-                <ErrorDisplay
-                  error={errorState.error}
-                  variant="card"
-                  showRetry={true}
-                  onRetry={() => {
-                    clearError();
-                    refetch();
-                  }}
-                />
-              </div>
-            )}
-            
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full sm:w-auto" dir="rtl">
               <TabsList className="justify-start">
                 <TabsTrigger value="agreements" className="text-right">جميع العقود</TabsTrigger>
@@ -286,7 +416,7 @@ const Agreements = () => {
                 value="agreements"
                 viewMode={viewMode}
                 agreements={agreements}
-                isLoading={isLoading}
+                isLoading={isLoading || globalLoading}
                 onDeleteAgreement={deleteAgreement}
                 loadingText="جاري تحميل العقود..."
               />
@@ -294,7 +424,7 @@ const Agreements = () => {
                 value="active"
                 viewMode={viewMode}
                 agreements={agreements}
-                isLoading={isLoading}
+                isLoading={isLoading || globalLoading}
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""
               />
@@ -302,7 +432,7 @@ const Agreements = () => {
                 value="completed"
                 viewMode={viewMode}
                 agreements={agreements}
-                isLoading={isLoading}
+                isLoading={isLoading || globalLoading}
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""
               />
@@ -310,7 +440,7 @@ const Agreements = () => {
                 value="cancelled"
                 viewMode={viewMode}
                 agreements={agreements}
-                isLoading={isLoading}
+                isLoading={isLoading || globalLoading}
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""
               />
@@ -320,7 +450,7 @@ const Agreements = () => {
                     <Database className="h-5 w-5 ml-2" />
                     سجل الاستيراد
                   </h2>
-                  <ImportHistoryList items={[]} isLoading={false} />
+                  <ImportHistoryList items={[]} isLoading={isLoading || globalLoading} />
                 </div>
               </TabsContent>
             </Tabs>
@@ -335,6 +465,8 @@ const Agreements = () => {
       />
     </PageContainer>
   );
-};
+});
+
+Agreements.displayName = 'Agreements';
 
 export default Agreements;

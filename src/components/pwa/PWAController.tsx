@@ -25,6 +25,11 @@ export const PWAController: React.FC<PWAControllerProps> = ({
 }) => {
   const [isBrowser, setIsBrowser] = useState(false);
 
+  // Don't render PWA components in development mode
+  if (import.meta.env.DEV) {
+    return null;
+  }
+
   useEffect(() => {
     // Only run PWA features in browser environment
     setIsBrowser(typeof window !== 'undefined');

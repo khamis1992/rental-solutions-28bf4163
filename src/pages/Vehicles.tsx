@@ -7,9 +7,9 @@ import VehicleFilters from '@/components/vehicles/VehicleFilters';
 import { VehicleFilterParams, VehicleStatus, ExtendedVehicle } from '@/types/vehicle';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Car, Grid3x3, Plus, RefreshCw, TableProperties, Wrench } from 'lucide-react';
+import { Car, Grid3x3, Plus, RefreshCw, TableProperties } from 'lucide-react';
 import { VehicleStats } from '@/components/vehicles/VehicleStats';
 import { VehicleSearch } from '@/components/vehicles/VehicleSearch';
 import { Badge } from '@/components/ui/badge';
@@ -19,9 +19,21 @@ import { useTranslation } from '@/utils/translation-helper';
 import PageHeader from '@/components/ui/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { vehicleService } from '@/services/VehicleService';
-import { enhancedVehicleSearch } from '@/utils/searchUtils';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+
+// Global State Management & Communication
+import { 
+  useFilterState, 
+  useLoadingState,
+  useCacheState 
+} from '@/hooks/use-global-state-management';
+import { 
+  useComponentMessaging, 
+  useDataSync,
+  useComponentLifecycle 
+} from '@/components/providers/CommunicationProvider';
+import { EVENTS } from '@/utils/component-communication';
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -35,12 +47,23 @@ const VALID_STATUSES: VehicleStatus[] = [
   'retired'
 ];
 
-const Vehicles = () => {
+const Vehicles = React.memo(() => {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [filters, setFilters] = useState<VehicleFilterParams>({});
+  
+  // Global State Management
+  const { filter: globalFilters, setFilter } = useFilterState('vehicles');
+  const { isLoading: globalLoading, withLoading } = useLoadingState('vehicles');
+  const { cache: cachedVehicles, setCache: setCachedVehicles } = useCacheState('vehicles');
+  
+  // Communication & Event Bus
+  const messaging = useComponentMessaging();
+  useComponentLifecycle('VehiclesPage');
+  
+  // Local state - use global state where possible
+  const filters = globalFilters || {};
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -55,10 +78,10 @@ const Vehicles = () => {
   const { loading, error: serviceError, getAllVehicles } = useVehicleService();
   
   // Use error handler
-  const { error: errorState, handleError, clearError, retry, setRetryHandler } = useErrorHandler();
+  const { error: errorState, handleError, clearError } = useErrorHandler();
 
-  // Update vehicles state with proper type
-  const [vehicles, setVehicles] = useState<ExtendedVehicle[]>([]);
+  // Update vehicles state with proper type - use cached data when available
+  const [vehicles, setVehicles] = useState<ExtendedVehicle[]>(cachedVehicles || []);
   
   // Enhanced search function that uses fuzzy matching
   const performEnhancedSearch = async (searchTerm: string) => {
@@ -83,97 +106,52 @@ const Vehicles = () => {
     }
   };
 
-  // Fetch vehicles when filters or pagination changes
+  // Fetch vehicles with proper error handling and caching
   const fetchVehicles = async () => {
-    try {
-      clearError();
-      
-      // If there's a search term, use enhanced search
-      if (filters.searchTerm?.trim()) {
-        const searchResults = await performEnhancedSearch(filters.searchTerm);
+    return withLoading(async () => {
+      try {
+        clearError();
         
-        // Apply other filters to search results
-        let filteredVehicles = searchResults as ExtendedVehicle[];
+        // Emit event for data loading
+        messaging.emit(EVENTS.DATA_LOADING, { entity: 'vehicles', action: 'fetch' });
         
-        // Filter by status
-        if (filters.statuses?.length) {
-          filteredVehicles = filteredVehicles.filter(v => 
-            filters.statuses?.includes(v.status)
-          );
+        let filteredVehicles: ExtendedVehicle[] = [];
+        
+        // If there's a search term, use enhanced search
+        if (filters.searchTerm?.trim()) {
+          const searchResults = await performEnhancedSearch(filters.searchTerm);
+          filteredVehicles = searchResults as ExtendedVehicle[];
+        } else {
+          // Use regular vehicle fetching
+          const vehiclesData = await getAllVehicles();
+          filteredVehicles = vehiclesData as ExtendedVehicle[];
         }
         
-        // Filter by make
-        if (filters.make) {
-          filteredVehicles = filteredVehicles.filter(v => 
-            v.make.toLowerCase().includes(filters.make?.toLowerCase() || '')
-          );
-        }
-        
-        // Filter by location
-        if (filters.location) {
-          filteredVehicles = filteredVehicles.filter(v => 
-            v.location.toLowerCase().includes(filters.location?.toLowerCase() || '')
-          );
-        }
-        
-        // Filter by year
-        if (filters.year) {
-          filteredVehicles = filteredVehicles.filter(v => 
-            v.year === filters.year
-          );
-        }
-        
-        // Filter by vehicle type
-        if (filters.vehicle_type_id) {
-          filteredVehicles = filteredVehicles.filter(v => 
-            v.vehicle_type_id === filters.vehicle_type_id
-          );
-        }
-        
-        // Calculate pagination
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
-        
-        setTotalItems(filteredVehicles.length);
-        return paginatedVehicles;
-      }
-      
-      // Otherwise use regular vehicle fetching
-      const vehicles = await getAllVehicles();
-      if (vehicles) {
         // Apply filters
-        let filteredVehicles = vehicles as ExtendedVehicle[];
-        
-        // Filter by status
         if (filters.statuses?.length) {
           filteredVehicles = filteredVehicles.filter(v => 
             filters.statuses?.includes(v.status)
           );
         }
         
-        // Filter by make
         if (filters.make) {
           filteredVehicles = filteredVehicles.filter(v => 
-            v.make.toLowerCase().includes(filters.make?.toLowerCase() || '')
+            v.make?.toLowerCase().includes(filters.make?.toLowerCase() || '')
           );
         }
         
-        // Filter by location
         if (filters.location) {
           filteredVehicles = filteredVehicles.filter(v => 
-            v.location.toLowerCase().includes(filters.location?.toLowerCase() || '')
+            v.location?.toLowerCase().includes(filters.location?.toLowerCase() || '')
           );
         }
         
-        // Filter by year
         if (filters.year) {
           filteredVehicles = filteredVehicles.filter(v => 
             v.year === filters.year
           );
         }
         
-        // Filter by vehicle type
         if (filters.vehicle_type_id) {
           filteredVehicles = filteredVehicles.filter(v => 
             v.vehicle_type_id === filters.vehicle_type_id
@@ -186,20 +164,30 @@ const Vehicles = () => {
         const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
         
         setTotalItems(filteredVehicles.length);
+        
+        // Cache results
+        setCachedVehicles(paginatedVehicles);
+        
+        // Emit success event
+        messaging.emit(EVENTS.DATA_UPDATED, { entity: 'vehicles', count: paginatedVehicles.length });
+        
         return paginatedVehicles;
+      } catch (err) {
+        handleError(err, {
+          showToast: true,
+          logError: true,
+          context: { page: 'vehicles', action: 'fetchVehicles' }
+        });
+        
+        // Emit error event
+        messaging.emit(EVENTS.ERROR_OCCURRED, { entity: 'vehicles', error: err });
+        
+        return [];
       }
-      return [];
-    } catch (err) {
-      handleError(err, {
-        showToast: true,
-        logError: true,
-        context: { page: 'vehicles', action: 'fetchVehicles' }
-      });
-      return [];
-    }
+    });
   };
 
-  // Fetch vehicles when filters or pagination changes
+  // Load vehicles when filters change
   useEffect(() => {
     const loadVehicles = async () => {
       const data = await fetchVehicles();
@@ -208,16 +196,16 @@ const Vehicles = () => {
     loadVehicles();
   }, [filters, currentPage, itemsPerPage]);
 
-  // Get status from URL search params
+  // Handle URL status parameter
   useEffect(() => {
     const statusFromUrl = searchParams.get('status');
     
     if (statusFromUrl && statusFromUrl !== 'all') {
       if (VALID_STATUSES.includes(statusFromUrl as VehicleStatus)) {
-        setFilters(prevFilters => ({ 
-          ...prevFilters,
+        setFilter({ 
+          ...filters,
           statuses: [statusFromUrl as VehicleStatus]
-        }));
+        });
         
         setActiveTab(statusFromUrl);
         toast.info(language === 'ar' ? `عرض المركبات بحالة: ${statusFromUrl}` : `Showing vehicles with status: ${statusFromUrl}`);
@@ -226,65 +214,102 @@ const Vehicles = () => {
         navigate('/vehicles');
       }
     }
-  }, [searchParams, navigate, language]);
+  }, [searchParams, navigate, language, setFilter]);
 
+  // Event handlers
   const handleSelectVehicle = (id: string) => {
+    messaging.emit(EVENTS.USER_ACTION, { action: 'select_vehicle', vehicleId: id });
     navigate(`/vehicles/${id}`);
   };
 
   const handleAddVehicle = () => {
+    messaging.emit(EVENTS.USER_ACTION, { action: 'add_vehicle' });
     navigate('/vehicles/add');
   };
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     
+    const newFilters = { ...filters };
+    
     if (value === 'all') {
-      setFilters(prev => ({ ...prev, statuses: undefined }));
+      delete newFilters.statuses;
     } else if (VALID_STATUSES.includes(value as VehicleStatus)) {
-      setFilters(prev => ({ ...prev, statuses: [value as VehicleStatus] }));
+      newFilters.statuses = [value as VehicleStatus];
     }
     
+    setFilter(newFilters);
     setCurrentPage(1);
+    
+    // Emit filter change event
+    messaging.publish({
+      type: EVENTS.FILTER_CHANGED,
+      data: { entity: 'vehicles', filters: newFilters }
+    });
   };
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
-    const updated = {
+    const newFilters = {
       ...filters,
       searchTerm: query?.trim() !== '' ? query : undefined
     } as VehicleFilterParams;
-    setFilters(updated);
+    
+    setFilter(newFilters);
     setCurrentPage(1);
+    
+    // Emit search event
+    messaging.publish({
+      type: EVENTS.SEARCH_PERFORMED,
+      data: { entity: 'vehicles', query }
+    });
   };
 
   const handleFilterChange = (newFilters: any) => {
-    const convertedFilters: VehicleFilterParams = {};
+    const convertedFilters: VehicleFilterParams = { ...filters };
     
     if (newFilters.status && newFilters.status !== 'all') 
       convertedFilters.statuses = [newFilters.status as VehicleStatus];
+    else
+      delete convertedFilters.statuses;
     
     if (newFilters.make && newFilters.make !== 'all') 
       convertedFilters.make = newFilters.make;
+    else
+      delete convertedFilters.make;
     
     if (newFilters.location && newFilters.location !== 'all') 
       convertedFilters.location = newFilters.location;
+    else
+      delete convertedFilters.location;
     
     if (newFilters.year && newFilters.year !== 'all') 
       convertedFilters.year = parseInt(newFilters.year);
+    else
+      delete convertedFilters.year;
     
     if (newFilters.category && newFilters.category !== 'all') {
       convertedFilters.vehicle_type_id = newFilters.category;
+    } else {
+      delete convertedFilters.vehicle_type_id;
     }
     
     if (newFilters.search && newFilters.search.trim() !== '') {
-      convertedFilters.searchTerm = newFilters?.search?.trim() || '';
+      convertedFilters.searchTerm = newFilters.search.trim();
     } else if (searchQuery && searchQuery.trim() !== '') {
-      convertedFilters.searchTerm = searchQuery?.trim() || '';
+      convertedFilters.searchTerm = searchQuery.trim();
+    } else {
+      delete convertedFilters.searchTerm;
     }
     
-    setFilters(convertedFilters);
+    setFilter(convertedFilters);
     setCurrentPage(1);
+    
+    // Emit filter change event
+    messaging.publish({
+      type: EVENTS.FILTER_CHANGED,
+      data: { entity: 'vehicles', filters: convertedFilters }
+    });
   };
 
   // Create array of active filters for filter chips
@@ -295,6 +320,31 @@ const Vehicles = () => {
       key !== 'searchTerm' &&
       value !== undefined &&
       value !== '');
+
+  // Refresh function for data sync
+  const handleRefresh = () => {
+    messaging.publish({
+      type: EVENTS.USER_ACTION,
+      data: { action: 'refresh_vehicles' }
+    });
+    
+    fetchVehicles().then(data => setVehicles(data));
+  };
+
+  // Error handling
+  const currentError = errorState || serviceError;
+
+  if (currentError) {
+    return (
+      <PageContainer className="max-w-full">
+        <ErrorDisplay 
+          error={currentError} 
+          onRetry={handleRefresh}
+          title="خطأ في تحميل المركبات"
+        />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer className="max-w-full">
@@ -398,7 +448,7 @@ const Vehicles = () => {
                         onClick={() => {
                           const updatedFilters = { ...filters };
                           delete updatedFilters[key as keyof VehicleFilterParams];
-                          setFilters(updatedFilters);
+                          setFilter(updatedFilters);
                         }}
                         className="rounded-full hover:bg-accent p-1 mr-1"
                       >
@@ -416,7 +466,7 @@ const Vehicles = () => {
                       const cleanFilters: VehicleFilterParams = {};
                       if (filters.statuses) cleanFilters.statuses = filters.statuses;
                       if (searchQuery) cleanFilters.searchTerm = searchQuery;
-                      setFilters(cleanFilters);
+                      setFilter(cleanFilters);
                     }}
                   >
                     مسح المرشحات
@@ -441,56 +491,50 @@ const Vehicles = () => {
               </div>
             )}
             
-            <CardContent className="p-4">
-              {viewMode === 'grid' ? (
-                <VehicleGrid 
-                  vehicles={vehicles}
-                  isLoading={loading}
-                  onVehicleClick={handleSelectVehicle}
-                />
+            <div className="p-4">
+              {loading || globalLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="mr-2 text-sm text-muted-foreground">جاري التحميل...</span>
+                </div>
               ) : (
-                <VehicleTable 
-                  vehicles={vehicles}
-                  isLoading={loading}
-                  onRowClick={handleSelectVehicle}
-                />
+                <Tabs value={viewMode} className="w-full">
+                  <TabsContent value="grid">
+                    <VehicleGrid 
+                      vehicles={vehicles} 
+                      onSelectVehicle={handleSelectVehicle}
+                      className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                    />
+                  </TabsContent>
+                  <TabsContent value="table">
+                    <VehicleTable 
+                      vehicles={vehicles} 
+                      onSelectVehicle={handleSelectVehicle}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
               
-              {(errorState.hasError || serviceError) && (
-                <ErrorDisplay
-                  error={errorState.error || serviceError}
-                  variant="card"
-                  showRetry={true}
-                  onRetry={() => {
-                    clearError();
-                    setRetryHandler(() => {
-                      const loadVehicles = async () => {
-                        const data = await fetchVehicles();
-                        setVehicles(data);
-                      };
-                      loadVehicles();
-                    });
-                    retry?.();
-                  }}
-                  className="mt-4"
-                />
+              {totalItems > itemsPerPage && (
+                <div className="mt-6 flex justify-center">
+                  <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(totalItems / itemsPerPage)}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                    totalItems={totalItems}
+                  />
+                </div>
               )}
-              
-              <PaginationControls
-                currentPage={currentPage}
-                totalPages={Math.ceil(totalItems / itemsPerPage)}
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={setItemsPerPage}
-                className="mt-4"
-              />
-            </CardContent>
+            </div>
           </Card>
         </div>
       </div>
     </PageContainer>
   );
-};
+});
+
+Vehicles.displayName = 'Vehicles';
 
 export default Vehicles;

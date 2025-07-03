@@ -14,6 +14,9 @@ import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityT
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// Props Drilling Optimizer
+import { usePropsDrillingOptimizer } from '@/hooks/use-props-drilling-optimizer';
+
 interface DashboardContentProps {
   isLoading: boolean;
   isError: boolean;
@@ -80,20 +83,55 @@ export const DashboardContent: React.FC<DashboardContentProps> = memo(({
   const { t } = useTranslation();
   const { language } = useLanguage();
 
+  // Props Drilling Optimizer - optimize prop passing to child components
+  const optimizer = usePropsDrillingOptimizer(
+    {
+      componentName: 'DashboardContent',
+      shareData: true,
+      shareFilters: false,
+      shareSelections: false,
+      shareLoading: true,
+      persistState: false,
+      autoSync: true,
+      syncKey: 'dashboard_content'
+    },
+    {
+      stats,
+      revenue,
+      activity,
+      isLoading,
+      isError,
+      error,
+      collapsedSections
+    }
+  );
+
+  // Use optimized data from props drilling optimizer
+  const optimizedData = optimizer.data || {};
+  const {
+    stats: optimizedStats = stats,
+    revenue: optimizedRevenue = revenue,
+    activity: optimizedActivity = activity,
+    isLoading: optimizedIsLoading = isLoading,
+    isError: optimizedIsError = isError,
+    error: optimizedError = error,
+    collapsedSections: optimizedCollapsedSections = collapsedSections
+  } = optimizedData;
+
   // Memoized direction and style calculations
   const direction = useMemo(() => language === 'ar' ? 'rtl' : 'ltr', [language]);
   
   // Memoized badge text
   const fleetBadgeText = useMemo(() => 
-    isLoading ? 'جاري التحميل...' : 'إجمالي المركبات',
-    [isLoading]
+    optimizedIsLoading ? 'جاري التحميل...' : 'إجمالي المركبات',
+    [optimizedIsLoading]
   );
   
-  if (isError) {
+  if (optimizedIsError) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-right" dir="rtl">
         فشل في تحميل بيانات لوحة التحكم
-        {error && <p className="text-sm mt-1">{error.toString()}</p>}
+        {optimizedError && <p className="text-sm mt-1">{optimizedError.toString()}</p>}
       </div>
     );
   }
@@ -105,10 +143,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = memo(({
         <SectionHeader
           title="المؤشرات الرئيسية"
           sectionKey="kpis"
-          isCollapsed={collapsedSections['kpis']}
+          isCollapsed={optimizedCollapsedSections['kpis']}
           onToggle={onToggleSection}
         />
-        {!collapsedSections['kpis'] && <DashboardStats stats={stats} loading={isLoading} />}
+        {!optimizedCollapsedSections['kpis'] && <DashboardStats stats={optimizedStats} loading={optimizedIsLoading} />}
       </div>
 
       {/* 2. الإجراءات السريعة */}

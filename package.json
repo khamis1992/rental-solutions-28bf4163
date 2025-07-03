@@ -20,7 +20,8 @@
     "test:components": "vitest run --dir src/components",
     "test:services": "vitest run --dir src/services",
     "test:hooks": "vitest run --dir src/hooks",
-    "test:integration": "vitest run --dir src/__tests__/integration"
+    "test:integration": "vitest run --dir src/__tests__/integration",
+    "analyze": "vite-bundle-analyzer"
   },
   "dependencies": {
     "@eslint/js": "^9.28.0",
@@ -102,6 +103,7 @@
   "devDependencies": {
     "@eslint/config-array": "^0.18.0",
     "@eslint/object-schema": "^2.1.4",
+    "@playwright/test": "^1.53.2",
     "@swc/core": "^1.12.5",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.4.8",
@@ -130,7 +132,8 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.2.2",
     "vite": "^5.4.19",
-    "vite-plugin-pwa": "^1.0.0",
+    "vite-plugin-pwa": "^0.20.5",
+    "vite-bundle-analyzer": "^0.18.0",
     "vitest": "^2.1.5"
   }
 }

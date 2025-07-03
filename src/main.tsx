@@ -41,6 +41,12 @@ initializeMonitoring();
 
 // PWA Install Helper
 const initPWAFeatures = () => {
+  // Only enable PWA features in production
+  if (import.meta.env.DEV) {
+    console.log('[PWA] Service worker disabled in development mode');
+    return;
+  }
+  
   console.log('[PWA] Using Vite PWA plugin for service worker management');
   
   // Store install prompt event
@@ -89,8 +95,8 @@ const initPWAFeatures = () => {
     (window as any).isPWAInstalled = true;
   }
   
-  // Service worker is handled by Vite PWA plugin
-  if ('serviceWorker' in navigator) {
+  // Service worker is handled by Vite PWA plugin - only in production
+  if ('serviceWorker' in navigator && !import.meta.env.DEV) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       console.log('[PWA] Service Worker controller changed - reloading');
       window.location.reload();

@@ -13,14 +13,32 @@ import {
 import { AgreementStatus } from '@/types/agreement.types';
 import { PaymentStatus } from '@/types/payment.types';
 
-// Define AgreementFilters interface
-export interface AgreementFilters {
-  statuses?: AgreementStatus[];  // Array of statuses for filtering
+// Define pagination interfaces
+export interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+  offset?: number;
+  limit?: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+// Enhanced AgreementFilters interface with pagination
+export interface AgreementFilters extends PaginationParams {
+  statuses?: AgreementStatus[];  
   customerId?: string;
   vehicleId?: string;
   startDate?: Date;
   endDate?: Date;
-  searchTerm?: string;  // Changed from 'search' to 'searchTerm' to match CustomerService
+  searchTerm?: string;  
   /** Advanced filter fields */
   agreement_number?: string;
   start_date_after?: string;
@@ -37,6 +55,10 @@ export interface AgreementFilters {
   hasOverduePayments?: boolean;
   hasActiveMaintenance?: boolean;
   hasOpenLegalCases?: boolean;
+  // Performance optimization fields
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  includeRelations?: boolean;
 }
 
 export class AgreementService extends BaseService {
@@ -44,175 +66,353 @@ export class AgreementService extends BaseService {
     super(supabase);
   }
 
-  async fetchAgreements(filters?: AgreementFilters): Promise<Result<Agreement[]>> {
+  /**
+   * Enhanced fetch agreements with pagination and performance optimizations
+   */
+  async fetchAgreementsPaginated(filters?: AgreementFilters): Promise<Result<PaginatedResult<Agreement>>> {
     return this.safeExecute(async () => {
-      const selectClause = `
-        *,
-        customers:profiles(*),
-        vehicles${filters?.license_plate ? '!inner' : ''}(*)
-      `;
-      let query = supabase.from('leases').select(selectClause);
-      
-      // Apply filters
-      if (filters?.statuses && filters.statuses.length > 0) {
-        query = query.in('status', filters.statuses);
-      }
-      
-      if (filters?.customerId) {
-        query = query.eq('customer_id', filters.customerId);
-      }
-      
-      if (filters?.vehicleId) {
-        query = query.eq('vehicle_id', filters.vehicleId);
-      }
-      
-      if (filters?.startDate) {
-        query = query.gte('start_date', filters.startDate.toISOString());
-      }
-      
-      if (filters?.endDate) {
-        query = query.lte('end_date', filters.endDate.toISOString());
+      const {
+        page = 1,
+        pageSize = 25,
+        sortBy = 'created_at',
+        sortOrder = 'desc',
+        includeRelations = true,
+        ...restFilters
+      } = filters || {};
+
+      // Calculate pagination
+      const offset = (page - 1) * pageSize;
+      const limit = pageSize;
+
+      // Build select clause based on includeRelations
+      const selectClause = includeRelations 
+        ? `
+          *,
+          customers:profiles(*),
+          vehicles${restFilters?.license_plate ? '!inner' : ''}(*)
+        `
+        : `*`;
+
+      // First, get total count for pagination (optimized query)
+      let countQuery = supabase
+        .from('leases')
+        .select('id', { count: 'exact', head: true });
+
+      // Apply filters to count query
+      countQuery = this.applyFiltersToQuery(countQuery, restFilters);
+
+      const { count: totalCount, error: countError } = await countQuery;
+
+      if (countError) {
+        throw new Error(`Count query failed: ${countError.message}`);
       }
 
-      if (filters?.agreement_number) {
-        query = query.ilike('agreement_number', `%${filters.agreement_number}%`);
+      const totalPages = Math.ceil((totalCount || 0) / pageSize);
+
+      // If no results, return early
+      if (totalCount === 0) {
+        return {
+          data: [],
+          totalCount: 0,
+          totalPages: 0,
+          currentPage: page,
+          pageSize,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        };
       }
 
-      if (filters?.start_date_after) {
-        query = query.gte('start_date', filters.start_date_after);
-      }
+      // Main data query with pagination
+      let dataQuery = supabase
+        .from('leases')
+        .select(selectClause)
+        .range(offset, offset + limit - 1)
+        .order(sortBy, { ascending: sortOrder === 'asc' });
 
-      if (filters?.start_date_before) {
-        query = query.lte('start_date', filters.start_date_before);
-      }
+      // Apply filters to data query
+      dataQuery = this.applyFiltersToQuery(dataQuery, restFilters);
 
-      if (filters?.created_date_after) {
-        query = query.gte('created_at', filters.created_date_after);
-      }
-
-      if (filters?.created_date_before) {
-        query = query.lte('created_at', filters.created_date_before);
-      }
-
-      if (filters?.rent_min !== undefined) {
-        query = query.gte('rent_amount', filters.rent_min);
-      }
-
-      if (filters?.rent_max !== undefined) {
-        query = query.lte('rent_amount', filters.rent_max);
-      }
-
-      if (filters?.license_plate) {
-        query = query.eq('vehicles.license_plate', filters.license_plate);
-      }
-
-      // Enhanced search functionality: search by customer name, vehicle license plate, or agreement number
-      if (filters?.searchTerm && filters.searchTerm.trim() !== '') {
-        const searchTerm = filters.searchTerm.trim();
-        
-        // First, search for agreement number directly
-        const { data: agreementsByNumber, error: agreementNumberError } = await supabase
-          .from('leases')
-          .select(`
-            *,
-            customers:profiles(*),
-            vehicles(*)
-          `)
-          .ilike('agreement_number', `%${searchTerm}%`);
-        
-        if (agreementNumberError) {
-          console.warn('Error searching by agreement number:', agreementNumberError);
-        }
-        
-        // Second, search for vehicle license plates
-        const { data: vehiclesByPlate, error: vehicleError } = await supabase
-          .from('vehicles')
-          .select('id')
-          .ilike('license_plate', `%${searchTerm}%`);
-        
-        if (vehicleError) {
-          console.warn('Error searching vehicles by license plate:', vehicleError);
-        }
-        
-        const vehicleIds = (vehiclesByPlate || []).map((v: any) => v.id);
-        let agreementsByVehicle: any[] = [];
-        
-        if (vehicleIds.length > 0) {
-          const { data: vehicleAgreements, error: vehicleAgreementError } = await supabase
-            .from('leases')
-            .select(`
-              *,
-              customers:profiles(*),
-              vehicles(*)
-            `)
-            .in('vehicle_id', vehicleIds);
-          
-          if (vehicleAgreementError) {
-            console.warn('Error searching agreements by vehicle:', vehicleAgreementError);
-          } else {
-            agreementsByVehicle = vehicleAgreements || [];
-          }
-        }
-        
-        // Third, search for customer names
-        const { data: customers, error: customerError } = await supabase
-          .from('profiles')
-          .select('id')
-          .ilike('full_name', `%${searchTerm}%`);
-        
-        if (customerError) {
-          console.warn('Error searching customers by name:', customerError);
-        }
-        
-        const customerIds = (customers || []).map((c: any) => c.id);
-        let agreementsByCustomer: any[] = [];
-        
-        if (customerIds.length > 0) {
-          const { data: customerAgreements, error: customerAgreementError } = await supabase
-            .from('leases')
-            .select(`
-              *,
-              customers:profiles(*),
-              vehicles(*)
-            `)
-            .in('customer_id', customerIds);
-          
-          if (customerAgreementError) {
-            console.warn('Error searching agreements by customer:', customerAgreementError);
-          } else {
-            agreementsByCustomer = customerAgreements || [];
-          }
-        }
-        
-        // Combine all results and remove duplicates
-        const allResults = [
-          ...(agreementsByNumber || []),
-          ...agreementsByVehicle,
-          ...agreementsByCustomer
-        ];
-        
-        // Remove duplicates based on agreement ID
-        const uniqueResults = allResults.filter((agreement, index, self) => 
-          index === self.findIndex((a) => a.id === agreement.id)
-        );
-        
-        return uniqueResults as unknown as Agreement[];
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await dataQuery;
 
       if (error) {
-        throw this.createServiceError(
-          'Failed to fetch agreements',
-          'fetchAgreements'
-        );
+        throw new Error(`Data query failed: ${error.message}`);
       }
 
-      if (!data || !Array.isArray(data)) {
-        return [] as Agreement[];
+      return {
+        data: data as Agreement[],
+        totalCount: totalCount || 0,
+        totalPages,
+        currentPage: page,
+        pageSize,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      };
+    });
+  }
+
+  /**
+   * Optimized search with pagination
+   */
+  async searchAgreementsPaginated(
+    searchTerm: string, 
+    filters?: Omit<AgreementFilters, 'searchTerm'>
+  ): Promise<Result<PaginatedResult<Agreement>>> {
+    return this.safeExecute(async () => {
+      if (!searchTerm || searchTerm.trim() === '') {
+        return this.fetchAgreementsPaginated(filters);
       }
-      return data as unknown as Agreement[];
-    }, 'Failed to fetch agreements');
+
+      const {
+        page = 1,
+        pageSize = 25,
+        sortBy = 'created_at',
+        sortOrder = 'desc',
+        ...restFilters
+      } = filters || {};
+
+      const searchTermTrimmed = searchTerm.trim();
+      const offset = (page - 1) * pageSize;
+      const limit = pageSize;
+
+      // Parallel search across different fields for better performance
+      const [agreementResults, vehicleResults, customerResults] = await Promise.all([
+        // Search by agreement number
+        this.searchByAgreementNumber(searchTermTrimmed, offset, limit),
+        // Search by vehicle license plate
+        this.searchByVehiclePlate(searchTermTrimmed, offset, limit),
+        // Search by customer name
+        this.searchByCustomerName(searchTermTrimmed, offset, limit)
+      ]);
+
+      // Combine and deduplicate results
+      const combinedResults = [
+        ...(agreementResults.data || []),
+        ...(vehicleResults.data || []),
+        ...(customerResults.data || [])
+      ];
+
+      // Remove duplicates based on agreement ID
+      const uniqueResults = combinedResults.filter((agreement, index, self) => 
+        index === self.findIndex((a) => a.id === agreement.id)
+      );
+
+      // Apply additional filters if provided
+      let filteredResults = uniqueResults;
+      if (Object.keys(restFilters).length > 0) {
+        filteredResults = this.applyClientSideFilters(uniqueResults, restFilters);
+      }
+
+      // Sort results
+      filteredResults.sort((a, b) => {
+        const aValue = a[sortBy as keyof Agreement];
+        const bValue = b[sortBy as keyof Agreement];
+        
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+
+      // Calculate pagination for combined results
+      const totalCount = filteredResults.length;
+      const totalPages = Math.ceil(totalCount / pageSize);
+      const paginatedResults = filteredResults.slice(offset, offset + limit);
+
+      return {
+        data: paginatedResults,
+        totalCount,
+        totalPages,
+        currentPage: page,
+        pageSize,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      };
+    });
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   */
+  async fetchAgreements(filters?: AgreementFilters): Promise<Result<Agreement[]>> {
+    const result = await this.fetchAgreementsPaginated({
+      ...filters,
+      pageSize: 1000, // Large page size for backward compatibility
+      includeRelations: true
+    });
+    
+    if (!result.success) {
+      return result as Result<Agreement[]>;
+    }
+    
+    return {
+      success: true,
+      data: result.data.data
+    };
+  }
+
+  /**
+   * Helper method to apply filters to Supabase query
+   */
+  private applyFiltersToQuery(query: any, filters: Omit<AgreementFilters, keyof PaginationParams>) {
+    if (filters.statuses && filters.statuses.length > 0) {
+      query = query.in('status', filters.statuses);
+    }
+    
+    if (filters.customerId) {
+      query = query.eq('customer_id', filters.customerId);
+    }
+    
+    if (filters.vehicleId) {
+      query = query.eq('vehicle_id', filters.vehicleId);
+    }
+    
+    if (filters.startDate) {
+      query = query.gte('start_date', filters.startDate.toISOString());
+    }
+    
+    if (filters.endDate) {
+      query = query.lte('end_date', filters.endDate.toISOString());
+    }
+
+    if (filters.agreement_number) {
+      query = query.ilike('agreement_number', `%${filters.agreement_number}%`);
+    }
+
+    if (filters.start_date_after) {
+      query = query.gte('start_date', filters.start_date_after);
+    }
+
+    if (filters.start_date_before) {
+      query = query.lte('start_date', filters.start_date_before);
+    }
+
+    if (filters.created_date_after) {
+      query = query.gte('created_at', filters.created_date_after);
+    }
+
+    if (filters.created_date_before) {
+      query = query.lte('created_at', filters.created_date_before);
+    }
+
+    if (filters.rent_min !== undefined) {
+      query = query.gte('rent_amount', filters.rent_min);
+    }
+
+    if (filters.rent_max !== undefined) {
+      query = query.lte('rent_amount', filters.rent_max);
+    }
+
+    if (filters.license_plate) {
+      query = query.eq('vehicles.license_plate', filters.license_plate);
+    }
+
+    return query;
+  }
+
+  /**
+   * Optimized search by agreement number
+   */
+  private async searchByAgreementNumber(searchTerm: string, offset: number, limit: number) {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('leases')
+        .select(`
+          *,
+          customers:profiles(*),
+          vehicles(*)
+        `)
+        .ilike('agreement_number', `%${searchTerm}%`)
+        .range(offset, offset + limit - 1)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    });
+  }
+
+  /**
+   * Optimized search by vehicle license plate
+   */
+  private async searchByVehiclePlate(searchTerm: string, offset: number, limit: number) {
+    return this.safeExecute(async () => {
+      // First get vehicle IDs matching the search term
+      const { data: vehicles, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('id')
+        .ilike('license_plate', `%${searchTerm}%`);
+
+      if (vehicleError || !vehicles?.length) {
+        return [];
+      }
+
+      const vehicleIds = vehicles.map(v => v.id);
+
+      // Then get agreements for these vehicles
+      const { data, error } = await supabase
+        .from('leases')
+        .select(`
+          *,
+          customers:profiles(*),
+          vehicles(*)
+        `)
+        .in('vehicle_id', vehicleIds)
+        .range(offset, offset + limit - 1)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    });
+  }
+
+  /**
+   * Optimized search by customer name
+   */
+  private async searchByCustomerName(searchTerm: string, offset: number, limit: number) {
+    return this.safeExecute(async () => {
+      // First get customer IDs matching the search term
+      const { data: customers, error: customerError } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('full_name', `%${searchTerm}%`);
+
+      if (customerError || !customers?.length) {
+        return [];
+      }
+
+      const customerIds = customers.map(c => c.id);
+
+      // Then get agreements for these customers
+      const { data, error } = await supabase
+        .from('leases')
+        .select(`
+          *,
+          customers:profiles(*),
+          vehicles(*)
+        `)
+        .in('customer_id', customerIds)
+        .range(offset, offset + limit - 1)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    });
+  }
+
+  /**
+   * Apply client-side filters for complex filtering
+   */
+  private applyClientSideFilters(agreements: Agreement[], filters: any): Agreement[] {
+    return agreements.filter(agreement => {
+      // Apply any additional complex filters here
+      if (filters.isActive !== undefined) {
+        const isActive = agreement.status === 'active';
+        if (filters.isActive !== isActive) return false;
+      }
+
+      // Add more complex filters as needed
+      return true;
+    });
   }
 
   async getAgreementById(id: string): Promise<Result<Agreement>> {

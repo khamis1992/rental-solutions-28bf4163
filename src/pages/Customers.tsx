@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { useCustomerService } from '@/hooks/services/useCustomerService';
 import { CustomerImportHistory } from '@/components/customers/CustomerImportHistory';
 import { CustomerPageStatsCards } from '@/components/customers/CustomerPageStatsCards';
@@ -18,12 +18,42 @@ import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import '@/styles/customer-mobile.css';
 
-const Customers = () => {
+// Global State Management & Communication
+import { 
+  useLoadingState,
+  useCacheState,
+  useSelectionState
+} from '@/hooks/use-global-state-management';
+import { 
+  useComponentMessaging, 
+  useComponentLifecycle 
+} from '@/components/providers/CommunicationProvider';
+import { EVENTS } from '@/utils/component-communication';
+
+// Advanced Systems
+import { useAdvancedStateSync, useSmartCache } from '@/hooks/use-advanced-state-sync';
+import { useCrossPageSync } from '@/utils/cross-page-sync';
+import { VirtualizedList } from '@/components/ui/VirtualizedList';
+
+const Customers = memo(() => {
   const { language } = useLanguage();
+  
+  // Global State Management
+  const { isLoading: globalLoading, withLoading } = useLoadingState('customers');
+  const { setCache: setCachedCustomers } = useCacheState('customers');
+  const { selection, setSelection } = useSelectionState('customers');
+  
+  // Communication & Event Bus
+  const messaging = useComponentMessaging();
+  useComponentLifecycle('CustomersPage');
+  
+  // Local state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(
+    selection?.customer || null
+  );
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -74,48 +104,83 @@ const Customers = () => {
     checkAvailability();
   }, [handleError]);
 
-  // Handle refreshing the customer data
+  // Handle refreshing the customer data with global state management
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      clearError();
-      await CacheSynchronization.invalidateCustomerCaches();
-      await refetch();
-      toast.success(language === 'ar' ? 'تم تحديث بيانات العملاء' : 'Customer data refreshed');
-    } catch (error) {
-      handleError(error, {
-        showToast: true,
-        logError: true,
-        context: { page: 'customers', action: 'refresh' }
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
+    return withLoading(async () => {
+      setIsRefreshing(true);
+      try {
+        clearError();
+        
+        // Emit refresh event
+        messaging.emit(EVENTS.DATA_REFRESH, { entity: 'customers' });
+        
+        await CacheSynchronization.invalidateCustomerCaches();
+        await refetch();
+        
+        // Cache the results
+        setCachedCustomers(transformedCustomers);
+        
+        // Emit success event
+        messaging.emit(EVENTS.DATA_UPDATED, { entity: 'customers', count: transformedCustomers.length });
+        
+        toast.success(language === 'ar' ? 'تم تحديث بيانات العملاء' : 'Customer data refreshed');
+      } catch (error) {
+        handleError(error, {
+          showToast: true,
+          logError: true,
+          context: { page: 'customers', action: 'refresh' }
+        });
+        
+        // Emit error event
+        messaging.emit(EVENTS.ERROR_OCCURRED, { entity: 'customers', error });
+      } finally {
+        setIsRefreshing(false);
+      }
+    });
   };
 
-  // Handle tab change
+  // Handle tab change with event emission
   const handleTabChange = (value: string) => {
     setSelectedTab(value);
     
+    const newFilters = { ...filters };
     if (value === 'all') {
-      setFilters({ ...filters, status: undefined });
+      delete newFilters.status;
     } else {
-      setFilters({ ...filters, status: value as any });
+      newFilters.status = value as any;
     }
+    
+    setFilters(newFilters);
+    
+    // Emit filter change event
+    messaging.emit(EVENTS.FILTER_CHANGED, { entity: 'customers', filters: newFilters });
   };
 
   // Handle customer selection for sidebar view
   const handleCustomerSelect = (customer: CustomerInfo) => {
     setSelectedCustomer(customer);
+    setSelection({ customer });
     setIsSidebarOpen(true);
+    
+    // Emit selection event
+    messaging.emit(EVENTS.USER_SELECTION, { entity: 'customers', item: customer });
   };
 
-  // Handle import complete
+  // Handle import complete with caching
   const handleImportComplete = async () => {
     try {
+      // Emit import complete event
+      messaging.emit(EVENTS.DATA_CREATED, { entity: 'customers', action: 'import' });
+      
       await CacheSynchronization.invalidateCustomerCaches();
-      refetch();
+      await refetch();
+      
+      // Update cache
+      setCachedCustomers(transformedCustomers);
+      
       setIsImportModalOpen(false);
+      
+      toast.success(language === 'ar' ? 'تم استيراد العملاء بنجاح' : 'Customers imported successfully');
     } catch (error) {
       handleError(error, {
         showToast: true,
@@ -124,6 +189,21 @@ const Customers = () => {
       });
     }
   };
+
+  // Error handling
+  const currentError = errorState?.error || error;
+
+  if (currentError) {
+    return (
+      <PageContainer>
+        <ErrorDisplay 
+          error={currentError} 
+          onRetry={handleRefresh}
+          title="خطأ في تحميل العملاء"
+        />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -140,19 +220,6 @@ const Customers = () => {
         dir="rtl"
         style={{ textAlign: 'right', direction: 'rtl' }}
       >
-        {/* Error Display */}
-        {errorState.hasError && (
-          <ErrorDisplay
-            error={errorState.error}
-            variant="card"
-            showRetry={true}
-            onRetry={() => {
-              clearError();
-              handleRefresh();
-            }}
-          />
-        )}
-        
         <ErrorBoundary 
           context={{ page: 'customers', component: 'stats' }}
           showRetry={true}
@@ -160,7 +227,7 @@ const Customers = () => {
         >
           <CustomerPageStatsCards 
             customers={transformedCustomers} 
-            isLoading={isLoading} 
+            isLoading={isLoading || globalLoading} 
           />
         </ErrorBoundary>
         
@@ -188,7 +255,7 @@ const Customers = () => {
             selectedTab={selectedTab}
             onTabChange={handleTabChange}
             customers={transformedCustomers}
-            isLoading={isLoading}
+            isLoading={isLoading || globalLoading}
             onCustomerSelect={handleCustomerSelect}
           />
         </ErrorBoundary>
@@ -220,6 +287,8 @@ const Customers = () => {
       </ErrorBoundary>
     </PageContainer>
   );
-};
+});
+
+Customers.displayName = 'Customers';
 
 export default Customers;

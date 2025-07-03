@@ -3,8 +3,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/ui/PageHeader";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { UserCog, Sliders, Settings as SettingsIcon, Smartphone } from "lucide-react";
+import { UserCog, Sliders, Settings as SettingsIcon, Smartphone, Activity } from "lucide-react";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { RealTimeStateSyncPanel } from "@/components/communication/RealTimeStateSyncPanel";
 const UserSettings = React.lazy(() => import("./UserSettings"));
 const SystemSettings = React.lazy(() => import("./SystemSettings"));
 const PWASettings = React.lazy(() => import("@/components/settings/PWASettings"));
@@ -38,6 +39,12 @@ const Settings: React.FC = () => {
               <Smartphone className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
               {language === 'ar' ? 'إعدادات التطبيق' : 'App Settings'}
             </TabsTrigger>
+            {process.env.NODE_ENV === 'development' && (
+              <TabsTrigger value="diagnostics" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                <Activity className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                {language === 'ar' ? 'تشخيص الأداء' : 'Performance Diagnostics'}
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <TabsContent value="user" className="mt-4">
@@ -87,6 +94,18 @@ const Settings: React.FC = () => {
               </React.Suspense>
             </ErrorBoundary>
           </TabsContent>
+          
+          {process.env.NODE_ENV === 'development' && (
+            <TabsContent value="diagnostics" className="mt-4">
+              <ErrorBoundary 
+                context={{ page: 'settings', tab: 'diagnostics' }}
+                showRetry={true}
+                showBack={false}
+              >
+                <RealTimeStateSyncPanel />
+              </ErrorBoundary>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </PageContainer>
