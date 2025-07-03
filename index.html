@@ -237,32 +237,6 @@
     <script>
       // PWA Service Worker registration has been disabled
       console.log('[PWA] Service Worker registration disabled');
-    
-      
-      // Install prompt handling
-      let deferredPrompt;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        
-        // Show install button or banner
-        const installButton = document.getElementById('install-button');
-        if (installButton) {
-          installButton.style.display = 'block';
-          installButton.addEventListener('click', async () => {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to install prompt: ${outcome}`);
-            deferredPrompt = null;
-          });
-        }
-      });
-      
-      // Track install state
-      window.addEventListener('appinstalled', () => {
-        console.log('PWA was installed');
-        deferredPrompt = null;
-      });
       
       // Handle offline/online status with mobile optimizations
       function updateOnlineStatus() {

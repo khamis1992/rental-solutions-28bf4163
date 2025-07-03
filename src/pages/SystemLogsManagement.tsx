@@ -18,7 +18,8 @@ import {
   LogEntry, 
   LogLevel, 
   EventType, 
-  EntityType 
+  EntityType,
+  LogStatistics
 } from '@/services/comprehensive-logging-service';
 import {
   Search,
@@ -76,7 +77,7 @@ const SystemLogsManagement: React.FC = () => {
 
   // الحالات
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [stats, setStats] = useState<LogStats | null>(null);
+  const [stats, setStats] = useState<LogStatistics | null>(null);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<LogFilters>({});
   const [selectedTab, setSelectedTab] = useState('overview');
@@ -203,6 +204,9 @@ const SystemLogsManagement: React.FC = () => {
   const quickStats = useMemo(() => {
     if (!stats) return [];
     
+    const errorCount = stats.logs_by_level?.error || 0;
+    const errorRate = stats.total_logs > 0 ? (errorCount / stats.total_logs) * 100 : 0;
+    
     return [
       {
         title: 'إجمالي السجلات',
@@ -212,21 +216,21 @@ const SystemLogsManagement: React.FC = () => {
       },
       {
         title: 'معدل الأخطاء',
-        value: `${stats.error_rate.toFixed(1)}%`,
+        value: `${errorRate.toFixed(1)}%`,
         icon: <AlertTriangle className="h-4 w-4" />,
-        color: stats.error_rate > 5 ? 'red' : 'green'
+        color: errorRate > 5 ? 'red' : 'green'
       },
       {
         title: 'متوسط الاستجابة',
-        value: `${Math.round(stats.avg_response_time)}ms`,
+        value: `${Math.round(stats.performance_metrics?.avg_response_time || 0)}ms`,
         icon: <Clock className="h-4 w-4" />,
-        color: stats.avg_response_time > 1000 ? 'red' : 'green'
+        color: (stats.performance_metrics?.avg_response_time || 0) > 1000 ? 'red' : 'green'
       },
       {
         title: 'الأخطاء الأخيرة',
-        value: stats.recent_errors.length.toLocaleString('ar-QA'),
+        value: (stats.recent_errors?.length || 0).toLocaleString('ar-QA'),
         icon: <XCircle className="h-4 w-4" />,
-        color: stats.recent_errors.length > 10 ? 'red' : 'green'
+        color: (stats.recent_errors?.length || 0) > 10 ? 'red' : 'green'
       }
     ];
   }, [stats]);
@@ -306,13 +310,13 @@ const SystemLogsManagement: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-60">
-                  {stats?.recent_errors.map((error, index) => (
+                  {stats?.recent_errors?.map((error, index) => (
                     <div key={index} className="flex items-start gap-3 p-3 border-b last:border-b-0">
                       {getLevelIcon(error.level)}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{error.message}</p>
                         <p className="text-xs text-gray-500">
-                          {new Date(error.timestamp!).toLocaleString('ar-QA')}
+                          {error.timestamp ? new Date(error.timestamp).toLocaleString('ar-QA') : 'غير محدد'}
                         </p>
                         {error.component && (
                           <Badge variant="outline" className="text-xs mt-1">
@@ -321,7 +325,11 @@ const SystemLogsManagement: React.FC = () => {
                         )}
                       </div>
                     </div>
-                  ))}
+                  )) || (
+                    <div className="text-center text-gray-500 p-4">
+                      لا توجد أخطاء حديثة
+                    </div>
+                  )}
                 </ScrollArea>
               </CardContent>
             </Card>
@@ -336,7 +344,7 @@ const SystemLogsManagement: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-60">
-                  {stats?.slowest_operations.map((op, index) => (
+                  {stats?.performance_metrics?.slowest_operations?.map((op: { operation: string; avg_duration: number; count: number }, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 border-b last:border-b-0">
                       <div>
                         <p className="text-sm font-medium">{op.operation}</p>
@@ -346,7 +354,11 @@ const SystemLogsManagement: React.FC = () => {
                         {Math.round(op.avg_duration)}ms
                       </Badge>
                     </div>
-                  ))}
+                  )) || (
+                    <div className="text-center text-gray-500 p-4">
+                      لا توجد بيانات عن العمليات
+                    </div>
+                  )}
                 </ScrollArea>
               </CardContent>
             </Card>
@@ -515,7 +527,11 @@ const SystemLogsManagement: React.FC = () => {
                     </div>
                     <Badge variant="outline">{count}</Badge>
                   </div>
-                ))}
+                )) || (
+                  <div className="text-center text-gray-500 p-4">
+                    لا توجد بيانات متاحة
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -530,7 +546,11 @@ const SystemLogsManagement: React.FC = () => {
                     <span className="text-sm">{type}</span>
                     <Badge variant="outline">{count}</Badge>
                   </div>
-                ))}
+                )) || (
+                  <div className="text-center text-gray-500 p-4">
+                    لا توجد بيانات متاحة
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

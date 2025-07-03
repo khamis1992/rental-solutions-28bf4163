@@ -1,13 +1,18 @@
 // Environment Variables Diagnostic Test
+import { validateEnvironmentVariables, displayEnvironmentReport, initializeEnvironmentValidation } from './utils/env-validator';
+import { initializeProductionDetection } from './utils/production-env-detector';
+
 console.log('🔍 ENVIRONMENT VARIABLES DIAGNOSTIC TEST');
 console.log('=====================================');
 
-// Check if running in browser
-console.log('Environment:', typeof window !== 'undefined' ? 'Browser' : 'Server');
+// تهيئة نظام فحص البيئة الشامل
+initializeEnvironmentValidation();
+initializeProductionDetection();
 
-// Log all available environment variables
+// الفحص الأساسي القديم للمقارنة
+console.group('🧪 الفحص الأساسي');
+console.log('Environment:', typeof window !== 'undefined' ? 'Browser' : 'Server');
 console.log('All import.meta.env keys:', Object.keys(import.meta.env));
-console.log('All import.meta.env values:', import.meta.env);
 
 // Check specific Supabase variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -23,4 +28,5 @@ if (supabaseUrl && supabaseKey) {
   console.error('❌ Environment variables missing!');
   console.error('URL present:', !!supabaseUrl);
   console.error('Key present:', !!supabaseKey);
-} 
+}
+console.groupEnd(); 
