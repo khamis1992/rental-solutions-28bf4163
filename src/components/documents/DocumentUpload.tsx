@@ -96,13 +96,8 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
         onComplete();
       }
     } catch (error: any) {
-      errorLogger.logError(error, {
-        context: 'DocumentUpload',
-        action: 'handleSubmit',
-        entityType,
-        entityId,
-        fileName: file?.name,
-        fileSize: file?.size
+      errorLogger.logError(error, 'high', {
+        context: 'DocumentUpload'
       });
       
       // Enhanced error handling with helpful messages

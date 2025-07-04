@@ -8,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { CustomerStatusBadge } from './CustomerStatusBadge';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { MoreVertical, Phone, Mail, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -95,6 +94,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = memo(({
       className="hover:shadow-md transition-shadow cursor-pointer h-full"
       onClick={handleCardClick}
       dir="rtl"
+      data-testid="customer-card"
     >
       <CardContent className="p-5">
         {/* Header with name and status */}
