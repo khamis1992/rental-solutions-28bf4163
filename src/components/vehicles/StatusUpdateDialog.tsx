@@ -23,6 +23,7 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface StatusUpdateDialogProps {
   isOpen: boolean;
@@ -50,7 +51,6 @@ const StatusUpdateDialog = ({
 
   React.useEffect(() => {
     if (isOpen) {
-      console.log(`StatusUpdateDialog: Setting initial status to ${currentStatus}`);
       setStatus(currentStatus);
     }
   }, [isOpen, currentStatus, vehicleId]);

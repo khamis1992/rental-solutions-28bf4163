@@ -23,6 +23,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { performanceMonitor } from '@/lib/database/performance-monitor';
 import { getCacheStats } from '@/lib/database/simple-cache';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface ConnectionStats {
   database_name: string;
@@ -82,7 +83,10 @@ export const DatabaseMonitor: React.FC = () => {
       setPerformanceStats(perfData);
 
     } catch (error) {
-      console.error('Error fetching monitoring data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'DatabaseMonitor.fetchMonitoringData',
+        action: 'fetch_monitoring_data'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +98,10 @@ export const DatabaseMonitor: React.FC = () => {
       await supabase.rpc('cleanup_expired_cache');
       await fetchMonitoringData();
     } catch (error) {
-      console.error('Error cleaning cache:', error);
+      errorLogger.logError(error as Error, {
+        context: 'DatabaseMonitor.cleanupCache',
+        action: 'cleanup_cache'
+      });
     }
   };
 
@@ -104,7 +111,10 @@ export const DatabaseMonitor: React.FC = () => {
       await supabase.rpc('daily_cache_maintenance');
       await fetchMonitoringData();
     } catch (error) {
-      console.error('Error running maintenance:', error);
+      errorLogger.logError(error as Error, {
+        context: 'DatabaseMonitor.runMaintenance',
+        action: 'run_maintenance'
+      });
     }
   };
 
@@ -487,4 +497,4 @@ export const DatabaseMonitor: React.FC = () => {
       </Tabs>
     </div>
   );
-}; 
+};  

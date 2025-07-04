@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { Camera, Upload, X } from 'lucide-react';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface ReceiptScannerProps {
   onScanComplete?: (extractedData: any) => void;
@@ -80,7 +81,11 @@ export const ReceiptScanner = ({ onScanComplete }: ReceiptScannerProps) => {
       }
       
     } catch (error) {
-      console.error('Error scanning receipt:', error);
+      errorLogger.logError(error as Error, {
+        context: 'ReceiptScanner.handleScanReceipt',
+        fileName: selectedFile?.name,
+        timestamp: new Date().toISOString()
+      });
     } finally {
       setIsScanning(false);
     }

@@ -8,6 +8,7 @@ import { Settings, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateVehicleStatus } from '@/utils/vehicle-update';
 import { VehicleData } from '@/types/vehicle.types';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleStatusQuickUpdateProps {
   vehicle: VehicleData;
@@ -51,7 +52,12 @@ export const VehicleStatusQuickUpdate: React.FC<VehicleStatusQuickUpdateProps> =
 
     setIsUpdating(true);
     try {
-      console.log(`تحديث سريع لحالة المركبة ${vehicle.id}: ${vehicle.status} → ${selectedStatus}`);
+      errorLogger.logInfo('Vehicle status update initiated', {
+        vehicleId: vehicle.id,
+        fromStatus: vehicle.status,
+        toStatus: selectedStatus,
+        context: 'VehicleStatusQuickUpdate'
+      });
       
       const result = await updateVehicleStatus(vehicle.id, selectedStatus as any);
       
@@ -76,7 +82,12 @@ export const VehicleStatusQuickUpdate: React.FC<VehicleStatusQuickUpdateProps> =
         });
       }
     } catch (error: any) {
-      console.error('خطأ في التحديث السريع:', error);
+      errorLogger.logError(error, {
+        context: 'VehicleStatusQuickUpdate',
+        vehicleId: vehicle.id,
+        attemptedStatus: selectedStatus,
+        operation: 'status_update'
+      });
       toast.error('خطأ في تحديث الحالة', {
         description: error.message || 'حدث خطأ غير متوقع',
       });
@@ -183,4 +194,4 @@ export const VehicleStatusQuickUpdate: React.FC<VehicleStatusQuickUpdateProps> =
       </CardContent>
     </Card>
   );
-}; 
+};  

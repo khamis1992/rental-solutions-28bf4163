@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 // Enhanced alert types
 interface SmartAlert {
@@ -137,7 +138,10 @@ const fetchEnhancedSmartAlerts = async (): Promise<SmartAlert[]> => {
     });
 
   } catch (error) {
-    console.error('Error fetching enhanced alerts:', error);
+    errorLogger.logError(error as Error, {
+      context: 'EnhancedSmartAlertsWidget.fetchEnhancedSmartAlerts',
+      operation: 'fetch_alerts'
+    });
     return [];
   }
 };

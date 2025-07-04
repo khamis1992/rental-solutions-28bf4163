@@ -11,6 +11,7 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface PaymentEntryDialogProps {
   open: boolean;
@@ -101,7 +102,12 @@ export function PaymentEntryDialog({
         onOpenChange(false);
       }
     } catch (error) {
-      console.error('Error submitting payment:', error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentEntryDialog.handleSubmit',
+        paymentId: selectedPayment?.id,
+        amount: amountValue,
+        isSettlement: !!selectedPayment
+      });
       const errorMessage = selectedPayment 
         ? 'فشل في تسوية الدفعة' 
         : 'فشل في تسجيل الدفعة';

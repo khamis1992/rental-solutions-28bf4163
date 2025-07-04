@@ -10,6 +10,7 @@ import {
 import { userService } from "@/services";
 import { toast } from "sonner";
 import { UserRole } from "@/types/user-types";
+import { errorLogger } from "@/lib/errors/error-logger";
 
 interface UserRoleManagerProps {
   userId: string;
@@ -46,7 +47,13 @@ export const UserRoleManager = ({
       setRole(newRole);
       toast.success(`تم تحديث دور ${fullName} إلى ${newRole === 'admin' ? 'مدير' : 'موظف'}`);
     } catch (error: any) {
-      console.error('خطأ في تحديث دور المستخدم:', error?.message || error);
+      errorLogger.logError(error, {
+        context: 'UserRoleManager.handleRoleChange',
+        userId,
+        currentRole,
+        newRole,
+        fullName
+      });
       toast.error(`فشل في تحديث دور ${fullName}`);
       setRole(currentRole);
     } finally {

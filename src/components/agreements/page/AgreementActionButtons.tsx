@@ -49,7 +49,6 @@ export function AgreementActionButtons({
 
   const handleExportAgreements = () => {
     // This would be implemented based on the backend capabilities
-    console.log('Export agreements');
   };
 
   return (

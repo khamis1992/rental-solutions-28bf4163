@@ -9,6 +9,7 @@ import { hasData } from '@/utils/supabase-type-helpers';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 export interface LegalCaseCardProps {
   agreementId: string;
@@ -38,12 +39,20 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
         .single();
         
       if (agreementError) {
-        console.error("Error fetching agreement:", agreementError);
+        errorLogger.logError(new Error("Error fetching agreement"), {
+          context: 'LegalCaseCard.fetchLegalCase',
+          agreementId,
+          error: agreementError
+        });
         return;
       }
       
       if (!agreementData?.customer_id) {
-        console.error("No customer ID found for agreement");
+        errorLogger.logError(new Error("No customer ID found for agreement"), {
+          context: 'LegalCaseCard.fetchLegalCase',
+          agreementId,
+          agreementData
+        });
         return;
       }
       
@@ -67,7 +76,11 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
         .limit(1);
         
       if (caseError) {
-        console.error("Error fetching legal case:", caseError);
+        errorLogger.logError(new Error("Error fetching legal case"), {
+          context: 'LegalCaseCard.fetchLegalCase',
+          customerId: agreementData.customer_id,
+          error: caseError
+        });
         return;
       }
       
@@ -75,7 +88,10 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
         setLegalCase(caseData[0]);
       }
     } catch (error) {
-      console.error("Error in fetchLegalCase:", error);
+      errorLogger.logError(error as Error, {
+        context: 'LegalCaseCard.fetchLegalCase',
+        agreementId
+      });
     } finally {
       setIsLoading(false);
     }
@@ -161,7 +177,11 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
       setResolutionNotes('');
       fetchLegalCase(); // Refresh the data
     } catch (error) {
-      console.error('Error resolving case:', error);
+      errorLogger.logError(error as Error, {
+        context: 'LegalCaseCard.handleResolveCase',
+        legalCaseId: legalCase.id,
+        resolutionNotes
+      });
       toast.error('فشل في حل القضية');
     } finally {
       setIsSubmitting(false);

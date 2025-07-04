@@ -15,8 +15,6 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("CustomerLegalObligationsPage: useEffect with customerId:", customerId);
-    
     // This is a placeholder for the future API call
     // For now, just simulate loading and then show empty state
     const timer = setTimeout(() => {

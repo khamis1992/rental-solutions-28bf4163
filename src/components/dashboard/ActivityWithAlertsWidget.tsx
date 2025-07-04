@@ -117,7 +117,9 @@ const fetchSmartAlerts = async (): Promise<SmartAlert[]> => {
       });
     }
   } catch (error) {
-    console.error('خطأ في جلب التنبيهات:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('خطأ في جلب التنبيهات:', error);
+    }
   }
 
   // إضافة تنبيهات تجريبية للاختبار (دائماً للتأكد من عمل الأزرار)
@@ -271,7 +273,9 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
           return [];
       }
     } catch (error) {
-      console.error('خطأ في جلب البيانات المفصلة:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('خطأ في جلب البيانات المفصلة:', error);
+      }
       // إرجاع بيانات تجريبية في حالة وجود خطأ
       switch (alertType) {
         case 'payment':
@@ -329,18 +333,14 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
   };
 
   const handleAlertAction = async (alert: SmartAlert) => {
-    console.log('🎯 تم الضغط على:', alert.title, 'النوع:', alert.type);
-    console.log('🎯 معرف التنبيه:', alert.id);
-    console.log('🎯 النص الإجرائي:', alert.actionText);
-    
     try {
       const data = await fetchDetailedData(alert.type);
-      console.log('📊 البيانات المجلبة:', data);
       setDialogData(data);
       setActiveDialog(alert.type);
-      console.log('✅ تم تعيين activeDialog إلى:', alert.type);
     } catch (error) {
-      console.error('❌ خطأ في handleAlertAction:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ خطأ في handleAlertAction:', error);
+      }
     }
   };
 
@@ -389,7 +389,6 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
                 key={alert.id} 
                 className={cn('p-4 border-r-4 cursor-pointer hover:shadow-md transition-shadow', getPriorityColor(alert.priority))}
                 onClick={() => {
-                  console.log('🗂️ تم الضغط على البطاقة:', alert.title);
                   handleAlertAction(alert);
                 }}
               >
@@ -425,7 +424,6 @@ export const ActivityWithAlertsWidget: React.FC<ActivityWithAlertsProps> = ({ ac
                           variant='outline' 
                           className='text-xs'
                           onClick={(e) => {
-                            console.log('🔘 تم الضغط على الزر الصغير:', alert.actionText);
                             e.stopPropagation();
                             handleAlertAction(alert);
                           }}

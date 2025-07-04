@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { errorLogger } from "@/lib/errors/error-logger";
 
 const profileSchema = z.object({
   full_name: z.string().min(3, "يجب أن يكون الاسم الكامل 3 أحرف على الأقل"),
@@ -44,7 +45,12 @@ const UserProfile = () => {
       setIsUpdating(true);
       await updateProfile({ full_name: data.full_name });
     } catch (error) {
-      console.error("خطأ في تحديث الملف الشخصي:", error);
+      errorLogger.logError(error as Error, {
+        context: 'UserProfile.onSubmit',
+        action: 'update_profile',
+        userId: user?.id,
+        data: { full_name: data.full_name }
+      });
     } finally {
       setIsUpdating(false);
     }

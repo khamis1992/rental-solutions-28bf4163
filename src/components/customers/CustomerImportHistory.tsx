@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CalendarDays, Download, RefreshCw, FileDown, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface ImportRecord {
   id: string;
@@ -46,13 +47,19 @@ export const CustomerImportHistory: React.FC = () => {
         .limit(5);
         
       if (error) {
-        console.error('Error fetching import history:', error);
+        errorLogger.logError(error, {
+          context: 'CustomerImportHistory.fetchImportHistory',
+          action: 'fetch_import_history'
+        });
         return;
       }
       
       setImports(data || []);
     } catch (error) {
-      console.error('Unexpected error fetching import history:', error);
+      errorLogger.logError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'CustomerImportHistory.fetchImportHistory',
+        action: 'unexpected_error'
+      });
     } finally {
       setIsLoading(false);
     }

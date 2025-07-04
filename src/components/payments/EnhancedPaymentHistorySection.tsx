@@ -132,7 +132,6 @@ const getSmartPaymentStatus = (payment: any): {
     const lastDayOfMonth = new Date(parsedDate.year, parsedDate.month, 0).getDate();
     computedDueDate.setDate(lastDayOfMonth);
     
-    console.log(`🤖 تاريخ الاستحقاق المحسوب من النص: ${formatDateSafely(computedDueDate)}`);
   }
   
   // استخدام تاريخ الاستحقاق المسجل في قاعدة البيانات كأولوية
@@ -151,14 +150,6 @@ const getSmartPaymentStatus = (payment: any): {
   
   const daysDifference = Math.floor((today.getTime() - effectiveDueDate.getTime()) / (1000 * 60 * 60 * 24));
   
-  console.log(`📊 مقارنة التواريخ:`, {
-    today: formatDateSafely(today),
-    dbDueDate: dbDueDate ? formatDateSafely(dbDueDate) : 'غير محدد',
-    computedDueDate: computedDueDate ? formatDateSafely(computedDueDate) : 'غير محدد',
-    effectiveDueDate: formatDateSafely(effectiveDueDate),
-    daysDifference: `${daysDifference} يوم`,
-    isOverdue: daysDifference > 0
-  });
   
   if (daysDifference > 0) {
     // متأخرة
@@ -274,21 +265,6 @@ export function EnhancedPaymentHistorySection({
       p.status !== p.smartStatus.status && p.smartStatus.status !== 'paid'
     ).length;
 
-    console.log(`📊 تحليل دفعات العقد:`, {
-      total: payments.length,
-      originalCounts: {
-        paid: payments.filter(p => p.status === 'paid' || p.status === 'completed').length,
-        pending: payments.filter(p => p.status === 'pending').length,
-        overdue: payments.filter(p => p.status === 'overdue').length
-      },
-      smartCounts: {
-        paid: smartPaid,
-        pending: smartPending,
-        overdue: smartOverdue
-      },
-      needsUpdate: `${needsUpdate} دفعات تحتاج تحديث`,
-      totalLateFees: `${totalLateFees.toLocaleString()} ر.ق`
-    });
     
     return {
       total: payments.length,
@@ -347,7 +323,7 @@ export function EnhancedPaymentHistorySection({
         }
         return success;
       } catch (err) {
-        console.error('Settlement failed:', err);
+        // Settlement failed - error handled by UI
         return false;
       }
     } else {
@@ -368,7 +344,6 @@ export function EnhancedPaymentHistorySection({
         }
         return true;
       } catch (err) {
-        console.error('Payment creation failed:', err);
         return false;
       }
     }
@@ -441,7 +416,6 @@ export function EnhancedPaymentHistorySection({
         fetchPayments();
       }
     } catch (error) {
-      console.error('Error deleting payment:', error);
       toast.error('فشل في حذف الدفعة');
     }
   };
@@ -839,4 +813,4 @@ export function EnhancedPaymentHistorySection({
       </Dialog>
     </div>
   );
-} 
+}  

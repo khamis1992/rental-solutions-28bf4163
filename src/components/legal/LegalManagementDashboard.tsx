@@ -105,7 +105,6 @@ const LegalManagementDashboard = () => {
         setLegalTemplates(templatesResult.data);
       }
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
       toast.error('Failed to load legal management data');
     } finally {
       setIsLoading(false);
@@ -132,7 +131,6 @@ const LegalManagementDashboard = () => {
         throw new Error('Failed to create case');
       }
     } catch (error) {
-      console.error('Error creating case:', error);
       toast.error('Failed to create legal case');
     }
   };
@@ -160,7 +158,6 @@ const LegalManagementDashboard = () => {
         throw new Error('Failed to create template');
       }
     } catch (error) {
-      console.error('Error creating template:', error);
       toast.error('Failed to create legal template');
     }
   };
@@ -172,12 +169,9 @@ const LegalManagementDashboard = () => {
 
   const handleExportToPDF = async () => {
     if (!selectedCandidate) {
-      console.error('No selected candidate for PDF export');
       toast.error('لم يتم اختيار عميل للتصدير');
       return;
     }
-    
-    console.log('🚀 Starting INTEGRATED PDF export with REAL database data for:', selectedCandidate.customer_name);
     setIsExporting(true);
     
     try {
@@ -189,7 +183,6 @@ const LegalManagementDashboard = () => {
       let customerIdCardImage = null;
       let allCustomerAgreements = [];
       
-      console.log('🔍 بدء جلب البيانات المالية للعميل:', selectedCandidate.customer_name);
       
       // أولاً: البحث عن العميل في قاعدة البيانات
       const { data: customerSearchResults, error: customerSearchError } = await supabase
@@ -200,7 +193,6 @@ const LegalManagementDashboard = () => {
       
       if (!customerSearchError && customerSearchResults && customerSearchResults.length > 0) {
         actualCustomerData = customerSearchResults[0];
-        console.log('✅ تم العثور على العميل في قاعدة البيانات:', actualCustomerData.full_name);
         
         // ثانياً: جلب جميع عقود العميل
         const { data: customerAgreements, error: agreementsError } = await supabase
@@ -218,7 +210,6 @@ const LegalManagementDashboard = () => {
           actualAgreementData = customerAgreements[0]; // أحدث عقد
           actualVehicleData = actualAgreementData.vehicles;
           
-          console.log(`📋 تم العثور على ${customerAgreements.length} عقد للعميل`);
           
           // ثالثاً: جلب جميع الدفعات المعلقة والمتأخرة لجميع عقود العميل
           const agreementIds = customerAgreements.map(a => a.id);
@@ -231,7 +222,6 @@ const LegalManagementDashboard = () => {
           
           if (!allPaymentsError && allPaymentsData) {
             pendingPayments = allPaymentsData;
-            console.log(`💰 تم العثور على ${allPaymentsData.length} دفعة معلقة/متأخرة للعميل`);
           }
         }
         
@@ -239,15 +229,10 @@ const LegalManagementDashboard = () => {
         try {
           if (actualCustomerData.id_card_image) {
             customerIdCardImage = actualCustomerData.id_card_image;
-            console.log('✅ تم العثور على صورة البطاقة الشخصية للعميل');
-          } else {
-            console.log('⚠️ لم يتم العثور على صورة البطاقة الشخصية للعميل');
           }
         } catch (error) {
-          console.warn('خطأ في التحقق من صورة البطاقة الشخصية:', error);
         }
       } else {
-        console.warn('⚠️ لم يتم العثور على العميل في قاعدة البيانات، محاولة استخدام البيانات المتاحة');
         
         // خطة احتياطية: استخدام البيانات المتاحة من selectedCandidate
         if (selectedCandidate.unpaid_agreements.length > 0) {
@@ -308,7 +293,6 @@ const LegalManagementDashboard = () => {
       
       // 🛡️ نظام احتياطي: إذا لم تكن هناك دفعات في قاعدة البيانات لكن العميل في الكشف
       if (totalRentAmount === 0 && selectedCandidate.unpaid_agreements.length > 0) {
-        console.log('🔄 تفعيل النظام الاحتياطي - حساب المتأخرات من بيانات الكشف');
         
         const candidateOverdueAmount = selectedCandidate.unpaid_agreements.reduce((sum, agreement) => sum + agreement.amount_owed, 0);
         const candidateLateFees = selectedCandidate.unpaid_agreements.reduce((sum, agreement) => {
@@ -1780,4 +1764,4 @@ const LegalManagementDashboard = () => {
   );
 };
 
-export default LegalManagementDashboard; 
+export default LegalManagementDashboard;  

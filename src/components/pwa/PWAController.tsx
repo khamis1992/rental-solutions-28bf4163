@@ -4,6 +4,7 @@ import { OfflineIndicator } from './OfflineIndicator';
 import { PWAUpdatePrompt } from './PWAUpdatePrompt';
 import { BackgroundSync } from './BackgroundSync';
 import { useToast } from '@/hooks/use-toast';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 export const PWAController: React.FC = () => {
   const [isServiceWorkerSupported, setIsServiceWorkerSupported] = useState(false);
@@ -60,7 +61,10 @@ export const PWAController: React.FC = () => {
         updateViaCache: 'none'
       });
 
-      console.log('Service Worker registered successfully:', registration);
+      errorLogger.logInfo('Service Worker registered successfully', { 
+        scope: registration.scope,
+        updateViaCache: registration.updateViaCache 
+      });
 
       // Check for updates
       registration.addEventListener('updatefound', () => {
@@ -110,7 +114,10 @@ export const PWAController: React.FC = () => {
       });
 
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
+      errorLogger.logError(error as Error, {
+        context: 'PWAController.registerServiceWorker',
+        action: 'service_worker_registration'
+      });
     }
   };
 
@@ -122,11 +129,13 @@ export const PWAController: React.FC = () => {
         list.getEntries().forEach((entry) => {
           if (entry.entryType === 'navigation') {
             const navigationEntry = entry as PerformanceNavigationTiming;
-            console.log('Navigation timing:', {
-              loadComplete: navigationEntry.loadEventEnd - navigationEntry.fetchStart,
-              domContentLoaded: navigationEntry.domContentLoadedEventEnd - navigationEntry.fetchStart,
-              firstPaint: navigationEntry.responseStart - navigationEntry.fetchStart
-            });
+            if (process.env.NODE_ENV === 'development') {
+              errorLogger.logInfo('Navigation timing metrics', {
+                loadComplete: navigationEntry.loadEventEnd - navigationEntry.fetchStart,
+                domContentLoaded: navigationEntry.domContentLoadedEventEnd - navigationEntry.fetchStart,
+                firstPaint: navigationEntry.responseStart - navigationEntry.fetchStart
+              });
+            }
           }
         });
       });
@@ -156,7 +165,9 @@ export const PWAController: React.FC = () => {
       // Store capabilities for app usage
       localStorage.setItem('pwa-capabilities', JSON.stringify(capabilities));
       
-      console.log('PWA Capabilities:', capabilities);
+      if (process.env.NODE_ENV === 'development') {
+        errorLogger.logInfo('PWA Capabilities detected', capabilities);
+      }
     };
 
     detectCapabilities();

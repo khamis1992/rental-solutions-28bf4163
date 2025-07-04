@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -79,15 +80,24 @@ export const PWAInstallPrompt: React.FC = () => {
       const choiceResult = await deferredPrompt.userChoice;
       
       if (choiceResult.outcome === 'accepted') {
-        console.log('PWA installed successfully');
+        errorLogger.logInfo('PWA installed successfully', {
+          context: 'PWAInstallPrompt',
+          action: 'install_accepted'
+        });
         setIsInstalled(true);
         setShowPrompt(false);
       } else {
-        console.log('PWA installation dismissed');
+        errorLogger.logInfo('PWA installation dismissed by user', {
+          context: 'PWAInstallPrompt',
+          action: 'install_dismissed'
+        });
         handleDismiss();
       }
     } catch (error) {
-      console.error('Installation failed:', error);
+      errorLogger.logError(error as Error, {
+        context: 'PWAInstallPrompt',
+        action: 'install_failed'
+      });
     } finally {
       setIsInstalling(false);
       setDeferredPrompt(null);

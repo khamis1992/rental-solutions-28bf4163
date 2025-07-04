@@ -21,6 +21,7 @@ import {
   DocumentEntityType,
   CreateDocumentRequest 
 } from '@/types/document.types';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 export interface DocumentUploadProps {
   entityType?: DocumentEntityType;
@@ -95,7 +96,14 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
         onComplete();
       }
     } catch (error: any) {
-      console.error('Upload error:', error);
+      errorLogger.logError(error, {
+        context: 'DocumentUpload',
+        action: 'handleSubmit',
+        entityType,
+        entityId,
+        fileName: file?.name,
+        fileSize: file?.size
+      });
       
       // Enhanced error handling with helpful messages
       if (error.message.includes('bucket')) {

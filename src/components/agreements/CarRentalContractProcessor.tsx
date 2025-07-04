@@ -122,7 +122,10 @@ const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
       }
       
     } catch (error) {
-      console.error('خطأ في معالجة العقد:', error);
+      if (error instanceof Error) {
+        if (process.env.NODE_ENV === 'production') {
+        }
+      }
       toast.error("خطأ في المعالجة", {
         description: "حدث خطأ أثناء معالجة العقد",
       });
@@ -154,7 +157,6 @@ const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
       setCameraStream(stream);
       setShowCamera(true);
     } catch (error) {
-      console.error('خطأ في تشغيل الكاميرا:', error);
       toast.error("خطأ في الكاميرا", {
         description: "تعذر الوصول إلى الكاميرا. تأكد من السماح بالوصول للكاميرا.",
       });
@@ -257,7 +259,6 @@ const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
     }
 
     // 🎯 الانتقال إلى صفحة تأكيد البيانات
-    console.log('🔄 الانتقال إلى صفحة تأكيد البيانات...');
     
     // تحضير بيانات العميل
     const customerInfo: CustomerInfo = {
@@ -289,7 +290,6 @@ const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
       debugInfo: extractionResult?.debugInfo
     };
 
-    console.log('✅ تم تحضير البيانات للعرض:', { customerInfo, contractData });
 
     // حفظ البيانات والانتقال للخطوة 4 (التأكيد)
     setConfirmedData({ customerData: customerInfo, contractData });

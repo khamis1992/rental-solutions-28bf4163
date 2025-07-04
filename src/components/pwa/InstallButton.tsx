@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Download, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -68,7 +69,10 @@ export const InstallButton: React.FC<InstallButtonProps> = ({
       const choiceResult = await deferredPrompt.userChoice;
       
       if (choiceResult.outcome === 'accepted') {
-        console.log('PWA installed successfully');
+        errorLogger.logInfo('PWA installed successfully', {
+          context: 'InstallButton',
+          outcome: 'accepted'
+        });
         setIsInstalled(true);
         toast({
           title: 'تم تثبيت التطبيق',
@@ -76,7 +80,10 @@ export const InstallButton: React.FC<InstallButtonProps> = ({
           duration: 3000,
         });
       } else {
-        console.log('PWA installation dismissed');
+        errorLogger.logInfo('PWA installation dismissed by user', {
+          context: 'InstallButton',
+          outcome: 'dismissed'
+        });
         toast({
           title: 'تم إلغاء التثبيت',
           description: 'يمكنك تثبيت التطبيق لاحقاً',
@@ -84,14 +91,17 @@ export const InstallButton: React.FC<InstallButtonProps> = ({
         });
       }
     } catch (error) {
-      console.error('Installation failed:', error);
+      errorLogger.logError(error as Error, {
+        context: 'InstallButton',
+        action: 'handleInstall'
+      });
       toast({
         title: 'فشل في التثبيت',
         description: 'حدث خطأ أثناء تثبيت التطبيق',
         variant: 'destructive',
         duration: 3000,
       });
-    } finally {
+    }finally {
       setIsInstalling(false);
       setDeferredPrompt(null);
     }

@@ -12,6 +12,7 @@ import { CustomerObligation, fetchCustomerObligations } from './CustomerLegalObl
 import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface LegalObligationsTabProps {
   customerId: string;
@@ -34,7 +35,10 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
   // Function to load obligations
   const loadObligations = async () => {
     if (!customerId) {
-      console.error("LegalObligationsTab: No customer ID provided");
+      errorLogger.logError(new Error("No customer ID provided"), {
+        context: "LegalObligationsTab.loadObligations",
+        customerId
+      });
       setLoading(false);
       setError("No customer ID provided");
       return;
@@ -46,18 +50,20 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
       setObligations(obligations);
       setError(null);
     } catch (err: any) {
-      console.error("LegalObligationsTab: Failed to load legal obligations:", err);
+      errorLogger.logError(err, {
+        context: "LegalObligationsTab.loadObligations",
+        customerId,
+        message: "Failed to load legal obligations"
+      });
       setError(err.message || "Failed to load legal obligations");
     } finally {
       setLoading(false);
     }
   };
 
-  // Added console logs for debugging
   useEffect(() => {
-    console.log("LegalObligationsTab: useEffect triggered with customerId:", customerId);
     loadObligations();
-  }, [customerId]); // Keep customerId in dependency array
+  }, [customerId]);
 
   // Handle creating new legal case
   const handleCreateLegalCase = async () => {

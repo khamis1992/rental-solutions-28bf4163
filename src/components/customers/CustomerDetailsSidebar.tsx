@@ -45,6 +45,7 @@ import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/formatters';
 import { useRentAmount } from '@/hooks/use-rent-amount';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CustomerDetailsSidebarProps {
   customer: CustomerInfo | null;
@@ -87,13 +88,21 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
           .order('created_at', { ascending: false });
           
         if (error) {
-          console.error('Error fetching agreements:', error);
+          errorLogger.logError(error, {
+            context: 'CustomerDetailsSidebar.fetchAgreements',
+            customerId: customer.id,
+            action: 'fetch_customer_agreements'
+          });
           return;
         }
         
         setAgreements(data || []);
       } catch (error) {
-        console.error('Error in fetch agreements:', error);
+        errorLogger.logError(error as Error, {
+          context: 'CustomerDetailsSidebar.fetchAgreements',
+          customerId: customer.id,
+          action: 'fetch_customer_agreements_catch'
+        });
       } finally {
         setIsLoading(false);
       }

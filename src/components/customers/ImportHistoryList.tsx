@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 export function ImportHistoryList() {
   const [importLogs, setImportLogs] = useState<any[]>([]);
@@ -25,7 +26,10 @@ export function ImportHistoryList() {
         if (error) throw error;
         setImportLogs(data || []);
       } catch (err) {
-        console.error('Error fetching import logs:', err);
+        errorLogger.logError(err as Error, {
+          context: 'ImportHistoryList.fetchImportLogs',
+          action: 'fetch_import_logs'
+        });
         setError(err instanceof Error ? err.message : 'Failed to fetch import history');
       } finally {
         setIsLoading(false);

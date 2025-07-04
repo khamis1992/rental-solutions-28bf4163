@@ -42,7 +42,6 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
   
   const ensureCompleteData = (inputData: RevenueData[]): RevenueData[] => {
     if (!inputData || !Array.isArray(inputData) || inputData.length === 0) {
-      console.log("No revenue data provided, showing placeholder data");
       const months = language === 'ar' ? 
         ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس'] :
         ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
@@ -52,8 +51,6 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
         expenses: Math.floor(Math.random() * 3000) + 2000
       }));
     }
-    
-    console.log("Processing revenue chart data:", inputData);
     
     // Ensure each data item has revenue and expenses properties
     return inputData.map(item => ({

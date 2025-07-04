@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { UserRole } from '@/types/user-types';
 import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from '@/types/permissions';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 const RolePermissionsTable = () => {
   const [role, setRole] = useState<UserRole>('admin');
@@ -38,7 +39,11 @@ const RolePermissionsTable = () => {
 
       setPermissions(base);
     } catch (err: any) {
-      console.error('خطأ في تحميل الصلاحيات:', err.message);
+      errorLogger.logError(err, {
+        context: 'RolePermissionsTable.fetchPermissions',
+        role: selectedRole,
+        action: 'fetch_permissions'
+      });
       toast.error('فشل في تحميل الصلاحيات');
     } finally {
       setLoading(false);
@@ -75,7 +80,12 @@ const RolePermissionsTable = () => {
 
       toast.success('تم تحديث الصلاحيات');
     } catch (err: any) {
-      console.error('خطأ في حفظ الصلاحيات:', err.message);
+      errorLogger.logError(err, {
+        context: 'RolePermissionsTable.savePermissions',
+        role,
+        action: 'save_permissions',
+        permissionsCount: Object.keys(permissions).length
+      });
       toast.error('فشل في حفظ الصلاحيات');
     } finally {
       setSaving(false);

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Upload, FileText, CheckCircle, AlertCircle, Download, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CSVImportModalProps {
   isOpen: boolean;
@@ -66,7 +67,11 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
       const rows = lines.map(line => line.split(','));
       setPreviewData(rows);
     } catch (error) {
-      console.error('Error previewing CSV:', error);
+      errorLogger.logError(error as Error, {
+        context: 'CSVImportModal.previewCSV',
+        fileName: file.name,
+        fileSize: file.size
+      });
       toast.error('خطأ في قراءة الملف');
     }
   };
@@ -139,7 +144,12 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
       toast.success(`تم استيراد ${successfulRows} صف بنجاح. ${failedRows} صف فشل.`);
       onImportComplete();
     } catch (error: any) {
-      console.error('Import error:', error);
+      errorLogger.logError(error, {
+        context: 'CSVImportModal.handleImport',
+        fileName: selectedFile?.name,
+        fileSize: selectedFile?.size,
+        totalRows: data?.length || 0
+      });
       toast.error('حدث خطأ أثناء الاستيراد');
       setImportResult({
         total: 0,
@@ -147,7 +157,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
         failed: data?.length || 0,
         errors: [{ row: 0, field: 'N/A', message: error.message || 'Import failed' }],
       });
-    } finally {
+    }finally {
       setIsUploading(false);
     }
   };

@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleSelectorProps {
   value?: string;
@@ -41,7 +42,11 @@ const VehicleSelector = ({
         
         return data || [];
       } catch (error) {
-        console.error("Error fetching vehicles:", error);
+        errorLogger.logError(error as Error, {
+          context: 'VehicleSelector',
+          action: 'fetchVehicles',
+          timestamp: new Date().toISOString()
+        });
         return [];
       }
     }

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 // Define types for fine grouping
 interface CustomerFineGroup {
@@ -39,10 +40,8 @@ const TrafficFineReport = () => {
   // Ensure we have data to process even when trafficFines is undefined
   useEffect(() => {
     if (trafficFines) {
-      console.log("Traffic fines data loaded in report component:", trafficFines.length);
       setFinesData(trafficFines);
     } else {
-      console.log("No traffic fines data available in report component");
       setFinesData([]);
     }
   }, [trafficFines]);
@@ -87,12 +86,6 @@ const TrafficFineReport = () => {
   const validFines = filteredFines.filter(fine => !fine.customerId || isValidFine(fine));
   const invalidAssignedFines = filteredFines.filter(fine => fine.customerId && !isValidFine(fine));
 
-  // Add debug log for filtered fines
-  console.log("Filtered traffic fines for report:", {
-    all: filteredFines.length,
-    valid: validFines.length,
-    invalid: invalidAssignedFines.length
-  });
 
   // Handle assigning a fine to a customer
   const handleAssignToCustomer = async (id: string) => {
@@ -106,11 +99,14 @@ const TrafficFineReport = () => {
       await assignToCustomer.mutateAsync({ id });
       toast.success("Fine assigned to customer successfully");
     } catch (error) {
-      console.error("Error assigning fine to customer:", error);
+      errorLogger.logError(error as Error, {
+        context: 'TrafficFineReport.handleAssignToCustomer',
+        fineId: id
+      });
       toast.error("Failed to assign fine to customer", {
         description: error instanceof Error ? error.message : "An unexpected error occurred"
       });
-    } finally {
+    }finally {
       setAssigningFine(null);
     }
   };
@@ -121,11 +117,13 @@ const TrafficFineReport = () => {
       setIsCleaningUp(true);
       await cleanupInvalidAssignments.mutateAsync();
     } catch (error) {
-      console.error("Error cleaning up invalid assignments:", error);
+      errorLogger.logError(error as Error, {
+        context: 'TrafficFineReport.handleCleanupInvalidAssignments'
+      });
       toast.error("Failed to clean up invalid assignments", {
         description: error instanceof Error ? error.message : "An unexpected error occurred"
       });
-    } finally {
+    }finally {
       setIsCleaningUp(false);
     }
   };

@@ -17,6 +17,7 @@ import { ImportPaymentsDialog } from './ImportPaymentsDialog';
 import { PaymentFiltersBar } from './PaymentFiltersBar';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface ContractDetailDialogProps {
   open: boolean;
@@ -60,7 +61,11 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
         setPayments([]);
       }
     } catch (error) {
-      console.error('Error loading payments:', error);
+      errorLogger.logError(error as Error, {
+        context: 'ContractDetailDialog.loadPayments',
+        contractId: contract?.id,
+        operation: 'fetchContractPayments'
+      });
     } finally {
       setIsLoadingPayments(false);
     }

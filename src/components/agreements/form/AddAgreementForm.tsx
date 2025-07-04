@@ -13,6 +13,7 @@ import {
 import { useTemplateSetup } from '@/hooks/form/useTemplateSetup';
 import { AgreementTemplateStatus } from './AgreementTemplateStatus';
 import { Agreement } from '@/types/agreement';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface AddAgreementFormProps {
   initialData?: Partial<Agreement>;
@@ -34,7 +35,11 @@ export function AddAgreementForm({ initialData, onSubmit, isSubmitting = false }
     try {
       await onSubmit(data);
     } catch (error) {
-      console.error('خطأ في إرسال النموذج:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AddAgreementForm.handleFormSubmit',
+        formData: data,
+        timestamp: new Date().toISOString()
+      });
     } finally {
       setIsLoading(false);
     }

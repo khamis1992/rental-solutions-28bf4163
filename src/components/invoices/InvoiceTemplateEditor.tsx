@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { FileText } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
+import { errorLogger } from '@/lib/errors/error-logger';
 import { 
   InvoiceTemplate, 
   TemplateVariable, 
@@ -50,7 +51,10 @@ const InvoiceTemplateEditor: React.FC = () => {
         selectTemplate(fetchedTemplates[0]);
       }
     } catch (error) {
-      console.error("Error loading templates:", error);
+      errorLogger.logError(error as Error, {
+        context: 'InvoiceTemplateEditor.loadTemplates',
+        action: 'loading_templates'
+      });
       toast.error("Failed to load templates");
     } finally {
       setIsLoading(false);
@@ -130,7 +134,12 @@ const InvoiceTemplateEditor: React.FC = () => {
       
       toast.success("Template saved successfully");
     } catch (error) {
-      console.error("Error saving template:", error);
+      errorLogger.logError(error as Error, {
+        context: 'InvoiceTemplateEditor.handleSaveTemplate',
+        action: 'saving_template',
+        templateId: selectedTemplate.id,
+        templateName
+      });
       toast.error("Failed to save template");
     } finally {
       setIsLoading(false);
@@ -155,7 +164,11 @@ const InvoiceTemplateEditor: React.FC = () => {
       
       toast.success("Template deleted");
     } catch (error) {
-      console.error("Error deleting template:", error);
+      errorLogger.logError(error as Error, {
+        context: 'InvoiceTemplateEditor.handleDeleteTemplate',
+        action: 'deleting_template',
+        templateId: selectedTemplate.id
+      });
       toast.error("Failed to delete template");
     } finally {
       setIsLoading(false);
@@ -185,7 +198,6 @@ const InvoiceTemplateEditor: React.FC = () => {
   };
 
   const handleTemplateGenerated = (generatedTemplate: string) => {
-    console.log("Generated template:", generatedTemplate);
     setTemplateContent(generatedTemplate);
     setEditMode("preview");
     setActiveTab("editor");

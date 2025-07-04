@@ -31,13 +31,8 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
   // Memoize the filtered fines to prevent recalculation on each render
   const filteredFines = React.useMemo(() => {
     if (!trafficFines || !Array.isArray(trafficFines)) {
-      console.log('No traffic fines data or invalid format:', trafficFines);
       return [];
     }
-    
-    console.log('Total traffic fines:', trafficFines.length);
-    console.log('Filtering for agreement:', agreementId);
-    console.log('Date range:', { startDate, endDate });
     
     const filtered = trafficFines.filter(fine => {
       // Check if fine is assigned to this lease/agreement
@@ -49,7 +44,6 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
       
       // Check date range
       if (!fine.violationDate) {
-        console.log('Fine without violation date:', fine);
         return false;
       }
       
@@ -60,18 +54,9 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
       
       const isInDateRange = violationDate >= startDate && violationDate <= endDate;
       
-      console.log('Fine check:', {
-        fineId: fine.id,
-        leaseId: fine.leaseId,
-        violationDate: violationDate.toISOString(),
-        isAssignedToLease,
-        isInDateRange
-      });
-      
       return isInDateRange;
     });
     
-    console.log('Filtered fines count:', filtered.length);
     return filtered;
   }, [trafficFines, agreementId, startDate, endDate]);
 

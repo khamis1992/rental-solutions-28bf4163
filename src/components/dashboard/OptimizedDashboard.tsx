@@ -1,6 +1,7 @@
 import React, { Suspense, useMemo, useCallback } from 'react';
 import { usePerformanceOptimization } from '@/utils/performance-optimizer';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 // Lazy Loading للمكونات الثقيلة
 const DashboardContent = React.lazy(() => 
@@ -79,7 +80,11 @@ export const OptimizedDashboard: React.FC<OptimizedDashboardProps> = ({
     try {
       await batchRequests(dataRequests, 2);
     } catch (error) {
-      console.warn('⚠️ Failed to batch load dashboard data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'OptimizedDashboard.loadDashboardData',
+        severity: 'warning',
+        action: 'batch_load_dashboard_data'
+      });
     }
   }, [batchRequests]);
 
@@ -159,4 +164,4 @@ export const OptimizedDashboard: React.FC<OptimizedDashboardProps> = ({
 };
 
 // تصدير مع تحسين إضافي
-export default React.memo(OptimizedDashboard); 
+export default React.memo(OptimizedDashboard);  

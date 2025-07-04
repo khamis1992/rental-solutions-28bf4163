@@ -15,6 +15,7 @@ import { agreementPaymentService } from '@/services/AgreementPaymentService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface AgreementFormProps {
   initialData?: Agreement;
@@ -79,9 +80,11 @@ const AgreementForm = ({
           setIsGeneratingAgreementNumber(true);
           const newNumber = await generateAgreementNumber(supabase);
           form.setValue('agreement_number', newNumber);
-          console.log('تم توليد رقم الاتفاقية:', newNumber);
         } catch (error) {
-          console.error('خطأ في توليد رقم الاتفاقية:', error);
+          errorLogger.logError(error as Error, {
+            context: 'AgreementForm.generateAgreementNumber',
+            action: 'auto_generate_agreement_number'
+          });
           toast.error('فشل في توليد رقم الاتفاقية تلقائياً');
         } finally {
           setIsGeneratingAgreementNumber(false);
@@ -126,11 +129,11 @@ const AgreementForm = ({
 
   // Enhanced form submission with payment generation
   const handleSubmit = async (data: Agreement) => {
-    console.log('🔘 handleSubmit called - termsAccepted:', termsAccepted);
-    console.log('🔘 Form data received:', data);
-    
     if (!termsAccepted) {
-      console.error('❌ Terms not accepted - showing error');
+      errorLogger.logError(new Error('Terms not accepted'), {
+        context: 'AgreementForm.handleSubmit',
+        action: 'terms_validation_failed'
+      });
       toast.error('يجب الموافقة على الشروط والأحكام');
       return;
     }

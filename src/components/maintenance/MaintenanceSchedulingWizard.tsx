@@ -11,6 +11,7 @@ import { MaintenanceType, MaintenanceStatus } from '@/lib/validation-schemas/mai
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { toast } from "sonner";
 import { useLanguage } from '@/contexts/LanguageContext';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface MaintenanceSchedulingWizardProps {
   open: boolean;
@@ -90,7 +91,11 @@ export function MaintenanceSchedulingWizard({
       onComplete();
       onClose();
     } catch (error) {
-      console.error('Failed to schedule maintenance:', error);
+      errorLogger.logError(error as Error, {
+        context: 'MaintenanceSchedulingWizard.handleSubmit',
+        formData,
+        vehicleId
+      });
       toast.error(language === 'ar'
         ? 'فشل في إنشاء سجل الصيانة. يرجى المحاولة مرة أخرى'
         : 'Failed to create maintenance record. Please try again');

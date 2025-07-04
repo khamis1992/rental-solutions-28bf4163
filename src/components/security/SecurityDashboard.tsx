@@ -87,7 +87,8 @@ const SecurityDashboard: React.FC<SecurityDashboardProps> = ({ className }) => {
       setThreatDetections(threats);
       
     } catch (error) {
-      console.error('Failed to load security data:', error);
+      if (typeof error === 'object' && error !== null) {
+      }
     } finally {
       setIsLoading(false);
     }
@@ -619,4 +620,4 @@ const SecurityDashboard: React.FC<SecurityDashboardProps> = ({ className }) => {
   );
 };
 
-export default SecurityDashboard; 
+export default SecurityDashboard;  

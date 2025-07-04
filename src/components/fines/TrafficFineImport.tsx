@@ -8,6 +8,7 @@ import { downloadCSVTemplate } from '@/utils/csv-utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CsvRow {
   violation_number?: string;
@@ -117,7 +118,11 @@ const TrafficFineImport = ({ onImportComplete }: { onImportComplete?: () => void
         
         setPreviewData(parsedRows);
       } catch (err) {
-        console.error('Error parsing CSV:', err);
+        errorLogger.logError(err as Error, {
+          context: 'TrafficFineImport.parseCSV',
+          action: 'parsing_csv_file',
+          fileName: file.name
+        });
         setError(language === 'ar' 
           ? 'فشل في تحليل ملف CSV. يرجى التحقق من التنسيق.'
           : 'Failed to parse CSV file. Please check the format.');
@@ -172,7 +177,11 @@ const TrafficFineImport = ({ onImportComplete }: { onImportComplete?: () => void
             
             // Ensure license_plate is present
             if (!data.license_plate || data.license_plate.trim() === '') {
-              console.warn(`Row ${i} skipped: missing license plate`);
+              errorLogger.logWarning(`Row ${i} skipped: missing license plate`, {
+                context: 'TrafficFineImport.handleImport',
+                rowIndex: i,
+                data
+              });
               failCount++;
               continue;
             }
@@ -192,7 +201,12 @@ const TrafficFineImport = ({ onImportComplete }: { onImportComplete?: () => void
               .insert([data] as any); // Convert to array since the API expects an array
               
             if (insertError) {
-              console.error(`Error inserting row ${i}:`, insertError);
+              errorLogger.logError(new Error(`Database insertion failed for row ${i}`), {
+                context: 'TrafficFineImport.handleImport',
+                rowIndex: i,
+                data,
+                supabaseError: insertError
+              });
               failCount++;
             } else {
               successCount++;
@@ -218,7 +232,11 @@ const TrafficFineImport = ({ onImportComplete }: { onImportComplete?: () => void
               : `Failed to import ${failCount} fines`);
           }
         } catch (err) {
-          console.error('Import error:', err);
+          errorLogger.logError(err as Error, {
+            context: 'TrafficFineImport.handleImport',
+            action: 'importing_traffic_fines',
+            fileName: file.name
+          });
           setError(language === 'ar' 
             ? 'فشل في استيراد المخالفات المرورية'
             : 'Failed to import traffic fines');

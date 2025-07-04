@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 const validationSchema = z.object({
   licensePlate: z.string().min(1, 'License plate is required'),
@@ -70,7 +71,11 @@ const TrafficFineValidation: React.FC = () => {
         }] as any);
       
       if (validationError) {
-        console.error('Error saving validation:', validationError);
+        errorLogger.logError(validationError, {
+          context: 'TrafficFineValidation.onSubmit',
+          operation: 'saving_validation',
+          licensePlate: data.licensePlate
+        });
       }
       
       setValidationResult({
@@ -83,7 +88,11 @@ const TrafficFineValidation: React.FC = () => {
       
       toast.success(language === 'ar' ? 'تم التحقق من المخالفات بنجاح' : 'Validation completed successfully');
     } catch (error) {
-      console.error('Validation error:', error);
+      errorLogger.logError(error as Error, {
+        context: 'TrafficFineValidation.onSubmit',
+        operation: 'traffic_fine_validation',
+        licensePlate: data.licensePlate
+      });
       toast.error(language === 'ar' ? 'فشل في التحقق من المخالفات' : 'Failed to validate traffic fines');
     } finally {
       setIsValidating(false);
@@ -110,7 +119,12 @@ const TrafficFineValidation: React.FC = () => {
         )
       }));
     } catch (error) {
-      console.error('Assignment error:', error);
+      errorLogger.logError(error as Error, {
+        context: 'TrafficFineValidation.handleAssignToCustomer',
+        operation: 'assign_fine_to_customer',
+        fineId,
+        licensePlate: validationResult?.licensePlate
+      });
       toast.error(language === 'ar' ? 'فشل في تعيين المخالفة للعميل' : 'Failed to assign fine to customer');
     } finally {
       setAssigningFine(null);

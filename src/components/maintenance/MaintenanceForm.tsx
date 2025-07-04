@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { MaintenanceType, MaintenanceStatus } from '@/lib/validation-schemas/maintenance';
+import { errorLogger } from '@/lib/errors/error-logger';
 import {
   MaintenanceBasicFields,
   MaintenanceTypeFields,
@@ -88,7 +89,11 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       await onSubmit(data);
     } catch (error) {
       toast.error('فشل في حفظ البيانات');
-      console.error('Error in maintenance form:', error);
+      errorLogger.logError(error as Error, {
+        context: 'MaintenanceForm.handleSubmit',
+        formData: data,
+        isEditMode
+      });
     }
   };
 

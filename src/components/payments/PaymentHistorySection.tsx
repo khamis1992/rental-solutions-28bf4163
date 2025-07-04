@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface PaymentHistorySectionProps {
   payments: Payment[];
@@ -148,7 +149,12 @@ export function PaymentHistorySection({
         }
         return success;
       } catch (err) {
-        console.error('Settlement failed:', err);
+        errorLogger.logError(err as Error, {
+          context: 'PaymentHistorySection.handleRecordPayment',
+          operation: 'settlement',
+          paymentId,
+          amount
+        });
         return false;
       }
     } else {
@@ -169,7 +175,12 @@ export function PaymentHistorySection({
         }
         return true;
       } catch (err) {
-        console.error('Payment creation failed:', err);
+        errorLogger.logError(err as Error, {
+          context: 'PaymentHistorySection.handleRecordPayment',
+          operation: 'create_payment',
+          leaseId,
+          amount
+        });
         return false;
       }
     }
@@ -263,7 +274,10 @@ export function PaymentHistorySection({
         fetchPayments();
       }
     } catch (error) {
-      console.error('Error deleting payment:', error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentHistorySection.handleDeletePayment',
+        paymentId: paymentToDelete?.id
+      });
       toast.error('فشل في حذف الدفعة');
     }
   };

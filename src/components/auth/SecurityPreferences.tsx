@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { ShieldCheck, Save } from 'lucide-react';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface SecurityPreferencesProps {
   initialData?: Record<string, any>;
@@ -38,7 +39,11 @@ const SecurityPreferences = ({ initialData }: SecurityPreferencesProps) => {
     },
     onError: (error) => {
       toast.error('فشل في حفظ تفضيلات الأمان');
-      console.error('خطأ في حفظ تفضيلات الأمان:', error);
+      errorLogger.logError(error as Error, {
+        context: 'SecurityPreferences',
+        action: 'save_security_preferences',
+        preferences
+      });
     }
   });
 

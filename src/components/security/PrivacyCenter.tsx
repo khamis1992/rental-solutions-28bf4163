@@ -35,6 +35,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { complianceManager, DataPrivacyRequest, DataProcessingActivity } from '@/services/compliance-manager';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface PrivacyCenterProps {
   className?: string;
@@ -70,7 +71,10 @@ const PrivacyCenter: React.FC<PrivacyCenterProps> = ({ className }) => {
       setProcessingActivities(activities);
       
     } catch (error) {
-      console.error('Failed to load privacy data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'PrivacyCenter.loadPrivacyData',
+        action: 'loading_privacy_data'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -415,7 +419,11 @@ const PrivacyCenter: React.FC<PrivacyCenterProps> = ({ className }) => {
         setFormData({ type: 'access', subjectEmail: '', description: '', dataCategories: [] });
         loadPrivacyData();
       } catch (error) {
-        console.error('Failed to submit privacy request:', error);
+        errorLogger.logError(error as Error, {
+          context: 'PrivacyCenter.handleSubmit',
+          action: 'submitting_privacy_request',
+          formData: formData.type
+        });
       }
     };
 
@@ -700,4 +708,4 @@ const PrivacyCenter: React.FC<PrivacyCenterProps> = ({ className }) => {
   );
 };
 
-export default PrivacyCenter; 
+export default PrivacyCenter;  

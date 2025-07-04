@@ -7,6 +7,7 @@ import { RefreshCw, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CustomerData {
   id: string;
@@ -62,7 +63,10 @@ export const CustomerSelectorForLegal: React.FC<CustomerSelectorForLegalProps> =
       await refreshCustomers();
       toast.success('تم تحديث قائمة العملاء بنجاح');
     } catch (error) {
-      console.error('خطأ في تحديث العملاء:', error);
+      errorLogger.logError(error as Error, {
+        context: 'CustomerSelectorForLegal.handleRefresh',
+        action: 'refresh_customers'
+      });
       toast.error('فشل في تحديث قائمة العملاء');
     } finally {
       setIsRefreshing(false);
@@ -72,7 +76,10 @@ export const CustomerSelectorForLegal: React.FC<CustomerSelectorForLegalProps> =
   // Auto-retry when there's an error
   useEffect(() => {
     if (error && !loadingCustomers) {
-      console.log('محاولة إعادة تحميل العملاء بسبب خطأ...');
+      errorLogger.logInfo('Auto-retrying customer load due to error', {
+        context: 'CustomerSelectorForLegal.useEffect',
+        action: 'auto_retry_customers'
+      });
       setTimeout(() => {
         handleRefresh();
       }, 2000);
@@ -234,4 +241,4 @@ export const CustomerSelectorForLegal: React.FC<CustomerSelectorForLegalProps> =
       )}
     </div>
   );
-}; 
+};  

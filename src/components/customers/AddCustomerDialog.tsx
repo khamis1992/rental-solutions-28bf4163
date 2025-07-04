@@ -136,8 +136,11 @@ export function AddCustomerDialog({
       onCustomerCreated(newCustomer);
       onClose();
     } catch (error) {
-      console.error('Error creating customer:', error);
-      toast.error(language === 'ar' ? 'فشل في إضافة العميل' : 'Failed to add customer');
+      if (error instanceof Error) {
+        toast.error(language === 'ar' ? 'فشل في إضافة العميل' : 'Failed to add customer');
+      } else {
+        toast.error(language === 'ar' ? 'فشل في إضافة العميل' : 'Failed to add customer');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -168,7 +171,6 @@ export function AddCustomerDialog({
 
   // Handle ID card scan completion
   const handleScanComplete = (data: QatariIdCardData) => {
-    console.log('🎯 ID Card scan completed:', data);
     
     // Auto-populate form fields from scanned data (prefer Arabic names)
     setFormData(prev => ({
@@ -195,7 +197,6 @@ export function AddCustomerDialog({
 
   // Handle scan error
   const handleScanError = (error: string) => {
-    console.error('❌ ID Card scan error:', error);
     toast.error(`فشل في مسح البطاقة: ${error}`);
   };
 
@@ -516,4 +517,4 @@ export function AddCustomerDialog({
       </DialogContent>
     </Dialog>
   );
-} 
+}  

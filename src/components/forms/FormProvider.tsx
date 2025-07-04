@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface FormContextType {
   formData: Record<string, any>;
@@ -75,7 +76,11 @@ export const FormProvider: React.FC<FormProviderProps> = ({
         }
       });
     } catch (error) {
-      console.error('Form submission error:', error);
+      errorLogger.logError(error as Error, {
+        context: 'FormProvider.submitForm',
+        formData: formData,
+        timestamp: new Date().toISOString()
+      });
       toast.error('Failed to submit form');
     } finally {
       setIsSubmitting(false);

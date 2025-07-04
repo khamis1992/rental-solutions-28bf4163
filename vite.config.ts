@@ -35,6 +35,24 @@ export default defineConfig({
           if (id.includes('@supabase') || id.includes('supabase')) {
             return 'supabase';
           }
+          if (id.includes('@radix-ui')) {
+            return 'ui-components';
+          }
+          if (id.includes('lucide-react')) {
+            return 'icons';
+          }
+          if (id.includes('@tanstack/react-query')) {
+            return 'query';
+          }
+          if (id.includes('react-router')) {
+            return 'router';
+          }
+          if (id.includes('date-fns') || id.includes('moment')) {
+            return 'date-utils';
+          }
+          if (id.includes('chart.js') || id.includes('recharts')) {
+            return 'charts';
+          }
           if (id.includes('node_modules')) {
             return 'vendor';
           }
@@ -75,7 +93,11 @@ export default defineConfig({
       'react-dom',
       'react-router-dom',
       '@tanstack/react-query',
-      '@supabase/supabase-js'
+      '@supabase/supabase-js',
+      'lucide-react',
+      'date-fns',
+      'clsx',
+      'tailwind-merge'
     ],
     exclude: [
       '@vite/client',
@@ -93,4 +115,4 @@ export default defineConfig({
     minifySyntax: true,
     minifyWhitespace: true
   }
-}); 
+});  

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { FileText, Bug, CheckCircle, XCircle } from 'lucide-react';
 import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
 import { generateModernLegalContractPDF } from '@/utils/modern-legal-contract-pdf';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface TestResult {
   test: string;
@@ -105,12 +106,15 @@ export function PdfTestingComponent() {
       const duration = Date.now() - startTime;
       const message = error instanceof Error ? error.message : 'Unknown error occurred';
       updateTestResult(testName, 'error', message, duration);
-      console.error(`Test failed: ${testName}`, error);
+      errorLogger.logError(error instanceof Error ? error : new Error(message), {
+        context: 'PdfTestingComponent',
+        testName,
+        duration
+      });
     }
   };
 
   const testBasicPdfGeneration = async () => {
-    console.log('Testing modern PDF generation...');
     await generateModernAgreementPDF(
       sampleAgreement,
       samplePayments,
@@ -121,7 +125,6 @@ export function PdfTestingComponent() {
   };
 
   const testReportGeneration = async () => {
-    console.log('Testing modern legal contract PDF generation...');
     await generateModernLegalContractPDF(
       sampleAgreement,
       sampleCustomer,
@@ -132,7 +135,6 @@ export function PdfTestingComponent() {
   };
 
   const testArabicTextRendering = async () => {
-    console.log('Testing modern Arabic text rendering...');
     // Test with Arabic-heavy content
     const arabicAgreement = {
       ...sampleAgreement,
@@ -155,7 +157,6 @@ export function PdfTestingComponent() {
   };
 
   const testLargeDocuments = async () => {
-    console.log('Testing modern large document generation...');
     // Generate report with more data
     const largePayments = Array.from({ length: 12 }, (_, i) => ({
       id: `payment-${i + 1}`,

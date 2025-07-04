@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { PaymentWarningSection } from './vehicle-assignment/PaymentWarningSection';
 import { formatDate } from '@/lib/date-utils';
 import { asLeaseId, asVehicleId, asPaymentStatus, asTrafficFineStatus } from '@/lib/database/type-utils';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleAssignmentDialogProps {
   open: boolean;
@@ -103,7 +104,11 @@ export function VehicleAssignmentDialog({
         }
       }
     } catch (error) {
-      console.error('Error fetching details:', error);
+      errorLogger.logError(error as Error, {
+        context: 'VehicleAssignmentDialog.fetchVehicleDetails',
+        vehicleId,
+        leaseId
+      });
       toast({
         title: 'Error',
         description: 'Failed to fetch vehicle and payment details.',
@@ -140,7 +145,11 @@ export function VehicleAssignmentDialog({
       onAssign();
       onOpenChange(false);
     } catch (error: any) {
-      console.error('Error assigning vehicle:', error);
+      errorLogger.logError(error, {
+        context: 'VehicleAssignmentDialog.handleAssign',
+        leaseId,
+        vehicleId
+      });
       toast({
         title: 'Error',
         description: error.message || 'Failed to assign vehicle.',

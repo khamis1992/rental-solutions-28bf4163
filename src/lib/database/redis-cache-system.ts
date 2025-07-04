@@ -79,7 +79,6 @@ export class RedisCacheSystem {
       let data: T | null = null;
 
       if (this.isRedisAvailable) {
-        // TODO: استخدام Redis
         data = await this.getFromRedis<T>(fullKey);
       } else {
         // استخدام Database fallback
@@ -119,7 +118,6 @@ export class RedisCacheSystem {
       let success = false;
 
       if (this.isRedisAvailable) {
-        // TODO: استخدام Redis
         success = await this.setInRedis(fullKey, value, ttl);
       } else {
         // استخدام Database fallback
@@ -148,7 +146,6 @@ export class RedisCacheSystem {
       let success = false;
 
       if (this.isRedisAvailable) {
-        // TODO: استخدام Redis
         success = await this.deleteFromRedis(fullKey);
       } else {
         // استخدام Database fallback
@@ -175,8 +172,7 @@ export class RedisCacheSystem {
 
     try {
       if (this.isRedisAvailable) {
-        // TODO: استخدام Redis SCAN
-        return 0;
+        return await this.clearRedisCache(pattern);
       } else {
         // استخدام Database fallback
         const { data, error } = await supabase
@@ -192,12 +188,16 @@ export class RedisCacheSystem {
     }
   }
 
-  /**
-   * الحصول من Redis (مستقبلاً)
-   */
   private async getFromRedis<T>(key: string): Promise<T | null> {
-    // TODO: تطبيق Redis
-    return null;
+    if (!this.redisClient) return null;
+    
+    try {
+      const value = await this.redisClient.get(key);
+      return value ? JSON.parse(value) : null;
+    } catch (error) {
+      this.logger.error('Redis get error:', error);
+      return null;
+    }
   }
 
   /**
@@ -212,12 +212,31 @@ export class RedisCacheSystem {
     return false;
   }
 
-  /**
-   * حذف من Redis (مستقبلاً)
-   */
   private async deleteFromRedis(key: string): Promise<boolean> {
-    // TODO: تطبيق Redis
-    return false;
+    if (!this.redisClient) return false;
+    
+    try {
+      await this.redisClient.del(key);
+      return true;
+    } catch (error) {
+      this.logger.error('Redis delete error:', error);
+      return false;
+    }
+  }
+
+  private async clearRedisCache(pattern: string): Promise<number> {
+    if (!this.redisClient) return 0;
+    
+    try {
+      const keys = await this.redisClient.keys(pattern);
+      if (keys.length > 0) {
+        await this.redisClient.del(...keys);
+      }
+      return keys.length;
+    } catch (error) {
+      this.logger.error('Redis clear cache error:', error);
+      return 0;
+    }
   }
 
   /**
@@ -368,4 +387,4 @@ export const useCache = () => {
     getStats,
     cleanup
   };
-}; 
+};    

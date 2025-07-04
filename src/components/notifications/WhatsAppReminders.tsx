@@ -120,18 +120,13 @@ export const WhatsAppReminders: React.FC = () => {
     checkServiceStatus();
     
     // جلب العملاء الحقيقيين من قاعدة البيانات
-    console.log('🔍 جاري جلب العملاء من قاعدة البيانات...');
     refreshCustomers();
   }, []);
 
   // تحديث بيانات العميل المختار عند تغيير الاختيار
   useEffect(() => {
-    console.log('🔍 Customers data:', customers);
-    console.log('🔍 Selected customer ID:', selectedCustomerId);
-    
     if (selectedCustomerId && customers.length > 0) {
       const customer = customers.find(c => c.id === selectedCustomerId);
-      console.log('🔍 Found customer:', customer);
       
       if (customer) {
         // Type assertion للتعامل مع اختلاف هيكل البيانات
@@ -156,7 +151,6 @@ export const WhatsAppReminders: React.FC = () => {
   const fetchNextPayment = async (customerId: string) => {
     setIsLoadingPayment(true);
     try {
-      console.log('🔍 جاري البحث عن الدفعة التالية للعميل:', customerId);
       
       // البحث في unified_payments أولاً
       const { data: unifiedPayments, error: unifiedError } = await supabase
@@ -171,7 +165,6 @@ export const WhatsAppReminders: React.FC = () => {
         .limit(1);
 
       if (unifiedError) {
-        console.error('خطأ في جلب unified_payments:', unifiedError);
       }
 
       let nextPaymentData: NextPayment | null = null;
@@ -194,7 +187,6 @@ export const WhatsAppReminders: React.FC = () => {
           daysOverdue
         };
 
-        console.log('✅ تم العثور على دفعة في unified_payments:', nextPaymentData);
       }
 
       // إذا لم نجد في unified_payments، نبحث في payment_schedules
@@ -211,7 +203,6 @@ export const WhatsAppReminders: React.FC = () => {
           .limit(1);
 
         if (scheduleError) {
-          console.error('خطأ في جلب payment_schedules:', scheduleError);
         }
 
         if (schedulePayments && schedulePayments.length > 0) {
@@ -232,7 +223,6 @@ export const WhatsAppReminders: React.FC = () => {
             daysOverdue
           };
 
-          console.log('✅ تم العثور على دفعة في payment_schedules:', nextPaymentData);
         }
       }
 
@@ -250,7 +240,6 @@ export const WhatsAppReminders: React.FC = () => {
           .limit(1);
 
         if (installmentError) {
-          console.error('خطأ في جلب car_installment_payments:', installmentError);
         }
 
         if (installmentPayments && installmentPayments.length > 0) {
@@ -271,16 +260,13 @@ export const WhatsAppReminders: React.FC = () => {
             daysOverdue
           };
 
-          console.log('✅ تم العثور على دفعة في car_installment_payments:', nextPaymentData);
         }
       }
 
       if (nextPaymentData) {
         setNextPayment(nextPaymentData);
         setAmount(nextPaymentData.amount);
-        console.log('💰 تم تحديد المبلغ تلقائياً:', nextPaymentData.amount);
       } else {
-        console.log('⚠️ لم يتم العثور على دفعات مستحقة للعميل');
         setNextPayment(null);
         setAmount(500); // مبلغ افتراضي
       }

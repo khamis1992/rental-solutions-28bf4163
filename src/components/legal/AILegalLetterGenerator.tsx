@@ -31,6 +31,7 @@ import {
 import { toast } from 'sonner';
 import { LegalAIService, LegalLetterRequest } from '@/services/LegalAIService';
 import { useCustomers } from '@/hooks/use-customers';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CustomerData {
   id: string;
@@ -524,7 +525,12 @@ const AILegalLetterGenerator = () => {
         throw new Error(result.error || 'فشل في إنشاء الخطاب');
       }
     } catch (error) {
-      console.error('Error generating letter:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AILegalLetterGenerator.handleGenerateLetter',
+        templateType: selectedTemplate,
+        customerId: selectedCustomer?.id,
+        timestamp: new Date().toISOString()
+      });
       toast.error('حدث خطأ في إنشاء الخطاب');
     } finally {
       setIsGenerating(false);
@@ -941,5 +947,5 @@ const AILegalLetterGenerator = () => {
   );
 };
 
-export default AILegalLetterGenerator; 
+export default AILegalLetterGenerator;  
 

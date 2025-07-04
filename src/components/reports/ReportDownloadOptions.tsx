@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
+import { errorLogger } from '@/lib/errors/error-logger';
 import { 
   generateUnifiedPDF, 
   createInfoCard, 
@@ -338,7 +339,10 @@ async function generateFleetReportContent(data: any[]): Promise<string> {
  * إنشاء محتوى التقرير المالي
  */
 async function generateFinancialReportContent(data: any[]): Promise<string> {
-  console.log('بيانات التقرير المالي:', data);
+  errorLogger.logInfo('Generating financial report content', { 
+    dataCount: data?.length || 0,
+    context: 'ReportDownloadOptions'
+  });
   
   // التأكد من وجود البيانات
   if (!data || data.length === 0) {
@@ -658,7 +662,11 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       await generateModernReportPDF(reportType, data);
       toast.success('تم إنشاء التقرير بنجاح - يمكنك طباعته أو حفظه كـ PDF');
     } catch (error) {
-      console.error('خطأ في إنشاء PDF:', error);
+      errorLogger.logError(error as Error, {
+        context: 'ReportDownloadOptions.handleDownloadPDF',
+        reportType,
+        dataCount: data?.length || 0
+      });
       toast.error('خطأ في إنشاء ملف PDF');
     }
   };
@@ -686,7 +694,11 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       XLSX.writeFile(wb, `تقرير-${reportType}-${formatDate(new Date())}.xlsx`);
       toast.success('تم تنزيل تقرير Excel بنجاح');
     } catch (error) {
-      console.error('خطأ في إنشاء Excel:', error);
+      errorLogger.logError(error as Error, {
+        context: 'ReportDownloadOptions.handleDownloadExcel',
+        reportType,
+        dataCount: data?.length || 0
+      });
       toast.error('خطأ في إنشاء ملف Excel');
     }
   };
@@ -720,7 +732,11 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       
       toast.success('تم تنزيل تقرير CSV بنجاح');
     } catch (error) {
-      console.error('خطأ في إنشاء CSV:', error);
+      errorLogger.logError(error as Error, {
+        context: 'ReportDownloadOptions.handleDownloadCSV',
+        reportType,
+        dataCount: data?.length || 0
+      });
       toast.error('خطأ في إنشاء ملف CSV');
     }
   };

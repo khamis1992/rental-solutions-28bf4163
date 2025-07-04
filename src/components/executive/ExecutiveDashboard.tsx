@@ -11,6 +11,7 @@ import { financialManager } from '@/lib/financial/financial-manager';
 import { salesManager } from '@/lib/sales/sales-manager';
 import { securityManager } from '@/lib/security/security-manager';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface ExecutiveSummary {
   totalRevenue: number;
@@ -92,7 +93,11 @@ export const ExecutiveDashboard: React.FC = () => {
       setChartData(chartData);
       setBoardReport(reportData);
     } catch (error) {
-      console.error('Failed to load executive data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'ExecutiveDashboard.loadExecutiveData',
+        selectedPeriod,
+        timestamp: new Date().toISOString()
+      });
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);

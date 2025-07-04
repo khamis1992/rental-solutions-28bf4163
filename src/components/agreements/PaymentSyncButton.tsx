@@ -5,6 +5,7 @@ import { paymentSyncService } from "@/services/PaymentSyncService";
 import { RefreshCw, Settings, Zap, Info } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { errorLogger } from "@/lib/errors/error-logger";
 
 interface PaymentSyncButtonProps {
   agreementId: string;
@@ -80,13 +81,17 @@ export function PaymentSyncButton({
         });
       }
     } catch (error) {
-      console.error("Error fixing payment sync:", error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentSyncButton.handleDeepFix',
+        agreementId,
+        action: 'deep_fix_payment_sync'
+      });
       const errorMessage = formatErrorMessage(error);
       toast.error("❌ خطأ في مزامنة المدفوعات", {
         description: errorMessage,
         duration: 6000
       });
-    } finally {
+    }finally {
       setIsFixing(false);
     }
   };
@@ -109,12 +114,16 @@ export function PaymentSyncButton({
         });
       }
     } catch (error) {
-      console.error("Error checking sync status:", error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentSyncButton.handleCheckStatus',
+        agreementId,
+        action: 'check_sync_status'
+      });
       const errorMessage = formatErrorMessage(error);
       toast.error("❌ خطأ في فحص حالة المزامنة", {
         description: errorMessage
       });
-    } finally {
+    }finally {
       setIsChecking(false);
     }
   };
@@ -126,7 +135,11 @@ export function PaymentSyncButton({
       await syncPaymentSchedule.mutateAsync(agreementId);
       toast.success("✅ تمت مزامنة المدفوعات بنجاح");
     } catch (error) {
-      console.error("Error syncing payments:", error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentSyncButton.handleSync',
+        agreementId,
+        action: 'sync_payments'
+      });
       const errorMessage = formatErrorMessage(error);
       toast.error("❌ فشل في مزامنة المدفوعات", {
         description: errorMessage
@@ -142,7 +155,11 @@ export function PaymentSyncButton({
       await fixDuplicatePayments.mutateAsync(agreementId);
       toast.success("✅ تم إصلاح المدفوعات المكررة");
     } catch (error) {
-      console.error("Error fixing duplicates:", error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentSyncButton.handleFixDuplicates',
+        agreementId,
+        action: 'fix_duplicate_payments'
+      });
       const errorMessage = formatErrorMessage(error);
       
       if (errorMessage.includes('fix_duplicate_payments')) {

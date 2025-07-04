@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Calendar, Globe, Settings } from 'lucide-react';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface HijriDateSettingsProps {
   onSettingsChange?: (settings: HijriDateSettings) => void;
@@ -49,9 +50,12 @@ export const HijriDateSettings: React.FC<HijriDateSettingsProps> = ({
       localStorage.setItem('hijriDateSettings', JSON.stringify(settings));
       toast.success('تم حفظ إعدادات التقويم الهجري بنجاح');
     } catch (error) {
-      console.error('Error saving Hijri date settings:', error);
+      errorLogger.logError(error as Error, {
+        context: 'HijriDateSettings.handleSaveSettings',
+        action: 'save_settings'
+      });
       toast.error('فشل في حفظ الإعدادات');
-    } finally {
+    }finally {
       setIsSaving(false);
     }
   };
@@ -239,7 +243,10 @@ export const loadHijriDateSettings = (): HijriDateSettings => {
       return JSON.parse(saved);
     }
   } catch (error) {
-    console.error('Error loading Hijri date settings:', error);
+    errorLogger.logError(error as Error, {
+      context: 'loadHijriDateSettings',
+      action: 'load_settings'
+    });
   }
   
   // Return default settings

@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { TemplateVariable } from '@/utils/invoiceTemplateUtils';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface AITemplateGeneratorDialogProps {
   open: boolean;
@@ -59,7 +60,12 @@ const AITemplateGeneratorDialog: React.FC<AITemplateGeneratorDialogProps> = ({
         throw new Error('No template was generated');
       }
     } catch (error) {
-      console.error('Error generating template:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AITemplateGeneratorDialog.handleGenerate',
+        templateType,
+        prompt: prompt.substring(0, 100), // Log first 100 chars of prompt
+        variablesCount: variables.length
+      });
       toast.error('Failed to generate template: ' + (error as Error).message);
     } finally {
       setIsGenerating(false);

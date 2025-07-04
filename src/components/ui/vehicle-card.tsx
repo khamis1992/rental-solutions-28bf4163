@@ -6,6 +6,7 @@ import { CarIcon, Calendar, MapPin, Fuel, Activity } from 'lucide-react';
 import { CustomButton } from './custom-button';
 import { VehicleStatus } from '@/types/vehicle';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleCardProps {
   id: string;
@@ -93,11 +94,9 @@ const VehicleCard = memo(({
         );
         
         if (matchedModelType) {
-          console.log(`Vehicle matched model type: ${matchedModelType}`);
           const modelImage = await getModelSpecificImage(matchedModelType);
           
           if (modelImage) {
-            console.log(`Using ${matchedModelType} image from storage:`, modelImage);
             setActualImageUrl(modelImage);
             setIsImageLoading(false);
             return;
@@ -122,7 +121,12 @@ const VehicleCard = memo(({
         // Finally, fall back to model-specific images from public folder
         fallbackToModelImages();
       } catch (error) {
-        console.error('Error loading vehicle image:', error);
+        errorLogger.logError(error as Error, {
+          context: 'VehicleCard.loadVehicleImage',
+          vehicleId: id,
+          make,
+          model
+        });
         fallbackToModelImages();
       }
     }

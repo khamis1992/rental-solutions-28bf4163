@@ -44,7 +44,6 @@ export const IdConverterTool = () => {
       
       setConvertedId(result);
     } catch (error) {
-      console.error('Error converting ID:', error);
       setConvertedId('Error: Invalid ID format');
     }
   };

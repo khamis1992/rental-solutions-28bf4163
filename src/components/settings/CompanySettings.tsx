@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/lib/supabase';
 import { Building, Upload, Save } from 'lucide-react';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CompanySettingsProps {
   initialData?: Record<string, any>;
@@ -59,7 +60,10 @@ const CompanySettings = ({ initialData }: CompanySettingsProps) => {
     },
     onError: (error) => {
       toast.error(`Failed to save company settings: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      console.error("Error saving company settings:", error);
+      errorLogger.logError(error instanceof Error ? error : new Error('Unknown error'), {
+        context: 'CompanySettings.saveCompanySettings',
+        data: companyData
+      });
     }
   });
   
@@ -98,7 +102,11 @@ const CompanySettings = ({ initialData }: CompanySettingsProps) => {
       
       toast.success("Company logo uploaded successfully");
     } catch (error) {
-      console.error("Error uploading logo:", error);
+      errorLogger.logError(error instanceof Error ? error : new Error('Logo upload failed'), {
+        context: 'CompanySettings.handleLogoUpload',
+        fileName: file?.name,
+        fileSize: file?.size
+      });
       toast.error("Failed to upload company logo");
     }
   };

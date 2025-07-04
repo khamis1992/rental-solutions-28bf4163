@@ -13,6 +13,7 @@ import { Agreement } from '@/types/agreement';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { useCustomers } from '@/hooks/use-customers';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface AgreementWithCustomerStepsProps {
   onSubmit: (data: Agreement) => Promise<void>;
@@ -27,12 +28,6 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   isSubmitting = false,
   prefilledData
 }) => {
-  // تتبع البيانات الواردة
-  console.log('🔍 AgreementWithCustomerSteps received props:', {
-    isSubmitting,
-    prefilledData,
-    hasPrefilledData: !!prefilledData
-  });
 
   const [currentStep, setCurrentStep] = useState<Step>('customer-choice');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -49,21 +44,12 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
 
   // معالجة البيانات المُعبأة مسبقاً من معالج العقود
   useEffect(() => {
-    console.log('🔄 useEffect triggered for prefilledData:', {
-      hasPrefilledData: !!prefilledData,
-      prefilledDataKeys: prefilledData ? Object.keys(prefilledData) : []
-    });
-    
     if (prefilledData) {
-      console.log('🎯 تم استقبال بيانات مُعبأة مسبقاً:', prefilledData);
-      
       // إنشاء بيانات العميل من prefilledData
       if (prefilledData.customer) {
-        console.log('👤 بيانات العميل من معالج العقود:', prefilledData.customer);
         setSelectedCustomer(prefilledData.customer);
       } else if (prefilledData.customer_id) {
         // العميل موجود بمعرف فقط، نحتاج لإنشاء كائن CustomerInfo
-        console.log('👤 معرف العميل:', prefilledData.customer_id);
         const customerInfo: CustomerInfo = {
           id: prefilledData.customer_id,
           full_name: prefilledData.customer_name || 'عميل من معالج العقود',
@@ -532,4 +518,4 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   return null;
 };
 
-export default AgreementWithCustomerSteps; 
+export default AgreementWithCustomerSteps;  

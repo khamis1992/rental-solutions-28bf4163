@@ -8,6 +8,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { PaymentRecord } from './PaymentHistory.types';
 import { z } from 'zod';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface PaymentEditDialogProps {
   open: boolean;
@@ -89,7 +90,11 @@ export const PaymentEditDialog = ({
       
       onOpenChange(false);
     } catch (error) {
-      console.error("Error updating payment:", error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentEditDialog.handleSubmit',
+        paymentId: payment?.id,
+        action: 'update_payment'
+      });
       setErrors({ submit: 'Failed to update payment. Please try again.' });
     } finally {
       setIsSubmitting(false);

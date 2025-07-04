@@ -24,6 +24,7 @@ import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface ContractDataConfirmationProps {
   customerData: CustomerInfo;
@@ -491,4 +492,4 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
       </div>
     </div>
   );
-}; 
+};  

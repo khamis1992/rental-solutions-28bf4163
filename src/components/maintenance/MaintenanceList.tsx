@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { typeGuards } from '@/lib/database';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 // Add missing types
 interface MaintenanceListProps {
@@ -34,7 +35,11 @@ const MaintenanceList: React.FC<MaintenanceListProps> = ({
       try {
         await onStatusChange(id, status);
       } catch (error) {
-        console.error("Error changing status:", error);
+        errorLogger.logError(error as Error, {
+          context: 'MaintenanceList.handleStatusChange',
+          maintenanceId: id,
+          newStatus: status
+        });
       }
     }
   };

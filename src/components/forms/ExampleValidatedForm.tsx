@@ -38,9 +38,6 @@ export function ExampleValidatedForm() {
 
   // Handle form submission
   const handleSubmit = async (data: FormData) => {
-    // Simulate API call
-    console.log('Form submitted:', data);
-    
     // Display success message
     toast({
       title: 'Form Submitted',

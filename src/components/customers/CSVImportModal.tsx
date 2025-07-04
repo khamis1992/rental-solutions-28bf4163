@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CSVImportModalProps {
   open: boolean;
@@ -59,7 +60,11 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       const preview = await previewAgreementCSV(file);
       setPreviewData(preview);
     } catch (error) {
-      console.error('Failed to preview file:', error);
+      errorLogger.logError(error as Error, {
+        context: 'CSVImportModal.handlePreviewFile',
+        fileName: file.name,
+        fileSize: file.size
+      });
       toast.error('Failed to preview file');
     } finally {
       setIsPreviewLoading(false);
@@ -112,8 +117,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       }
 
       setUploadProgress('processing');
-
-      console.log('Calling process-agreement-imports function with importId:', importId);
       
       // Call the Edge Function to process the file
       try {
@@ -125,13 +128,17 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         });
 
         if (error) {
-          console.error('Error processing import:', error);
+          errorLogger.logError(new Error(error.message), {
+            context: 'CSVImportModal.processImport',
+            importId,
+            overwriteExisting,
+            fileName: file.name
+          });
           toast.error(`Import processing failed: ${error.message}`);
           setUploadProgress('error');
         } else {
           const resultMessage = `Import submitted for processing: ${data?.processed || 0} agreements will be ${overwriteExisting ? 'imported/updated' : 'imported'}`;
           toast.success(resultMessage);
-          console.log('Import result:', data);
           setUploadProgress('success');
           onImportComplete();
         }

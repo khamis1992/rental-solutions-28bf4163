@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Car, Calendar, FileText } from 'lucide-react';
 import { Vehicle } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleSectionProps {
   vehicle?: Vehicle;
@@ -39,7 +40,11 @@ const VehicleSection = ({
             setVehicle(data as Vehicle);
           }
         } catch (error) {
-          console.error('Error fetching vehicle:', error);
+          errorLogger.logError(error as Error, {
+            context: 'VehicleSection.fetchVehicle',
+            vehicleId,
+            operation: 'fetch_vehicle_details'
+          });
         } finally {
           setLoading(false);
         }

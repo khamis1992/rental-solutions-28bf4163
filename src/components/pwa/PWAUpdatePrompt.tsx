@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 export const PWAUpdatePrompt: React.FC = () => {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
@@ -58,7 +59,11 @@ export const PWAUpdatePrompt: React.FC = () => {
       window.location.reload();
       
     } catch (error) {
-      console.error('Update failed:', error);
+      errorLogger.logError(error as Error, {
+        context: 'PWAUpdatePrompt.handleUpdate',
+        action: 'service_worker_update',
+        timestamp: new Date().toISOString()
+      });
       toast({
         title: isArabic ? 'فشل في التحديث' : 'Update Failed',
         description: isArabic ? 'حدث خطأ أثناء التحديث' : 'An error occurred during update',

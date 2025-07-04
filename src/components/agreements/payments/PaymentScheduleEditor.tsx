@@ -99,13 +99,10 @@ const PaymentScheduleEditor = ({
 
   // Generate local payment schedule preview
   const generateLocalPaymentSchedule = (): PaymentItem[] => {
-    console.log('🔄 Generating local payment schedule preview');
-
     const validation = validateInputs();
     setValidationWarnings(validation.warnings);
     
     if (!validation.isValid) {
-      console.warn('❌ Invalid inputs for payment schedule:', validation.warnings);
       setError('يرجى إصلاح أخطاء التحقق قبل إنشاء الجدولة');
       return [];
     }
@@ -158,10 +155,8 @@ const PaymentScheduleEditor = ({
         }
       }
       
-      console.log(`✅ Generated ${payments.length} local payments`);
       return payments;
     } catch (error) {
-      console.error("❌ Error generating local payment schedule:", error);
       setError(`فشل في إنشاء الجدولة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
       return [];
     }

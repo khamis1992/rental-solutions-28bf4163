@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UploadCloud } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 export interface VehicleImageUploadProps {
   vehicleId?: string;
@@ -60,7 +61,12 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ vehicleId, onCo
       }
       
     } catch (error: any) {
-      console.error('Error uploading image:', error);
+      errorLogger.logError(error, {
+        context: 'VehicleImageUpload',
+        vehicleId,
+        fileName: file?.name,
+        fileSize: file?.size
+      });
       setError(error.message || 'Failed to upload image');
     } finally {
       setIsUploading(false);

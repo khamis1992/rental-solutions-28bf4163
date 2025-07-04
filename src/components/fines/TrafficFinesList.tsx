@@ -56,6 +56,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useLanguage } from '@/contexts/LanguageContext';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface TrafficFinesListProps {
   onAddFine?: () => void;
@@ -112,9 +113,13 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
       issues
     });
     
-    // Log issues to console for debugging
+    // Log issues for monitoring
     if (issues.length > 0) {
-      console.warn('Traffic fines data validation issues:', issues);
+      errorLogger.logError(new Error('Traffic fines data validation issues'), {
+        context: 'TrafficFinesList.validateTrafficFinesData',
+        issues,
+        finesCount: fines.length
+      });
     }
   };
 
@@ -135,7 +140,10 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
       await payTrafficFine.mutate({ id });
       toast.success("Fine marked as paid successfully");
     } catch (error) {
-      console.error("Error paying fine:", error);
+      errorLogger.logError(error as Error, {
+        context: 'TrafficFinesList.handlePayFine',
+        fineId: id
+      });
       toast.error("Failed to pay fine", {
         description: error instanceof Error ? error.message : "An unknown error occurred"
       });

@@ -38,14 +38,12 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
   }, [form]);
 
   const handleCustomerSelect = (customer: CustomerInfo) => {
-    console.log('تم اختيار العميل:', customer);
     setSelectedCustomer(customer);
     form.setValue('customer_id', customer.id);
     onCustomerChange?.(customer);
   };
 
   const handleVehicleSelect = (vehicle: any) => {
-    console.log('تم اختيار المركبة:', vehicle);
     setSelectedVehicle(vehicle);
     form.setValue('vehicle_id', vehicle.id);
     onVehicleChange?.(vehicle);

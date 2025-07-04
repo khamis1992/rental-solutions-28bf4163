@@ -13,6 +13,7 @@ import { AddCustomerDialog } from '@/components/customers/AddCustomerDialog';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { User, Car, FileText, Plus, Calendar } from "lucide-react";
 import { cn } from '@/lib/utils';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface AgreementOnboardingWizardProps {
   open: boolean;
@@ -56,7 +57,10 @@ export function AgreementOnboardingWizard({
         const vehicleData = await getAllVehicles();
         setVehicles(vehicleData || []);
       } catch (error) {
-        console.error('Error loading vehicles:', error);
+        errorLogger.logError(error as Error, {
+          context: 'AgreementOnboardingWizard.loadVehicles',
+          action: 'loading_vehicles'
+        });
       }
     };
     
@@ -141,7 +145,11 @@ export function AgreementOnboardingWizard({
       onComplete(submissionData);
     } catch (error) {
       toast.error(language === 'ar' ? "فشل في معالجة بيانات الاتفاقية" : "Failed to process agreement data");
-      console.error(error);
+      errorLogger.logError(error as Error, {
+        context: 'AgreementOnboardingWizard.handleSubmit',
+        action: 'processing_agreement_data',
+        formData: submissionData
+      });
     } finally {
       setIsProcessing(false);
     }

@@ -173,7 +173,9 @@ const UserBehaviorAnalytics: React.FC<UserBehaviorAnalyticsProps> = ({
       setUserFlows(processedFlows.sort((a, b) => b.count - a.count));
 
     } catch (error) {
-      console.error('Failed to load analytics data:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to load analytics data:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -503,4 +505,4 @@ const UserBehaviorAnalytics: React.FC<UserBehaviorAnalyticsProps> = ({
   );
 };
 
-export default UserBehaviorAnalytics; 
+export default UserBehaviorAnalytics;  

@@ -29,6 +29,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 const CollectionReportsPage = () => {
   const { language } = useLanguage();
@@ -82,7 +83,13 @@ const CollectionReportsPage = () => {
       
       setReport(reportData);
     } catch (error) {
-      console.error('Error generating report:', error);
+      errorLogger.logError(error as Error, {
+        context: 'CollectionReportsPage.generateReport',
+        selectedPeriod,
+        selectedYear,
+        selectedMonth,
+        selectedQuarter
+      });
       toast.error(language === 'ar' ? 'خطأ في إنشاء التقرير' : 'Error generating report');
     } finally {
       setIsLoading(false);
@@ -119,7 +126,11 @@ const CollectionReportsPage = () => {
       
       setHistoricalData(historical);
     } catch (error) {
-      console.error('Error loading historical data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'CollectionReportsPage.loadHistoricalData',
+        selectedPeriod,
+        selectedYear
+      });
     }
   };
 
@@ -140,7 +151,10 @@ const CollectionReportsPage = () => {
       
       toast.success(language === 'ar' ? 'تم تصدير التقرير بنجاح' : 'Report exported successfully');
     } catch (error) {
-      console.error('Error exporting report:', error);
+      errorLogger.logError(error as Error, {
+        context: 'CollectionReportsPage.exportReport',
+        reportPeriod: report?.period
+      });
       toast.error(language === 'ar' ? 'خطأ في تصدير التقرير' : 'Error exporting report');
     }
   };
@@ -380,4 +394,4 @@ const CollectionReportsPage = () => {
   );
 };
 
-export default CollectionReportsPage; 
+export default CollectionReportsPage;  

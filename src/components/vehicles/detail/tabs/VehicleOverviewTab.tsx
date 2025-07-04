@@ -12,6 +12,7 @@ import { VehicleData } from '@/types/vehicle.types';
 import { useNavigate } from 'react-router-dom';
 import { updateVehicleStatus } from '@/utils/vehicle-update';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleOverviewTabProps {
   vehicle: VehicleData;
@@ -74,13 +75,24 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
 
     setIsUpdating(true);
     try {
-      console.log(`تحديث حالة المركبة ${vehicle.id} من ${vehicle.status} إلى ${newStatus}`);
+      errorLogger.logInfo('Vehicle status update initiated', {
+        vehicleId: vehicle.id,
+        fromStatus: vehicle.status,
+        toStatus: newStatus,
+        context: 'VehicleOverviewTab'
+      });
       
       const result = await updateVehicleStatus(vehicle.id, newStatus as any);
       
       if (result.success) {
         toast.success(`تم تحديث حالة المركبة إلى "${getStatusText(newStatus)}" بنجاح`);
         setIsStatusDialogOpen(false);
+        
+        errorLogger.logInfo('Vehicle status updated successfully', {
+          vehicleId: vehicle.id,
+          newStatus,
+          context: 'VehicleOverviewTab'
+        });
         
         // إعادة تحميل الصفحة للتأكد من عرض الحالة الجديدة
         setTimeout(() => {
@@ -90,7 +102,11 @@ export const VehicleOverviewTab: React.FC<VehicleOverviewTabProps> = ({
         toast.error(`فشل في تحديث الحالة: ${result.message}`);
       }
     } catch (error: any) {
-      console.error('خطأ في تحديث حالة المركبة:', error);
+      errorLogger.logError(error, {
+        context: 'VehicleOverviewTab.handleStatusUpdate',
+        vehicleId: vehicle.id,
+        attemptedStatus: newStatus
+      });
       toast.error(`خطأ في تحديث الحالة: ${error.message}`);
     } finally {
       setIsUpdating(false);

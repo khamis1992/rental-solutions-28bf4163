@@ -3,6 +3,7 @@ import { WifiOff, RefreshCw, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 export const OfflineIndicator: React.FC = () => {
   const [isOnline, setIsOnline] = useState(true); // Default to online for SSR
@@ -82,7 +83,10 @@ export const OfflineIndicator: React.FC = () => {
         window.location.reload();
       }
     } catch (error) {
-      console.error('Retry failed:', error);
+      errorLogger.logError(error as Error, {
+        context: 'OfflineIndicator.handleRetry',
+        action: 'network_retry_failed'
+      });
     } finally {
       setIsRetrying(false);
     }

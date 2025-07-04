@@ -5,6 +5,7 @@ import AgreementForm from '../AgreementForm';
 import { Agreement } from '@/types/agreement';
 import { useEditAgreement } from '@/hooks/use-edit-agreement';
 import { useNavigate } from 'react-router-dom';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface EditAgreementContentProps {
   id: string | undefined;
@@ -31,7 +32,11 @@ export function EditAgreementContent({
       await updateAgreement(data);
       navigate(`/agreements/${id}`);
     } catch (error) {
-      console.error('Failed to update agreement:', error);
+      errorLogger.logError(error as Error, {
+        context: 'EditAgreementContent.handleSubmit',
+        agreementId: id,
+        operation: 'update_agreement'
+      });
     }
   };
 

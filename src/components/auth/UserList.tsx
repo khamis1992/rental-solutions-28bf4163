@@ -73,6 +73,7 @@ import { UserRoleManager } from "./UserRoleManager";
 // Import with both named and default import to ensure compatibility
 import UserData, { UserData as UserDataType, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
 import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from "@/types/permissions";
+import { errorLogger } from "@/lib/errors/error-logger";
 
 type UserPermissions = RolePermissions;
 

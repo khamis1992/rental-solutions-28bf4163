@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { AlertCircle, Save, X } from 'lucide-react';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface LegalDocumentEditorProps {
   documentId?: string;
@@ -62,7 +63,13 @@ const LegalDocumentEditor: React.FC<LegalDocumentEditorProps> = ({
       
       toast.success(documentId ? 'Document updated successfully' : 'Document created successfully');
     } catch (error) {
-      console.error('Error saving document:', error);
+      errorLogger.logError(error as Error, {
+        context: 'LegalDocumentEditor.handleSave',
+        documentId,
+        title,
+        type,
+        category
+      });
       toast.error('Failed to save document');
     } finally {
       setSaving(false);

@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { errorLogger } from "@/lib/errors/error-logger";
 
 // Define the pending payment interface to match our state structure
 interface PendingPayment {
@@ -120,7 +121,11 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         calculateLateFee(pendingDate);
       }
     } catch (error) {
-      console.error("Error fetching pending payments:", error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentEntryForm.fetchPendingPayments',
+        agreementId,
+        action: 'fetch_pending_payments'
+      });
     }
   };
 
@@ -236,7 +241,12 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
 
         if (lateFeeError) {
           toast.error("Payment recorded but failed to record late fee");
-          console.error("Error recording late fee:", lateFeeError);
+          errorLogger.logError(lateFeeError as Error, {
+            context: 'PaymentEntryForm.onSubmit',
+            agreementId,
+            action: 'record_late_fee',
+            lateFeeAmount: lateFeeDetails.amount
+          });
         }
       }
 
@@ -244,7 +254,16 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
       form.reset();
       onPaymentComplete();
     } catch (error) {
-      console.error("Error recording payment:", error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentEntryForm.onSubmit',
+        agreementId,
+        action: 'record_payment',
+        paymentData: {
+          amount: data.amount,
+          paymentMethod: data.paymentMethod,
+          isPartialPayment: data.isPartialPayment
+        }
+      });
       toast.error("Failed to record payment");
     }
   };

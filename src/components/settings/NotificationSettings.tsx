@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/lib/supabase';
 import { Bell, Save } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface NotificationSettingsProps {
   initialData?: Record<string, any>;
@@ -65,7 +66,11 @@ const NotificationSettings = ({ initialData }: NotificationSettingsProps) => {
     },
     onError: (error) => {
       toast.error("فشل في حفظ إعدادات الإشعارات");
-      console.error("Error saving notification settings:", error);
+      errorLogger.logError(error, {
+        context: 'NotificationSettings',
+        action: 'saveSettings',
+        data: notificationSettings
+      });
     }
   });
   

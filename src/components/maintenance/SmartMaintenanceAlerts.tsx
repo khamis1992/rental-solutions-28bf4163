@@ -261,7 +261,9 @@ export const SmartMaintenanceAlerts = () => {
         toast.error(language === 'ar' ? 'تم تفعيل الصيانة الطارئة' : 'Emergency maintenance activated');
         break;
       default:
-        console.log('Action:', actionId, 'for alert:', alertId);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Unhandled action:', actionId, 'for alert:', alertId);
+        }
     }
   };
 

@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { Loader2, Plus, Car, User, FileText, DollarSign } from 'lucide-react';
 import { VehicleSelector } from '@/components/vehicles/VehicleSelector';
 import { CustomerSelector } from '@/components/customers/CustomerSelector';
+import { errorLogger } from '@/lib/errors/error-logger';
 import type { Customer, Vehicle, PaymentRecord } from '@/types/database';
 
 interface AgreementFormData {
@@ -115,7 +116,12 @@ const AgreementFormWithVehicleCheck: React.FC = () => {
       toast.success('تم إنشاء الاتفاقية بنجاح');
       navigate(`/agreements/${agreement.id}`);
     } catch (error) {
-      console.error('Error creating agreement:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AgreementFormWithVehicleCheck.handleSubmit',
+        formData,
+        selectedCustomer: selectedCustomer?.id,
+        selectedVehicle: selectedVehicle?.id
+      });
       toast.error('حدث خطأ أثناء إنشاء الاتفاقية');
     } finally {
       setIsSubmitting(false);

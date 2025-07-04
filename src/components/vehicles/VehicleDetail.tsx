@@ -27,13 +27,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({
     );
   }
 
-  console.log("VehicleDetail component received vehicle:", {
-    id: vehicle.id,
-    make: vehicle.make,
-    model: vehicle.model,
-    status: vehicle.status,
-    rent_amount: vehicle.rent_amount
-  });
 
   return (
     <div className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>

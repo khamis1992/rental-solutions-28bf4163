@@ -10,6 +10,7 @@ import {
   globalEventBus 
 } from '@/utils/component-communication';
 import { toast } from '@/components/ui/use-toast';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 // ===============================
 // Context Types
@@ -72,7 +73,11 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
       }
       
       if (enableDebugMode) {
-        console.log('[CommunicationProvider] Data created:', data);
+        errorLogger.logInfo('Data created', { 
+          context: 'CommunicationProvider',
+          data,
+          entityType: data.entityType 
+        });
       }
     },
     [notifications.addNotification, enableGlobalToasts, enableDebugMode]
@@ -90,7 +95,11 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
       }
       
       if (enableDebugMode) {
-        console.log('[CommunicationProvider] Data updated:', data);
+        errorLogger.logInfo('Data updated', { 
+          context: 'CommunicationProvider',
+          data,
+          entityType: data.entityType 
+        });
       }
     },
     [notifications.addNotification, enableGlobalToasts, enableDebugMode]
@@ -108,7 +117,11 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
       }
       
       if (enableDebugMode) {
-        console.log('[CommunicationProvider] Data deleted:', data);
+        errorLogger.logInfo('Data deleted', { 
+          context: 'CommunicationProvider',
+          data,
+          entityType: data.entityType 
+        });
       }
     },
     [notifications.addNotification, enableGlobalToasts, enableDebugMode]
@@ -125,7 +138,10 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
       );
       
       if (enableDebugMode) {
-        console.error('[CommunicationProvider] Error occurred:', error);
+        errorLogger.logError(error, { 
+          context: 'CommunicationProvider',
+          errorType: 'communication_error'
+        });
       }
     },
     [notifications.addNotification, enableDebugMode]
@@ -136,7 +152,11 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
     EVENTS.USER_ACTION,
     (action: any) => {
       if (enableDebugMode) {
-        console.log('[CommunicationProvider] User action:', action);
+        errorLogger.logInfo('User action tracked', { 
+          context: 'CommunicationProvider',
+          action: action.action,
+          data: action.data 
+        });
       }
       
       // Here you can add analytics tracking
@@ -150,7 +170,10 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
     EVENTS.LOADING_START,
     (data: any) => {
       if (enableDebugMode) {
-        console.log('[CommunicationProvider] Loading started:', data.key);
+        errorLogger.logInfo('Loading started', { 
+          context: 'CommunicationProvider',
+          loadingKey: data.key 
+        });
       }
     },
     [enableDebugMode]
@@ -160,7 +183,10 @@ export const CommunicationProvider: React.FC<CommunicationProviderProps> = ({
     EVENTS.LOADING_END,
     (data: any) => {
       if (enableDebugMode) {
-        console.log('[CommunicationProvider] Loading ended:', data.key);
+        errorLogger.logInfo('Loading ended', { 
+          context: 'CommunicationProvider',
+          loadingKey: data.key 
+        });
       }
     },
     [enableDebugMode]
@@ -412,4 +438,4 @@ export const useComponentLifecycle = (componentName: string) => {
 // Export Types
 // ===============================
 
-export type { CommunicationContextValue }; 
+export type { CommunicationContextValue };  

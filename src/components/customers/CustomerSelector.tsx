@@ -38,17 +38,16 @@ const CustomerSelector = ({
   // Debounce search input
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      console.log('تم تحديد استعلام البحث إلى:', internalSearchQuery);
       setSearchQuery(internalSearchQuery);
     }, 300);
     
     return () => clearTimeout(timeoutId);
   }, [internalSearchQuery, setSearchQuery]);
 
-  // Log error for debugging
+  // Handle errors
   useEffect(() => {
     if (error) {
-      console.error('خطأ في أداة اختيار العميل:', error);
+      toast.error('خطأ في تحميل العملاء');
     }
   }, [error]);
 
@@ -72,7 +71,6 @@ const CustomerSelector = ({
     
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
-      console.log('تم اختيار العميل:', customer);
       onCustomerSelect(customer);
       toast.success(`تم اختيار العميل: ${customer.full_name}`);
     }
@@ -83,11 +81,9 @@ const CustomerSelector = ({
   // Handle manual refresh
   const handleRefresh = async () => {
     try {
-      console.log('تم تشغيل التحديث اليدوي');
       await refreshCustomers();
       toast.success('تم تحديث قائمة العملاء');
     } catch (error) {
-      console.error('خطأ في التحديث:', error);
       toast.error('فشل في تحديث قائمة العملاء');
     }
   };
@@ -128,7 +124,6 @@ const CustomerSelector = ({
               <CommandInput
                 placeholder="البحث بالاسم أو الهاتف أو البريد الإلكتروني..."
                 onValueChange={(value) => {
-                  console.log('تم تغيير إدخال البحث:', value);
                   setInternalSearchQuery(value);
                 }}
                 value={internalSearchQuery}

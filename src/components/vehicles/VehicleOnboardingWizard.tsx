@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import VehicleImageUpload from './VehicleImageUpload';
 import { DatePicker } from '@/components/ui/date-picker';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleOnboardingWizardProps {
   open: boolean;
@@ -73,7 +74,11 @@ export function VehicleOnboardingWizard({
       onComplete(submissionData);
     } catch (error) {
       toast.error("Failed to process vehicle data");
-      console.error(error);
+      errorLogger.logError(error as Error, {
+        context: 'VehicleOnboardingWizard.handleSubmit',
+        formData: formData,
+        timestamp: new Date().toISOString()
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -132,7 +137,13 @@ export function VehicleOnboardingWizard({
           placeholder="Select expiry date"
         />
       </div>
-      <VehicleImageUpload onUpload={(url) => console.log('Image uploaded:', url)} />
+      <VehicleImageUpload onUpload={(url) => {
+        errorLogger.logInfo('Vehicle image uploaded successfully', {
+          context: 'VehicleOnboardingWizard.imageUpload',
+          imageUrl: url,
+          vehicleData: formData
+        });
+      }} />
     </div>
   );
 

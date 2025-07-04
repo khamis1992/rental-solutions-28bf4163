@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertTriangle, Car, DollarSign, FileText, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface TrafficFine {
   id: string;
@@ -65,7 +66,11 @@ export function TrafficFinesTab({ agreementId, vehicleLicensePlate }: TrafficFin
       setTotalAmount(total);
       
     } catch (err) {
-      console.error('خطأ في جلب المخالفات:', err);
+      errorLogger.logError(err as Error, {
+        context: 'TrafficFinesTab.fetchTrafficFines',
+        agreementId,
+        vehicleLicensePlate
+      });
     } finally {
       setIsLoading(false);
     }
@@ -204,4 +209,4 @@ export function TrafficFinesTab({ agreementId, vehicleLicensePlate }: TrafficFin
       )}
     </div>
   );
-} 
+}  

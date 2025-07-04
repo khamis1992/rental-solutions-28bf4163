@@ -42,6 +42,7 @@ import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { StatCard } from '@/components/ui/stat-card';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface TrafficFinesListProps {
   isAutoAssigning?: boolean;
@@ -89,20 +90,34 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
         return;
       }
 
-      console.log(`Attempting to auto-assign ${pendingFines.length} fines`);
+      errorLogger.logInfo('Auto-assignment started', {
+        context: 'TrafficFinesList',
+        pendingFinesCount: pendingFines.length
+      });
 
       for (const fine of pendingFines) {
         if (!fine.licensePlate) {
-          console.log(`Skipping fine ${fine.id} - missing license plate`);
+          errorLogger.logInfo('Skipping fine - missing license plate', {
+            context: 'TrafficFinesList',
+            fineId: fine.id
+          });
           continue;
         }
 
         try {
-          console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
+          errorLogger.logInfo('Assigning fine to customer', {
+            context: 'TrafficFinesList',
+            fineId: fine.id,
+            licensePlate: fine.licensePlate
+          });
           await assignToCustomer.mutate({ id: fine.id });
           assignedCount++;
         } catch (error) {
-          console.error(`Failed to assign fine ${fine.id}:`, error);
+          errorLogger.logError(error as Error, {
+            context: 'TrafficFinesList',
+            operation: 'assignFineToCustomer',
+            fineId: fine.id
+          });
           failedCount++;
         }
       }
@@ -117,7 +132,10 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
         toast.error(`Failed to assign ${failedCount} fines`);
       }
     } catch (error: any) {
-      console.error("Auto-assignment error:", error);
+      errorLogger.logError(error, {
+        context: 'TrafficFinesList',
+        operation: 'handleAutoAssignFines'
+      });
       toast.error("There was an error assigning fines to customers: " + (error.message || "Unknown error"));
     } finally {
       setAssigningFines(false);

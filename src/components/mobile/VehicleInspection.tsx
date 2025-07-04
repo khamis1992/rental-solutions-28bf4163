@@ -8,6 +8,7 @@ import { Camera, CheckCircle, X, Upload, Image as ImageIcon } from 'lucide-react
 import { VehicleRow } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface InspectionItem {
   name: string;
@@ -77,7 +78,11 @@ export function VehicleInspection({ vehicle }: { vehicle: VehicleRow }) {
 
       input.click();
     } catch (error) {
-      console.error('Photo capture failed:', error);
+      errorLogger.logError(error as Error, {
+        context: 'VehicleInspection.handlePhotoCapture',
+        vehicleId: vehicle.id,
+        itemIndex
+      });
       toast.error('Failed to capture photo');
     }
   };
@@ -131,7 +136,12 @@ export function VehicleInspection({ vehicle }: { vehicle: VehicleRow }) {
       setSubmitted(true);
       toast.success('Inspection submitted successfully');
     } catch (error) {
-      console.error('Failed to submit inspection:', error);
+      errorLogger.logError(error as Error, {
+        context: 'VehicleInspection.handleSubmitInspection',
+        vehicleId: vehicle.id,
+        inspectionItems: inspectionItems.length,
+        location
+      });
       savePendingInspection({
         vehicle_id: vehicle.id,
         inspection_date: new Date().toISOString(),

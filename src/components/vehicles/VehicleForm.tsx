@@ -6,6 +6,7 @@ import { showErrorToast } from '@/utils/toast-utils';
 import { Button } from '@/components/ui/button';
 import { FormProvider } from '@/components/forms/FormProvider';
 import { ButtonLoader } from '@/components/ui/loading-spinner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -50,12 +51,20 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       if (selectedImage) {
         // Add the image to the submitted data
         dataToSubmit.image = selectedImage;
-        console.log("Image selected:", selectedImage.name);
+        errorLogger.logInfo('Vehicle image selected for upload', {
+          fileName: selectedImage.name,
+          fileSize: selectedImage.size,
+          fileType: selectedImage.type
+        });
       }
       
       await onSubmit(dataToSubmit);
     } catch (error) {
-      console.error("Error submitting form:", error);
+      errorLogger.logError(error as Error, {
+        context: 'VehicleForm.handleSubmit',
+        formData: dataToSubmit,
+        isEditMode
+      });
       showErrorToast(error, 'Vehicle Form Error');
     }
   };

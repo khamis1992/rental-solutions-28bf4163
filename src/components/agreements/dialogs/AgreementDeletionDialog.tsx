@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { agreementDeletionService, DeletionValidationResult } from '@/services/AgreementDeletionService';
 import { toast } from 'sonner';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface AgreementDeletionDialogProps {
   open: boolean;
@@ -53,7 +54,11 @@ export function AgreementDeletionDialog({
         toast.error('Failed to validate deletion requirements');
       }
     } catch (error) {
-      console.error('Error validating deletion:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AgreementDeletionDialog.loadValidationData',
+        agreementId,
+        action: 'validate_deletion'
+      });
       toast.error('Failed to check deletion requirements');
     } finally {
       setIsLoading(false);
@@ -66,7 +71,13 @@ export function AgreementDeletionDialog({
       await onConfirmDelete();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error deleting agreement:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AgreementDeletionDialog.handleConfirmDelete',
+        agreementId,
+        agreementNumber,
+        action: 'delete_agreement'
+      });
+      toast.error('Failed to delete agreement');
     } finally {
       setIsDeleting(false);
     }

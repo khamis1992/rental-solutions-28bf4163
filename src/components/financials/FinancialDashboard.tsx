@@ -58,7 +58,6 @@ const FinancialDashboard = memo(() => {
   // Prepare chart data
   const revenueChartData: RevenueData[] = useMemo(() => {
     if (!revenueData || !Array.isArray(revenueData) || revenueData.length === 0) {
-      console.log("No revenue data available for chart");
       // Return empty array - the chart component will handle this with placeholder data
       return [];
     }

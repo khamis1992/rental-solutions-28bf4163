@@ -121,7 +121,13 @@ export const PerformanceMonitor: React.FC = () => {
       evaluateSystemHealth(newMetrics);
       
     } catch (error) {
-      console.error('Failed to collect metrics:', error);
+      if (error instanceof Error) {
+        console.error('Performance metrics collection failed:', {
+          message: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
+      }
       toast({
         title: "خطأ في جمع المقاييس",
         description: "فشل في جمع مقاييس الأداء",
@@ -530,4 +536,4 @@ export const PerformanceMonitor: React.FC = () => {
   );
 };
 
-export default PerformanceMonitor; 
+export default PerformanceMonitor;  

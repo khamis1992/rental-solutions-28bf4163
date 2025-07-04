@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
+import { errorLogger } from '@/lib/errors/error-logger';
 import {
   Form,
   FormControl,
@@ -226,7 +227,11 @@ const AgreementEditor = () => {
         toast.success('تم تحميل بيانات العقد بنجاح');
       }
     } catch (error) {
-      console.error('خطأ في تحميل العقد:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AgreementEditor.loadAgreement',
+        agreementId: id,
+        action: 'load_agreement'
+      });
       toast.error('فشل في تحميل بيانات العقد');
     } finally {
       setIsLoading(false);
@@ -291,7 +296,12 @@ const AgreementEditor = () => {
       
       toast.success('تم حفظ التغييرات بنجاح');
     } catch (error) {
-      console.error('خطأ في حفظ التغييرات:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AgreementEditor.confirmSaveChanges',
+        agreementId: id,
+        action: 'save_changes',
+        changes: changesList.map(c => c.field)
+      });
       toast.error('فشل في حفظ التغييرات');
     } finally {
       setIsSubmitting(false);

@@ -138,7 +138,12 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
       trackUserAction('app_initialized', 'mobile_app_home');
       
     } catch (error) {
-      console.error('Failed to initialize mobile app:', error);
+      import('@/lib/errors/error-logger').then(({ errorLogger }) => {
+        errorLogger.logError(error as Error, {
+          context: 'MobileApp.initializeMobileApp',
+          action: 'app_initialization'
+        });
+      });
     } finally {
       setIsLoading(false);
     }
@@ -180,7 +185,12 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
       await triggerSync();
       updateSyncStatus();
     } catch (error) {
-      console.error('Sync failed:', error);
+      import('@/lib/errors/error-logger').then(({ errorLogger }) => {
+        errorLogger.logError(error as Error, {
+          context: 'MobileApp.handleSync',
+          action: 'manual_sync'
+        });
+      });
     }
   };
 
@@ -199,7 +209,12 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
       trackUserAction('offline_data_stored', activeTab);
       
     } catch (error) {
-      console.error('Failed to store offline data:', error);
+      import('@/lib/errors/error-logger').then(({ errorLogger }) => {
+        errorLogger.logError(error as Error, {
+          context: 'MobileApp.handleStoreOfflineData',
+          action: 'offline_data_storage'
+        });
+      });
     }
   };
 
@@ -220,7 +235,12 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
       trackUserAction('notification_sent', activeTab);
       
     } catch (error) {
-      console.error('Failed to send notification:', error);
+      import('@/lib/errors/error-logger').then(({ errorLogger }) => {
+        errorLogger.logError(error as Error, {
+          context: 'MobileApp.handleSendNotification',
+          action: 'push_notification'
+        });
+      });
     }
   };
 
@@ -234,7 +254,12 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
       });
       
     } catch (error) {
-      console.error('Failed to get location:', error);
+      import('@/lib/errors/error-logger').then(({ errorLogger }) => {
+        errorLogger.logError(error as Error, {
+          context: 'MobileApp.handleGetLocation',
+          action: 'location_request'
+        });
+      });
       trackUserAction('location_error', activeTab, { 
         error: (error as Error).message 
       });
@@ -252,7 +277,12 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
       });
       
     } catch (error) {
-      console.error('Failed to capture photo:', error);
+      import('@/lib/errors/error-logger').then(({ errorLogger }) => {
+        errorLogger.logError(error as Error, {
+          context: 'MobileApp.handleCapturePhoto',
+          action: 'photo_capture'
+        });
+      });
       trackUserAction('photo_capture_error', activeTab, { 
         error: (error as Error).message 
       });
@@ -273,7 +303,12 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
       }
       
     } catch (error) {
-      console.error('Biometric authentication failed:', error);
+      import('@/lib/errors/error-logger').then(({ errorLogger }) => {
+        errorLogger.logError(error as Error, {
+          context: 'MobileApp.handleBiometricAuth',
+          action: 'biometric_authentication'
+        });
+      });
       trackUserAction('biometric_auth_error', activeTab, { 
         error: (error as Error).message 
       });
@@ -832,4 +867,4 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
   );
 };
 
-export default MobileApp; 
+export default MobileApp;  

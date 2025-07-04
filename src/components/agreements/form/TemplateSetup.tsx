@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 export function useTemplateSetup() {
   const [standardTemplateExists, setStandardTemplateExists] = useState(false as boolean);
@@ -40,8 +41,12 @@ export function useTemplateSetup() {
           }
         }
       } catch (error) {
-        console.error("Error checking templates:", error);
-        setTemplateError(error instanceof Error ? error : new Error('Unknown error checking templates'));
+        const errorInstance = error instanceof Error ? error : new Error('Unknown error checking templates');
+        errorLogger.logError(errorInstance, {
+          context: 'TemplateSetup.checkTemplates',
+          operation: 'checking_agreement_templates'
+        });
+        setTemplateError(errorInstance);
       }
     };
     

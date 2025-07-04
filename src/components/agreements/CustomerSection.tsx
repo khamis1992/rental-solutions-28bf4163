@@ -8,6 +8,7 @@ import { User, Mail, Phone, MapPin, FileText, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { CustomerInfo } from '@/types/customer';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CustomerSectionProps {
   customer?: CustomerInfo;
@@ -50,7 +51,12 @@ const CustomerSection = ({
             setCustomer(customerData);
           }
         } catch (error) {
-          console.error('Error fetching customer:', error);
+          errorLogger.logError(error as Error, {
+            context: 'CustomerSection.fetchCustomer',
+            customerId,
+            timestamp: new Date().toISOString()
+          });
+          toast.error('فشل في تحميل بيانات العميل');
         } finally {
           setLoading(false);
         }

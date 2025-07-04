@@ -266,16 +266,17 @@ export const PerformanceMonitorWidget: React.FC<PerformanceMonitorWidgetProps> =
   const handleClearMetrics = () => {
     // Clear performance metrics
     performanceMonitor.getSummary(); // This will reset internal state
-    console.log('🧹 Performance metrics cleared');
   };
 
   const handleMemoryCleanup = async () => {
     setIsCleaningUp(true);
     try {
       await performCleanup();
-      console.log('✅ Memory cleanup completed');
+      // Memory cleanup completed successfully
     } catch (error) {
-      console.error('❌ Memory cleanup failed:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Memory cleanup failed:', error);
+      }
     } finally {
       setIsCleaningUp(false);
     }
@@ -371,4 +372,4 @@ export const PerformanceMonitorWidget: React.FC<PerformanceMonitorWidgetProps> =
 
 PerformanceMonitorWidget.displayName = 'PerformanceMonitorWidget';
 
-export default PerformanceMonitorWidget; 
+export default PerformanceMonitorWidget;  

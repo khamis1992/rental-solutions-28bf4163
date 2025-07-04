@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, FileText, Loader2, Plus, MapPin, Calendar } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface TrafficFine {
   id: string;
@@ -54,8 +55,6 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
         setIsLoading(true);
         setError(null);
         
-        console.log("Fetching traffic fines for customer ID:", customerId);
-        
         // First get all leases for this customer
         const { data: leases, error: leaseError } = await supabase
           .from('leases')
@@ -63,7 +62,11 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
           .eq('customer_id', customerId);
         
         if (leaseError) {
-          console.error("Error fetching leases:", leaseError);
+          errorLogger.logError(new Error('Failed to fetch leases'), {
+            context: 'CustomerTrafficFines.fetchTrafficFines',
+            customerId,
+            error: leaseError
+          });
           setError(leaseError.message);
           setIsLoading(false);
           return;
@@ -72,7 +75,6 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
         const leaseIds = leases?.map(lease => lease.id) || [];
         
         if (leaseIds.length === 0) {
-          console.log("No leases found for customer");
           setTrafficFines([]);
           setIsLoading(false);
           return;
@@ -85,17 +87,24 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
           .in('lease_id', leaseIds);
           
         if (finesError) {
-          console.error("Error fetching traffic fines:", finesError);
+          errorLogger.logError(new Error('Failed to fetch traffic fines'), {
+            context: 'CustomerTrafficFines.fetchTrafficFines',
+            customerId,
+            leaseIds,
+            error: finesError
+          });
           setError(finesError.message);
           setIsLoading(false);
           return;
         }
         
-        console.log(`Found ${fines?.length || 0} traffic fines`);
         setTrafficFines(fines || []);
         
       } catch (error: any) {
-        console.error("Unexpected error fetching traffic fines:", error);
+        errorLogger.logError(error, {
+          context: 'CustomerTrafficFines.fetchTrafficFines',
+          customerId
+        });
         setError(error.message);
       } finally {
         setIsLoading(false);

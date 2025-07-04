@@ -9,6 +9,7 @@ import { useVehicles } from '@/hooks/vehicles/useVehicles';
 import { toast } from 'sonner';
 import { vehicleService } from '@/services/VehicleService';
 import { enhancedVehicleSearch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleSelectorProps {
   selectedVehicle?: ExtendedVehicle | null;
@@ -44,7 +45,6 @@ const VehicleSelector = ({
         !excludedStatuses.includes(vehicle.status)
       );
       
-      console.log(`تم فلترة ${filtered.length} مركبة متاحة من أصل ${allVehicles.length} مركبة`);
       return filtered;
     }
     
@@ -70,11 +70,18 @@ const VehicleSelector = ({
         const searchResults = result.data.map(({ matchScore, matchDetails, ...vehicle }) => vehicle);
         setEnhancedResults(searchResults);
       } else {
-        console.error('Enhanced search failed:', result.error);
+        errorLogger.logError(new Error('Enhanced search failed'), {
+          context: 'VehicleSelector.performEnhancedSearch',
+          searchTerm,
+          error: result.error
+        });
         setEnhancedResults([]);
       }
     } catch (error) {
-      console.error('Enhanced search error:', error);
+      errorLogger.logError(error as Error, {
+        context: 'VehicleSelector.performEnhancedSearch',
+        searchTerm
+      });
       setEnhancedResults([]);
     } finally {
       setIsSearching(false);
@@ -136,7 +143,6 @@ const VehicleSelector = ({
     const vehicle = allVehicles.find(v => v.id === vehicleId);
     
     if (vehicle) {
-      console.log('Vehicle selected:', vehicle);
       onVehicleSelect(vehicle);
       
       // Show success message with match type if from enhanced search
@@ -152,11 +158,12 @@ const VehicleSelector = ({
   // Handle manual refresh
   const handleRefresh = async () => {
     try {
-      console.log('Manual refresh triggered');
       setEnhancedResults([]); // Clear enhanced results
       toast.success('Vehicle list refreshed');
     } catch (error) {
-      console.error('Refresh error:', error);
+      errorLogger.logError(error as Error, {
+        context: 'VehicleSelector.handleRefresh'
+      });
       toast.error('Failed to refresh vehicle list');
     }
   };
@@ -164,7 +171,9 @@ const VehicleSelector = ({
   // Log error for debugging
   useEffect(() => {
     if (error) {
-      console.error('VehicleSelector error:', error);
+      errorLogger.logError(error as Error, {
+        context: 'VehicleSelector.useVehicles'
+      });
     }
   }, [error]);
 
@@ -196,7 +205,6 @@ const VehicleSelector = ({
             <CommandInput
               placeholder="Search vehicles (supports fuzzy license plate matching)..."
               onValueChange={(value) => {
-                console.log('Search input changed:', value);
                 setInternalSearchQuery(value);
               }}
               value={internalSearchQuery}

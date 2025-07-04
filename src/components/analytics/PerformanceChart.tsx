@@ -29,6 +29,7 @@ import {
   LineChart as LineChartIcon
 } from 'lucide-react';
 import { performanceAnalytics, PerformanceMetric } from '@/services/performance-analytics';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface PerformanceChartProps {
   metricName: string;
@@ -91,7 +92,11 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
       setData(chartData);
     } catch (error) {
-      console.error('Failed to load chart data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'PerformanceChart.loadChartData',
+        metricName,
+        timeRange
+      });
     } finally {
       setIsLoading(false);
     }
@@ -389,4 +394,4 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   );
 };
 
-export default PerformanceChart; 
+export default PerformanceChart;  

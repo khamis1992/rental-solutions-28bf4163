@@ -283,7 +283,6 @@ const MobileDemo: React.FC<MobileDemoProps> = ({ className }) => {
       setSimulationState(prev => ({ ...prev, photos: prev.photos + 1 }));
       trackUserAction('photo_capture_simulated', 'mobile_demo');
     } catch (error) {
-      console.error('Photo simulation failed:', error);
     }
   };
 
@@ -293,7 +292,6 @@ const MobileDemo: React.FC<MobileDemoProps> = ({ className }) => {
       setSimulationState(prev => ({ ...prev, locations: prev.locations + 1 }));
       trackUserAction('location_update_simulated', 'mobile_demo');
     } catch (error) {
-      console.error('Location simulation failed:', error);
     }
   };
 
@@ -718,4 +716,4 @@ const MobileDemo: React.FC<MobileDemoProps> = ({ className }) => {
   );
 };
 
-export default MobileDemo; 
+export default MobileDemo;  

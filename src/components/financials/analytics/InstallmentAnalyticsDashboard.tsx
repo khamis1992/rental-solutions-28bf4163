@@ -64,20 +64,12 @@ const InstallmentAnalyticsDashboard = () => {
       
       analyticsData = await installmentReportingService.generateInstallmentAnalytics();
       
-      // Debug logging
-      console.log('Analytics data loaded:', {
-        activeContracts: analyticsData.activeContracts,
-        totalPortfolioValue: analyticsData.totalPortfolioValue,
-        completedContracts: analyticsData.completedContracts
-      });
-      
       // Cache the results
       cacheService.setAnalytics(cacheKey, analyticsData);
       
       setAnalytics(analyticsData);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error loading analytics:', error);
       toast.error(language === 'ar' ? 'خطأ في تحميل التحليلات' : 'Error loading analytics');
     } finally {
       setIsLoading(false);
@@ -405,4 +397,4 @@ const InstallmentAnalyticsDashboard = () => {
   );
 };
 
-export default InstallmentAnalyticsDashboard; 
+export default InstallmentAnalyticsDashboard;  

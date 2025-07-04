@@ -23,6 +23,7 @@ import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { generateModernAgreementPDF } from '@/utils/modern-agreement-pdf';
 import { useCustomerService } from '@/hooks/services/useCustomerService';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CustomerDetailProps {
   customerId: string;
@@ -62,15 +63,14 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
   const { deleteCustomer } = useCustomerService();
   const navigate = useNavigate();
 
-  // Add debugging console logs
-  console.log("CustomerDetail: Rendered with customerId:", customerId);
 
   useEffect(() => {
-    console.log("CustomerDetail: useEffect triggered with customerId:", customerId);
-    
     const fetchCustomer = async () => {
       if (!customerId) {
-        console.error("CustomerDetail: No customer ID provided");
+        errorLogger.logError(new Error("No customer ID provided"), {
+          context: 'CustomerDetail.fetchCustomer',
+          customerId
+        });
         setError("No customer ID provided");
         setIsLoading(false);
         return;
@@ -80,8 +80,6 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
       setError(null);
       
       try {
-        console.log("CustomerDetail: Fetching customer data for ID:", customerId);
-        
         // Get customer and their agreements using maybeSingle instead of single to handle not found case
         const { data, error } = await supabase
           .from('profiles')
@@ -99,7 +97,11 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           .maybeSingle();
 
         if (error) {
-          console.error("CustomerDetail: Error fetching customer:", error);
+          errorLogger.logError(error, {
+            context: 'CustomerDetail.fetchCustomer',
+            customerId,
+            operation: 'supabase_query'
+          });
           setError(error.message);
           toast({
             title: "Error fetching customer",
@@ -111,7 +113,11 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         }
 
         if (!data) {
-          console.error("CustomerDetail: Customer not found for ID:", customerId);
+          errorLogger.logError(new Error("Customer not found"), {
+            context: 'CustomerDetail.fetchCustomer',
+            customerId,
+            operation: 'customer_lookup'
+          });
           setError("Customer not found");
           toast({
             title: "Customer not found",
@@ -122,14 +128,15 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           return;
         }
 
-        console.log("CustomerDetail: Customer data fetched successfully:", data);
-        console.log("CustomerDetail: Checking id_card_image field:", data.id_card_image);
-        console.log("CustomerDetail: All fields in data:", Object.keys(data));
         setCustomer(data);
         setNotes(data.notes || "");
         setIsLoading(false);
       } catch (error: any) {
-        console.error("CustomerDetail: Unexpected error fetching customer:", error);
+        errorLogger.logError(error, {
+          context: 'CustomerDetail.fetchCustomer',
+          customerId,
+          operation: 'unexpected_error'
+        });
         setError(error.message);
         setIsLoading(false);
         toast({

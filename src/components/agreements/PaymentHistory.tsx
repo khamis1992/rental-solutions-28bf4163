@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface PaymentHistoryProps {
   payments: Payment[];
@@ -50,7 +51,12 @@ export function PaymentHistory({
   // Auto-check synchronization only once per component lifecycle
   useEffect(() => {
     if (leaseId && syncStatus && !isSynchronized && !syncCheckRef.current) {
-      console.log('Payment schedule not synchronized, will auto-sync (once)');
+      errorLogger.logInfo('Payment schedule auto-sync initiated', {
+        context: 'PaymentHistory',
+        leaseId,
+        syncStatus: syncStatus?.synchronized,
+        unsyncedCount: syncStatus?.unsyncedCount
+      });
       syncCheckRef.current = true;
       
       // Add a delay to prevent immediate sync
@@ -62,16 +68,17 @@ export function PaymentHistory({
     }
   }, [leaseId, syncStatus?.synchronized, isSynchronized, checkAndSync]);
 
-  // Log for debugging
-  console.log('PaymentHistory component received:', {
-    paymentsCount: payments?.length || 0,
-    isLoading,
-    leaseId,
-    agreementId: agreement?.id,
-    syncStatus,
-    isSynchronized,
-    syncCheckPerformed: syncCheckRef.current
-  });
+  if (process.env.NODE_ENV === 'development') {
+    errorLogger.logInfo('PaymentHistory component state', {
+      context: 'PaymentHistory',
+      paymentsCount: payments?.length || 0,
+      isLoading,
+      leaseId,
+      agreementId: agreement?.id,
+      isSynchronized,
+      syncCheckPerformed: syncCheckRef.current
+    });
+  }
 
   // Convert dates to strings for the PaymentHistorySection
   const startDateString = leaseStartDate 

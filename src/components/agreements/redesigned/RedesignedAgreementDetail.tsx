@@ -23,6 +23,7 @@ import { SettingsCard } from './tabs/SettingsCard';
 import { TrafficFinesTab } from './tabs/TrafficFinesTab';
 import { FileText, CreditCard, FileImage, Settings, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface RedesignedAgreementDetailProps {
   agreement: Agreement | null;
@@ -116,13 +117,20 @@ export function RedesignedAgreementDetail({
               .single();
             
             if (customerError) {
-              console.warn('تعذر جلب بيانات العميل:', customerError);
+              errorLogger.logError(customerError, {
+                context: 'RedesignedAgreementDetail.handleDownloadPdf',
+                action: 'fetch_customer_data',
+                customerId: agreement.customer_id
+              });
             } else if (customerData?.id_card_image) {
               customerIdCardImage = customerData.id_card_image;
-              console.log('تم العثور على صورة البطاقة الشخصية للعميل');
             }
           } catch (error) {
-            console.warn('خطأ في جلب صورة البطاقة الشخصية:', error);
+            errorLogger.logError(error as Error, {
+              context: 'RedesignedAgreementDetail.handleDownloadPdf',
+              action: 'fetch_customer_id_card',
+              customerId: agreement.customer_id
+            });
           }
         }
         

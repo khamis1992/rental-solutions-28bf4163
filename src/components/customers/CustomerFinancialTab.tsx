@@ -6,6 +6,7 @@ import { generateModernCustomerFinancialPDF } from '@/utils/modern-customer-fina
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
+import { errorLogger } from '@/lib/errors/error-logger';
 import { supabase } from '@/lib/supabase';
 import { 
   DollarSign, 
@@ -74,7 +75,11 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
         .eq('id', customerId);
 
       if (customerError) {
-        console.error('Error fetching customer:', customerError);
+        errorLogger.logError(customerError, {
+          context: 'CustomerFinancialTab.fetchFinancialData',
+          operation: 'fetch_customer',
+          customerId
+        });
         throw customerError;
       }
 
@@ -98,8 +103,12 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
         .eq('customer_id', customerId);
 
       if (agreementsError) {
-        console.error('Error fetching agreements:', agreementsError);
-        console.warn('Continuing without agreement data due to error:', agreementsError);
+        errorLogger.logError(agreementsError, {
+          context: 'CustomerFinancialTab.fetchFinancialData',
+          operation: 'fetch_agreements',
+          customerId,
+          severity: 'warning'
+        });
       }
 
       // جلب جميع الدفعات من جدول payments (النظام الصحيح)
@@ -110,7 +119,11 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
         .order('due_date', { ascending: false });
 
       if (paymentsError) {
-        console.error('Error fetching payments:', paymentsError);
+        errorLogger.logError(paymentsError, {
+          context: 'CustomerFinancialTab.fetchFinancialData',
+          operation: 'fetch_payments',
+          customerId
+        });
       }
 
       // حساب الإحصائيات المالية باستخدام النظام الصحيح
@@ -175,14 +188,6 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
         const overdueMonthsCount = overduePayments.length; // كل دفعة متأخرة = شهر واحد
         totalLateFees = overdueMonthsCount * 3000;
 
-        console.log('✅ استخدام النظام الصحيح - إحصائيات مطابقة للملخص المالي للمطالبة القانونية:', {
-          totalPaid: `${totalPaid.toLocaleString()} ر.ق`,
-          totalPending: `${totalPending.toLocaleString()} ر.ق`,
-          totalOverdue: `${totalOverdue.toLocaleString()} ر.ق`,
-          totalLateFees: `${totalLateFees.toLocaleString()} ر.ق (${overdueMonthsCount} شهر × 3000 ر.ق)`,
-          totalPayments: paymentsData.length,
-          overduePayments: overduePayments.length
-        });
       }
 
       // حساب معدل الدفع في الوقت المحدد
@@ -245,13 +250,17 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
       setRecentPayments(recentPaymentsForDisplay);
 
     } catch (error: any) {
-      console.error('Error fetching financial data:', error);
+      errorLogger.logError(error, {
+        context: 'CustomerFinancialTab.fetchFinancialData',
+        operation: 'fetch_financial_data',
+        customerId
+      });
       toast({
         title: language === 'ar' ? 'خطأ في جلب البيانات المالية' : 'Error fetching financial data',
         description: error.message,
         variant: 'destructive',
       });
-    } finally {
+    }finally {
       setIsLoading(false);
     }
   };
@@ -864,4 +873,4 @@ export const CustomerFinancialTab: React.FC<CustomerFinancialTabProps> = ({ cust
       </Dialog>
     </div>
   );
-}; 
+};  

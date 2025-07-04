@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/formatters';
 import { Loader2, Edit, Trash2, FileText, DollarSign, AlertCircle, Car, User, Calendar, MapPin } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { errorLogger } from '@/lib/errors/error-logger';
 import type { Agreement, Customer, Vehicle, UnifiedPayment } from '@/types/database';
 
 interface AgreementDetailsProps {
@@ -184,7 +185,11 @@ const AgreementDetail = () => {
         setPayments(paymentsData || []);
 
       } catch (error) {
-        console.error('Error fetching agreement details:', error);
+        errorLogger.logError(error as Error, {
+          context: 'AgreementDetail.fetchAgreement',
+          agreementId: id,
+          action: 'fetch_agreement_details'
+        });
         toast.error('Failed to load agreement details');
       } finally {
         setIsLoading(false);
@@ -209,7 +214,11 @@ const AgreementDetail = () => {
       toast.success('تم حذف الاتفاقية بنجاح');
       navigate('/agreements');
     } catch (error) {
-      console.error('Error deleting agreement:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AgreementDetail.handleDelete',
+        agreementId: agreement.id,
+        action: 'delete_agreement'
+      });
       toast.error('حدث خطأ أثناء حذف الاتفاقية');
     } finally {
       setIsDeleting(false);

@@ -180,8 +180,6 @@ export const AdvancedMaintenanceActions = () => {
       return;
     }
 
-    // Simulate creating maintenance record
-    console.log('Creating maintenance record:', formData);
     
     toast.success(
       language === 'ar' 

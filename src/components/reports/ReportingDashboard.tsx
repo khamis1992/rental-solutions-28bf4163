@@ -32,6 +32,7 @@ import {
   Loader
 } from 'lucide-react';
 import { advancedReporting, ReportTemplate, GeneratedReport, ExportOptions } from '@/services/advanced-reporting';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface ReportingDashboardProps {
   className?: string;
@@ -63,7 +64,10 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ className }) =>
       setTemplates(templatesData);
       setGeneratedReports(reportsData);
     } catch (error) {
-      console.error('Failed to load reporting data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'ReportingDashboard.loadReportingData',
+        action: 'loading_reporting_data'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +95,11 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ className }) =>
       setGeneratedReports(updatedReports);
       
     } catch (error) {
-      console.error('Failed to generate report:', error);
+      errorLogger.logError(error as Error, {
+        context: 'ReportingDashboard.handleGenerateReport',
+        action: 'generating_report',
+        templateId
+      });
     } finally {
       setIsGenerating(prev => {
         const newSet = new Set(prev);
@@ -121,7 +129,12 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ className }) =>
       setGeneratedReports(updatedReports);
       
     } catch (error) {
-      console.error('Failed to export data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'ReportingDashboard.handleQuickExport',
+        action: 'exporting_data',
+        dataType,
+        format
+      });
     }
   };
 
@@ -617,4 +630,4 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ className }) =>
   );
 };
 
-export default ReportingDashboard; 
+export default ReportingDashboard;  

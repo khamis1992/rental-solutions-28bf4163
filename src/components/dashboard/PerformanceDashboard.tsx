@@ -24,6 +24,7 @@ import {
   LineChart
 } from 'lucide-react';
 import { performanceAnalytics, PerformanceMetric, UserAction, ErrorMetric } from '@/services/performance-analytics';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface DashboardProps {
   className?: string;
@@ -65,7 +66,11 @@ const PerformanceDashboard: React.FC<DashboardProps> = ({ className }) => {
       setErrors(errorsData);
       setInsights(insightsData);
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'PerformanceDashboard.loadDashboardData',
+        action: 'loading_dashboard_data',
+        timeRange
+      });
     } finally {
       setIsLoading(false);
     }
@@ -492,4 +497,4 @@ const PerformanceDashboard: React.FC<DashboardProps> = ({ className }) => {
   );
 };
 
-export default PerformanceDashboard; 
+export default PerformanceDashboard;  

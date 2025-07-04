@@ -42,7 +42,9 @@ export const BackgroundSync: React.FC<BackgroundSyncProps> = ({ isOnline }) => {
         setSyncQueue(queue);
         updateSyncStats(queue);
       } catch (error) {
-        console.error('Failed to load sync queue:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to load sync queue:', error);
+        }
       }
     }
 
@@ -94,7 +96,9 @@ export const BackgroundSync: React.FC<BackgroundSyncProps> = ({ isOnline }) => {
     if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
       navigator.serviceWorker.ready.then((registration) => {
         (registration as any).sync.register('background-sync').catch((error: any) => {
-          console.error('Failed to register background sync:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to register background sync:', error);
+          }
         });
       });
     }

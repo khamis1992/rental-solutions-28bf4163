@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { twilioWhatsAppService } from '@/services/TwilioWhatsAppService';
 import { whatsAppAutomationService } from '@/services/WhatsAppAutomationService';
+import { errorLogger } from '@/lib/errors/error-logger';
 import { 
   Calendar, 
   AlertTriangle, 
@@ -58,7 +59,13 @@ export const WhatsAppTemplateTest: React.FC = () => {
       const errorMsg = `❌ خطأ في النظام: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`;
       addResult(templateName, false, errorMsg);
       toast.error('خطأ في النظام');
-      console.error(error);
+      errorLogger.logError(error as Error, {
+        context: 'WhatsAppTemplateTest',
+        templateType,
+        templateName,
+        testPhone,
+        testCustomerName
+      });
     } finally {
       setIsLoading(false);
     }
@@ -373,4 +380,4 @@ export const WhatsAppTemplateTest: React.FC = () => {
   );
 };
 
-export default WhatsAppTemplateTest; 
+export default WhatsAppTemplateTest;  

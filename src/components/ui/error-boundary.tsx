@@ -3,6 +3,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -64,7 +65,12 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+    errorLogger.logError(error, {
+      context: 'ErrorBoundary',
+      errorInfo,
+      timestamp: new Date().toISOString(),
+      url: window.location.href
+    });
   }
 
   resetErrorBoundary = () => {

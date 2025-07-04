@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface PaymentForAgreementProps {
   onBack: () => void;
@@ -139,7 +140,12 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
       
       onClose();
     } catch (error) {
-      console.error('Error recording payment:', error);
+      errorLogger.logError(error as Error, {
+        context: 'PaymentForAgreement.handleSubmit',
+        carNumber,
+        selectedPaymentId,
+        leaseId: data?.leaseId
+      });
       toast({
         title: "خطأ",
         description: "فشل في تسجيل الدفعة. يرجى المحاولة مرة أخرى.",

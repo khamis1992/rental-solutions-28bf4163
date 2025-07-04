@@ -25,6 +25,7 @@ import {
   updatePaymentStatuses,
   type PaymentData 
 } from '../../utils/smart-payment-analysis';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface UpdateResult {
   agreementId: string;
@@ -78,7 +79,10 @@ export default function SmartPaymentSystemUpdater() {
     });
 
     try {
-      console.log('🚀 بدء النظام الذكي الشامل لتحديث جميع العقود...');
+      errorLogger.logInfo('Smart payment system update started', {
+        context: 'SmartPaymentSystemUpdater',
+        action: 'runSystemUpdate'
+      });
       toast.info('بدء تحليل وتحديث جميع العقود في النظام...');
 
              // جلب جميع العقود مع دفعاتها
@@ -101,7 +105,10 @@ export default function SmartPaymentSystemUpdater() {
         return;
       }
 
-      console.log(`📊 تم العثور على ${agreements.length} عقد للمعالجة`);
+      errorLogger.logInfo('Agreements found for processing', {
+        context: 'SmartPaymentSystemUpdater',
+        agreementsCount: agreements.length
+      });
       
       const newStats: SystemStats = {
         totalAgreements: agreements.length,
@@ -122,7 +129,11 @@ export default function SmartPaymentSystemUpdater() {
         setProgress(progressPercent);
         setCurrentAgreement(`${agreement.agreement_number} - ${agreement.profiles?.[0]?.full_name || 'عميل غير محدد'}`);
 
-        console.log(`\n📋 معالجة العقد ${i + 1}/${agreements.length}: ${agreement.agreement_number}`);
+        errorLogger.logInfo('Processing agreement', {
+          context: 'SmartPaymentSystemUpdater',
+          agreementNumber: agreement.agreement_number,
+          progress: `${i + 1}/${agreements.length}`
+        });
 
         try {
           const payments = agreement.payments || [];
@@ -174,10 +185,18 @@ export default function SmartPaymentSystemUpdater() {
                    updateResult.updated > 0 ? 'partial' : 'failed'
           });
 
-          console.log(`✅ تم معالجة العقد ${agreement.agreement_number}: ${updateResult.updated} تحديث`);
+          errorLogger.logInfo('Agreement processed successfully', {
+            context: 'SmartPaymentSystemUpdater',
+            agreementNumber: agreement.agreement_number,
+            updatedCount: updateResult.updated
+          });
 
         } catch (error) {
-          console.error(`❌ خطأ في معالجة العقد ${agreement.agreement_number}:`, error);
+          errorLogger.logError(error as Error, {
+            context: 'SmartPaymentSystemUpdater',
+            agreementNumber: agreement.agreement_number,
+            action: 'processAgreement'
+          });
           
           updateResults.push({
             agreementId: agreement.id,
@@ -524,4 +543,4 @@ export default function SmartPaymentSystemUpdater() {
       )}
     </div>
   );
-} 
+}  

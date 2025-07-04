@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CustomerDetails {
   id: string;
@@ -78,7 +79,11 @@ export const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ cust
           }
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        errorLogger.logError(error as Error, {
+          context: 'CustomerTrafficFines.fetchCustomerAndFines',
+          customerId,
+          operation: 'fetch_customer_and_fines'
+        });
       } finally {
         setIsLoading(false);
       }

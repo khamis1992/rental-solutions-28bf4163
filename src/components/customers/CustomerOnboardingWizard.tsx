@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { User, FileText, CheckCircle, Scan, Wand2, CheckCircle2 } from "lucide-react";
 import { IdCardScanner } from './IdCardScanner';
 import { QatariIdCardData } from '@/services/google-vision-ocr';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface CustomerOnboardingWizardProps {
   open: boolean;
@@ -71,7 +72,12 @@ export function CustomerOnboardingWizard({
 
   // Handle ID card scan completion
   const handleScanComplete = (data: QatariIdCardData) => {
-    console.log('🎯 ID Card scan completed:', data);
+    errorLogger.logInfo('ID Card scan completed successfully', {
+      context: 'CustomerOnboardingWizard',
+      hasArabicName: !!data.arabicName,
+      hasIdNumber: !!data.idNumber,
+      hasCardImage: !!data.cardImageBase64
+    });
     
     // Auto-populate form fields from scanned data (prefer Arabic names)
     setFormData(prev => ({
@@ -98,7 +104,11 @@ export function CustomerOnboardingWizard({
 
   // Handle scan error
   const handleScanError = (error: string) => {
-    console.error('❌ ID Card scan error:', error);
+    errorLogger.logError(new Error(`ID Card scan failed: ${error}`), {
+      context: 'CustomerOnboardingWizard',
+      operation: 'id_card_scan',
+      errorMessage: error
+    });
     toast.error(`فشل في مسح البطاقة: ${error}`);
   };
 
@@ -194,7 +204,11 @@ export function CustomerOnboardingWizard({
       
     } catch (error) {
       toast.error("فشل في معالجة بيانات العميل");
-      console.error(error);
+      errorLogger.logError(error instanceof Error ? error : new Error('Customer processing failed'), {
+        context: 'CustomerOnboardingWizard',
+        operation: 'submit_customer_data',
+        formData: { ...formData, id_card_image: '[REDACTED]' } // Don't log sensitive image data
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -633,4 +647,4 @@ export function CustomerOnboardingWizard({
       </DialogContent>
     </Dialog>
   );
-} 
+}  

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Car, Settings, AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface VehicleStatusManagerProps {
   vehicles: any[];
@@ -109,7 +110,12 @@ export const VehicleStatusManager: React.FC<VehicleStatusManagerProps> = ({
       onRefresh?.();
 
     } catch (error) {
-      console.error('خطأ في تحديث حالة المركبة:', error);
+      errorLogger.logError(error as Error, {
+        context: 'VehicleStatusManager.handleStatusUpdate',
+        vehicleId: selectedVehicle.id,
+        newStatus,
+        action: 'update_vehicle_status'
+      });
       toast.error('فشل في تحديث حالة المركبة');
     } finally {
       setIsUpdating(false);

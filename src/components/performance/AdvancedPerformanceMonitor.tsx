@@ -81,7 +81,6 @@ const useAdvancedPerformanceMonitor = () => {
     try {
       observer.observe({ entryTypes: ['paint', 'largest-contentful-paint', 'first-input', 'layout-shift'] });
     } catch (e) {
-      console.warn('Performance Observer not fully supported');
     }
 
     return () => observer.disconnect();
@@ -486,4 +485,4 @@ export const AdvancedPerformanceMonitor: React.FC = () => {
   );
 };
 
-export default AdvancedPerformanceMonitor; 
+export default AdvancedPerformanceMonitor;  

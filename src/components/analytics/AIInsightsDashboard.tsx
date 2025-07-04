@@ -28,6 +28,7 @@ import {
   Star
 } from 'lucide-react';
 import { aiAnalytics, AIInsight, PredictionModel, AnomalyDetection, Prediction } from '@/services/ai-analytics';
+import { errorLogger } from '@/lib/errors/error-logger';
 
 interface AIInsightsDashboardProps {
   className?: string;
@@ -70,7 +71,11 @@ const AIInsightsDashboard: React.FC<AIInsightsDashboardProps> = ({ className }) 
       setPredictions(predictionsData);
       setSystemHealth(healthData);
     } catch (error) {
-      console.error('Failed to load AI data:', error);
+      errorLogger.logError(error as Error, {
+        context: 'AIInsightsDashboard.loadAIData',
+        component: 'AIInsightsDashboard',
+        action: 'loading_ai_data'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -545,4 +550,4 @@ const AIInsightsDashboard: React.FC<AIInsightsDashboardProps> = ({ className }) 
   );
 };
 
-export default AIInsightsDashboard; 
+export default AIInsightsDashboard;  
