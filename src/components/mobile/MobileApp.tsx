@@ -15,7 +15,7 @@ import {
   Fingerprint,
   Download,
   Upload,
-  Sync,
+  RotateCcw,
   Battery,
   Signal,
   Globe,
@@ -48,7 +48,6 @@ import {
   Share,
   Bookmark,
   Filter,
-  Sort,
   Grid,
   List,
   Maximize,
@@ -341,7 +340,7 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
       <CardContent className="p-4">
         <div className={`flex items-center justify-between mb-3 ${isArabic ? 'flex-row-reverse' : ''}`}>
           <div className={`flex items-center gap-2 ${isArabic ? 'flex-row-reverse' : ''}`}>
-            <Sync className={`w-5 h-5 ${syncStatus?.syncInProgress ? 'animate-spin' : ''}`} />
+            <RotateCcw className={`w-5 h-5 ${syncStatus?.syncInProgress ? 'animate-spin' : ''}`} />
             <span className="font-medium">
               {isArabic ? 'حالة المزامنة' : 'Sync Status'}
             </span>
@@ -683,8 +682,6 @@ const MobileApp: React.FC<MobileAppProps> = ({ className }) => {
 
   return (
     <div className={`max-w-md mx-auto bg-white shadow-lg rounded-lg overflow-hidden ${className}`}>
-      <MobileHeader />
-      
       <div className="p-4">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-4 text-xs">
