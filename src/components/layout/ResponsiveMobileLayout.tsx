@@ -6,6 +6,7 @@ import { Menu, X, Home, Users, Car, FileText, CreditCard, Scale, AlertTriangle, 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
+import { MobileNavigation } from '@/components/mobile/MobileNavigation';
 
 interface ResponsiveMobileLayoutProps {
   children: React.ReactNode;
@@ -187,7 +188,7 @@ export const ResponsiveMobileLayout: React.FC<ResponsiveMobileLayoutProps> = ({
           </div>
         </main>
 
-        {showBottomNav && <BottomNavigation />}
+        {showBottomNav && <MobileNavigation />}
       </div>
     );
   }

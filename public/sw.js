@@ -3,9 +3,9 @@
  * Advanced Service Worker for Car Rental System
  */
 
-const CACHE_NAME = 'alaraf-rental-v2.0';
-const API_CACHE_NAME = 'alaraf-api-v2.0';
-const STATIC_CACHE_NAME = 'alaraf-static-v2.0';
+const CACHE_NAME = 'alaraf-pwa-v2.0.0';
+const DATA_CACHE_NAME = 'alaraf-data-v2.0.0';
+const STATIC_CACHE_NAME = 'alaraf-static-v2.0.0';
 
 // الموارد الحرجة للتخزين المؤقت الفوري
 const CRITICAL_ASSETS = [
@@ -118,7 +118,7 @@ const cacheFirst = async (request, cacheName = CACHE_NAME) => {
 };
 
 // استراتيجية Network First (للبيانات الديناميكية)
-const networkFirst = async (request, cacheName = API_CACHE_NAME) => {
+const networkFirst = async (request, cacheName = DATA_CACHE_NAME) => {
   const cache = await caches.open(cacheName);
   
   try {
@@ -143,6 +143,12 @@ const networkFirst = async (request, cacheName = API_CACHE_NAME) => {
       });
       
       cache.put(request, modifiedResponse);
+      
+      // Notify main thread about cache update
+      broadcastMessage({
+        type: 'CACHE_UPDATED',
+        data: { url: request.url }
+      });
     }
     
     return networkResponse;
@@ -187,14 +193,14 @@ const cleanupExpiredCache = async () => {
   
   for (const cacheName of cacheNames) {
     if (cacheName.includes('alaraf') && cacheName !== CACHE_NAME && 
-        cacheName !== API_CACHE_NAME && cacheName !== STATIC_CACHE_NAME) {
+        cacheName !== DATA_CACHE_NAME && cacheName !== STATIC_CACHE_NAME) {
       console.log('🧹 Deleting old cache:', cacheName);
       await caches.delete(cacheName);
     }
   }
   
   // تنظيف cache entries المنتهية الصلاحية
-  const apiCache = await caches.open(API_CACHE_NAME);
+  const apiCache = await caches.open(DATA_CACHE_NAME);
   const apiRequests = await apiCache.keys();
   const now = Date.now();
   
@@ -271,7 +277,7 @@ self.addEventListener('fetch', event => {
   
   switch (requestType) {
     case 'api':
-      strategy = () => networkFirst(request, API_CACHE_NAME);
+      strategy = () => networkFirst(request, DATA_CACHE_NAME);
       break;
     case 'static':
     case 'font':
@@ -317,3 +323,219 @@ setInterval(() => {
 }, 30 * 60 * 1000);
 
 console.log('🎯 Advanced Service Worker loaded successfully');
+
+// Background sync functions
+async function syncAgreements() {
+  try {
+    const syncData = await getStoredSyncData('agreements');
+    for (const item of syncData) {
+      await syncDataItem(item);
+    }
+    
+    broadcastMessage({
+      type: 'SYNC_COMPLETED',
+      data: { type: 'agreements', count: syncData.length }
+    });
+  } catch (error) {
+    console.error('[SW] Agreement sync failed:', error);
+    broadcastMessage({
+      type: 'SYNC_FAILED',
+      data: { type: 'agreements', error: error.message }
+    });
+  }
+}
+
+async function syncPayments() {
+  try {
+    const syncData = await getStoredSyncData('payments');
+    for (const item of syncData) {
+      await syncDataItem(item);
+    }
+    
+    broadcastMessage({
+      type: 'SYNC_COMPLETED',
+      data: { type: 'payments', count: syncData.length }
+    });
+  } catch (error) {
+    console.error('[SW] Payment sync failed:', error);
+    broadcastMessage({
+      type: 'SYNC_FAILED',
+      data: { type: 'payments', error: error.message }
+    });
+  }
+}
+
+async function syncCustomers() {
+  try {
+    const syncData = await getStoredSyncData('customers');
+    for (const item of syncData) {
+      await syncDataItem(item);
+    }
+    
+    broadcastMessage({
+      type: 'SYNC_COMPLETED',
+      data: { type: 'customers', count: syncData.length }
+    });
+  } catch (error) {
+    console.error('[SW] Customer sync failed:', error);
+    broadcastMessage({
+      type: 'SYNC_FAILED',
+      data: { type: 'customers', error: error.message }
+    });
+  }
+}
+
+async function syncVehicles() {
+  try {
+    const syncData = await getStoredSyncData('vehicles');
+    for (const item of syncData) {
+      await syncDataItem(item);
+    }
+    
+    broadcastMessage({
+      type: 'SYNC_COMPLETED',
+      data: { type: 'vehicles', count: syncData.length }
+    });
+  } catch (error) {
+    console.error('[SW] Vehicle sync failed:', error);
+    broadcastMessage({
+      type: 'SYNC_FAILED',
+      data: { type: 'vehicles', error: error.message }
+    });
+  }
+}
+
+async function syncMaintenance() {
+  try {
+    const syncData = await getStoredSyncData('maintenance');
+    for (const item of syncData) {
+      await syncDataItem(item);
+    }
+    
+    broadcastMessage({
+      type: 'SYNC_COMPLETED',
+      data: { type: 'maintenance', count: syncData.length }
+    });
+  } catch (error) {
+    console.error('[SW] Maintenance sync failed:', error);
+    broadcastMessage({
+      type: 'SYNC_FAILED',
+      data: { type: 'maintenance', error: error.message }
+    });
+  }
+}
+
+async function syncDocuments() {
+  try {
+    const syncData = await getStoredSyncData('documents');
+    for (const item of syncData) {
+      await syncDataItem(item);
+    }
+    
+    broadcastMessage({
+      type: 'SYNC_COMPLETED',
+      data: { type: 'documents', count: syncData.length }
+    });
+  } catch (error) {
+    console.error('[SW] Document sync failed:', error);
+    broadcastMessage({
+      type: 'SYNC_FAILED',
+      data: { type: 'documents', error: error.message }
+    });
+  }
+}
+
+// Utility functions
+async function getStoredSyncData(type) {
+  // This would read from IndexedDB or localStorage
+  // For now, return empty array
+  return [];
+}
+
+async function syncDataItem(item) {
+  const endpoint = getEndpointForType(item.type);
+  const url = `/api/${endpoint}`;
+  
+  const options = {
+    method: item.action === 'create' ? 'POST' : item.action === 'update' ? 'PUT' : 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(item.data),
+  };
+  
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+
+function getEndpointForType(type) {
+  switch (type) {
+    case 'agreement': return 'agreements';
+    case 'payment': return 'payments';
+    case 'customer': return 'customers';
+    case 'vehicle': return 'vehicles';
+    case 'maintenance': return 'maintenance';
+    default: return type;
+  }
+}
+
+async function cacheUrls(urls) {
+  const cache = await caches.open(CACHE_NAME);
+  return cache.addAll(urls);
+}
+
+async function clearCache(cacheName) {
+  return caches.delete(cacheName || CACHE_NAME);
+}
+
+function broadcastMessage(message) {
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => client.postMessage(message));
+  });
+}
+
+// Performance monitoring
+function measurePerformance(name, fn) {
+  return async (...args) => {
+    const start = performance.now();
+    try {
+      const result = await fn(...args);
+      const duration = performance.now() - start;
+      console.log(`[SW] ${name} took ${duration.toFixed(2)}ms`);
+      return result;
+    } catch (error) {
+      const duration = performance.now() - start;
+      console.error(`[SW] ${name} failed after ${duration.toFixed(2)}ms:`, error);
+      throw error;
+    }
+  };
+}
+
+// Periodic cleanup
+setInterval(() => {
+  // Clean up old cache entries
+  caches.open(DATA_CACHE_NAME).then(cache => {
+    cache.keys().then(requests => {
+      requests.forEach(request => {
+        cache.match(request).then(response => {
+          if (response) {
+            const cacheDate = new Date(response.headers.get('date'));
+            const now = new Date();
+            const diffHours = (now - cacheDate) / (1000 * 60 * 60);
+            
+            // Remove cache entries older than 24 hours
+            if (diffHours > 24) {
+              cache.delete(request);
+            }
+          }
+        });
+      });
+    });
+  });
+}, 60 * 60 * 1000); // Run every hour
+
+console.log('[SW] Service Worker v2.0.0 loaded successfully');
