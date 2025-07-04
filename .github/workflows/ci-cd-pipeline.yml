@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: registry.rental-solutions.com
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'development' }}
   QATAR_REGION: me-south-1
   CLUSTER_NAME: rental-solutions-qatar
@@ -509,4 +509,4 @@ jobs:
       with:
         status: failure
         text: '🔒 Security scan found vulnerabilities in production'
-        webhook_url: ${{ secrets.SECURITY_SLACK_WEBHOOK }} 
+        webhook_url: ${{ secrets.SECURITY_SLACK_WEBHOOK }}    
