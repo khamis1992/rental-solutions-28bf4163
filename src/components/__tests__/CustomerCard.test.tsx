@@ -10,9 +10,21 @@ vi.mock('lucide-react', () => ({
   Mail: () => <span data-testid="mail-icon">Mail</span>,
   User: () => <span data-testid="user-icon">User</span>,
   MoreHorizontal: () => <span data-testid="more-icon">More</span>,
+  MoreVertical: () => <span data-testid="more-vertical-icon">More</span>,
   Eye: () => <span data-testid="eye-icon">Eye</span>,
   Edit: () => <span data-testid="edit-icon">Edit</span>,
   Trash2: () => <span data-testid="trash-icon">Trash</span>,
+}));
+
+vi.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children, onClick }: { children: React.ReactNode, onClick?: (e: any) => void }) => (
+    <div onClick={onClick}>{children}</div>
+  ),
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, onClick, asChild }: { children: React.ReactNode, onClick?: (e: any) => void, asChild?: boolean }) => (
+    asChild ? <div>{children}</div> : <div onClick={onClick}>{children}</div>
+  ),
 }));
 
 const MockWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -64,18 +76,21 @@ describe('CustomerCard Component', () => {
     );
 
     // Click the more options button first
-    const moreButton = screen.getByTestId('more-icon').parentElement;
+    const moreButton = screen.getByTestId('more-vertical-icon').parentElement;
     fireEvent.click(moreButton!);
 
-    // Then click edit button
-    const editButton = screen.getByTestId('edit-icon').parentElement;
-    fireEvent.click(editButton!);
+    // Then click edit menu item by text
+    const editMenuItem = screen.getByText('تعديل العميل');
+    fireEvent.click(editMenuItem);
 
     expect(onEdit).toHaveBeenCalledWith(mockCustomer);
   });
 
   it('should call onDelete when delete button is clicked', () => {
     const onDelete = vi.fn();
+    
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    
     render(
       <MockWrapper>
         <CustomerCard customer={mockCustomer} onDelete={onDelete} />
@@ -83,14 +98,17 @@ describe('CustomerCard Component', () => {
     );
 
     // Click the more options button first
-    const moreButton = screen.getByTestId('more-icon').parentElement;
+    const moreButton = screen.getByTestId('more-vertical-icon').parentElement;
     fireEvent.click(moreButton!);
 
-    // Then click delete button
-    const deleteButton = screen.getByTestId('trash-icon').parentElement;
-    fireEvent.click(deleteButton!);
+    // Then click delete menu item by text
+    const deleteMenuItem = screen.getByText('حذف العميل');
+    fireEvent.click(deleteMenuItem);
 
-    expect(onDelete).toHaveBeenCalledWith(mockCustomer);
+    expect(confirmSpy).toHaveBeenCalledWith(`هل أنت متأكد من حذف ${mockCustomer.full_name}؟`);
+    expect(onDelete).toHaveBeenCalledWith(mockCustomer.id);
+    
+    confirmSpy.mockRestore();
   });
 
   it('should handle customer with different status', () => {
@@ -114,4 +132,4 @@ describe('CustomerCard Component', () => {
 
     expect(screen.getByText('عميل تجريبي')).toBeInTheDocument();
   });
-}); 
+});          

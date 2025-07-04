@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,11 +28,29 @@ interface PendingPayment {
 }
 
 const paymentFormSchema = z.object({
-  amount: z.coerce.number().positive({ message: "Amount must be greater than 0" }),
-  paymentMethod: z.string().min(1, { message: "Please select a payment method" }),
+  amount: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') {
+        const num = parseFloat(val);
+        return isNaN(num) ? undefined : num;
+      }
+      return val;
+    },
+    z.number({ message: "يرجى إدخال مبلغ صحيح" })
+      .positive({ message: "المبلغ يجب أن يكون أكبر من صفر" })
+      .max(1000000, { message: "المبلغ كبير جداً" })
+  ),
+  paymentMethod: z.string().min(1, { message: "يرجى اختيار طريقة الدفع" }),
   referenceNumber: z.string().optional(),
   notes: z.string().optional(),
-  paymentDate: z.date(),
+  paymentDate: z.date().refine(
+    (date) => {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      return date <= today;
+    },
+    { message: "لا يمكن أن يكون تاريخ الدفع في المستقبل" }
+  ),
   includeLatePaymentFee: z.boolean().default(false),
   pendingPaymentId: z.string().optional(),
   isPartialPayment: z.boolean().default(false),
@@ -54,6 +72,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
   const [pendingPayments, setPendingPayments] = useState([] as PendingPayment[]);
   const [selectedPendingPayment, setSelectedPendingPayment] = useState(null as string | null);
   const [originalAmount, setOriginalAmount] = useState(0 as number);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentFormSchema),
@@ -78,7 +97,6 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
   }, [defaultAmount, form, selectedPendingPayment]);
 
   const paymentDate = form.watch("paymentDate");
-  const includeLatePaymentFee = form.watch("includeLatePaymentFee");
   const isPartialPayment = form.watch("isPartialPayment");
   const amount = form.watch("amount");
 
@@ -121,10 +139,9 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         calculateLateFee(pendingDate);
       }
     } catch (error) {
-      errorLogger.logError(error as Error, {
+      errorLogger.logError(error as Error, 'medium', {
         context: 'PaymentEntryForm.fetchPendingPayments',
-        agreementId,
-        action: 'fetch_pending_payments'
+        details: { agreementId, action: 'fetch_pending_payments' }
       });
     }
   };
@@ -137,9 +154,6 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
   }, [paymentDate]);
 
   const calculateLateFee = async (date: Date) => {
-    // Get the current month's first day
-    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    
     // If payment date is after the 1st, calculate late fee
     if (date.getDate() > 1) {
       // Calculate days late (payment date - 1st of month)
@@ -174,6 +188,9 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
   };
 
   const onSubmit = async (data: PaymentFormData) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    
     try {
       const isFullPayment = !data.isPartialPayment || data.amount >= originalAmount;
       const paymentStatus = isFullPayment ? "completed" : "partially_paid";
@@ -198,7 +215,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         if (updateError) throw updateError;
       } else {
         // Record a new payment if not updating a pending one
-        const { data: paymentData, error: paymentError } = await supabase.from("unified_payments").insert({
+        const { error: paymentError } = await supabase.from("unified_payments").insert({
           lease_id: agreementId,
           amount: originalAmount,
           amount_paid: data.amount,
@@ -241,38 +258,46 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
 
         if (lateFeeError) {
           toast.error("Payment recorded but failed to record late fee");
-          errorLogger.logError(lateFeeError as Error, {
+          errorLogger.logError(lateFeeError as Error, 'medium', {
             context: 'PaymentEntryForm.onSubmit',
-            agreementId,
-            action: 'record_late_fee',
-            lateFeeAmount: lateFeeDetails.amount
+            details: { agreementId, action: 'record_late_fee', lateFeeAmount: lateFeeDetails.amount }
           });
         }
       }
 
-      toast.success(isFullPayment ? "Payment recorded successfully" : "Partial payment recorded successfully");
+      toast.success(isFullPayment ? "تم تسجيل الدفعة بنجاح" : "تم تسجيل الدفعة الجزئية بنجاح");
       form.reset();
       onPaymentComplete();
     } catch (error) {
-      errorLogger.logError(error as Error, {
+      errorLogger.logError(error as Error, 'high', {
         context: 'PaymentEntryForm.onSubmit',
-        agreementId,
-        action: 'record_payment',
-        paymentData: {
-          amount: data.amount,
-          paymentMethod: data.paymentMethod,
-          isPartialPayment: data.isPartialPayment
+        details: {
+          agreementId,
+          action: 'record_payment',
+          paymentData: {
+            amount: data.amount,
+            paymentMethod: data.paymentMethod,
+            isPartialPayment: data.isPartialPayment
+          }
         }
       });
-      toast.error("Failed to record payment");
+      
+      const errorMessage = (error as Error).message;
+      if (errorMessage.includes('Network') || errorMessage.includes('network')) {
+        toast.error("حدث خطأ في الشبكة");
+      } else {
+        toast.error("فشل في تسجيل الدفعة");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Record Payment</CardTitle>
-        <CardDescription>Enter payment details below</CardDescription>
+        <CardTitle>تسجيل دفعة</CardTitle>
+        <CardDescription>أدخل تفاصيل الدفع أدناه</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -311,9 +336,9 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
-                    <FormLabel>Partial Payment</FormLabel>
+                    <FormLabel>دفعة جزئية</FormLabel>
                     <FormDescription>
-                      Enable if customer is paying only part of the amount
+                      فعّل إذا كان العميل يدفع جزءاً من المبلغ فقط
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -331,7 +356,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount</FormLabel>
+                  <FormLabel>المبلغ</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
@@ -358,7 +383,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
               name="paymentDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Payment Date</FormLabel>
+                  <FormLabel>تاريخ الدفع</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -388,7 +413,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
                     </PopoverContent>
                   </Popover>
                   <FormDescription>
-                    When the payment was made
+                    متى تم الدفع
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -428,21 +453,21 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
               name="paymentMethod"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payment Method</FormLabel>
+                  <FormLabel>طريقة الدفع</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select payment method" />
+                        <SelectValue placeholder="اختر طريقة الدفع" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="credit_card">Credit Card</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="cheque">Cheque</SelectItem>
+                      <SelectItem value="cash">نقداً</SelectItem>
+                      <SelectItem value="credit_card">بطاقة ائتمان</SelectItem>
+                      <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
+                      <SelectItem value="cheque">شيك</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -454,12 +479,12 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
               name="referenceNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Reference Number (Optional)</FormLabel>
+                  <FormLabel>رقم المرجع (اختياري)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter reference number" {...field} />
+                    <Input placeholder="أدخل رقم المرجع" {...field} />
                   </FormControl>
                   <FormDescription>
-                    Transaction ID, cheque number, etc.
+                    رقم المعاملة، رقم الشيك، إلخ
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -470,10 +495,10 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormLabel>ملاحظات (اختياري)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Add any additional notes"
+                      placeholder="أضف أي ملاحظات إضافية"
                       {...field}
                     />
                   </FormControl>
@@ -481,7 +506,9 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">Record Payment</Button>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "جاري الحفظ..." : "حفظ"}
+            </Button>
           </form>
         </Form>
       </CardContent>

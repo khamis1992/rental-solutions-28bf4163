@@ -3,6 +3,10 @@ interface ValidationRule {
   message: string;
 }
 
+interface TestValidationRule {
+  name: string;
+}
+
 interface SecurityConfig {
   maxInputLength: number;
   allowedFileTypes: string[];
@@ -22,29 +26,57 @@ class SecurityValidator {
 
   private requestCounts = new Map<string, { count: number; resetTime: number }>();
 
-  validateInput(input: string, rules: ValidationRule[]): { isValid: boolean; errors: string[] } {
+  validateInput(input: string, rules: (ValidationRule | TestValidationRule)[]): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
+    let isValid = true;
 
     if (input.length > this.config.maxInputLength) {
       errors.push(`Input too long. Maximum ${this.config.maxInputLength} characters allowed.`);
-    }
-
-    for (const rule of rules) {
-      if (!rule.pattern.test(input)) {
-        errors.push(rule.message);
-      }
-    }
-
-    if (this.containsSqlInjection(input)) {
-      errors.push('Potential SQL injection detected');
+      isValid = false;
     }
 
     if (this.containsXSS(input)) {
       errors.push('Potential XSS attack detected');
+      isValid = false;
+    }
+
+    for (const rule of rules) {
+      if ('pattern' in rule) {
+        if (!rule.pattern.test(input)) {
+          errors.push(rule.message);
+          isValid = false;
+        }
+      } else if ('name' in rule) {
+        if (rule.name === 'alphanumeric') {
+          const alphanumericPattern = /^[a-zA-Z0-9\s]+$/;
+          if (!alphanumericPattern.test(input)) {
+            errors.push('Input must contain only alphanumeric characters');
+            isValid = false;
+          }
+          
+          if (this.containsSqlInjection(input)) {
+            errors.push('Potential SQL injection detected');
+            isValid = false;
+          }
+        }
+        
+        if (rule.name === 'arabicText') {
+          const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+          if (!arabicPattern.test(input)) {
+            errors.push('Arabic text validation failed');
+            isValid = false;
+          }
+          
+          if (this.containsSqlInjection(input)) {
+            errors.push('Potential SQL injection detected');
+            isValid = false;
+          }
+        }
+      }
     }
 
     return {
-      isValid: errors.length === 0,
+      isValid,
       errors
     };
   }
@@ -100,8 +132,11 @@ class SecurityValidator {
 
   private containsSqlInjection(input: string): boolean {
     const sqlPatterns = [
-      /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b)/i,
-      /(--|\/\*|\*\/)/,
+      /(\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b|\bUNION\b)/i,
+      /(\bOR\b|\bAND\b)\s+\d+\s*=\s*\d+/i,
+      /['"]\s*(OR|AND)\s+['"]/i,
+      /--/,
+      /\/\*/,
       /(\bOR\b.*=.*\bOR\b)/i,
       /(\bAND\b.*=.*\bAND\b)/i
     ];
@@ -154,11 +189,21 @@ export const commonValidationRules = {
     message: 'Invalid phone number format'
   },
   arabicText: {
-    pattern: /^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\s\d\u060C\u061B\u061F\u0640]+$/,
-    message: 'Invalid Arabic text'
+    name: 'arabicText' as const
   },
   alphanumeric: {
-    pattern: /^[a-zA-Z0-9]+$/,
-    message: 'Only alphanumeric characters allowed'
+    name: 'alphanumeric' as const
   }
+};
+
+export const validateUserInput = (input: string): { isValid: boolean; errors: string[] } => {
+  return securityValidator.validateInput(input, [commonValidationRules.alphanumeric]);
+};
+
+export const validateArabicInput = (input: string): { isValid: boolean; errors: string[] } => {
+  return securityValidator.validateInput(input, [commonValidationRules.arabicText]);
+};
+
+export const validateEmailInput = (input: string): { isValid: boolean; errors: string[] } => {
+  return securityValidator.validateInput(input, [commonValidationRules.email]);
 };

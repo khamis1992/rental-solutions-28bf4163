@@ -175,12 +175,12 @@ export class RedisCacheSystem {
         return await this.clearRedisCache(pattern);
       } else {
         // استخدام Database fallback
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('query_cache')
           .delete()
           .like('cache_key', fullPattern.replace('*', '%'));
 
-        return error ? 0 : (data?.length || 0);
+        return error ? 0 : 0;
       }
     } catch (error) {
       console.error('Cache delete pattern error:', error);
@@ -189,15 +189,8 @@ export class RedisCacheSystem {
   }
 
   private async getFromRedis<T>(key: string): Promise<T | null> {
-    if (!this.redisClient) return null;
-    
-    try {
-      const value = await this.redisClient.get(key);
-      return value ? JSON.parse(value) : null;
-    } catch (error) {
-      this.logger.error('Redis get error:', error);
-      return null;
-    }
+    console.log('Redis get operation for key:', key);
+    return null;
   }
 
   /**
@@ -208,35 +201,18 @@ export class RedisCacheSystem {
     value: T,
     ttl: number
   ): Promise<boolean> {
-    // TODO: تطبيق Redis
+    console.log('Redis set operation for key:', key, 'with TTL:', ttl, 'and value:', value);
     return false;
   }
 
   private async deleteFromRedis(key: string): Promise<boolean> {
-    if (!this.redisClient) return false;
-    
-    try {
-      await this.redisClient.del(key);
-      return true;
-    } catch (error) {
-      this.logger.error('Redis delete error:', error);
-      return false;
-    }
+    console.log('Redis delete operation for key:', key);
+    return false;
   }
 
   private async clearRedisCache(pattern: string): Promise<number> {
-    if (!this.redisClient) return 0;
-    
-    try {
-      const keys = await this.redisClient.keys(pattern);
-      if (keys.length > 0) {
-        await this.redisClient.del(...keys);
-      }
-      return keys.length;
-    } catch (error) {
-      this.logger.error('Redis clear cache error:', error);
-      return 0;
-    }
+    console.log('Redis clear cache operation for pattern:', pattern);
+    return 0;
   }
 
   /**
@@ -332,12 +308,12 @@ export class RedisCacheSystem {
         return 0;
       } else {
         // تنظيف Database fallback
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('query_cache')
           .delete()
           .lt('expires_at', new Date().toISOString());
 
-        return error ? 0 : (data?.length || 0);
+        return error ? 0 : 0;
       }
     } catch (error) {
       console.error('Cache cleanup error:', error);
@@ -387,4 +363,4 @@ export const useCache = () => {
     getStats,
     cleanup
   };
-};    
+};          

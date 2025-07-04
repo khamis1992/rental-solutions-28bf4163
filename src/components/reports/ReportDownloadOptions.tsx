@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, FileText } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
@@ -666,7 +666,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
     }
   };
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     try {
       let data = getReportData();
       if (!data || data.length === 0) {
@@ -681,12 +681,29 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         });
       }
       
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(data);
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet(reportType);
       
-      XLSX.utils.book_append_sheet(wb, ws, reportType);
+      if (data.length > 0) {
+        const headers = Object.keys(data[0]);
+        worksheet.addRow(headers);
+        data.forEach(row => {
+          worksheet.addRow(Object.values(row));
+        });
+      }
       
-      XLSX.writeFile(wb, `تقرير-${reportType}-${formatDate(new Date())}.xlsx`);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `تقرير-${reportType}-${formatDate(new Date())}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       toast.success('تم تنزيل تقرير Excel بنجاح');
     } catch (error) {
       const reportData = getReportData();
@@ -698,7 +715,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
     }
   };
 
-  const handleDownloadCSV = () => {
+  const handleDownloadCSV = async () => {
     try {
       let data = getReportData();
       if (!data || data.length === 0) {
@@ -713,10 +730,30 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         });
       }
       
-      const ws = XLSX.utils.json_to_sheet(data);
-      const csv = XLSX.utils.sheet_to_csv(ws);
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('data');
       
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      if (data.length > 0) {
+        const headers = Object.keys(data[0]);
+        worksheet.addRow(headers);
+        data.forEach(row => {
+          worksheet.addRow(Object.values(row));
+        });
+      }
+      
+      let csvString = '';
+      if (data.length > 0) {
+        const headers = Object.keys(data[0]);
+        csvString = headers.join(',') + '\n';
+        data.forEach(row => {
+          const values = Object.values(row).map(value => 
+            typeof value === 'string' && value.includes(',') ? `"${value}"` : String(value)
+          );
+          csvString += values.join(',') + '\n';
+        });
+      }
+      
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mockSupabaseClient, createMockCustomer } from '@/__tests__/setup';
+import { createMockCustomer } from '@/__tests__/setup';
+import { mockSupabaseClient, configureMockReturn } from '@/__tests__/mock-supabase';
 
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
@@ -18,12 +19,11 @@ describe('CustomerService', () => {
         createMockCustomer({ id: 'test-customer-2', full_name: 'عميل آخر' })
       ];
 
-      mockSupabaseClient.from().select().eq().order().then.mockResolvedValue({
+      configureMockReturn({
         data: mockCustomers,
         error: null
       });
 
-      // Dynamic import to avoid module loading issues
       const { customerService } = await import('@/services/CustomerService');
       const result = await customerService.fetchCustomers();
 
@@ -35,7 +35,7 @@ describe('CustomerService', () => {
     it('should handle fetch customers error', async () => {
       const mockError = { message: 'Database connection failed' };
       
-      mockSupabaseClient.from().select().eq().order().then.mockResolvedValue({
+      configureMockReturn({
         data: null,
         error: mockError
       });
@@ -44,7 +44,12 @@ describe('CustomerService', () => {
       const result = await customerService.fetchCustomers();
 
       expect(result.data).toBeNull();
-      expect(result.error).toEqual(mockError);
+      expect(result.error).toMatchObject({
+        code: 'DATABASE_ERROR',
+        message: 'CustomerService: Failed to fetch customers',
+        severity: 'high',
+        retryable: true
+      });
     });
   });
 
@@ -52,7 +57,7 @@ describe('CustomerService', () => {
     it('should create customer successfully', async () => {
       const newCustomer = createMockCustomer();
       
-      mockSupabaseClient.from().insert().select().single.mockResolvedValue({
+      configureMockReturn({
         data: newCustomer,
         error: null
       });
@@ -69,7 +74,7 @@ describe('CustomerService', () => {
       const mockError = { message: 'Validation failed' };
       const newCustomer = createMockCustomer();
       
-      mockSupabaseClient.from().insert().select().single.mockResolvedValue({
+      configureMockReturn({
         data: null,
         error: mockError
       });
@@ -78,7 +83,12 @@ describe('CustomerService', () => {
       const result = await customerService.createCustomer(newCustomer);
 
       expect(result.data).toBeNull();
-      expect(result.error).toEqual(mockError);
+      expect(result.error).toMatchObject({
+        code: 'DATABASE_ERROR',
+        message: 'CustomerService: Failed to create customer',
+        severity: 'high',
+        retryable: true
+      });
     });
   });
 
@@ -88,7 +98,7 @@ describe('CustomerService', () => {
       const updateData = { full_name: 'اسم محدث' };
       const updatedCustomer = createMockCustomer(updateData);
       
-      mockSupabaseClient.from().update().eq().select().single.mockResolvedValue({
+      configureMockReturn({
         data: updatedCustomer,
         error: null
       });
@@ -106,7 +116,7 @@ describe('CustomerService', () => {
     it('should delete customer successfully', async () => {
       const customerId = 'test-customer-id';
       
-      mockSupabaseClient.from().delete().eq().mockResolvedValue({
+      configureMockReturn({
         data: null,
         error: null
       });
@@ -122,7 +132,7 @@ describe('CustomerService', () => {
       const customerId = 'test-customer-id';
       const mockError = { message: 'Customer has active agreements' };
       
-      mockSupabaseClient.from().delete().eq().mockResolvedValue({
+      configureMockReturn({
         data: null,
         error: mockError
       });
@@ -130,7 +140,12 @@ describe('CustomerService', () => {
       const { customerService } = await import('@/services/CustomerService');
       const result = await customerService.deleteCustomer(customerId);
 
-      expect(result.error).toEqual(mockError);
+      expect(result.error).toMatchObject({
+        code: 'DATABASE_ERROR',
+        message: 'CustomerService: Failed to delete customer',
+        severity: 'high',
+        retryable: true
+      });
     });
   });
 
@@ -139,7 +154,7 @@ describe('CustomerService', () => {
       const searchTerm = 'عميل';
       const mockResults = [createMockCustomer()];
       
-      mockSupabaseClient.from().select().ilike().order().then.mockResolvedValue({
+      configureMockReturn({
         data: mockResults,
         error: null
       });
@@ -154,7 +169,7 @@ describe('CustomerService', () => {
     it('should return empty array for no matches', async () => {
       const searchTerm = 'غير موجود';
       
-      mockSupabaseClient.from().select().ilike().order().then.mockResolvedValue({
+      configureMockReturn({
         data: [],
         error: null
       });
@@ -166,4 +181,4 @@ describe('CustomerService', () => {
       expect(result.error).toBeNull();
     });
   });
-});    
+});            

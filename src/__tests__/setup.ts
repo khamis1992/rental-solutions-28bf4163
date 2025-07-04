@@ -112,7 +112,7 @@ expect.extend({
 // Global test helpers
 export const mockSupabaseClient = {
   from: vi.fn(() => {
-    const mockQuery = {
+    const mockQuery: any = {
       select: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
@@ -124,14 +124,34 @@ export const mockSupabaseClient = {
       or: vi.fn().mockReturnThis(),
       ilike: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),
-      then: vi.fn().mockResolvedValue({ data: null, error: null }),
-      mockResolvedValue: vi.fn().mockReturnThis(),
+      then: vi.fn((resolve) => resolve({ data: null, error: null })),
+      catch: vi.fn(),
+      finally: vi.fn(),
     };
     
-    Object.keys(mockQuery).forEach(key => {
-      if (key !== 'single' && key !== 'then' && key !== 'mockResolvedValue') {
-        (mockQuery as any)[key] = vi.fn().mockReturnValue(mockQuery);
-      }
+    mockQuery.mockResolvedValue = vi.fn((value) => {
+      mockQuery._mockValue = value;
+      
+      mockQuery.then = vi.fn((resolve, reject) => {
+        return Promise.resolve(value).then(resolve, reject);
+      });
+      
+      mockQuery.catch = vi.fn((reject) => {
+        return Promise.resolve(value).catch(reject);
+      });
+      
+      mockQuery.finally = vi.fn((callback) => {
+        return Promise.resolve(value).finally(callback);
+      });
+      
+      mockQuery.single = vi.fn().mockResolvedValue(value);
+      
+      return mockQuery;
+    });
+    
+    const chainableMethods = ['select', 'insert', 'update', 'delete', 'eq', 'order', 'limit', 'range', 'or', 'ilike'];
+    chainableMethods.forEach(method => {
+      mockQuery[method] = vi.fn().mockReturnValue(mockQuery);
     });
     
     return mockQuery;
@@ -160,6 +180,7 @@ export const createMockCustomer = (overrides = {}) => ({
   id: 'test-customer-id',
   full_name: 'عميل تجريبي',
   phone: '+97450000000',
+  phone_number: '+97450000000',
   email: 'test@example.com',
   driver_license: 'DL123456',
   nationality: 'قطري',
@@ -202,4 +223,4 @@ export const createMockPayment = (overrides = {}) => ({
   ...overrides
 });
 
-console.log('🧪 Test setup completed - Ready for comprehensive testing!');      
+console.log('🧪 Test setup completed - Ready for comprehensive testing!');                            
