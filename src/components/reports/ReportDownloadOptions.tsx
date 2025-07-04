@@ -8,7 +8,6 @@ import { formatCurrency } from '@/lib/utils';
 import { errorLogger } from '@/lib/errors/error-logger';
 import { 
   generateUnifiedPDF, 
-  createInfoCard, 
   createDataTable, 
   createSummaryCard,
   createHighlightBox,
@@ -82,7 +81,7 @@ async function generateModernReportPDF(reportType: string, data: any[]): Promise
       break;
     
     default:
-      content = await generateGenericReportContent(data, reportType);
+      content = await generateGenericReportContent(data);
       title = `تقرير ${reportType.toUpperCase()}`;
   }
 
@@ -339,10 +338,6 @@ async function generateFleetReportContent(data: any[]): Promise<string> {
  * إنشاء محتوى التقرير المالي
  */
 async function generateFinancialReportContent(data: any[]): Promise<string> {
-  errorLogger.logInfo('Generating financial report content', { 
-    dataCount: data?.length || 0,
-    context: 'ReportDownloadOptions'
-  });
   
   // التأكد من وجود البيانات
   if (!data || data.length === 0) {
@@ -638,7 +633,7 @@ async function generateLegalReportContent(data: any[]): Promise<string> {
 /**
  * إنشاء محتوى تقرير عام
  */
-async function generateGenericReportContent(data: any[], reportType: string): Promise<string> {
+async function generateGenericReportContent(data: any[]): Promise<string> {
   if (data.length === 0) {
     return createHighlightBox('لا توجد بيانات متاحة لهذا التقرير', 'warning');
   }
@@ -662,10 +657,10 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       await generateModernReportPDF(reportType, data);
       toast.success('تم إنشاء التقرير بنجاح - يمكنك طباعته أو حفظه كـ PDF');
     } catch (error) {
-      errorLogger.logError(error as Error, {
+      const data = getReportData();
+      errorLogger.logError(error as Error, 'medium', {
         context: 'ReportDownloadOptions.handleDownloadPDF',
-        reportType,
-        dataCount: data?.length || 0
+        details: { reportType, dataCount: data?.length || 0 }
       });
       toast.error('خطأ في إنشاء ملف PDF');
     }
@@ -694,10 +689,10 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       XLSX.writeFile(wb, `تقرير-${reportType}-${formatDate(new Date())}.xlsx`);
       toast.success('تم تنزيل تقرير Excel بنجاح');
     } catch (error) {
-      errorLogger.logError(error as Error, {
+      const reportData = getReportData();
+      errorLogger.logError(error as Error, 'medium', {
         context: 'ReportDownloadOptions.handleDownloadExcel',
-        reportType,
-        dataCount: data?.length || 0
+        details: { reportType, dataCount: reportData?.length || 0 }
       });
       toast.error('خطأ في إنشاء ملف Excel');
     }
@@ -732,10 +727,10 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       
       toast.success('تم تنزيل تقرير CSV بنجاح');
     } catch (error) {
-      errorLogger.logError(error as Error, {
+      const reportData = getReportData();
+      errorLogger.logError(error as Error, 'medium', {
         context: 'ReportDownloadOptions.handleDownloadCSV',
-        reportType,
-        dataCount: data?.length || 0
+        details: { reportType, dataCount: reportData?.length || 0 }
       });
       toast.error('خطأ في إنشاء ملف CSV');
     }
