@@ -13,9 +13,13 @@ import { useIsMobile } from "./hooks/use-mobile";
 
 // PWA Components
 import { PWAController } from "./components/pwa/PWAController";
+import { MobileNavigation } from "./components/mobile/MobileNavigation";
 
 // Mobile Performance Components
 import { MobilePerformanceMonitor, useMobilePerformanceOptimization } from "./components/ui/mobile-performance-monitor";
+
+// Mobile PWA Styles
+import "./styles/mobile-pwa.css";
 
 // Performance Optimizer
 import { performanceOptimizer } from "./utils/performance-optimizer";
