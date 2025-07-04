@@ -19,6 +19,7 @@ import {
 import { performanceMonitor, useMemoryTracker, PerformanceBudget } from '@/utils/performance-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import { useMemoryOptimizer } from '@/utils/memory-optimizer';
 
 interface PerformanceMonitorWidgetProps {
   isMinimized?: boolean;
@@ -104,10 +105,28 @@ const PerformanceStatus = memo(({ value, threshold, label, unit = 'ms' }: {
 PerformanceStatus.displayName = 'PerformanceStatus';
 
 // Memory usage indicator
-const MemoryUsageIndicator = memo(({ memoryUsage }: { memoryUsage: number }) => {
+const MemoryUsageIndicator = memo(({ 
+  memoryUsage, 
+  onCleanup, 
+  isCleaningUp 
+}: { 
+  memoryUsage: number;
+  onCleanup?: () => void;
+  isCleaningUp?: boolean;
+}) => {
   const memoryMB = memoryUsage / (1024 * 1024);
-  const budget = 50; // 50MB budget
+  const budget = 200; // 200MB budget - أكثر واقعية للتطبيقات المعقدة
   const percentage = (memoryMB / budget) * 100;
+
+  // تحديد حالة الذاكرة
+  const getMemoryStatus = () => {
+    if (percentage > 90) return { color: 'text-red-600', status: 'حرج' };
+    if (percentage > 75) return { color: 'text-yellow-600', status: 'مرتفع' };
+    if (percentage > 50) return { color: 'text-blue-600', status: 'طبيعي' };
+    return { color: 'text-green-600', status: 'ممتاز' };
+  };
+
+  const status = getMemoryStatus();
 
   return (
     <div className="space-y-2" dir="rtl">
@@ -119,9 +138,25 @@ const MemoryUsageIndicator = memo(({ memoryUsage }: { memoryUsage: number }) => 
       </div>
       <Progress value={Math.min(percentage, 100)} className="h-2" />
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{percentage.toFixed(1)}%</span>
+        <span className={status.color}>{percentage.toFixed(1)}% ({status.status})</span>
         <span>الحد الأقصى: {budget}MB</span>
       </div>
+      {percentage > 85 && onCleanup && (
+        <div className="text-xs p-2 bg-yellow-50 rounded space-y-2">
+          <div className="text-yellow-600">
+            ⚠️ استخدام الذاكرة مرتفع - يُنصح بتنظيف الذاكرة
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onCleanup}
+            disabled={isCleaningUp}
+            className="w-full text-xs h-6"
+          >
+            {isCleaningUp ? '🧹 جاري التنظيف...' : '🗑️ تنظيف الذاكرة'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 });
@@ -220,7 +255,9 @@ export const PerformanceMonitorWidget: React.FC<PerformanceMonitorWidgetProps> =
 }) => {
   const { language } = useLanguage();
   const memoryUsage = useMemoryTracker();
+  const { stats: memoryStats, performCleanup, getReport } = useMemoryOptimizer();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
 
   const handleToggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -230,6 +267,18 @@ export const PerformanceMonitorWidget: React.FC<PerformanceMonitorWidgetProps> =
     // Clear performance metrics
     performanceMonitor.getSummary(); // This will reset internal state
     console.log('🧹 Performance metrics cleared');
+  };
+
+  const handleMemoryCleanup = async () => {
+    setIsCleaningUp(true);
+    try {
+      await performCleanup();
+      console.log('✅ Memory cleanup completed');
+    } catch (error) {
+      console.error('❌ Memory cleanup failed:', error);
+    } finally {
+      setIsCleaningUp(false);
+    }
   };
 
   if (isMinimized) {
@@ -281,7 +330,11 @@ export const PerformanceMonitorWidget: React.FC<PerformanceMonitorWidgetProps> =
       
       <CardContent className="space-y-4">
         {/* Memory Usage */}
-        <MemoryUsageIndicator memoryUsage={memoryUsage} />
+        <MemoryUsageIndicator 
+          memoryUsage={memoryUsage} 
+          onCleanup={handleMemoryCleanup}
+          isCleaningUp={isCleaningUp}
+        />
         
         <Separator />
         

@@ -205,11 +205,17 @@ const appStateReducer = (state: AppState, action: AppAction): AppState => {
         isRead: false,
       };
       
+      // إضافة الإشعار الجديد في المقدمة
+      const updatedItems = [newNotification, ...state.notifications.items];
+      
+      // الحد الأقصى 25 إشعار لمنع تسريب الذاكرة
+      const limitedItems = updatedItems.slice(0, 25);
+      
       return {
         ...state,
         notifications: {
           count: state.notifications.count + 1,
-          items: [newNotification, ...state.notifications.items],
+          items: limitedItems,
         },
       };
       
@@ -284,12 +290,24 @@ const appStateReducer = (state: AppState, action: AppAction): AppState => {
       };
       
     case 'SET_CACHE':
+      const updatedCache = {
+        ...state.cache,
+        [action.payload.key]: action.payload.value,
+      };
+      
+      // تنظيف الكاش إذا تجاوز 100 عنصر لمنع تسريب الذاكرة
+      const cacheKeys = Object.keys(updatedCache);
+      const finalCache = cacheKeys.length > 100 
+        ? Object.fromEntries(
+            Object.entries(updatedCache)
+              .sort(([,a], [,b]) => (b.timestamp || 0) - (a.timestamp || 0))
+              .slice(0, 50)
+          )
+        : updatedCache;
+      
       return {
         ...state,
-        cache: {
-          ...state.cache,
-          [action.payload.key]: action.payload.value,
-        },
+        cache: finalCache,
       };
       
     case 'CLEAR_CACHE':
