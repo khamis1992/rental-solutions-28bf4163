@@ -1,20 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { DocumentUpload } from '@/components/documents/DocumentUpload';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import DocumentUpload from '@/components/documents/DocumentUpload';
 
 describe('File Upload Edge Cases', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
     global.URL.createObjectURL = vi.fn(() => 'mock-url');
     global.URL.revokeObjectURL = vi.fn();
   });
 
+  const renderWithProviders = (component: React.ReactElement) => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {component}
+      </QueryClientProvider>
+    );
+  };
+
   it('should reject files that are too large', async () => {
     const onComplete = vi.fn();
     
-    render(
+    renderWithProviders(
       <DocumentUpload 
         onComplete={onComplete}
-        maxFileSize={1024 * 1024} // 1MB
       />
     );
 
@@ -35,10 +51,9 @@ describe('File Upload Edge Cases', () => {
   it('should reject unsupported file types', async () => {
     const onComplete = vi.fn();
     
-    render(
+    renderWithProviders(
       <DocumentUpload 
         onComplete={onComplete}
-        acceptedTypes={['application/pdf', 'image/jpeg']}
       />
     );
 
@@ -59,7 +74,7 @@ describe('File Upload Edge Cases', () => {
   it('should handle corrupted files gracefully', async () => {
     const onComplete = vi.fn();
     
-    render(<DocumentUpload onComplete={onComplete} />);
+    renderWithProviders(<DocumentUpload onComplete={onComplete} />);
 
     const corruptedFile = new File([new ArrayBuffer(0)], 'corrupted.pdf', {
       type: 'application/pdf'
@@ -78,7 +93,7 @@ describe('File Upload Edge Cases', () => {
     
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
     
-    render(<DocumentUpload onComplete={onComplete} />);
+    renderWithProviders(<DocumentUpload onComplete={onComplete} />);
 
     const validFile = new File(['content'], 'document.pdf', {
       type: 'application/pdf'
@@ -98,11 +113,9 @@ describe('File Upload Edge Cases', () => {
   it('should handle multiple file uploads with mixed success/failure', async () => {
     const onComplete = vi.fn();
     
-    render(
+    renderWithProviders(
       <DocumentUpload 
         onComplete={onComplete}
-        multiple={true}
-        maxFileSize={1024 * 1024}
       />
     );
 
@@ -143,7 +156,7 @@ describe('File Upload Edge Cases', () => {
 
     global.XMLHttpRequest = vi.fn(() => mockXHR) as any;
     
-    render(<DocumentUpload onComplete={onComplete} />);
+    renderWithProviders(<DocumentUpload onComplete={onComplete} />);
 
     const file = new File(['content'], 'document.pdf', {
       type: 'application/pdf'
