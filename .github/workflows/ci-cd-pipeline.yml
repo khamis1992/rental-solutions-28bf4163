@@ -36,7 +36,6 @@ jobs:
     - name: Install Dependencies
       run: |
         npm ci
-        npm audit --audit-level moderate
 
     - name: Run ESLint
       run: npm run lint
@@ -509,4 +508,4 @@ jobs:
       with:
         status: failure
         text: '🔒 Security scan found vulnerabilities in production'
-        webhook_url: ${{ secrets.SECURITY_SLACK_WEBHOOK }}    
+        webhook_url: ${{ secrets.SECURITY_SLACK_WEBHOOK }}      

@@ -119,30 +119,36 @@ export const enhancedLicensePlateMatch = (
     const plateNumbers = extractNumericParts(licensePlate);
     
     if (plateNumbers === normalizedQuery) {
-      return { isMatch: true, confidence: 75, matchType: 'numeric_exact' };
+      return { isMatch: true, confidence: 95, matchType: 'numeric_exact' };
+    }
+    
+    if (plateNumbers.endsWith(normalizedQuery)) {
+      const confidence = Math.max(60, (normalizedQuery.length / plateNumbers.length) * 85);
+      return { isMatch: true, confidence, matchType: 'numeric_ends_with' };
     }
     
     if (plateNumbers.includes(normalizedQuery)) {
       const confidence = (normalizedQuery.length / plateNumbers.length) * 75;
       return { isMatch: true, confidence, matchType: 'numeric_contains' };
     }
-    
-    if (plateNumbers.endsWith(normalizedQuery)) {
-      const confidence = (normalizedQuery.length / plateNumbers.length) * 70;
-      return { isMatch: true, confidence, matchType: 'numeric_ends_with' };
-    }
   }
   
   // Strategy 3: Alphabetic-only search
   if (/^[A-Za-z]+$/.test(normalizedQuery)) {
     const plateLetters = extractAlphabeticParts(licensePlate);
+    const queryUpper = normalizedQuery.toUpperCase();
     
-    if (plateLetters === normalizedQuery.toUpperCase()) {
-      return { isMatch: true, confidence: 70, matchType: 'alpha_exact' };
+    if (plateLetters === queryUpper) {
+      return { isMatch: true, confidence: 90, matchType: 'alpha_exact' };
     }
     
-    if (plateLetters.includes(normalizedQuery.toUpperCase())) {
-      const confidence = (normalizedQuery.length / plateLetters.length) * 70;
+    // Check if query matches the beginning of the alphabetic part (prefix match)
+    if (plateLetters.startsWith(queryUpper)) {
+      return { isMatch: true, confidence: 85, matchType: 'alpha_exact' };
+    }
+    
+    if (plateLetters.includes(queryUpper)) {
+      const confidence = (queryUpper.length / plateLetters.length) * 70;
       return { isMatch: true, confidence, matchType: 'alpha_contains' };
     }
   }
@@ -223,7 +229,7 @@ export const doesLicensePlateMatch = (
     
     const plateNumeric = extractNumericParts(licensePlate);
     const searchNumeric = extractNumericParts(searchQuery);
-    if (plateNumeric && searchNumeric && 
+    if (plateNumeric && searchNumeric && searchNumeric.length > 0 &&
         (plateNumeric.includes(searchNumeric) || plateNumeric.endsWith(searchNumeric))) {
       return true;
     }
@@ -231,7 +237,16 @@ export const doesLicensePlateMatch = (
     const plateAlpha = extractAlphabeticParts(licensePlate);
     const searchAlpha = extractAlphabeticParts(searchQuery);
     if (plateAlpha && searchAlpha && 
-        (plateAlpha.includes(searchAlpha) || searchAlpha.includes(plateAlpha))) {
+        (plateAlpha.includes(searchAlpha) || searchAlpha.includes(plateAlpha) || 
+         plateAlpha.startsWith(searchAlpha) || searchAlpha.startsWith(plateAlpha))) {
+      return true;
+    }
+    
+    if (normalizedPlate.endsWith(normalizedSearch) || normalizedPlate.startsWith(normalizedSearch)) {
+      return true;
+    }
+    
+    if (normalizedSearch.length >= 3 && normalizedPlate.includes(normalizedSearch)) {
       return true;
     }
   }
