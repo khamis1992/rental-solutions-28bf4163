@@ -3,8 +3,7 @@ import { BaseService } from './base/BaseService';
 import { Customer, CustomerFilterParams, CustomerStatus } from '@/types/customer.types';
 import { 
   createServiceError, 
-  createNotFoundError,
-  ErrorContext
+  createNotFoundError
 } from '@/types/error.types';
 import { Result } from '@/types/response.types';
 

@@ -24,8 +24,8 @@ describe('CustomerService', () => {
       });
 
       // Dynamic import to avoid module loading issues
-      const { CustomerService } = await import('@/services/CustomerService');
-      const result = await CustomerService.fetchCustomers();
+      const { customerService } = await import('@/services/CustomerService');
+      const result = await customerService.fetchCustomers();
 
       expect(result.data).toEqual(mockCustomers);
       expect(result.error).toBeNull();
@@ -40,8 +40,8 @@ describe('CustomerService', () => {
         error: mockError
       });
 
-      const { CustomerService } = await import('@/services/CustomerService');
-      const result = await CustomerService.fetchCustomers();
+      const { customerService } = await import('@/services/CustomerService');
+      const result = await customerService.fetchCustomers();
 
       expect(result.data).toBeNull();
       expect(result.error).toEqual(mockError);
@@ -57,8 +57,8 @@ describe('CustomerService', () => {
         error: null
       });
 
-      const { CustomerService } = await import('@/services/CustomerService');
-      const result = await CustomerService.createCustomer(newCustomer);
+      const { customerService } = await import('@/services/CustomerService');
+      const result = await customerService.createCustomer(newCustomer);
 
       expect(result.data).toEqual(newCustomer);
       expect(result.error).toBeNull();
@@ -74,8 +74,8 @@ describe('CustomerService', () => {
         error: mockError
       });
 
-      const { CustomerService } = await import('@/services/CustomerService');
-      const result = await CustomerService.createCustomer(newCustomer);
+      const { customerService } = await import('@/services/CustomerService');
+      const result = await customerService.createCustomer(newCustomer);
 
       expect(result.data).toBeNull();
       expect(result.error).toEqual(mockError);
@@ -93,8 +93,8 @@ describe('CustomerService', () => {
         error: null
       });
 
-      const { CustomerService } = await import('@/services/CustomerService');
-      const result = await CustomerService.updateCustomer(customerId, updateData);
+      const { customerService } = await import('@/services/CustomerService');
+      const result = await customerService.updateCustomer(customerId, updateData);
 
       expect(result.data).toEqual(updatedCustomer);
       expect(result.error).toBeNull();
@@ -111,8 +111,8 @@ describe('CustomerService', () => {
         error: null
       });
 
-      const { CustomerService } = await import('@/services/CustomerService');
-      const result = await CustomerService.deleteCustomer(customerId);
+      const { customerService } = await import('@/services/CustomerService');
+      const result = await customerService.deleteCustomer(customerId);
 
       expect(result.error).toBeNull();
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('profiles');
@@ -127,8 +127,8 @@ describe('CustomerService', () => {
         error: mockError
       });
 
-      const { CustomerService } = await import('@/services/CustomerService');
-      const result = await CustomerService.deleteCustomer(customerId);
+      const { customerService } = await import('@/services/CustomerService');
+      const result = await customerService.deleteCustomer(customerId);
 
       expect(result.error).toEqual(mockError);
     });
@@ -144,8 +144,8 @@ describe('CustomerService', () => {
         error: null
       });
 
-      const { CustomerService } = await import('@/services/CustomerService');
-      const result = await CustomerService.searchCustomers(searchTerm);
+      const { customerService } = await import('@/services/CustomerService');
+      const result = await customerService.searchCustomers(searchTerm);
 
       expect(result.data).toEqual(mockResults);
       expect(result.error).toBeNull();
@@ -159,11 +159,11 @@ describe('CustomerService', () => {
         error: null
       });
 
-      const { CustomerService } = await import('@/services/CustomerService');
-      const result = await CustomerService.searchCustomers(searchTerm);
+      const { customerService } = await import('@/services/CustomerService');
+      const result = await customerService.searchCustomers(searchTerm);
 
       expect(result.data).toEqual([]);
       expect(result.error).toBeNull();
     });
   });
-}); 
+});    

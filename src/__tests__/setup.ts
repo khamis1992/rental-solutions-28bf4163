@@ -111,17 +111,31 @@ expect.extend({
 
 // Global test helpers
 export const mockSupabaseClient = {
-  from: vi.fn(() => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    single: vi.fn(),
-    then: vi.fn(),
-  })),
+  from: vi.fn(() => {
+    const mockQuery = {
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
+      or: vi.fn().mockReturnThis(),
+      ilike: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      then: vi.fn().mockResolvedValue({ data: null, error: null }),
+      mockResolvedValue: vi.fn().mockReturnThis(),
+    };
+    
+    Object.keys(mockQuery).forEach(key => {
+      if (key !== 'single' && key !== 'then' && key !== 'mockResolvedValue') {
+        (mockQuery as any)[key] = vi.fn().mockReturnValue(mockQuery);
+      }
+    });
+    
+    return mockQuery;
+  }),
   auth: {
     getUser: vi.fn(),
     getSession: vi.fn(),
@@ -188,4 +202,4 @@ export const createMockPayment = (overrides = {}) => ({
   ...overrides
 });
 
-console.log('🧪 Test setup completed - Ready for comprehensive testing!'); 
+console.log('🧪 Test setup completed - Ready for comprehensive testing!');      

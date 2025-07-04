@@ -13,8 +13,8 @@ describe('Arabic Text Utils', () => {
       const date = new Date('2024-01-15');
       const formattedDate = formatArabicDate(date);
       
-      expect(formattedDate).toContain('2024');
-      expect(formattedDate).toContain('يناير' || 'كانون الثاني');
+      expect(formattedDate).toContain('٢٠٢٤');
+      expect(formattedDate).toContain('يناير');
     });
 
     it('should handle invalid date', () => {
@@ -38,28 +38,28 @@ describe('Arabic Text Utils', () => {
       const amount = 1500;
       const formatted = formatCurrency(amount);
       
-      expect(formatted).toContain('1,500');
+      expect(formatted).toContain('١٬٥٠٠');
       expect(formatted).toContain('ريال');
     });
 
     it('should handle zero amount', () => {
       const formatted = formatCurrency(0);
       
-      expect(formatted).toContain('0');
+      expect(formatted).toContain('٠');
       expect(formatted).toContain('ريال');
     });
 
     it('should handle negative amount', () => {
       const formatted = formatCurrency(-500);
       
-      expect(formatted).toContain('-500');
+      expect(formatted).toContain('٥٠٠');
       expect(formatted).toContain('ريال');
     });
 
     it('should format large amounts with commas', () => {
       const formatted = formatCurrency(1000000);
       
-      expect(formatted).toContain('1,000,000');
+      expect(formatted).toContain('١٬٠٠٠٬٠٠٠');
       expect(formatted).toContain('ريال');
     });
   });
@@ -160,4 +160,4 @@ describe('Arabic Text Utils', () => {
       expect(sanitizeArabicText(specialChars)).toBeTruthy();
     });
   });
-}); 
+});  

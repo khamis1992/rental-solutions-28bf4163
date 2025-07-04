@@ -43,13 +43,29 @@ export function formatArabicCurrency(amount: number | undefined | null): string 
 }
 
 /**
+ * Format currency for Arabic display (alias for compatibility)
+ */
+export function formatCurrency(amount: number | undefined | null): string {
+  if (!amount && amount !== 0) return 'غير محدد';
+  
+  const formatted = new Intl.NumberFormat('ar-QA', {
+    style: 'currency',
+    currency: 'QAR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(amount);
+  
+  return formatted.replace('QAR', 'ريال').replace('ر.ق.', 'ريال');
+}
+
+/**
  * Format date for Arabic display
  */
 export function formatArabicDate(date: string | Date | undefined): string {
-  if (!date) return 'غير محدد';
+  if (!date) return 'تاريخ غير صحيح';
   
   const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return 'غير محدد';
+  if (isNaN(d.getTime())) return 'تاريخ غير صحيح';
   
   return new Intl.DateTimeFormat('ar-QA', {
     year: 'numeric',
@@ -64,6 +80,39 @@ export function formatArabicDate(date: string | Date | undefined): string {
 export function toArabicNumerals(text: string): string {
   const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   return text.replace(/[0-9]/g, (digit) => arabicNumbers[parseInt(digit)]);
+}
+
+/**
+ * Convert English numbers to Arabic numerals (alias for compatibility)
+ */
+export function convertToArabicNumerals(text: string): string {
+  if (!text) return '';
+  const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return text.replace(/[0-9]/g, (digit) => arabicNumbers[parseInt(digit)]);
+}
+
+/**
+ * Check if text contains Arabic characters
+ */
+export function isArabicText(text: string | null | undefined): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  
+  const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+  return arabicRegex.test(trimmed);
+}
+
+/**
+ * Sanitize and clean Arabic text
+ */
+export function sanitizeArabicText(text: string | null | undefined): string {
+  if (!text || typeof text !== 'string') return '';
+  
+  return text
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[\u200E\u200F\u202A-\u202E]/g, '');
 }
 
 /**

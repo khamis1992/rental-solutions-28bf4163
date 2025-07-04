@@ -26,4 +26,5 @@ export interface CustomerFilterParams {
   status?: CustomerStatus;
   limit?: number;
   offset?: number;
+  sort?: 'asc' | 'desc';
 }
