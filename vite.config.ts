@@ -69,10 +69,10 @@ export default defineConfig(async ({ mode }) => {
             return 'pdf-heavy';
           }
           
-          // مكتبات الرسوم البيانية - تحميل عند الحاجة
-          if (id.includes('chart.js') || id.includes('recharts') || id.includes('plotly')) {
-            return 'charts-heavy';
-          }
+          // مكتبات الرسوم البيانية - دمج في vendor لتجنب مشاكل initialization
+          // if (id.includes('chart.js') || id.includes('recharts') || id.includes('plotly')) {
+          //   return 'charts-heavy';
+          // }
           
           // Supabase
           if (id.includes('@supabase')) {
@@ -146,13 +146,13 @@ export default defineConfig(async ({ mode }) => {
         'lucide-react',
         '@tanstack/react-query',
         '@supabase/supabase-js',
-        'pdfjs-dist'
+        'pdfjs-dist',
+        'recharts'
       ],
       exclude: [
         'jspdf',
         'pdfmake',
-        'chart.js',
-        'recharts'
+        'chart.js'
       ],
     },
     define: {
