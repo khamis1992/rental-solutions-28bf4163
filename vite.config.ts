@@ -52,62 +52,14 @@ export default defineConfig(async ({ mode }) => {
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        // تحسين تقسيم الحزم للجوال
-        manualChunks: (id) => {
-          // مكتبات أساسية - تحميل فوري
-          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-            return 'react-core';
-          }
-          
-          // مكتبات UI أساسية - تحميل فوري
-          if (id.includes('@radix-ui') || id.includes('lucide-react')) {
-            return 'ui-core';
-          }
-          
-          // مكتبات PDF - تحميل عند الحاجة
-          if (id.includes('jspdf') || id.includes('pdfmake') || id.includes('canvas')) {
-            return 'pdf-heavy';
-          }
-          
-          // مكتبات الرسوم البيانية - دمج في vendor لتجنب مشاكل initialization
-          // if (id.includes('chart.js') || id.includes('recharts') || id.includes('plotly')) {
-          //   return 'charts-heavy';
-          // }
-          
-          // Supabase
-          if (id.includes('@supabase')) {
-            return 'supabase';
-          }
-          
-          // مكتبات التاريخ والنماذج
-          if (id.includes('date-fns') || id.includes('react-hook-form') || id.includes('zod')) {
-            return 'forms-dates';
-          }
-          
-          // مكتبات الاستعلام
-          if (id.includes('@tanstack/react-query')) {
-            return 'query';
-          }
-          
-          // مكتبات مساعدة
-          if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
-            return 'utils';
-          }
-          
-          // المكونات الثقيلة
-          if (id.includes('/reports/') || id.includes('/analytics/') || id.includes('/legal/')) {
-            return 'heavy-features';
-          }
-          
-          // كل ما تبقى من node_modules
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-          
-          // PDF.js
-          if (id.includes('pdfjs-dist')) {
-            return 'pdfjs';
-          }
+        // تقسيم حزم مبسط لتجنب مشاكل الإنتاج
+        manualChunks: {
+          'react-core': ['react', 'react-dom', 'react-router-dom'],
+          'ui-libs': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', 'lucide-react'],
+          'data-libs': ['@tanstack/react-query', '@supabase/supabase-js'],
+          'charts': ['recharts'],
+          'forms': ['react-hook-form', 'zod'],
+          'utils': ['clsx', 'tailwind-merge', 'class-variance-authority', 'date-fns']
         },
         // تحسين أسماء الملفات
         entryFileNames: (chunkInfo) => {
