@@ -15,7 +15,6 @@ import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import PageHeader from '@/components/ui/PageHeader';
 import { Wrench } from 'lucide-react';
 import { MaintenanceSchedulingWizard } from '@/components/maintenance/MaintenanceSchedulingWizard';
 import { VehicleStatusManager } from '@/components/maintenance/VehicleStatusManager';
@@ -59,18 +58,14 @@ const Maintenance = () => {
           setIsLoading(false);
         }
 
-        // تحميل المركبات - جميع المركبات لإمكانية تغيير الحالة
+        // تحميل المركبات - فقط المركبات في الصيانة أو الحوادث
         const vehicleData = await getAllVehicles();
         if (mounted) {
-          // عرض جميع المركبات لإمكانية تغيير حالتها، مع التركيز على الصيانة والحوادث
-          const sortedVehicles = vehicleData.sort((a, b) => {
-            // إعطاء أولوية للمركبات في الصيانة والحوادث
-            const priorityStatus = ['maintenance', 'accident'];
-            const aPriority = priorityStatus.includes(a.status) ? 0 : 1;
-            const bPriority = priorityStatus.includes(b.status) ? 0 : 1;
-            return aPriority - bPriority;
-          });
-          setVehicles(sortedVehicles);
+          // فلترة المركبات لعرض فقط التي حالتها صيانة أو حوادث
+          const maintenanceAndAccidentVehicles = vehicleData.filter(vehicle => 
+            vehicle.status === 'maintenance' || vehicle.status === 'accident'
+          );
+          setVehicles(maintenanceAndAccidentVehicles);
           setIsLoadingVehicles(false);
         }
       } catch (error) {
@@ -153,14 +148,11 @@ const Maintenance = () => {
 
       setMaintenanceRecords(records);
       setFilteredRecords(records);
-      // تحديث جميع المركبات مع إعطاء أولوية للصيانة والحوادث
-      const sortedVehicles = vehicleData.sort((a, b) => {
-        const priorityStatus = ['maintenance', 'accident'];
-        const aPriority = priorityStatus.includes(a.status) ? 0 : 1;
-        const bPriority = priorityStatus.includes(b.status) ? 0 : 1;
-        return aPriority - bPriority;
-      });
-      setVehicles(sortedVehicles);
+      // فلترة المركبات لعرض فقط التي حالتها صيانة أو حوادث
+      const maintenanceAndAccidentVehicles = vehicleData.filter(vehicle => 
+        vehicle.status === 'maintenance' || vehicle.status === 'accident'
+      );
+      setVehicles(maintenanceAndAccidentVehicles);
       
       toast.success('تم تحديث البيانات بنجاح');
     } catch (error) {
@@ -334,14 +326,6 @@ const Maintenance = () => {
       dir="rtl"
     >
       <div className="space-y-6" dir="rtl">
-        <PageHeader
-          title="إدارة الصيانة"
-          subtitle="نظام شامل لإدارة وتتبع جميع أنشطة صيانة المركبات"
-          icon={<Wrench className="w-6 h-6 text-blue-500" />}
-          align="right"
-          dir="rtl"
-        />
-
         {/* Quick Actions */}
         <div className="flex flex-col md:flex-row-reverse justify-between items-start md:items-center gap-4">
           <div className="flex gap-2 flex-row-reverse">

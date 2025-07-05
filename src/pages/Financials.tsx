@@ -319,7 +319,7 @@ const Financials = () => {
       </PageHeader>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-1 md:grid-cols-3 w-full">
           <TabsTrigger value="dashboard" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
             <BarChartBig className={language === 'ar' ? "h-4 w-4 ml-2" : "h-4 w-4 mr-2"} />
             {language === 'ar' ? "لوحة التحكم المالية" : "Financial Dashboard"}
@@ -327,10 +327,6 @@ const Financials = () => {
           <TabsTrigger value="payments" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
             <Receipt className={language === 'ar' ? "h-4 w-4 ml-2" : "h-4 w-4 mr-2"} />
             {language === 'ar' ? "المدفوعات" : "Payments"}
-          </TabsTrigger>
-          <TabsTrigger value="invoices" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <FileText className={language === 'ar' ? "h-4 w-4 ml-2" : "h-4 w-4 mr-2"} />
-            {language === 'ar' ? "قوالب الفواتير" : "Invoice Templates"}
           </TabsTrigger>
           <TabsTrigger value="installments" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
             <FileSpreadsheet className={language === 'ar' ? "h-4 w-4 ml-2" : "h-4 w-4 mr-2"} />

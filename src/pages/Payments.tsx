@@ -155,11 +155,6 @@ const Payments = () => {
         <Card>
           <CardHeader>
             <div className="flex flex-col md:flex-row-reverse justify-between items-start md:items-center gap-4">
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                إدارة المدفوعات
-              </CardTitle>
-              
               <div className="flex items-center gap-2">
                 <Button size="sm" className="flex-row-reverse">
                   <Plus className="h-4 w-4 mr-2" />
@@ -170,6 +165,11 @@ const Payments = () => {
                   تصدير
                 </Button>
               </div>
+              
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                إدارة المدفوعات
+              </CardTitle>
             </div>
           </CardHeader>
           

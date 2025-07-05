@@ -1,13 +1,11 @@
 # Rental Solutions Web Frontend Dockerfile
 # Multi-stage build with nginx for production
 
-# Build stage
+# Multi-stage build for React Web App
 FROM node:18-alpine AS builder
 
-# Build arguments
-ARG NODE_ENV=production
-ARG BUILD_DATE
-ARG VCS_REF
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
 
 # Set working directory
 WORKDIR /app
@@ -16,59 +14,65 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --include=dev && npm cache clean --force
 
 # Copy source code
 COPY . .
 
+# Build arguments for environment
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_API_URL
+ARG VITE_APP_TITLE="العراف لتأجير السيارات"
+ARG VITE_APP_ENV=production
+
+# Set environment variables
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_APP_TITLE=$VITE_APP_TITLE
+ENV VITE_APP_ENV=$VITE_APP_ENV
+
 # Build the application
 RUN npm run build
 
-# Production stage
+# Production stage with Nginx
 FROM nginx:alpine AS production
 
-# Install security updates
-RUN apk update && apk upgrade && apk add --no-cache \
-    curl \
-    && rm -rf /var/cache/apk/*
+# Install curl for health checks
+RUN apk add --no-cache curl
 
-# Copy built application
+# Copy built app from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy Nginx configuration
+COPY docker/nginx.conf /etc/nginx/nginx.conf
 
-# Copy custom nginx configuration for Arabic/RTL support
-COPY docker/nginx-arabic.conf /etc/nginx/conf.d/arabic.conf
+# Copy Arabic fonts
+COPY --from=builder /app/public/fonts /usr/share/nginx/html/fonts
 
-# Create nginx user
-RUN addgroup -g 101 nginx
-RUN adduser -D -S -u 101 -G nginx nginx
-
-# Set proper permissions
-RUN chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/log/nginx /etc/nginx/conf.d
-RUN chmod -R 755 /usr/share/nginx/html
-
-# Set environment variables
-ENV TZ=Asia/Qatar
-
-# Add metadata labels
-LABEL maintainer="Rental Solutions DevOps <devops@rental-solutions.com>"
-LABEL version="1.0.0"
-LABEL description="Rental Solutions Web Frontend"
-LABEL build-date=$BUILD_DATE
-LABEL vcs-ref=$VCS_REF
-LABEL vcs-url="https://github.com/rental-solutions/platform"
+# Create nginx user and set permissions
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -S appuser -u 1001 -G appgroup && \
+    chown -R appuser:appgroup /usr/share/nginx/html && \
+    chown -R appuser:appgroup /var/cache/nginx && \
+    chown -R appuser:appgroup /var/log/nginx && \
+    chown -R appuser:appgroup /etc/nginx/conf.d
 
 # Switch to non-root user
-USER nginx
+USER appuser
 
 # Expose port
 EXPOSE 80
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:80/health || exit 1
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost/health || exit 1
 
-# Start nginx
+# Labels for metadata
+LABEL maintainer="rental-solutions@company.com"
+LABEL version="1.0"
+LABEL description="React Web App for Rental Solutions"
+
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"] 

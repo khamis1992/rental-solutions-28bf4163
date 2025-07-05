@@ -251,13 +251,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               isActive={isActive('/reports')}
               onClick={handleNavClick}
             />
-            <NavLink
-              to="/reports/quick"
-              icon={<TrendingUp className="h-4 w-4 flex-shrink-0" />}
-              label="التقارير السريعة"
-              isActive={isActive('/reports/quick')}
-              onClick={handleNavClick}
-            />
           </NavGroup>
 
           <NavGroup

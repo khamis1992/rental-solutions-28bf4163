@@ -266,6 +266,14 @@ export const AdvancedAnalyticsPanel: React.FC<{ className?: string }> = ({ class
     <div className={cn('space-y-6', className)}>
       {/* Header with metric selection buttons */}
       <div className='flex items-center justify-between' dir='rtl'>
+        <div className='text-left'>
+          <h3 className='text-lg font-semibold text-left'>تحليلات النظام</h3>
+          <p className='text-sm text-muted-foreground text-left mt-1'>
+            {selectedMetric === 'revenue' && 'تحليل الإيرادات والمالية'}
+            {selectedMetric === 'customers' && 'تحليل العملاء والاحتفاظ'}
+            {selectedMetric === 'fleet' && 'تحليل الأسطول والاستغلال'}
+          </p>
+        </div>
         <div className='flex items-center space-x-2 space-x-reverse'>
           <Button
             variant={selectedMetric === 'revenue' ? 'default' : 'outline'}
@@ -291,14 +299,6 @@ export const AdvancedAnalyticsPanel: React.FC<{ className?: string }> = ({ class
           >
             الأسطول
           </Button>
-        </div>
-        <div className='text-right'>
-          <h3 className='text-lg font-semibold text-right'>تحليلات النظام</h3>
-          <p className='text-sm text-muted-foreground text-right mt-1'>
-            {selectedMetric === 'revenue' && 'تحليل الإيرادات والمالية'}
-            {selectedMetric === 'customers' && 'تحليل العملاء والاحتفاظ'}
-            {selectedMetric === 'fleet' && 'تحليل الأسطول والاستغلال'}
-          </p>
         </div>
       </div>
 

@@ -4,6 +4,9 @@
 # Build stage
 FROM node:18-alpine AS builder
 
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
 # Build arguments
 ARG NODE_ENV=production
 ARG BUILD_DATE
@@ -14,15 +17,21 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY server/package*.json ./server/
 
-# Install dependencies (including dev dependencies for build)
-RUN npm ci --include=dev
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Install server dependencies
+WORKDIR /app/server
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy source code
+WORKDIR /app
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the server
+RUN npm run build:server
 
 # Remove dev dependencies
 RUN npm prune --production
@@ -44,13 +53,16 @@ RUN adduser -S nodejs -u 1001
 WORKDIR /app
 
 # Copy built application from builder stage
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/server/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/server/package*.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/server/node_modules ./node_modules
 
-# Copy configuration files
-COPY --chown=nodejs:nodejs ./config ./config
-COPY --chown=nodejs:nodejs ./scripts ./scripts
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Create health check script
+RUN echo '#!/bin/sh\ncurl -f http://localhost:3000/health || exit 1' > /app/healthcheck.sh && \
+    chmod +x /app/healthcheck.sh
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/uploads /app/temp && \
@@ -76,12 +88,12 @@ USER nodejs
 # Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD /app/healthcheck.sh
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
-CMD ["node", "dist/server.js"] 
+# Start the server
+CMD ["node", "dist/index.js"] 

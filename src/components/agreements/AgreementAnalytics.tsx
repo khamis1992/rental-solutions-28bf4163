@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { useNavigate } from 'react-router-dom';
 
-export function AgreementAnalytics() {
+interface AgreementAnalyticsProps {
+  onFilterApply?: (filters: Record<string, any>) => void;
+}
+
+export function AgreementAnalytics({ onFilterApply }: AgreementAnalyticsProps) {
   const navigate = useNavigate();
   const { agreements, isLoading } = useAgreementService();
 
@@ -69,6 +73,48 @@ export function AgreementAnalytics() {
     return `${active}% نشطة، ${pending}% معلقة، ${others}% أخرى`;
   }, [agreements, analytics.statusDistribution]);
 
+  // إضافة دالة لتطبيق فلتر العقود التي ستنتهي خلال 30 يوماً
+  const handleExpiringContractsFilter = () => {
+    const today = new Date();
+    const next30Days = new Date();
+    next30Days.setDate(today.getDate() + 30);
+
+    const filters = {
+      end_date_after: today.toISOString().split('T')[0], // Format as YYYY-MM-DD
+      end_date_before: next30Days.toISOString().split('T')[0] // Format as YYYY-MM-DD
+    };
+
+    console.log('Applying expiring contracts filter:', filters);
+    
+    if (onFilterApply) {
+      onFilterApply(filters);
+    }
+  };
+
+  // إضافة دالة لتطبيق فلتر العقود النشطة
+  const handleActiveContractsFilter = () => {
+    const filters = {
+      status: 'active'
+    };
+
+    console.log('Applying active contracts filter:', filters);
+    
+    if (onFilterApply) {
+      onFilterApply(filters);
+    }
+  };
+
+  // إضافة دالة لتطبيق فلتر عرض جميع العقود
+  const handleAllContractsFilter = () => {
+    const filters = {};
+
+    console.log('Clearing all filters');
+    
+    if (onFilterApply) {
+      onFilterApply(filters);
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="h-full" dir="rtl">
@@ -95,7 +141,7 @@ export function AgreementAnalytics() {
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => navigate('/agreements')}
+            onClick={handleAllContractsFilter}
           >
             عرض الكل
           </Button>
@@ -106,7 +152,10 @@ export function AgreementAnalytics() {
       <CardContent dir="rtl">
         <div className="space-y-4">
           {/* العقود التي ستنتهي قريباً */}
-          <div className="flex items-start space-x-reverse space-x-3 bg-muted/50 p-3 rounded-lg">
+          <div 
+            className="flex items-start space-x-reverse space-x-3 bg-muted/50 p-3 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors"
+            onClick={handleExpiringContractsFilter}
+          >
             <Calendar className="h-5 w-5 text-amber-500 mt-0.5 ml-3" />
             <div className="text-right">
               <h4 className="text-sm font-medium text-right">انتهاء صلاحية قريب</h4>
@@ -117,7 +166,10 @@ export function AgreementAnalytics() {
           </div>
           
           {/* الإيرادات الشهرية */}
-          <div className="flex items-start space-x-reverse space-x-3 bg-muted/50 p-3 rounded-lg">
+          <div 
+            className="flex items-start space-x-reverse space-x-3 bg-muted/50 p-3 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors"
+            onClick={handleActiveContractsFilter}
+          >
             <TrendingUp className="h-5 w-5 text-emerald-500 mt-0.5 ml-3" />
             <div className="text-right">
               <h4 className="text-sm font-medium text-right">الإيرادات الشهرية</h4>
@@ -128,7 +180,10 @@ export function AgreementAnalytics() {
           </div>
           
           {/* توزيع العقود */}
-          <div className="flex items-start space-x-reverse space-x-3 bg-muted/50 p-3 rounded-lg">
+          <div 
+            className="flex items-start space-x-reverse space-x-3 bg-muted/50 p-3 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors"
+            onClick={handleAllContractsFilter}
+          >
             <BarChart4 className="h-5 w-5 text-blue-500 mt-0.5 ml-3" />
             <div className="text-right">
               <h4 className="text-sm font-medium text-right">توزيع العقود</h4>

@@ -107,22 +107,66 @@ const Agreements = () => {
     refetch();
   };
 
+  // Function to filter agreements based on tab and current filters
+  const getFilteredAgreements = (tabValue: string) => {
+    if (!agreements) return [];
+    
+    let filteredAgreements = [...agreements];
+    
+    // Apply tab-specific filters only if no global filters are applied
+    // This allows users to see filtered results across all tabs
+    if (!searchParams || Object.keys(searchParams).length === 0) {
+      switch (tabValue) {
+        case 'active':
+          filteredAgreements = filteredAgreements.filter(agreement => agreement.status === 'active');
+          break;
+        case 'completed':
+        case 'closed':
+          filteredAgreements = filteredAgreements.filter(agreement => agreement.status === 'closed');
+          break;
+        case 'cancelled':
+          filteredAgreements = filteredAgreements.filter(agreement => agreement.status === 'cancelled');
+          break;
+        case 'agreements':
+        default:
+          // Show all agreements for the main tab
+          break;
+      }
+    } else {
+      // If global filters are applied, show filtered results but also apply tab filter
+      switch (tabValue) {
+        case 'active':
+          filteredAgreements = filteredAgreements.filter(agreement => agreement.status === 'active');
+          break;
+        case 'completed':
+        case 'closed':
+          filteredAgreements = filteredAgreements.filter(agreement => agreement.status === 'closed');
+          break;
+        case 'cancelled':
+          filteredAgreements = filteredAgreements.filter(agreement => agreement.status === 'cancelled');
+          break;
+        case 'agreements':
+        default:
+          // Show all filtered agreements for the main tab
+          break;
+      }
+    }
+    
+    console.log(`Filtered agreements for tab ${tabValue}:`, filteredAgreements.length, 'out of', agreements.length);
+    return filteredAgreements;
+  };
+
+  // Handle filter change with proper state management
   const handleFilterChange = (filters: Record<string, any>) => {
-    setSearchParams(filters); // Simplified to match CustomerListFilter behavior
+    setSearchParams(filters);
+    console.log('Filters applied:', filters);
   };
 
   // Updated to ensure pagination resets when tab changes
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    if (value === 'all' || value === 'agreements' || value === 'history') {
-      setSearchParams({});
-    } else if (
-      value === 'active' ||
-      value === 'completed' ||
-      value === 'cancelled'
-    ) {
-      setSearchParams({ statuses: [value] });
-    }
+    // Don't reset search params when changing tabs - let the filters persist
+    // This allows the user to see filtered results in different tabs
   };
 
   // Handle search using the component - matching the CustomerListFilter behavior exactly
@@ -178,7 +222,7 @@ const Agreements = () => {
           
           {/* Analytics Preview */}
           <div className="xl:col-span-1">
-            <AgreementAnalytics />
+            <AgreementAnalytics onFilterApply={handleFilterChange} />
           </div>
         </div>
         
@@ -253,7 +297,7 @@ const Agreements = () => {
               <AgreementTabPanel
                 value="agreements"
                 viewMode={viewMode}
-                agreements={agreements}
+                agreements={getFilteredAgreements('agreements')}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
                 loadingText="جاري تحميل العقود..."
@@ -261,7 +305,7 @@ const Agreements = () => {
               <AgreementTabPanel
                 value="active"
                 viewMode={viewMode}
-                agreements={agreements}
+                agreements={getFilteredAgreements('active')}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""
@@ -269,7 +313,7 @@ const Agreements = () => {
               <AgreementTabPanel
                 value="completed"
                 viewMode={viewMode}
-                agreements={agreements}
+                agreements={getFilteredAgreements('completed')}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""
@@ -277,7 +321,7 @@ const Agreements = () => {
               <AgreementTabPanel
                 value="cancelled"
                 viewMode={viewMode}
-                agreements={agreements}
+                agreements={getFilteredAgreements('cancelled')}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""

@@ -1,0 +1,118 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rental-solutions-ingress
+  namespace: rental-solutions
+  labels:
+    app: rental-solutions
+    environment: production
+  annotations:
+    # AWS Load Balancer Controller
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:me-south-1:123456789012:certificate/abc123
+    
+    # Security
+    alb.ingress.kubernetes.io/security-groups: sg-12345678
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:me-south-1:123456789012:regional/webacl/rental-solutions-waf/abc123
+    
+    # Health checks
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+    
+    # Load balancing
+    alb.ingress.kubernetes.io/load-balancer-attributes: routing.http2.enabled=true,idle_timeout.timeout_seconds=60
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30,stickiness.enabled=false
+    
+    # Tags
+    alb.ingress.kubernetes.io/tags: Environment=production,Project=rental-solutions,Owner=devops
+spec:
+  rules:
+  - host: rental-solutions.qa
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: rental-solutions-api-service
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rental-solutions-web-service
+            port:
+              number: 80
+  - host: www.rental-solutions.qa
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: rental-solutions-api-service
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rental-solutions-web-service
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - rental-solutions.qa
+    - www.rental-solutions.qa
+    secretName: rental-solutions-tls
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rental-solutions-api-ingress
+  namespace: rental-solutions
+  labels:
+    app: rental-solutions-api
+    environment: production
+  annotations:
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:me-south-1:123456789012:certificate/abc123
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit-connections: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-backoff: "exponential"
+    
+    # API specific settings
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/load-balancer-attributes: routing.http2.enabled=true
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+spec:
+  rules:
+  - host: api.rental-solutions.qa
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rental-solutions-api-service
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - api.rental-solutions.qa
+    secretName: rental-solutions-api-tls 

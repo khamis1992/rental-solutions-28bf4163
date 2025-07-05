@@ -140,7 +140,7 @@ export const ArabicDashboard: React.FC<ArabicDashboardProps> = ({
   const quickActions = [
     {
       title: 'إضافة عقد جديد',
-      description: 'إنشاء عقد تأجير جديد',
+      description: 'إنشاء اتفاقية إيجار جديدة',
       icon: FileText,
       color: 'bg-violet-500',
       onClick: () => navigate('/agreements/add')
@@ -151,13 +151,6 @@ export const ArabicDashboard: React.FC<ArabicDashboardProps> = ({
       icon: Car,
       color: 'bg-blue-500',
       onClick: () => navigate('/vehicles/add')
-    },
-    {
-      title: 'التقارير السريعة',
-      description: 'الوصول إلى التقارير والإحصائيات',
-      icon: Activity,
-      color: 'bg-amber-500',
-      onClick: () => navigate('/reports/quick')
     }
   ];
 

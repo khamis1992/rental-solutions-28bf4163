@@ -1,0 +1,274 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rental-solutions-config
+  namespace: rental-solutions
+  labels:
+    app: rental-solutions
+    environment: production
+data:
+  # Application Configuration
+  NODE_ENV: "production"
+  APP_NAME: "العراف لتأجير السيارات"
+  APP_VERSION: "1.0.0"
+  APP_PORT: "3000"
+  
+  # Database Configuration
+  DB_HOST: "supabase.db.host"
+  DB_PORT: "5432"
+  DB_NAME: "rental_solutions"
+  DB_SSL: "true"
+  DB_POOL_SIZE: "20"
+  DB_TIMEOUT: "30000"
+  
+  # Cache Configuration
+  REDIS_HOST: "redis.rental-solutions.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_TTL: "3600"
+  REDIS_MAX_RETRIES: "3"
+  
+  # API Configuration
+  API_RATE_LIMIT: "1000"
+  API_TIMEOUT: "30000"
+  API_MAX_PAYLOAD_SIZE: "10mb"
+  API_CORS_ORIGINS: "https://rental-solutions.qa,https://www.rental-solutions.qa"
+  
+  # File Upload Configuration
+  UPLOAD_MAX_SIZE: "100mb"
+  UPLOAD_ALLOWED_TYPES: "image/jpeg,image/png,image/gif,application/pdf"
+  UPLOAD_PATH: "/uploads"
+  
+  # Email Configuration
+  SMTP_HOST: "smtp.gmail.com"
+  SMTP_PORT: "587"
+  SMTP_SECURE: "false"
+  EMAIL_FROM: "noreply@rental-solutions.qa"
+  
+  # Logging Configuration
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  LOG_MAX_SIZE: "10mb"
+  LOG_MAX_FILES: "5"
+  
+  # Security Configuration
+  BCRYPT_ROUNDS: "12"
+  JWT_EXPIRES_IN: "24h"
+  JWT_REFRESH_EXPIRES_IN: "7d"
+  SESSION_TIMEOUT: "1800000"
+  
+  # Monitoring Configuration
+  METRICS_PORT: "9090"
+  HEALTH_CHECK_PATH: "/health"
+  METRICS_PATH: "/metrics"
+  
+  # Arabic/RTL Configuration
+  DEFAULT_LOCALE: "ar-QA"
+  TIMEZONE: "Asia/Qatar"
+  DATE_FORMAT: "DD/MM/YYYY"
+  CURRENCY: "QAR"
+  
+  # WhatsApp Configuration
+  WHATSAPP_ENABLED: "true"
+  WHATSAPP_TIMEOUT: "30000"
+  WHATSAPP_RETRY_COUNT: "3"
+  
+  # PDF Generation Configuration
+  PDF_FONT_PATH: "/app/fonts"
+  PDF_DEFAULT_FONT: "Amiri"
+  PDF_MARGIN: "20"
+  PDF_FORMAT: "A4"
+  
+  # Performance Configuration
+  CACHE_ENABLED: "true"
+  COMPRESSION_ENABLED: "true"
+  GZIP_LEVEL: "6"
+  
+  # Feature Flags
+  FEATURE_OCR_ENABLED: "true"
+  FEATURE_WHATSAPP_ENABLED: "true"
+  FEATURE_REPORTS_ENABLED: "true"
+  FEATURE_ANALYTICS_ENABLED: "true"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rental-solutions-nginx-config
+  namespace: rental-solutions
+  labels:
+    app: rental-solutions-web
+    component: nginx
+    environment: production
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+    
+    events {
+        worker_connections 1024;
+        use epoll;
+        multi_accept on;
+    }
+    
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        # Logging
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+        
+        access_log /var/log/nginx/access.log main;
+        
+        # Basic Settings
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        client_max_body_size 100m;
+        
+        # Gzip Settings
+        gzip on;
+        gzip_vary on;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+        
+        # Security Headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        
+        # Rate Limiting
+        limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+        limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
+        
+        server {
+            listen 80;
+            server_name _;
+            root /usr/share/nginx/html;
+            index index.html;
+            
+            # Main application
+            location / {
+                try_files $uri $uri/ /index.html;
+            }
+            
+            # Static assets
+            location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+                expires 1y;
+                add_header Cache-Control "public, immutable";
+            }
+            
+            # Health check
+            location /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
+            
+            # API proxy
+            location /api/ {
+                limit_req zone=api burst=20 nodelay;
+                proxy_pass http://rental-solutions-api-internal:3000;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+            
+            # Error pages
+            error_page 404 /404.html;
+            error_page 500 502 503 504 /50x.html;
+        }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rental-solutions-monitoring-config
+  namespace: rental-solutions
+  labels:
+    app: rental-solutions
+    component: monitoring
+    environment: production
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    rule_files:
+      - "alert_rules.yml"
+    
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager:9093
+    
+    scrape_configs:
+      - job_name: 'rental-solutions-api'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - rental-solutions
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+  
+  alert_rules.yml: |
+    groups:
+      - name: rental-solutions-alerts
+        rules:
+          - alert: HighErrorRate
+            expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High error rate detected"
+              description: "Error rate is above 10% for 5 minutes"
+          
+          - alert: HighMemoryUsage
+            expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.8
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage detected"
+              description: "Memory usage is above 80% for 5 minutes"
+          
+          - alert: PodCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Pod is crash looping"
+              description: "Pod {{ $labels.pod }} is crash looping" 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -88,6 +87,7 @@ export function AgreementFilters({ onFilterChange, currentFilters = {} }: Agreem
   };
 
   const handleApplyQuickFilter = (quickFilter: Record<string, any>) => {
+    console.log('Applying quick filter:', quickFilter);
     onFilterChange(quickFilter);
   };
 
@@ -102,101 +102,104 @@ export function AgreementFilters({ onFilterChange, currentFilters = {} }: Agreem
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {/* Quick Filters */}
-        <Card className="p-4">
-          <h3 className="text-sm font-medium mb-3 flex items-center">
-            <Filter className="h-4 w-4 mr-1.5" /> Quick Filters
+        <Card className="p-4" dir="rtl">
+          <h3 className="text-sm font-medium mb-3 flex items-center justify-end">
+            <Filter className="h-4 w-4 ml-1.5" /> فلاتر سريعة
           </h3>
           <div className="space-y-2">
             <Button 
               variant="outline" 
               size="sm" 
-              className="w-full justify-start text-left" 
+              className="w-full justify-end text-right" 
               onClick={() => handleApplyQuickFilter({ status: 'active' })}
             >
-              Active Agreements
+              العقود النشطة
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
-              className="w-full justify-start text-left" 
+              className="w-full justify-end text-right" 
               onClick={() => handleApplyQuickFilter({ 
                 end_date_after: today.toISOString(),
                 end_date_before: next30Days.toISOString()
               })}
             >
-              Expiring in 30 Days
+              عقود ستنتهي خلال 30 يوماً
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
-              className="w-full justify-start text-left"
+              className="w-full justify-end text-right"
               onClick={() => handleApplyQuickFilter({ 
                 start_date_after: lastMonth.toISOString(),
                 start_date_before: today.toISOString()
               })}
             >
-              Created in Last Month
+              عقود أنشئت خلال الشهر الماضي
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
-              className="w-full justify-start text-left"
+              className="w-full justify-end text-right"
               onClick={() => handleApplyQuickFilter({ status: 'pending' })}
             >
-              Pending Agreements
+              العقود المعلقة
             </Button>
           </div>
         </Card>
 
         {/* Main Filter Form */}
-        <div className="md:col-span-2 space-y-4">
+        <div className="md:col-span-2 space-y-4" dir="rtl">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="agreement-number">Agreement Number</Label>
+              <Label htmlFor="agreement-number" className="text-right">رقم العقد</Label>
               <Input
                 id="agreement-number"
-                placeholder="Filter by number"
+                placeholder="فلترة حسب رقم العقد"
                 value={agreementNumber}
                 onChange={(e) => setAgreementNumber(e.target.value)}
+                dir="rtl"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status" className="text-right">الحالة</Label>
               <Select 
                 value={status} 
                 onValueChange={setStatus}
+                dir="rtl"
               >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Select status" />
+                <SelectTrigger id="status" dir="rtl">
+                  <SelectValue placeholder="اختر الحالة" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
+                <SelectContent dir="rtl">
+                  <SelectItem value="all">جميع الحالات</SelectItem>
+                  <SelectItem value="active">نشط</SelectItem>
+                  <SelectItem value="pending">معلق</SelectItem>
+                  <SelectItem value="completed">مكتمل</SelectItem>
+                  <SelectItem value="cancelled">ملغى</SelectItem>
+                  <SelectItem value="draft">مسودة</SelectItem>
+                  <SelectItem value="expired">منتهي الصلاحية</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Date Range Type</Label>
+            <Label className="text-right">نوع التاريخ</Label>
             <RadioGroup
               defaultValue="rental_period"
               value={dateRange}
               onValueChange={(value) => setDateRange(value as 'rental_period' | 'creation_date')}
-              className="flex space-x-4"
+              className="flex space-x-4 space-x-reverse"
+              dir="rtl"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Label htmlFor="rental_period" className="cursor-pointer">فترة الإيجار</Label>
                 <RadioGroupItem value="rental_period" id="rental_period" />
-                <Label htmlFor="rental_period" className="cursor-pointer">Rental Period</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Label htmlFor="creation_date" className="cursor-pointer">تاريخ الإنشاء</Label>
                 <RadioGroupItem value="creation_date" id="creation_date" />
-                <Label htmlFor="creation_date" className="cursor-pointer">Creation Date</Label>
               </div>
             </RadioGroup>
           </div>
@@ -204,19 +207,20 @@ export function AgreementFilters({ onFilterChange, currentFilters = {} }: Agreem
           {dateRange === 'rental_period' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Start Date Range</Label>
-                <div className="flex items-center space-x-2">
+                <Label className="text-right">نطاق تاريخ البداية</Label>
+                <div className="flex items-center space-x-2 space-x-reverse">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-start text-left font-normal"
+                        className="w-full justify-end text-right font-normal"
+                        dir="rtl"
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="ml-2 h-4 w-4" />
                         {startDateFrom ? (
                           format(startDateFrom, "MMM d, yyyy")
                         ) : (
-                          "From Date"
+                          "من تاريخ"
                         )}
                       </Button>
                     </PopoverTrigger>
@@ -234,13 +238,14 @@ export function AgreementFilters({ onFilterChange, currentFilters = {} }: Agreem
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-start text-left font-normal"
+                        className="w-full justify-end text-right font-normal"
+                        dir="rtl"
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="ml-2 h-4 w-4" />
                         {startDateTo ? (
                           format(startDateTo, "MMM d, yyyy")
                         ) : (
-                          "To Date"
+                          "إلى تاريخ"
                         )}
                       </Button>
                     </PopoverTrigger>
@@ -257,19 +262,20 @@ export function AgreementFilters({ onFilterChange, currentFilters = {} }: Agreem
               </div>
               
               <div className="space-y-2">
-                <Label>End Date Range</Label>
-                <div className="flex items-center space-x-2">
+                <Label className="text-right">نطاق تاريخ النهاية</Label>
+                <div className="flex items-center space-x-2 space-x-reverse">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-start text-left font-normal"
+                        className="w-full justify-end text-right font-normal"
+                        dir="rtl"
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="ml-2 h-4 w-4" />
                         {endDateFrom ? (
                           format(endDateFrom, "MMM d, yyyy")
                         ) : (
-                          "From Date"
+                          "من تاريخ"
                         )}
                       </Button>
                     </PopoverTrigger>
@@ -287,13 +293,14 @@ export function AgreementFilters({ onFilterChange, currentFilters = {} }: Agreem
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-start text-left font-normal"
+                        className="w-full justify-end text-right font-normal"
+                        dir="rtl"
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="ml-2 h-4 w-4" />
                         {endDateTo ? (
                           format(endDateTo, "MMM d, yyyy")
                         ) : (
-                          "To Date"
+                          "إلى تاريخ"
                         )}
                       </Button>
                     </PopoverTrigger>
@@ -311,19 +318,20 @@ export function AgreementFilters({ onFilterChange, currentFilters = {} }: Agreem
             </div>
           ) : (
             <div className="space-y-2">
-              <Label>Creation Date Range</Label>
-              <div className="flex items-center space-x-2">
+              <Label className="text-right">تاريخ إنشاء العقد</Label>
+              <div className="flex items-center space-x-2 space-x-reverse">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className="w-full justify-end text-right font-normal"
+                      dir="rtl"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="ml-2 h-4 w-4" />
                       {startDateFrom ? (
                         format(startDateFrom, "MMM d, yyyy")
                       ) : (
-                        "From Date"
+                        "من تاريخ"
                       )}
                     </Button>
                   </PopoverTrigger>
@@ -341,13 +349,14 @@ export function AgreementFilters({ onFilterChange, currentFilters = {} }: Agreem
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className="w-full justify-end text-right font-normal"
+                      dir="rtl"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="ml-2 h-4 w-4" />
                       {startDateTo ? (
                         format(startDateTo, "MMM d, yyyy")
                       ) : (
-                        "To Date"
+                        "إلى تاريخ"
                       )}
                     </Button>
                   </PopoverTrigger>
@@ -366,39 +375,41 @@ export function AgreementFilters({ onFilterChange, currentFilters = {} }: Agreem
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="min-rent">Minimum Rent</Label>
+              <Label htmlFor="min-rent" className="text-right">الحد الأدنى للإيجار</Label>
               <Input
                 id="min-rent"
-                placeholder="Enter minimum"
-                type="number"
+                placeholder="0"
                 value={minRent}
                 onChange={(e) => setMinRent(e.target.value)}
+                dir="rtl"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="max-rent">Maximum Rent</Label>
+              <Label htmlFor="max-rent" className="text-right">الحد الأقصى للإيجار</Label>
               <Input
                 id="max-rent"
-                placeholder="Enter maximum"
-                type="number"
+                placeholder="10000"
                 value={maxRent}
                 onChange={(e) => setMaxRent(e.target.value)}
+                dir="rtl"
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-end space-x-2">
+      <div className="flex justify-end space-x-2 space-x-reverse" dir="rtl">
+        <Button onClick={handleApplyFilters}>
+          تطبيق الفلاتر
+        </Button>
         <Button 
           variant="outline" 
           onClick={handleResetFilters}
-          className="flex items-center"
+          className="flex items-center flex-row-reverse"
         >
-          <X className="mr-1 h-4 w-4" />
-          Reset Filters
+          <X className="ml-1 h-4 w-4" />
+          إعادة تعيين
         </Button>
-        <Button onClick={handleApplyFilters}>Apply Filters</Button>
       </div>
     </div>
   );

@@ -1,249 +1,355 @@
-# 🚗 نظام إدارة تأجير السيارات - Rental Solutions
+# 🚗 العراف لتأجير السيارات | Rental Solutions
 
-نظام شامل لإدارة تأجير السيارات في قطر مع تقنيات الذكاء الاصطناعي المتطورة
+[![Deploy to Production](https://github.com/rental-solutions/platform/actions/workflows/production-deploy.yml/badge.svg)](https://github.com/rental-solutions/platform/actions/workflows/production-deploy.yml)
+[![Tests](https://github.com/rental-solutions/platform/actions/workflows/ci.yml/badge.svg)](https://github.com/rental-solutions/platform/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/rental-solutions/platform/branch/main/graph/badge.svg)](https://codecov.io/gh/rental-solutions/platform)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 🆕 الميزات الجديدة - نظام ChatGPT للعقود
+نظام متكامل لإدارة تأجير السيارات باللغة العربية مع دعم RTL كامل، مبني بأحدث التقنيات والممارسات الأمنية.
 
-### 🧠 معالجة العقود بالذكاء الاصطناعي
+## 🌟 المميزات الرئيسية
 
-تم تطوير النظام ليشمل **تقنية ChatGPT المتطورة** لمعالجة عقود إيجار السيارات:
+### 📊 لوحة التحكم
+- **إحصائيات شاملة** - عرض الإحصائيات في الوقت الفعلي
+- **تنبيهات ذكية** - تنبيهات للدفعات المتأخرة والصيانة
+- **مخططات بيانية** - تحليلات بصرية للأداء
 
-#### 🔄 النظام الهجين المتطور
-1. **استخراج النص**: Google Vision OCR لاستخراج النص من الصور
-2. **التحليل الذكي**: ChatGPT AI لتحليل وفهم النص بذكاء اصطناعي
-3. **النتيجة**: دقة عالية تصل إلى 95% مع فهم السياق
+### 👥 إدارة العملاء
+- **ملفات شخصية كاملة** - معلومات العملاء والوثائق
+- **سجل الإيجارات** - تاريخ كامل للعمليات
+- **تقييم الائتمان** - نظام تقييم للعملاء
 
-#### ⭐ مزايا ChatGPT للعقود
-- **فهم السياق**: يفهم معنى النص بذكاء طبيعي
-- **تصحيح الأخطاء**: يصحح الأخطاء الإملائية والطباعية تلقائياً
-- **فهم قانوني**: يفهم المصطلحات القانونية والعقارية القطرية
-- **استنتاج ذكي**: يستنتج البيانات المفقودة من السياق
-- **مرونة عالية**: يتعامل مع العقود غير المنتظمة والمعقدة
+### 🚗 إدارة المركبات
+- **كتالوج شامل** - قاعدة بيانات للمركبات
+- **جدولة الصيانة** - تتبع الصيانة الدورية
+- **تتبع GPS** - مراقبة المركبات في الوقت الفعلي
 
-#### 📊 مقارنة الأنظمة
+### 📄 إدارة العقود
+- **عقود رقمية** - إنشاء وتوقيع إلكتروني
+- **تنبيهات الانتهاء** - تذكيرات تلقائية
+- **تجديد تلقائي** - خيارات التجديد المرنة
 
-| الميزة | Google Vision OCR | ChatGPT AI | النظام الهجين |
-|--------|------------------|-------------|---------------|
-| **دقة الاستخراج** | 85% | 90% | **95%** |
-| **فهم السياق** | محدود | ممتاز | **ممتاز** |
-| **تصحيح الأخطاء** | لا | نعم | **نعم** |
-| **السرعة** | 3-5 ثواني | 5-8 ثواني | **5-8 ثواني** |
-| **التكلفة** | منخفضة | متوسطة | **متوسطة** |
+### 💰 النظام المالي
+- **فواتير احترافية** - تصميم عربي متقن
+- **تتبع الدفعات** - سجل مالي شامل
+- **تقارير مالية** - تحليلات مالية مفصلة
 
-### 🎯 صفحات الاختبار الجديدة
+### 🔧 الصيانة والخدمات
+- **جدولة الصيانة** - تخطيط الصيانة الوقائية
+- **تتبع التكاليف** - مراقبة تكاليف الصيانة
+- **سجل الأعطال** - قاعدة بيانات للمشاكل
 
-#### 1. اختبار ChatGPT (`/chatgpt-contract-test`)
-- واجهة تفاعلية لاختبار ChatGPT
-- إدخال نص العقد مباشرة
-- عرض النتائج مع تفاصيل التحليل
-- نموذج تجريبي للاختبار
+## 🛠️ التقنيات المستخدمة
 
-#### 2. معلومات النظام (`/chatgpt-info`)
-- مقارنة شاملة بين الأنظمة
-- شرح المزايا والاستخدامات
-- دليل متى تستخدم كل نظام
+### Frontend
+- **React 18** - مكتبة واجهة المستخدم
+- **TypeScript** - للتطوير الآمن
+- **Tailwind CSS** - تصميم responsive
+- **Zustand** - إدارة الحالة
+- **React Query** - إدارة البيانات
+- **React Router** - التنقل
 
-#### 3. اختبار النظام الهجين (`/car-rental-contract-test`)
-- اختبار النظام الكامل (OCR + ChatGPT)
-- رفع صور العقود
-- معالجة متطورة مع تشخيص مفصل
+### Backend
+- **Node.js** - بيئة تشغيل الخادم
+- **Express** - إطار عمل الويب
+- **TypeScript** - للتطوير الآمن
+- **Prisma** - ORM قاعدة البيانات
 
-## ⚙️ إعداد النظام
+### Database
+- **Supabase** - قاعدة بيانات PostgreSQL
+- **Redis** - تخزين مؤقت
+- **MinIO** - تخزين الملفات
 
-### متطلبات البيئة
+### DevOps
+- **Docker** - حاويات التطبيق
+- **Kubernetes** - إدارة الحاويات
+- **AWS EKS** - خدمة Kubernetes
+- **GitHub Actions** - CI/CD
+- **Terraform** - إدارة البنية التحتية
 
-```env
-# Google Vision API (مطلوب)
-VITE_GOOGLE_VISION_API_KEY=your_google_vision_api_key
+### Monitoring
+- **Prometheus** - جمع المقاييس
+- **Grafana** - لوحات المراقبة
+- **Sentry** - تتبع الأخطاء
+- **ELK Stack** - تحليل السجلات
 
-# OpenAI API (اختياري للحصول على أفضل النتائج)
-VITE_OPENAI_API_KEY=your_openai_api_key
+## 🚀 البدء السريع
 
-# Supabase (قاعدة البيانات)
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+### المتطلبات الأساسية
+```bash
+# Node.js v18 أو أحدث
+node --version
+
+# Docker
+docker --version
+
+# kubectl (للإنتاج)
+kubectl version --client
 ```
 
-### 🚀 التشغيل السريع
-
+### التثبيت المحلي
 ```bash
-# تثبيت المتطلبات
+# استنساخ المشروع
+git clone https://github.com/rental-solutions/platform.git
+cd platform
+
+# تثبيت التبعيات
 npm install
 
-# تشغيل الخادم المحلي
+# إعداد متغيرات البيئة
+cp .env.example .env.local
+
+# تشغيل قاعدة البيانات المحلية
+docker-compose up -d
+
+# تشغيل التطبيق
 npm run dev
-
-# بناء الإنتاج
-npm run build
 ```
 
-## 🏗️ البنية التقنية
+### إعداد قاعدة البيانات
+```bash
+# تشغيل المايجريشن
+npm run db:migrate
 
-### خدمات معالجة العقود
-
-#### 1. `car-rental-contract-ocr.ts`
-- الخدمة الرئيسية للنظام الهجين
-- تجمع بين Google Vision و ChatGPT
-- نظام احتياطي ذكي
-
-#### 2. `chatgpt-contract-extractor.ts`
-- خدمة ChatGPT المستقلة
-- تحليل النصوص بالذكاء الاصطناعي
-- معالجة متطورة للاستجابات
-
-### مكونات الواجهة
-
-#### 1. `CarRentalContractProcessor.tsx`
-- معالج العقود الرئيسي
-- واجهة سحب وإفلات
-- عرض النتائج التفاعلي
-
-#### 2. `ChatGPTContractTest.tsx`
-- صفحة اختبار ChatGPT
-- إدخال النص المباشر
-- تحليل مفصل للنتائج
-
-#### 3. `ChatGPTInfo.tsx`
-- صفحة المعلومات والمقارنة
-- دليل الاستخدام
-- إرشادات النظام
-
-## 🔧 كيفية العمل
-
-### النظام الهجين الحالي
-
-```typescript
-// 1. استخراج النص من الصورة
-const extractedText = await extractTextWithGoogleVision(imageBase64);
-
-// 2. تحليل النص بـ ChatGPT (إذا متوفر)
-if (openaiApiKey) {
-  const result = await analyzeTextWithChatGPT(extractedText);
-  return result;
-}
-
-// 3. التحليل التقليدي (احتياطي)
-return performTraditionalAnalysis(extractedText);
+# إدراج البيانات الأولية
+npm run db:seed
 ```
 
-### مثال على الاستخدام
+## 🧪 الاختبارات
 
-```typescript
-import { carRentalContractOcrService } from '@/services/car-rental-contract-ocr';
+### تشغيل الاختبارات
+```bash
+# جميع الاختبارات
+npm test
 
-// معالجة عقد من صورة
-const result = await carRentalContractOcrService.extractContractFromImage(imageBase64);
+# اختبارات الوحدة
+npm run test:unit
 
-if (result.success) {
-  console.log('البيانات المستخرجة:', result.data);
-  console.log('مستوى الثقة:', result.confidence);
-  console.log('طريقة الاستخراج:', result.debugInfo?.extractionMethod);
-}
+# اختبارات التكامل
+npm run test:integration
+
+# اختبارات E2E
+npm run test:e2e
+
+# تغطية الاختبارات
+npm run test:coverage
 ```
 
-## 📱 الميزات الأساسية
+### أنواع الاختبارات
+- **Unit Tests** - اختبار المكونات الفردية
+- **Integration Tests** - اختبار التكامل بين الخدمات
+- **E2E Tests** - اختبار كامل للتطبيق
+- **Performance Tests** - اختبار الأداء
+- **Security Tests** - اختبار الأمان
 
-### إدارة المركبات
-- إضافة وتعديل بيانات المركبات
-- تتبع حالة المركبات
-- إدارة الصيانة والفحوصات
+## 🚢 النشر
 
-### إدارة العملاء
-- قاعدة بيانات شاملة للعملاء
-- تتبع تاريخ التأجير
-- إدارة المستندات
+### البيئات المتاحة
+- **Development** - بيئة التطوير المحلية
+- **Staging** - بيئة الاختبار
+- **Production** - بيئة الإنتاج
 
-### العقود والاتفاقيات
-- **معالجة ذكية بـ ChatGPT** 🆕
-- إنشاء عقود تلقائية
-- تتبع المدفوعات والأقساط
+### النشر التلقائي
+```bash
+# النشر إلى Staging
+./scripts/deploy.sh deploy staging
 
-### التقارير والتحليلات
-- تقارير مالية مفصلة
-- تحليلات الأداء
-- إحصائيات الاستخدام
+# النشر إلى Production
+./scripts/deploy.sh deploy production
 
-### النظام المالي
-- إدارة الفواتير والمدفوعات
-- تتبع الأقساط
-- التحليلات المالية
+# عرض حالة النشر
+./scripts/deploy.sh status production
 
-## 🛡️ الأمان والموثوقية
+# الرجوع للإصدار السابق
+./scripts/deploy.sh rollback production
+```
 
-### النظام الاحتياطي
-- إذا لم يتوفر OpenAI API Key، يعمل النظام بـ Google Vision فقط
-- في حالة فشل ChatGPT، يتحول تلقائياً للتحليل التقليدي
-- ضمان استمرارية العمل في جميع الحالات
+### GitHub Actions
+النشر التلقائي يتم عبر GitHub Actions:
+1. **Code Quality** - فحص الكود والاختبارات
+2. **Security Scan** - فحص الأمان
+3. **Build** - بناء Docker images
+4. **Deploy to Staging** - نشر للاختبار
+5. **E2E Tests** - اختبارات شاملة
+6. **Deploy to Production** - نشر للإنتاج
 
-### حماية البيانات
-- تشفير البيانات الحساسة
-- مصادقة المستخدمين
-- تسجيل العمليات
+## 🔧 التكوين
 
-## 🎨 واجهة المستخدم
+### متغيرات البيئة
+```env
+# Database
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 
-### تصميم متجاوب
-- يعمل على جميع الأجهزة
-- واجهة عربية/إنجليزية
-- تجربة مستخدم محسنة
+# API
+VITE_API_URL=http://localhost:3000/api
 
-### الوضع المظلم
-- دعم الوضع المظلم/النهاري
-- توفير الطاقة
-- راحة العين
+# Services
+TWILIO_ACCOUNT_SID=your-twilio-sid
+TWILIO_AUTH_TOKEN=your-twilio-token
+GOOGLE_VISION_API_KEY=your-google-vision-key
+```
 
-## 📊 إحصائيات الأداء
+### تكوين Kubernetes
+```yaml
+# إعداد Namespace
+kubectl apply -f k8s/production/namespace.yaml
 
-### معدلات النجاح
-- **Google Vision OCR**: 85% دقة
-- **ChatGPT AI**: 90% دقة
-- **النظام الهجين**: 95% دقة
+# إعداد Secrets
+kubectl apply -f k8s/production/secrets.yaml
 
-### أوقات المعالجة
-- **Google Vision**: 3-5 ثواني
-- **ChatGPT**: 5-8 ثواني
-- **النظام الكامل**: 5-8 ثواني
+# إعداد ConfigMap
+kubectl apply -f k8s/production/configmap.yaml
 
-## 🚀 المستقبل والتطوير
+# نشر التطبيق
+kubectl apply -f k8s/production/deployment.yaml
+```
 
-### التحسينات المخططة
-- دعم المزيد من أنواع المستندات
-- تحسين دقة الاستخراج
-- إضافة المزيد من اللغات
+## 📊 المراقبة والتحليل
 
-### الذكاء الاصطناعي
-- تطوير نماذج مخصصة
-- تحسين فهم السياق
-- تطوير قدرات التنبؤ
+### المقاييس الرئيسية
+- **Uptime** - وقت التشغيل
+- **Response Time** - زمن الاستجابة
+- **Error Rate** - معدل الأخطاء
+- **Throughput** - معدل الطلبات
+- **Resource Usage** - استخدام الموارد
 
-## 💡 نصائح للاستخدام
+### Dashboards
+- **Application Metrics** - مقاييس التطبيق
+- **Infrastructure Metrics** - مقاييس البنية التحتية
+- **Business Metrics** - مقاييس الأعمال
+- **User Analytics** - تحليل المستخدمين
 
-### للحصول على أفضل النتائج مع ChatGPT:
-1. تأكد من وضوح النص في الصورة
-2. استخدم صور عالية الجودة
-3. تأكد من اكتمال جميع البيانات في العقد
-4. أضف OpenAI API Key للحصول على أفضل دقة
+### التنبيهات
+```yaml
+# مثال على قاعدة التنبيه
+groups:
+  - name: rental-solutions-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "معدل أخطاء عالي"
+          description: "معدل الأخطاء أكثر من 10% لمدة 5 دقائق"
+```
 
-### متى تستخدم كل نظام:
-- **Google Vision**: للعقود المنتظمة والواضحة
-- **ChatGPT**: للعقود المعقدة أو التي تحتوي أخطاء
-- **النظام الهجين**: للحصول على أفضل النتائج دائماً
+## 🔐 الأمان
 
-## 📞 الدعم والمساعدة
+### الممارسات الأمنية
+- **Authentication** - JWT tokens
+- **Authorization** - RBAC
+- **Input Validation** - تنظيف البيانات
+- **SQL Injection Prevention** - Parameterized queries
+- **XSS Protection** - Content Security Policy
+- **Rate Limiting** - حد الطلبات
+- **HTTPS** - تشفير البيانات
 
-للحصول على المساعدة أو الإبلاغ عن مشاكل:
-- استخدم صفحات الاختبار المدمجة
-- راجع لوحة التشخيص
-- تحقق من إعدادات API Keys
+### مراجعة الأمان
+```bash
+# فحص التبعيات
+npm audit
+
+# فحص الأمان
+npm run security:scan
+
+# فحص الكود
+npm run security:code-scan
+```
+
+## 📚 التوثيق
+
+### API Documentation
+- **OpenAPI/Swagger** - توثيق تفاعلي
+- **Postman Collection** - مجموعة اختبارات
+- **API Examples** - أمثلة الاستخدام
+
+### Architecture
+- **System Design** - تصميم النظام
+- **Database Schema** - مخطط قاعدة البيانات
+- **Component Architecture** - هيكل المكونات
+
+### Deployment
+- **Infrastructure as Code** - Terraform
+- **Kubernetes Manifests** - ملفات K8s
+- **Docker Compose** - إعداد محلي
+
+## 🤝 المساهمة
+
+### إرشادات المساهمة
+1. Fork المشروع
+2. إنشاء branch للميزة الجديدة
+3. كتابة الاختبارات
+4. التأكد من تمرير جميع الاختبارات
+5. إرسال Pull Request
+
+### معايير الكود
+- **TypeScript** - استخدام إجباري
+- **ESLint** - قواعد الكود
+- **Prettier** - تنسيق الكود
+- **Testing** - تغطية 80% على الأقل
+- **Documentation** - توثيق المكونات
+
+### Review Process
+- **Code Review** - مراجعة الكود
+- **Testing** - اختبار الميزات
+- **Security Review** - مراجعة الأمان
+- **Performance Review** - مراجعة الأداء
+
+## 📈 الأداء
+
+### المقاييس المستهدفة
+- **First Contentful Paint** - < 1.5s
+- **Largest Contentful Paint** - < 2.5s
+- **Time to Interactive** - < 3.5s
+- **Cumulative Layout Shift** - < 0.1
+
+### التحسينات
+- **Code Splitting** - تقسيم الكود
+- **Lazy Loading** - تحميل مؤجل
+- **Caching** - تخزين مؤقت
+- **CDN** - شبكة توزيع المحتوى
+- **Bundle Analysis** - تحليل الحزم
+
+## 🌍 الدعم الدولي
+
+### اللغات المدعومة
+- **العربية** - اللغة الأساسية
+- **الإنجليزية** - لغة ثانوية
+
+### الـ RTL Support
+- **بيانات RTL** - دعم كامل
+- **تصميم RTL** - تخطيط مناسب
+- **خطوط عربية** - خطوط احترافية
+
+## 📞 الدعم
+
+### القنوات المتاحة
+- **GitHub Issues** - للمشاكل التقنية
+- **Email** - support@rental-solutions.qa
+- **Documentation** - دليل المستخدم
+- **Community** - منتدى المجتمع
+
+### SLA
+- **Response Time** - < 24 ساعة
+- **Resolution Time** - < 72 ساعة
+- **Availability** - 99.9%
+
+## 📄 الترخيص
+
+هذا المشروع مرخص تحت رخصة MIT. راجع ملف [LICENSE](LICENSE) للتفاصيل.
+
+## 🙏 الشكر والتقدير
+
+- **فريق التطوير** - للجهود المتميزة
+- **المجتمع** - للمساهمات والاقتراحات
+- **العملاء** - للثقة والدعم المستمر
 
 ---
 
-## 🏷️ الإصدار الحالي
-
-**الإصدار**: 2.0 - نظام ChatGPT الذكي
-**التاريخ**: ديسمبر 2024
-**المطور**: فريق Rental Solutions
-
----
-
-*تم تطوير هذا النظام خصيصاً لسوق تأجير السيارات في قطر مع دعم كامل للمعايير والمتطلبات المحلية.*
+<div align="center">
+  <p>مع تحيات فريق العراف لتأجير السيارات</p>
+  <p>🚗 نحو مستقبل أفضل في تأجير السيارات</p>
+</div>

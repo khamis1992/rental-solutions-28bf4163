@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Car, TrendingUp, Gavel, Brain, UserPlus } from 'lucide-react';
+import { FileText, Car, TrendingUp, Gavel, UserPlus } from 'lucide-react';
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -35,22 +35,6 @@ export const QuickActions = () => {
       icon: <Gavel className="h-5 w-5" />,
       href: "/legal",
       bgColor: "bg-red-500"
-    },
-    {
-      id: "quick-reports",
-      title: "تقارير سريعة",
-      description: "تحليلات وتقارير فورية",
-      icon: <TrendingUp className="h-5 w-5" />,
-      href: "/reports/quick",
-      bgColor: "bg-orange-500"
-    },
-    {
-      id: "smart-system",
-      title: "النظام الذكي",
-      description: "تحديث جميع العقود تلقائياً",
-      icon: <Brain className="h-5 w-5" />,
-      href: "/admin/smart-updater",
-      bgColor: "bg-green-500"
     }
   ];
 
@@ -66,7 +50,7 @@ export const QuickActions = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {quickActions.map((action) => (
               <Button
                 key={action.id}
