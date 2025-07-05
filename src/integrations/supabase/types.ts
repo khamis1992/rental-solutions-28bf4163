@@ -308,6 +308,13 @@ export type Database = {
             foreignKeyName: "agreement_documents_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agreement_documents_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -316,7 +323,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
           {
             foreignKeyName: "agreement_documents_vehicle_id_fkey"
@@ -579,6 +586,13 @@ export type Database = {
             foreignKeyName: "ai_analysis_agreement_id_fkey"
             columns: ["agreement_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_analysis_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -587,7 +601,7 @@ export type Database = {
             columns: ["agreement_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -1088,6 +1102,13 @@ export type Database = {
             foreignKeyName: "applied_discounts_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applied_discounts_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -1096,7 +1117,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
           {
             foreignKeyName: "applied_discounts_promo_code_id_fkey"
@@ -1942,6 +1963,13 @@ export type Database = {
             foreignKeyName: "customer_feedback_agreement_id_fkey"
             columns: ["agreement_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_feedback_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -1950,7 +1978,7 @@ export type Database = {
             columns: ["agreement_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -2280,6 +2308,13 @@ export type Database = {
             foreignKeyName: "damages_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "damages_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -2288,7 +2323,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
           {
             foreignKeyName: "damages_vehicle_id_fkey"
@@ -2439,6 +2474,13 @@ export type Database = {
             foreignKeyName: "document_processing_queue_agreement_id_fkey"
             columns: ["agreement_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_processing_queue_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -2447,7 +2489,7 @@ export type Database = {
             columns: ["agreement_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
           {
             foreignKeyName: "document_processing_queue_template_id_fkey"
@@ -3400,6 +3442,13 @@ export type Database = {
             foreignKeyName: "financial_imports_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_imports_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -3408,7 +3457,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -3590,6 +3639,13 @@ export type Database = {
             foreignKeyName: "generated_invoices_agreement_id_fkey"
             columns: ["agreement_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_invoices_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -3598,7 +3654,7 @@ export type Database = {
             columns: ["agreement_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -3870,6 +3926,13 @@ export type Database = {
             foreignKeyName: "installment_analytics_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installment_analytics_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -3878,7 +3941,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -4043,6 +4106,7 @@ export type Database = {
           agreement_type: Database["public"]["Enums"]["agreement_type"]
           checkin_date: string | null
           checkout_date: string | null
+          confirmation_email_sent: boolean | null
           created_at: string
           customer_id: string
           daily_late_fee: number | null
@@ -4084,6 +4148,7 @@ export type Database = {
           agreement_type?: Database["public"]["Enums"]["agreement_type"]
           checkin_date?: string | null
           checkout_date?: string | null
+          confirmation_email_sent?: boolean | null
           created_at?: string
           customer_id: string
           daily_late_fee?: number | null
@@ -4125,6 +4190,7 @@ export type Database = {
           agreement_type?: Database["public"]["Enums"]["agreement_type"]
           checkin_date?: string | null
           checkout_date?: string | null
+          confirmation_email_sent?: boolean | null
           created_at?: string
           customer_id?: string
           daily_late_fee?: number | null
@@ -5370,6 +5436,13 @@ export type Database = {
             foreignKeyName: "new_unified_payments_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "new_unified_payments_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -5378,7 +5451,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
           {
             foreignKeyName: "new_unified_payments_security_deposit_id_fkey"
@@ -5553,6 +5626,13 @@ export type Database = {
             foreignKeyName: "overdue_payments_agreement_id_fkey"
             columns: ["agreement_id"]
             isOneToOne: true
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overdue_payments_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: true
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -5561,7 +5641,7 @@ export type Database = {
             columns: ["agreement_id"]
             isOneToOne: true
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -6035,6 +6115,13 @@ export type Database = {
             foreignKeyName: "payment_installment_plans_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_installment_plans_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -6043,7 +6130,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -6158,6 +6245,13 @@ export type Database = {
             foreignKeyName: "payment_reminders_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_reminders_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -6166,7 +6260,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
           {
             foreignKeyName: "payment_reminders_payment_id_fkey"
@@ -6187,6 +6281,13 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_reminders_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments_with_details"
             referencedColumns: ["id"]
           },
           {
@@ -6264,6 +6365,13 @@ export type Database = {
             foreignKeyName: "simplified_payment_schedules_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simplified_payment_schedules_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -6272,7 +6380,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -6315,6 +6423,13 @@ export type Database = {
             foreignKeyName: "penalties_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "penalties_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -6323,7 +6438,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -6653,6 +6768,13 @@ export type Database = {
             foreignKeyName: "processed_documents_agreement_id_fkey"
             columns: ["agreement_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processed_documents_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -6661,7 +6783,7 @@ export type Database = {
             columns: ["agreement_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
           {
             foreignKeyName: "processed_documents_template_id_fkey"
@@ -6967,6 +7089,13 @@ export type Database = {
             foreignKeyName: "recurring_revenue_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_revenue_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -6975,7 +7104,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -7083,6 +7212,13 @@ export type Database = {
             foreignKeyName: "remaining_amounts_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remaining_amounts_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -7091,7 +7227,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -7134,6 +7270,13 @@ export type Database = {
             foreignKeyName: "rent_payments_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rent_payments_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -7142,7 +7285,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -7574,6 +7717,13 @@ export type Database = {
             foreignKeyName: "security_deposits_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_deposits_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -7582,7 +7732,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -8228,6 +8378,13 @@ export type Database = {
             foreignKeyName: "traffic_fines_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traffic_fines_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -8236,7 +8393,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
           {
             foreignKeyName: "traffic_fines_vehicle_id_fkey"
@@ -8380,6 +8537,13 @@ export type Database = {
             foreignKeyName: "transaction_import_items_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_import_items_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -8388,7 +8552,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -8557,6 +8721,13 @@ export type Database = {
             foreignKeyName: "unified_import_tracking_matched_agreement_id_fkey"
             columns: ["matched_agreement_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_import_tracking_matched_agreement_id_fkey"
+            columns: ["matched_agreement_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -8565,7 +8736,7 @@ export type Database = {
             columns: ["matched_agreement_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -8672,6 +8843,13 @@ export type Database = {
             foreignKeyName: "unified_payments_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_payments_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -8680,7 +8858,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -9029,6 +9207,13 @@ export type Database = {
             foreignKeyName: "vehicle_inspections_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_inspections_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -9037,7 +9222,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
           {
             foreignKeyName: "vehicle_inspections_maintenance_id_fkey"
@@ -10021,48 +10206,47 @@ export type Database = {
       }
     }
     Views: {
+      agreements_with_details: {
+        Row: {
+          agreement_number: string | null
+          created_at: string | null
+          customer_driver_license: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          end_date: string | null
+          id: string | null
+          license_plate: string | null
+          make: string | null
+          model: string | null
+          rent_amount: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["lease_status"] | null
+          total_amount: number | null
+          updated_at: string | null
+          vehicle_status: Database["public"]["Enums"]["vehicle_status"] | null
+          year: number | null
+        }
+        Relationships: []
+      }
       leases_missing_payments: {
         Row: {
           agreement_number: string | null
-          current_month: string | null
-          distinct_months_paid: number | null
-          distinct_months_scheduled: number | null
-          id: string | null
-          payment_count: number | null
-          rent_amount: number | null
-          schedule_count: number | null
-          start_date: string | null
+          lease_id: string | null
           status: Database["public"]["Enums"]["lease_status"] | null
           status_description: string | null
-          total_months_due: number | null
         }
         Insert: {
           agreement_number?: string | null
-          current_month?: never
-          distinct_months_paid?: never
-          distinct_months_scheduled?: never
-          id?: string | null
-          payment_count?: never
-          rent_amount?: number | null
-          schedule_count?: never
-          start_date?: string | null
+          lease_id?: string | null
           status?: Database["public"]["Enums"]["lease_status"] | null
           status_description?: never
-          total_months_due?: never
         }
         Update: {
           agreement_number?: string | null
-          current_month?: never
-          distinct_months_paid?: never
-          distinct_months_scheduled?: never
-          id?: string | null
-          payment_count?: never
-          rent_amount?: number | null
-          schedule_count?: never
-          start_date?: string | null
+          lease_id?: string | null
           status?: Database["public"]["Enums"]["lease_status"] | null
           status_description?: never
-          total_months_due?: never
         }
         Relationships: []
       }
@@ -10092,6 +10276,13 @@ export type Database = {
             foreignKeyName: "unified_payments_lease_id_fkey"
             columns: ["agreement_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_payments_lease_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -10100,7 +10291,7 @@ export type Database = {
             columns: ["agreement_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -10158,6 +10349,13 @@ export type Database = {
             foreignKeyName: "unified_payments_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_payments_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -10166,7 +10364,7 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -10221,6 +10419,13 @@ export type Database = {
             foreignKeyName: "unified_payments_lease_id_fkey"
             columns: ["lease_id"]
             isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_payments_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
             referencedRelation: "leases"
             referencedColumns: ["id"]
           },
@@ -10229,7 +10434,57 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
+            referencedColumns: ["lease_id"]
+          },
+        ]
+      }
+      payments_with_details: {
+        Row: {
+          agreement_number: string | null
+          amount: number | null
+          amount_paid: number | null
+          balance: number | null
+          created_at: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          due_date: string | null
+          id: string | null
+          lease_id: string | null
+          license_plate: string | null
+          make: string | null
+          model: string | null
+          payment_date: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_leases_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_payments_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
+            referencedRelation: "agreements_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_payments_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
+            referencedRelation: "leases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_payments_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
+            referencedRelation: "leases_missing_payments"
+            referencedColumns: ["lease_id"]
           },
         ]
       }
@@ -10282,6 +10537,18 @@ export type Database = {
       add_loyalty_points: {
         Args: { p_customer_id: string; p_points: number; p_reason: string }
         Returns: undefined
+      }
+      analyze_overdue_customers: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          customer_name: string
+          customer_phone: string
+          total_overdue_payments: number
+          total_overdue_amount: number
+          oldest_overdue_date: string
+          average_days_overdue: number
+          active_agreements: number
+        }[]
       }
       analyze_vehicle_maintenance: {
         Args: Record<PropertyKey, never>
@@ -10453,34 +10720,9 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: {
           agreement_number: string | null
-          current_month: string | null
-          distinct_months_paid: number | null
-          distinct_months_scheduled: number | null
-          id: string | null
-          payment_count: number | null
-          rent_amount: number | null
-          schedule_count: number | null
-          start_date: string | null
+          lease_id: string | null
           status: Database["public"]["Enums"]["lease_status"] | null
           status_description: string | null
-          total_months_due: number | null
-        }[]
-      }
-      generate_missing_payment_records_with_qualified_columns: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          agreement_number: string | null
-          current_month: string | null
-          distinct_months_paid: number | null
-          distinct_months_scheduled: number | null
-          id: string | null
-          payment_count: number | null
-          rent_amount: number | null
-          schedule_count: number | null
-          start_date: string | null
-          status: Database["public"]["Enums"]["lease_status"] | null
-          status_description: string | null
-          total_months_due: number | null
         }[]
       }
       generate_payment_reminders: {
@@ -10506,6 +10748,34 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_overdue_payments: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          amount: number
+          due_date: string
+          days_overdue: number
+          customer_name: string
+          customer_phone: string
+          agreement_number: string
+          license_plate: string
+        }[]
+      }
+      get_payment_statistics: {
+        Args: { p_date_from?: string; p_date_to?: string }
+        Returns: {
+          total_payments: number
+          completed_payments: number
+          pending_payments: number
+          overdue_payments: number
+          total_amount: number
+          completed_amount: number
+          pending_amount: number
+          overdue_amount: number
+          average_days_overdue: number
+          collection_rate: number
+        }[]
+      }
       get_pending_payments_report: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -10518,6 +10788,14 @@ export type Database = {
           traffic_fine_amount: number
           total_amount: number
           license_plate: string
+        }[]
+      }
+      get_system_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          metric_name: string
+          metric_value: string
+          metric_description: string
         }[]
       }
       handle_portal_login: {
@@ -10616,6 +10894,27 @@ export type Database = {
       revoke_api_key: {
         Args: { p_key_id: string }
         Returns: boolean
+      }
+      search_payments_simple: {
+        Args: {
+          p_lease_id?: string
+          p_status?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          id: string
+          amount: number
+          amount_paid: number
+          balance: number
+          status: string
+          payment_date: string
+          due_date: string
+          customer_name: string
+          agreement_number: string
+          license_plate: string
+          days_overdue: number
+        }[]
       }
       send_payment_reminders: {
         Args: Record<PropertyKey, never>

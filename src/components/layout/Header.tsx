@@ -1,7 +1,9 @@
 import React from 'react';
 import { Bell, Settings, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InstallButton } from '@/components/pwa/InstallButton';
+import { SmartAlertsWidget } from '@/components/dashboard/SmartAlertsWidget';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
@@ -43,9 +45,20 @@ export const Header: React.FC<HeaderProps> = ({
             className="hidden sm:flex"
           />
           
-          <Button variant="ghost" size="sm">
-            <Bell className="h-5 w-5" />
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Bell className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent 
+              className="w-96 p-0 max-h-96 overflow-y-auto" 
+              align="end"
+              side="bottom"
+            >
+              <SmartAlertsWidget className="border-0 shadow-none" />
+            </PopoverContent>
+          </Popover>
           
           <Button variant="ghost" size="sm">
             <Settings className="h-5 w-5" />

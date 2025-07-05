@@ -9,7 +9,7 @@ import VehicleStatusChart from './VehicleStatusChart';
 import { RealTimeStatsWidget } from './RealTimeStatsWidget';
 import { AdvancedAnalyticsPanel } from './AdvancedAnalyticsPanel';
 import { QuickActions } from './QuickActions';
-import { SmartAlertsWidget } from './SmartAlertsWidget';
+
 import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useTranslation } from '@/utils/translation-helper';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -136,21 +136,6 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         {!collapsedSections['realtime'] && <RealTimeStatsWidget />}
       </div>
 
-      {/* 6. التنبيهات - moved to bottom and renamed */}
-      <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('alerts')}
-          >
-            {collapsedSections['alerts'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right">التنبيهات</h2>
-        </div>
-        {!collapsedSections['alerts'] && <SmartAlertsWidget />}
-      </div>
     </div>
   );
 };
