@@ -1,0 +1,8 @@
+tree d26f1f71bdc84020507c911497a617856e20d12a
+parent f7ece42e3596a7fa8f5b7581191e5a81c472a1de
+author gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com> 1742605048 +0000
+committer gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com> 1742605048 +0000
+
+Add traffic fines to customer details
+
+Display traffic fines associated with a customer on the customer details page.

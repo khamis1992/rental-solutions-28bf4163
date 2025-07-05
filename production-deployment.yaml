@@ -1,0 +1,877 @@
+# Production Deployment Configuration - Day 10
+# Qatar Rental Solutions Platform - Production Launch
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rental-production
+  labels:
+    environment: production
+    region: qatar
+    app: rental-solutions
+
+---
+# Blue Environment Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rental-app-blue
+  namespace: rental-production
+  labels:
+    app: rental-app
+    environment: blue
+    version: v1.0.0
+spec:
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  selector:
+    matchLabels:
+      app: rental-app
+      environment: blue
+  template:
+    metadata:
+      labels:
+        app: rental-app
+        environment: blue
+        version: v1.0.0
+    spec:
+      containers:
+      - name: rental-app
+        image: rental-solutions:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials
+              key: url
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: supabase-url
+        - name: SUPABASE_ANON_KEY
+          valueFrom:
+            secretKeyRef:
+              name: supabase-credentials
+              key: anon-key
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: url
+        - name: TIMEZONE
+          value: "Asia/Qatar"
+        - name: LOCALE
+          value: "ar-QA"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: app-config
+          mountPath: /app/config
+          readOnly: true
+        - name: ssl-certs
+          mountPath: /app/ssl
+          readOnly: true
+      volumes:
+      - name: app-config
+        configMap:
+          name: app-config
+      - name: ssl-certs
+        secret:
+          secretName: ssl-certificates
+      nodeSelector:
+        node-type: application
+      tolerations:
+      - key: "app-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+
+---
+# Green Environment Deployment (for Blue-Green deployment)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rental-app-green
+  namespace: rental-production
+  labels:
+    app: rental-app
+    environment: green
+    version: v1.0.1
+spec:
+  replicas: 0  # Initially scaled to 0
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  selector:
+    matchLabels:
+      app: rental-app
+      environment: green
+  template:
+    metadata:
+      labels:
+        app: rental-app
+        environment: green
+        version: v1.0.1
+    spec:
+      containers:
+      - name: rental-app
+        image: rental-solutions:v1.0.1
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials
+              key: url
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: supabase-url
+        - name: SUPABASE_ANON_KEY
+          valueFrom:
+            secretKeyRef:
+              name: supabase-credentials
+              key: anon-key
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: url
+        - name: TIMEZONE
+          value: "Asia/Qatar"
+        - name: LOCALE
+          value: "ar-QA"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: app-config
+          mountPath: /app/config
+          readOnly: true
+        - name: ssl-certs
+          mountPath: /app/ssl
+          readOnly: true
+      volumes:
+      - name: app-config
+        configMap:
+          name: app-config
+      - name: ssl-certs
+        secret:
+          secretName: ssl-certificates
+      nodeSelector:
+        node-type: application
+
+---
+# Blue Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rental-app-blue-service
+  namespace: rental-production
+  labels:
+    app: rental-app
+    environment: blue
+spec:
+  selector:
+    app: rental-app
+    environment: blue
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8443
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Green Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rental-app-green-service
+  namespace: rental-production
+  labels:
+    app: rental-app
+    environment: green
+spec:
+  selector:
+    app: rental-app
+    environment: green
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8443
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Production Service (Active)
+apiVersion: v1
+kind: Service
+metadata:
+  name: rental-app-production
+  namespace: rental-production
+  labels:
+    app: rental-app
+    environment: production
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:me-south-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+spec:
+  selector:
+    app: rental-app
+    environment: blue  # Initially points to blue
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8443
+    protocol: TCP
+  type: LoadBalancer
+
+---
+# Horizontal Pod Autoscaler for Blue
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rental-app-blue-hpa
+  namespace: rental-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rental-app-blue
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+---
+# Horizontal Pod Autoscaler for Green
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rental-app-green-hpa
+  namespace: rental-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rental-app-green
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# ConfigMap for Application Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: rental-production
+data:
+  supabase-url: "https://your-project.supabase.co"
+  redis-host: "redis-cluster.rental-production.svc.cluster.local"
+  redis-port: "6379"
+  app-name: "Qatar Rental Solutions"
+  app-version: "1.0.0"
+  timezone: "Asia/Qatar"
+  locale: "ar-QA"
+  log-level: "info"
+  max-upload-size: "10MB"
+  session-timeout: "3600"
+  rate-limit-requests: "1000"
+  rate-limit-window: "900"
+
+---
+# Secret for Database Credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-credentials
+  namespace: rental-production
+type: Opaque
+data:
+  url: cG9zdGdyZXNxbDovL3VzZXI6cGFzc3dvcmRAaG9zdDpwb3J0L2RhdGFiYXNl  # base64 encoded
+  username: dXNlcm5hbWU=  # base64 encoded
+  password: cGFzc3dvcmQ=  # base64 encoded
+
+---
+# Secret for Supabase Credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: supabase-credentials
+  namespace: rental-production
+type: Opaque
+data:
+  anon-key: ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNlNrcFhWQ0o5  # base64 encoded
+  service-key: ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNlNrcFhWQ0o5  # base64 encoded
+
+---
+# Secret for Redis Credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-credentials
+  namespace: rental-production
+type: Opaque
+data:
+  url: cmVkaXM6Ly86cGFzc3dvcmRAcmVkaXMtY2x1c3Rlcjo2Mzc5  # base64 encoded
+  password: cGFzc3dvcmQ=  # base64 encoded
+
+---
+# Secret for SSL Certificates
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ssl-certificates
+  namespace: rental-production
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t  # base64 encoded certificate
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t  # base64 encoded private key
+
+---
+# Network Policy for Production Security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rental-app-network-policy
+  namespace: rental-production
+spec:
+  podSelector:
+    matchLabels:
+      app: rental-app
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: database
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS outbound
+    - protocol: TCP
+      port: 53   # DNS
+    - protocol: UDP
+      port: 53   # DNS
+
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rental-app-pdb
+  namespace: rental-production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: rental-app
+
+---
+# ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rental-app-metrics
+  namespace: rental-production
+  labels:
+    app: rental-app
+spec:
+  selector:
+    matchLabels:
+      app: rental-app
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+
+---
+# Ingress for Production Traffic
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rental-app-ingress
+  namespace: rental-production
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - rental.qa
+    - api.rental.qa
+    - admin.rental.qa
+    secretName: rental-tls-secret
+  rules:
+  - host: rental.qa
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rental-app-production
+            port:
+              number: 80
+  - host: api.rental.qa
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rental-app-production
+            port:
+              number: 80
+  - host: admin.rental.qa
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rental-app-production
+            port:
+              number: 80
+
+---
+# Production Database StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql-primary
+  namespace: rental-production
+spec:
+  serviceName: postgresql-primary
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql
+      role: primary
+  template:
+    metadata:
+      labels:
+        app: postgresql
+        role: primary
+    spec:
+      containers:
+      - name: postgresql
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgresql
+        env:
+        - name: POSTGRES_DB
+          value: "rental_db"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-credentials
+              key: password
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgresql-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgresql-config
+        configMap:
+          name: postgresql-config
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "gp3-encrypted"
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# Redis Cluster for Caching
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-cluster
+  namespace: rental-production
+spec:
+  serviceName: redis-cluster
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        command:
+        - redis-server
+        - /etc/redis/redis.conf
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        - name: redis-config
+          mountPath: /etc/redis
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "gp3-encrypted"
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+# PostgreSQL Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-config
+  namespace: rental-production
+data:
+  postgresql.conf: |
+    # PostgreSQL Production Configuration for Qatar Rental Solutions
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 200
+    shared_buffers = 512MB
+    effective_cache_size = 1536MB
+    maintenance_work_mem = 128MB
+    checkpoint_completion_target = 0.9
+    wal_buffers = 16MB
+    default_statistics_target = 100
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    work_mem = 4MB
+    min_wal_size = 1GB
+    max_wal_size = 4GB
+    max_worker_processes = 8
+    max_parallel_workers_per_gather = 2
+    max_parallel_workers = 8
+    max_parallel_maintenance_workers = 2
+    
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_rotation_age = 1d
+    log_rotation_size = 100MB
+    log_min_duration_statement = 1000
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    
+    # Security
+    ssl = on
+    ssl_cert_file = '/var/lib/postgresql/server.crt'
+    ssl_key_file = '/var/lib/postgresql/server.key'
+    
+    # Timezone
+    timezone = 'Asia/Qatar'
+    log_timezone = 'Asia/Qatar'
+
+---
+# Redis Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: rental-production
+data:
+  redis.conf: |
+    # Redis Production Configuration for Qatar Rental Solutions
+    bind 0.0.0.0
+    port 6379
+    protected-mode yes
+    requirepass ${REDIS_PASSWORD}
+    
+    # Memory Management
+    maxmemory 400mb
+    maxmemory-policy allkeys-lru
+    
+    # Persistence
+    save 900 1
+    save 300 10
+    save 60 10000
+    
+    # Security
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    rename-command DEBUG ""
+    rename-command CONFIG "CONFIG_b835b8b8b8b8b8b8"
+    
+    # Logging
+    loglevel notice
+    logfile "/data/redis.log"
+    
+    # Performance
+    tcp-keepalive 300
+    timeout 0
+    tcp-backlog 511
+    
+    # Append Only File
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+---
+# PostgreSQL Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgresql-credentials
+  namespace: rental-production
+type: Opaque
+data:
+  username: cG9zdGdyZXM=  # postgres (base64)
+  password: cXVlcnR5MTIzNDU2  # qwerty123456 (base64)
+
+---
+# Production Monitoring ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rental-monitoring
+  namespace: rental-production
+
+---
+# ClusterRole for Monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rental-monitoring
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "nodes/proxy", "services", "endpoints", "pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+
+---
+# ClusterRoleBinding for Monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rental-monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rental-monitoring
+subjects:
+- kind: ServiceAccount
+  name: rental-monitoring
+  namespace: rental-production 

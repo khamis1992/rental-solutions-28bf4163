@@ -1,0 +1,301 @@
+import {
+  type PostgrestSingleResponse,
+  type PostgrestResponse,
+} from '@supabase/supabase-js';
+import { Database } from '@/types/database.types';
+import { Result, createSuccessResult, createErrorResult } from '@/types/response.types';
+import { createDatabaseError } from '@/types/error.types';
+import { toAppError } from '@/lib/errors/error-handler';
+import {
+  isAppError as isStandardAppError
+} from '@/types/error.types';
+import {
+  hasValidData,
+  isError,
+  isSingleResponse,
+  isArrayResponse
+} from '@/types/supabase-response.types';
+
+/**
+ * Type for database ID that ensures consistent typing across the application
+ */
+export type DatabaseId = string;
+
+/**
+ * Type for database timestamp that ensures consistent typing
+ */
+export type DatabaseTimestamp = string;
+
+/**
+ * Type for database JSON data
+ */
+export type DatabaseJson = Database['public']['CompositeTypes']['Json'];
+
+/**
+ * Type for database table names
+ */
+export type DatabaseTableName = keyof Database['public']['Tables'];
+
+/**
+ * Type for database view names
+ */
+export type DatabaseViewName = keyof Database['public']['Views'];
+
+/**
+ * Type for database function names
+ */
+export type DatabaseFunctionName = keyof Database['public']['Functions'];
+
+/**
+ * Type for database enum names
+ */
+export type DatabaseEnumName = keyof Database['public']['Enums'];
+
+/**
+ * Type for database composite type names
+ */
+export type DatabaseCompositeTypeName = keyof Database['public']['CompositeTypes'];
+
+/**
+ * Type for table rows
+ */
+export type TableRow<T extends DatabaseTableName> = Database['public']['Tables'][T]['Row'];
+
+/**
+ * Type for table inserts
+ */
+export type TableInsert<T extends DatabaseTableName> = Database['public']['Tables'][T]['Insert'];
+
+/**
+ * Type for table updates
+ */
+export type TableUpdate<T extends DatabaseTableName> = Database['public']['Tables'][T]['Update'];
+
+/**
+ * Type for view rows
+ */
+export type ViewRow<T extends DatabaseViewName> = Database['public']['Views'][T]['Row'];
+
+/**
+ * Type for function arguments
+ */
+export type FunctionArgs<T extends DatabaseFunctionName> = Database['public']['Functions'][T]['Args'];
+
+/**
+ * Type for function returns
+ */
+export type FunctionReturns<T extends DatabaseFunctionName> = Database['public']['Functions'][T]['Returns'];
+
+/**
+ * Type for enum values
+ */
+export type EnumValues<T extends DatabaseEnumName> = Database['public']['Enums'][T];
+
+/**
+ * Type for composite types
+ */
+export type CompositeType<T extends DatabaseCompositeTypeName> = Database['public']['CompositeTypes'][T];
+
+/**
+ * Type guard to check if a value is a valid DatabaseId
+ */
+export function isValidDatabaseId(id: unknown): id is DatabaseId {
+  return typeof id === 'string' && id.length > 0;
+}
+
+/**
+ * Safely cast any string ID to the proper database ID type
+ * This is a type assertion function that helps TypeScript understand 
+ * the ID is correctly formatted, but doesn't perform runtime validation
+ */
+export function castToDatabaseId(id: string): DatabaseId {
+  return id as DatabaseId;
+}
+
+/**
+ * Type guard to check if a Supabase response has data and is not an error
+ */
+export function hasResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is (PostgrestResponse<T> & { data: T }) {
+  return hasValidData(response);
+}
+
+/**
+ * Safely extract data from a Supabase response
+ * Returns null if response is invalid or has an error
+ */
+export function extractResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): T | null {
+  if (!response || response.error) {
+    if (response?.error) {
+      console.error('Database error:', response.error);
+    }
+    return null;
+  }
+  return response.data as T;
+}
+
+/**
+ * Type helper to ensure array type
+ * Useful when dealing with potentially unknown response structures
+ */
+export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  
+  if (Array.isArray(value)) {
+    return value;
+  }
+  
+  return [value];
+}
+
+/**
+ * Safe array conversion with proper type handling
+ * Fixed to properly handle the generic constraint
+ */
+export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  
+  if (Array.isArray(value)) {
+    return value;
+  }
+  
+  // Return array containing the single value
+  return [value];
+}
+
+/**
+ * Database table types for easier referencing
+ */
+export type Tables = Database['public']['Tables'];
+
+/**
+ * Type for payment status from database schema
+ */
+export type PaymentStatusType = Tables['unified_payments']['Row']['status'];
+
+/**
+ * Type for lease status from database schema
+ */
+export type LeaseStatusType = Tables['leases']['Row']['status'];
+
+/**
+ * Type for vehicle status from database schema
+ */
+export type VehicleStatusType = Tables['vehicles']['Row']['status'];
+
+/**
+ * Convert string to strongly typed payment status
+ */
+export function toPaymentStatus(status: string): PaymentStatusType {
+  return status as PaymentStatusType;
+}
+
+/**
+ * Convert string to strongly typed lease status
+ */
+export function toLeaseStatus(status: string): LeaseStatusType {
+  return status as LeaseStatusType;
+}
+
+/**
+ * Convert string to strongly typed vehicle status
+ */
+export function toVehicleStatus(status: string): VehicleStatusType {
+  return status as VehicleStatusType;
+}
+
+/**
+ * Handle Supabase response with proper error logging and type safety
+ */
+export function handleDatabaseResponse<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): Result<T> {
+  if (response?.error) {
+    const error = toAppError(response.error);
+    console.error('Database error:', error);
+    return createErrorResult<T>(error);
+  }
+  
+  if (!response?.data) {
+    const error = createDatabaseError('No data returned from database query', {
+      query: 'unknown',
+      params: {}
+    });
+    console.warn(error.message);
+    return createErrorResult<T>(error);
+  }
+  
+  return createSuccessResult(response.data as T);
+}
+
+/**
+ * Type assertion function to cast string ID to the database table's ID type
+ */
+export function castToTableId<T extends keyof Tables>(id: string, _table: T): Tables[T]['Row']['id'] {
+  return id as Tables[T]['Row']['id'];
+}
+
+/**
+ * Safe way to access properties from a Supabase response that might be an error
+ */
+export function safelyAccessProperty<T, K extends keyof T>(
+  obj: T | null | undefined, 
+  key: K, 
+  defaultValue?: T[K]
+): T[K] | undefined {
+  if (!obj) return defaultValue;
+  return (obj as any)[key] ?? defaultValue;
+}
+
+/**
+ * Type guard to check if an object has a specific property
+ */
+export function hasProperty<T extends object, K extends string>(
+  obj: T,
+  key: K
+): obj is T & Record<K, unknown> {
+  return key in obj;
+}
+
+/**
+ * Creates a strongly typed filter for a specific table column
+ */
+export function createTableColumnFilter<
+  T extends keyof Database['public']['Tables'],
+  C extends keyof Database['public']['Tables'][T]['Row']
+>(table: T, column: C) {
+  return function(value: Database['public']['Tables'][T]['Row'][C]) {
+    return { column: column as string, value };
+  };
+}
+
+/**
+ * Type-safe transformation of database response to application types
+ */
+export function transformDatabaseResponse<T, R>(
+  response: PostgrestSingleResponse<T[]> | PostgrestResponse<T[]>,
+  transformer: (data: T) => R
+): R[] {
+  const data = extractResponseData(response);
+  if (!data || !Array.isArray(data)) {
+    return [];
+  }
+  return data.map(transformer);
+}
+
+/**
+ * Validate that a value matches expected database enum values
+ */
+export function validateDatabaseEnum<T extends string>(
+  value: string,
+  validValues: readonly T[]
+): T | null {
+  return validValues.includes(value as T) ? (value as T) : null;
+}

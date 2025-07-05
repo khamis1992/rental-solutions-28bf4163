@@ -1,0 +1,169 @@
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import DashboardStats from './DashboardStats';
+import RevenueChart from './RevenueChart';
+import VehicleStatusChart from './VehicleStatusChart';
+import RecentActivity from './RecentActivity';
+import { RealTimeStatsWidget } from './RealTimeStatsWidget';
+import { SmartAlertsWidget } from './SmartAlertsWidget';
+import { AdvancedAnalyticsPanel } from './AdvancedAnalyticsPanel';
+import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
+import { useTranslation } from '@/utils/translation-helper';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+interface DashboardContentProps {
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  stats?: DashboardStatsType;
+  revenue: { name: string; revenue: number; }[];
+  activity: RecentActivityType[];
+  collapsedSections: {[key: string]: boolean};
+  onToggleSection: (section: string) => void;
+}
+
+export const DashboardContent: React.FC<DashboardContentProps> = ({
+  isLoading,
+  isError,
+  error,
+  stats,
+  revenue,
+  activity,
+  collapsedSections,
+  onToggleSection
+}) => {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
+  
+  if (isError) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-right" dir="rtl">
+        فشل في تحميل بيانات لوحة التحكم
+        {error && <p className="text-sm mt-1">{error.toString()}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('realtime')}
+          >
+            {collapsedSections['realtime'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">الإحصائيات المباشرة</h2>
+        </div>
+        {!collapsedSections['realtime'] && <RealTimeStatsWidget />}
+      </div>
+
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('alerts')}
+          >
+            {collapsedSections['alerts'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">التنبيهات الذكية</h2>
+        </div>
+        {!collapsedSections['alerts'] && <SmartAlertsWidget />}
+      </div>
+
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('kpis')}
+          >
+            {collapsedSections['kpis'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">المؤشرات الرئيسية</h2>
+        </div>
+        {!collapsedSections['kpis'] && <DashboardStats stats={stats} loading={isLoading} />}
+      </div>
+      
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('analytics')}
+          >
+            {collapsedSections['analytics'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">التحليلات المتقدمة</h2>
+        </div>
+        {!collapsedSections['analytics'] && <AdvancedAnalyticsPanel />}
+      </div>
+      
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <div className="flex items-center gap-2 space-x-reverse">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => onToggleSection('fleet')}
+            >
+              {collapsedSections['fleet'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+            <Badge variant="outline" className="bg-background">
+              {isLoading ? 'جاري التحميل...' : `إجمالي المركبات: ${stats?.vehicleStats.total || 0}`}
+            </Badge>
+          </div>
+          <h2 className="text-lg font-semibold text-right">حالة الأسطول</h2>
+        </div>
+        {!collapsedSections['fleet'] && (
+          isLoading ? <Skeleton className="h-[300px] w-full rounded-lg" /> : <VehicleStatusChart data={stats?.vehicleStats} />
+        )}
+      </div>
+      
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('revenue')}
+          >
+            {collapsedSections['revenue'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">تحليل الإيرادات</h2>
+        </div>
+        {!collapsedSections['revenue'] && (
+          isLoading ? <Skeleton className="h-[300px] w-full rounded-lg" /> : <RevenueChart data={revenue} />
+        )}
+      </div>
+      
+      <div className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('activity')}
+          >
+            {collapsedSections['activity'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+          <h2 className="text-lg font-semibold text-right">النشاط الأخير</h2>
+        </div>
+        {!collapsedSections['activity'] && (
+          isLoading ? <Skeleton className="h-[200px] w-full rounded-lg" /> : <RecentActivity activities={activity} />
+        )}
+      </div>
+    </div>
+  );
+};

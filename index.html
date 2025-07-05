@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    
+    <!-- تحسينات خاصة بالجوال -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    
+    <!-- تحسين الخطوط للجوال -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    
+    <!-- تحسين الموارد للجوال -->
+    <link rel="preload" href="/src/main.tsx" as="script" crossorigin />
+    <link rel="modulepreload" href="/src/main.tsx" />
+    
+    <!-- تحسينات CSS للجوال -->
+    <style>
+      /* مؤشر التحميل الأولي للجوال */
+      .initial-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      
+      .loader-content {
+        text-align: center;
+        max-width: 300px;
+        padding: 20px;
+      }
+      
+      .loader-logo {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        animation: pulse 2s infinite;
+      }
+      
+      .loader-text {
+        font-size: 18px;
+        margin-bottom: 10px;
+        font-weight: 600;
+      }
+      
+      .loader-subtext {
+        font-size: 14px;
+        opacity: 0.8;
+        margin-bottom: 30px;
+      }
+      
+      .progress-bar {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+      
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        border-radius: 2px;
+        width: 0%;
+        animation: loading 3s ease-out forwards;
+      }
+      
+      .loading-tips {
+        font-size: 12px;
+        opacity: 0.7;
+        line-height: 1.4;
+      }
+      
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.8; }
+      }
+      
+      @keyframes loading {
+        0% { width: 0%; }
+        30% { width: 30%; }
+        60% { width: 70%; }
+        100% { width: 100%; }
+      }
+      
+      /* إخفاء المؤشر عند التحميل */
+      .loaded .initial-loader {
+        opacity: 0;
+        transform: scale(1.1);
+        transition: all 0.5s ease;
+        pointer-events: none;
+      }
+      
+      /* تحسينات الخطوط للجوال */
+      @font-face {
+        font-family: 'Noto Sans Arabic';
+        font-display: swap;
+        font-weight: 400;
+        src: local('Noto Sans Arabic'), local('NotoSansArabic-Regular');
+      }
+      
+      /* CSS تحسينات أولية للجوال */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      
+      html {
+        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      body {
+        font-family: 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        color: #1f2937;
+        background: #ffffff;
+      }
+      
+      /* تحسين الأداء للجوال */
+      @media (max-width: 768px) {
+        body {
+          font-size: 14px;
+          touch-action: manipulation;
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        input, select, textarea {
+          font-size: 16px; /* منع zoom في iOS */
+        }
+      }
+    </style>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1e40af" />
+    <meta name="background-color" content="#ffffff" />
+    <meta name="display" content="standalone" />
+    <meta name="scope" content="/" />
+    <meta name="start_url" content="/" />
+    <meta name="description" content="Complete car rental management system with agreements, payments, maintenance tracking, and legal document generation" />
+    <meta name="keywords" content="car rental, vehicle management, rental agreements, fleet management, Al-Araf" />
+    
+    <!-- Apple Specific -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Al-Araf Rental" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png" />
+    
+    <!-- Splash Screens for iOS -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1536x2048.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-1668x2224.png" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2)" />
+    <link rel="apple-touch-startup-image" href="/splash/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)" />
+    
+    <!-- Microsoft Specific -->
+    <meta name="msapplication-TileColor" content="#1e40af" />
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Al-Araf Car Rental Management System" />
+    <meta property="og:description" content="Complete car rental management system with agreements, payments, maintenance tracking, and legal document generation" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+    <meta property="og:url" content="https://alaraf-rental.com" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Al-Araf Car Rental Management System" />
+    <meta name="twitter:description" content="Complete car rental management system" />
+    <meta name="twitter:image" content="/icons/icon-512x512.png" />
+    
+    <!-- Preconnect to improve performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://cdn.gpteng.co" />
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <title>Al-Araf Car Rental Management System</title>
+    
+    <!-- Lovable script tag -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+  </head>
+  <body>
+    <!-- مؤشر التحميل الأولي للجوال -->
+    <div class="initial-loader" id="initialLoader">
+      <div class="loader-content">
+        <div class="loader-logo">🚗</div>
+        <div class="loader-text">العراف لتأجير السيارات</div>
+        <div class="loader-subtext">تحميل النظام...</div>
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="loading-tips">
+          💡 نصيحة: استخدم الوضع الليلي لتوفير البطارية
+        </div>
+      </div>
+    </div>
+    
+    <div id="root"></div>
+    
+    <!-- خطوط PDF سيتم تحميلها عند الحاجة للجوال -->
+    
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration - DISABLED -->
+    <script>
+      // PWA Service Worker registration has been disabled
+      console.log('[PWA] Service Worker registration disabled');
+    
+      
+      // Install prompt handling
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show install button or banner
+        const installButton = document.getElementById('install-button');
+        if (installButton) {
+          installButton.style.display = 'block';
+          installButton.addEventListener('click', async () => {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to install prompt: ${outcome}`);
+            deferredPrompt = null;
+          });
+        }
+      });
+      
+      // Track install state
+      window.addEventListener('appinstalled', () => {
+        console.log('PWA was installed');
+        deferredPrompt = null;
+      });
+      
+      // Handle offline/online status with mobile optimizations
+      function updateOnlineStatus() {
+        const isOnline = navigator.onLine;
+        document.body.classList.toggle('offline', !isOnline);
+        
+        // إضافة مؤشر بصري للجوال
+        const statusIndicator = document.createElement('div');
+        statusIndicator.id = 'connection-status';
+        statusIndicator.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          background: ${isOnline ? '#10b981' : '#ef4444'};
+          color: white;
+          padding: 4px 12px;
+          border-radius: 0 0 8px 8px;
+          font-size: 12px;
+          z-index: 10000;
+          transition: transform 0.3s ease;
+          transform: translateX(-50%) ${isOnline ? 'translateY(-100%)' : 'translateY(0)'};
+        `;
+        statusIndicator.textContent = isOnline ? 'متصل' : 'غير متصل';
+        
+        // إزالة المؤشر السابق وإضافة الجديد
+        const existing = document.getElementById('connection-status');
+        if (existing) existing.remove();
+        if (!isOnline) document.body.appendChild(statusIndicator);
+        
+        // Dispatch custom event
+        window.dispatchEvent(new CustomEvent('connection-changed', { 
+          detail: { online: isOnline } 
+        }));
+      }
+      
+      // تحسينات خاصة بالجوال
+      function initMobileOptimizations() {
+        // تحسين اللمس للجوال
+        document.addEventListener('touchstart', function() {}, { passive: true });
+        
+        // منع zoom عند النقر المزدوج
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+          const now = (new Date()).getTime();
+          if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+          }
+          lastTouchEnd = now;
+        }, false);
+        
+        // تحسين الأداء للجوال
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => {
+            // تحميل الموارد غير الضرورية في وقت الخمول
+            console.log('🔧 تحسين الأداء للجوال مفعل');
+          });
+        }
+        
+        // مراقبة استخدام الذاكرة للجوال
+        if (performance.memory) {
+          const memoryInfo = performance.memory;
+          const usedMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
+          console.log(`📱 ذاكرة مستخدمة: ${usedMB}MB`);
+        }
+      }
+      
+      window.addEventListener('online', updateOnlineStatus);
+      window.addEventListener('offline', updateOnlineStatus);
+      window.addEventListener('load', initMobileOptimizations);
+      updateOnlineStatus();
+      
+      // إخفاء مؤشر التحميل عند اكتمال تحميل التطبيق  
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const loader = document.getElementById('initialLoader');
+          if (loader) {
+            document.body.classList.add('loaded');
+            setTimeout(() => {
+              loader.style.display = 'none';
+            }, 500);
+          }
+        }, 1000);
+      });
+    </script>
+  </body>
+</html>

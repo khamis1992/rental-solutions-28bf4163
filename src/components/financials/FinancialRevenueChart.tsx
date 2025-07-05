@@ -1,0 +1,243 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
+import { formatCurrency } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { LineChart, BarChart } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RevenueData } from './revenue/types';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+interface RevenueChartProps {
+  data: RevenueData[];
+  title?: string;
+  description?: string;
+  fullWidth?: boolean;
+}
+
+const FinancialRevenueChart: React.FC<RevenueChartProps> = ({ 
+  data = [], 
+  title,
+  description,
+  fullWidth = false 
+}) => {
+  const [timePeriod, setTimePeriod] = useState<string>("6");
+  const [viewType, setViewType] = useState<'area' | 'bar'>('area');
+  const { language } = useLanguage();
+  
+  const ensureCompleteData = (inputData: RevenueData[]): RevenueData[] => {
+    if (!inputData || !Array.isArray(inputData) || inputData.length === 0) {
+      console.log("No revenue data provided, showing placeholder data");
+      const months = language === 'ar' ? 
+        ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس'] :
+        ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+      return months.map(month => ({
+        name: month,
+        revenue: Math.floor(Math.random() * 5000) + 3000,
+        expenses: Math.floor(Math.random() * 3000) + 2000
+      }));
+    }
+    
+    console.log("Processing revenue chart data:", inputData);
+    
+    // Ensure each data item has revenue and expenses properties
+    return inputData.map(item => ({
+      ...item,
+      name: item.name || (language === 'ar' ? 'غير معروف' : 'Unknown'),
+      revenue: typeof item.revenue === 'number' ? item.revenue : 0,
+      expenses: typeof item.expenses === 'number' ? item.expenses : Math.floor((item.revenue || 0) * 0.6)
+    }));
+  };
+  
+  const chartData = ensureCompleteData(data);
+
+  const getFilteredData = () => {
+    const months = parseInt(timePeriod);
+    if (months && chartData && chartData.length > months) {
+      return chartData.slice(-months);
+    }
+    return chartData;
+  };
+
+  const filteredData = getFilteredData();
+  
+  const getProfit = (revenue: number, expenses: number) => {
+    return revenue - expenses;
+  };
+
+  const getCurrentMonth = () => {
+    const date = new Date();
+    if (language === 'ar') {
+      const arabicGregorianMonths = [
+        'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+        'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+      ];
+      return arabicGregorianMonths[date.getMonth()];
+    }
+    return date.toLocaleDateString('en-US', { month: 'long' });
+  };
+
+  const currentMonth = getCurrentMonth();
+  const chartTitle = title || (language === 'ar' ? `نظرة عامة على إيرادات ${currentMonth}` : `${currentMonth} Revenue Overview`);
+  const chartDescription = description || (language === 'ar' ? `اتجاهات الإيرادات والمصروفات والأرباح لشهر ${currentMonth}` : `Revenue, expenses, and profit trends for ${currentMonth}`);
+
+  return (
+    <Card className={`card-transition ${fullWidth ? 'col-span-full' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <CardHeader className={`flex flex-row items-center justify-between pb-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+        <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+          <CardTitle className="text-xl font-bold">{chartTitle}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">{chartDescription}</p>
+        </div>
+        <div className={`flex items-center ${language === 'ar' ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
+          <div className="flex items-center rounded-md border p-1">
+            <Button
+              variant={viewType === 'area' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewType('area')}
+              className="h-8 w-8 p-0"
+            >
+              <LineChart className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewType === 'bar' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewType('bar')}
+              className="h-8 w-8 p-0"
+            >
+              <BarChart className="h-4 w-4" />
+            </Button>
+          </div>
+          <Select value={timePeriod} onValueChange={setTimePeriod}>
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder={language === 'ar' ? 'اختيار الفترة' : 'Select Period'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3">{language === 'ar' ? 'آخر 3 أشهر' : 'Last 3 months'}</SelectItem>
+              <SelectItem value="6">{language === 'ar' ? 'آخر 6 أشهر' : 'Last 6 months'}</SelectItem>
+              <SelectItem value="12">{language === 'ar' ? 'آخر 12 شهراً' : 'Last 12 months'}</SelectItem>
+              <SelectItem value="24">{language === 'ar' ? 'آخر 24 شهراً' : 'Last 24 months'}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={filteredData}
+              margin={{
+                top: 20,
+                right: 30,
+                left: 20,
+                bottom: 10,
+              }}
+            >
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#4ade80" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#4ade80" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis 
+                dataKey="name" 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+              />
+              <YAxis 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+                tickFormatter={(value) => formatCurrency(value).split('.')[0]}
+              />
+              <Tooltip 
+                formatter={(value: number, name: any) => {
+                  if (name === 'expenses') return [
+                    formatCurrency(value), 
+                    language === 'ar' ? 'المصروفات' : 'Expenses'
+                  ];
+                  return [
+                    formatCurrency(value), 
+                    language === 'ar' ? 'الإيرادات' : 'Revenue'
+                  ];
+                }}
+                labelFormatter={(label) => language === 'ar' ? `الشهر: ${label}` : `Month: ${label}`}
+                content={({ active, payload, label }: any) => {
+                  if (active && payload && payload.length) {
+                    const revenue = payload[0]?.value as number || 0;
+                    const expenses = payload[1]?.value as number || 0;
+                    const profit = getProfit(revenue, expenses);
+                    
+                    return (
+                      <div className={`custom-tooltip bg-white p-3 border border-gray-200 rounded-md shadow ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                        <p className="font-medium">{label}</p>
+                        <p className="text-blue-600">
+                          {language === 'ar' ? 'الإيرادات: ' : 'Revenue: '}
+                          {formatCurrency(revenue)}
+                        </p>
+                        <p className="text-green-600">
+                          {language === 'ar' ? 'المصروفات: ' : 'Expenses: '}
+                          {formatCurrency(expenses)}
+                        </p>
+                        <p className={`font-medium ${profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          {language === 'ar' ? 'الربح: ' : 'Profit: '}
+                          {formatCurrency(profit)}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend 
+                formatter={(value) => language === 'ar' ? (value === 'Revenue' ? 'الإيرادات' : 'المصروفات') : value}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="revenue" 
+                name="Revenue"
+                stackId="1"
+                stroke="#8884d8" 
+                fillOpacity={1} 
+                fill="url(#colorRevenue)" 
+                strokeWidth={2}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="expenses" 
+                name="Expenses"
+                stackId="2"
+                stroke="#4ade80" 
+                fillOpacity={1} 
+                fill="url(#colorExpenses)" 
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default FinancialRevenueChart;

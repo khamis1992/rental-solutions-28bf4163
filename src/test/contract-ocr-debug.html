@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار استخراج العقود - تشخيص المشكلة</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 اختبار استخراج العقود - تشخيص المشكلة</h1>
+    
+    <div class="card">
+        <h2>📁 رفع ملف العقد</h2>
+        <input type="file" id="fileInput" accept=".pdf,image/*">
+        <button class="button" onclick="testExtraction()">🧪 اختبار الاستخراج</button>
+        <button class="button" onclick="testGoogleVision()">🔍 اختبار Google Vision مباشرة</button>
+        <button class="button" onclick="clearResults()">🗑️ مسح النتائج</button>
+    </div>
+
+    <div class="card">
+        <h2>📊 نتائج الاختبار</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // تحميل الخدمات (محاكاة)
+        const mockContractData = {
+            customer: {
+                fullName: "محمد علي فتوح",
+                nationality: "تونس",
+                idNumber: "28278801203",
+                phone: "33779853",
+                address: "الدوحة، قطر"
+            },
+            vehicle: {
+                make: "BESTUNE",
+                model: "T77",
+                year: 2023,
+                plateNumber: "2767",
+                chassisNumber: "",
+                color: ""
+            },
+            contract: {
+                startDate: new Date().toISOString().split('T')[0],
+                monthlyAmount: 0,
+                duration: 12,
+                contractNumber: `OCR-${Date.now()}`
+            },
+            confidence: 85,
+            rawText: "محمد علي فتوح تونس 28278801203 33779853 BESTUNE T77 2023 2767"
+        };
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString('ar-QA')}] ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testExtraction() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                addResult('❌ يرجى اختيار ملف أولاً', 'error');
+                return;
+            }
+
+            addResult(`📁 بدء اختبار الملف: ${file.name}`, 'info');
+            addResult(`📏 حجم الملف: ${(file.size / 1024 / 1024).toFixed(2)} MB`, 'info');
+            addResult(`📄 نوع الملف: ${file.type}`, 'info');
+
+            try {
+                // محاكاة عملية الاستخراج
+                addResult('🔍 بدء عملية الاستخراج...', 'info');
+                
+                // محاكاة تأخير
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // محاكاة النتيجة الناجحة
+                addResult('✅ تم الاستخراج بنجاح!', 'success');
+                addResult(`👤 اسم العميل: ${mockContractData.customer.fullName}`, 'success');
+                addResult(`🆔 رقم الهوية: ${mockContractData.customer.idNumber}`, 'success');
+                addResult(`📱 الهاتف: ${mockContractData.customer.phone}`, 'success');
+                addResult(`🚗 المركبة: ${mockContractData.vehicle.make} ${mockContractData.vehicle.model}`, 'success');
+                addResult(`🔢 رقم اللوحة: ${mockContractData.vehicle.plateNumber}`, 'success');
+                addResult(`📊 مستوى الثقة: ${mockContractData.confidence}%`, 'success');
+
+                // عرض البيانات الخام
+                addResult('📋 البيانات الكاملة:', 'info');
+                addResult(JSON.stringify(mockContractData, null, 2), 'info');
+
+            } catch (error) {
+                addResult(`❌ فشل الاستخراج: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGoogleVision() {
+            addResult('🔍 اختبار Google Vision API...', 'info');
+            
+            try {
+                // محاكاة اختبار API
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                addResult('✅ Google Vision API متاح ويعمل', 'success');
+                addResult('🔑 API Key: معرف من متغيرات البيئة', 'info');
+                addResult('🌐 URL: https://vision.googleapis.com/v1/images:annotate', 'info');
+                
+                // محاكاة نتيجة OCR
+                addResult('📝 نتيجة OCR المحاكاة:', 'info');
+                addResult(mockContractData.rawText, 'success');
+                
+            } catch (error) {
+                addResult(`❌ فشل اختبار Google Vision: ${error.message}`, 'error');
+            }
+        }
+
+        // تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            addResult('🚀 تم تحميل صفحة الاختبار بنجاح', 'success');
+            addResult('📋 هذه محاكاة لاختبار النظام', 'warning');
+            addResult('🎯 النتائج المعروضة هي بيانات تجريبية من العقد المرفق', 'info');
+        });
+    </script>
+</body>
+</html> 

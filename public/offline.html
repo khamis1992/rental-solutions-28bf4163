@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>غير متصل - نظام إدارة تأجير السيارات</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 500px;
+            padding: 2rem;
+        }
+        
+        .icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 300;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .status {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">العراف</div>
+        <div class="icon pulse">📱</div>
+        <h1>أنت غير متصل بالإنترنت</h1>
+        <p>لا تقلق! يمكنك الاستمرار في استخدام العديد من ميزات التطبيق. سيتم مزامنة بياناتك عند عودة الاتصال.</p>
+        
+        <a href="/" class="btn" onclick="window.location.reload()">إعادة المحاولة</a>
+        <a href="/" class="btn">العودة للتطبيق</a>
+        
+        <div class="status">
+            <div>📊 يمكنك عرض البيانات المحفوظة محلياً</div>
+            <div>💾 سيتم حفظ التغييرات ومزامنتها لاحقاً</div>
+            <div>🔄 التطبيق سيعمل تلقائياً عند عودة الإنترنت</div>
+        </div>
+    </div>
+    
+    <script>
+        // Check for network status
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                // Redirect to main app when back online
+                window.location.href = '/';
+            }
+        }
+        
+        // Listen for online/offline events
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // Check every 5 seconds
+        setInterval(updateOnlineStatus, 5000);
+        
+        // Auto-retry after 10 seconds
+        setTimeout(() => {
+            updateOnlineStatus();
+        }, 10000);
+    </script>
+</body>
+</html>

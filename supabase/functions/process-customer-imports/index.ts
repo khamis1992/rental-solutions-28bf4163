@@ -1,0 +1,366 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "../../lib/cors.ts";
+import { getSupabaseClient } from "../../lib/supabaseClient.ts";
+import { ErrorLogger } from "../../lib/errorLogger.ts";
+
+function createErrorResponse(message: string, code = 'UNKNOWN_ERROR', details?: any) {
+  return {
+    success: false,
+    error: { code, message, details }
+  };
+}
+
+function createSuccessResponse(data: any, message?: string) {
+  return {
+    success: true,
+    data,
+    message
+  };
+}
+
+serve(async (req) => {
+  const errorLogger = ErrorLogger.getInstance();
+  const requestId = crypto.randomUUID();
+
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Check if this is a test request
+    const body = await req.json();
+    if (body.test === true) {
+      console.log("Test request received, returning success");
+      return new Response(
+        JSON.stringify(createSuccessResponse({ status: 'available' }, "Customer import function is available")),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+    
+    const { importId } = body;
+    
+    if (!importId) {
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: 'Import ID is required',
+        severity: 'medium',
+        context: { requestBody: body },
+        request_id: requestId
+      });
+
+      return new Response(
+        JSON.stringify(createErrorResponse("Import ID is required", "VALIDATION_ERROR")),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Create Supabase client with service role key
+    const supabase = getSupabaseClient();
+
+    console.log(`Processing import ID: ${importId}`);
+
+    // Get the import record
+    const { data: importRecord, error: importError } = await supabase
+      .from("customer_import_logs")
+      .select("*")
+      .eq("id", importId)
+      .single();
+
+    if (importError || !importRecord) {
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: importError || new Error("Import record not found"),
+        severity: 'high',
+        context: { importId },
+        request_id: requestId
+      });
+
+      return new Response(
+        JSON.stringify(createErrorResponse(importError?.message || "Import record not found", "NOT_FOUND")),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+      );
+    }
+
+    console.log(`Found import record: ${importRecord.file_name}`);
+
+    // Update status to processing if not already
+    if (importRecord.status !== "processing") {
+      await supabase
+        .from("customer_import_logs")
+        .update({ status: "processing", updated_at: new Date().toISOString() })
+        .eq("id", importId);
+    }
+
+    // Get the CSV file from storage
+    const { data: fileData, error: fileError } = await supabase
+      .storage
+      .from("customer-imports")
+      .download(importRecord.file_name);
+
+    if (fileError || !fileData) {
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: fileError || new Error("Failed to download file"),
+        severity: 'high',
+        context: { importId, fileName: importRecord.file_name },
+        request_id: requestId
+      });
+
+      // Update import record with error
+      await supabase
+        .from("customer_import_logs")
+        .update({ 
+          status: "failed", 
+          error_count: 1,
+          errors: JSON.stringify([{ message: `File download error: ${fileError?.message || "Unknown error"}` }]),
+          updated_at: new Date().toISOString() 
+        })
+        .eq("id", importId);
+        
+      return new Response(
+        JSON.stringify(createErrorResponse(fileError?.message || "Failed to download file", "FILE_ERROR")),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
+    // Parse CSV content
+    const csvText = await fileData.text();
+    const rows = csvText.split("\n").map(line => line.trim()).filter(line => line.length > 0);
+    
+    if (rows.length <= 1) {
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: 'CSV file has no data rows',
+        severity: 'medium',
+        context: { importId, fileName: importRecord.file_name },
+        request_id: requestId
+      });
+
+      // Update import record with error
+      await supabase
+        .from("customer_import_logs")
+        .update({ 
+          status: "failed", 
+          error_count: 1,
+          errors: JSON.stringify([{ message: "CSV file has no data rows" }]),
+          updated_at: new Date().toISOString() 
+        })
+        .eq("id", importId);
+        
+      return new Response(
+        JSON.stringify(createErrorResponse("CSV file has no data rows", "VALIDATION_ERROR")),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Extract headers and validate
+    const headers = rows[0].split(",").map(header => header.trim());
+    console.log("CSV Headers:", headers);
+    
+    // Process each row
+    const processedCustomers = [];
+    const errors = [];
+    let processedCount = 0;
+    let errorCount = 0;
+    
+    // Get mapping from CSV header to database fields
+    const { data: mappingData } = await supabase
+      .from("csv_import_mappings")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1);
+      
+    const fieldMappings = mappingData && mappingData.length > 0 
+      ? mappingData[0].field_mappings 
+      : {
+          "Full Name": "full_name",
+          "Email": "email",
+          "Phone": "phone_number",
+          "Driver License": "driver_license",
+          "Nationality": "nationality",
+          "Address": "address",
+          "Status": "status",
+          "Notes": "notes"
+        };
+    
+    // Process each data row (skip header)
+    for (let i = 1; i < rows.length; i++) {
+      try {
+        const row = rows[i];
+        const values = parseCSVLine(row);
+        
+        if (values.length !== headers.length) {
+          const error = {
+            row: i,
+            message: `Row ${i} has ${values.length} values but should have ${headers.length}`
+          };
+          errors.push(error);
+          errorCount++;
+
+          await errorLogger.logError({
+            service: 'customer-imports',
+            function_name: 'process-customer-imports',
+            error: error.message,
+            severity: 'low',
+            context: { importId, rowNumber: i, values, headers },
+            request_id: requestId
+          });
+
+          continue;
+        }
+        
+        // Create customer object from CSV row
+        const customer = {};
+        headers.forEach((header, index) => {
+          const dbField = fieldMappings[header];
+          if (dbField && values[index] !== undefined) {
+            customer[dbField] = values[index];
+          }
+        });
+        
+        // Add required fields
+        customer["role"] = "customer";
+        
+        // Validate phone number format (if exists)
+        if (customer["phone_number"]) {
+          // Strip any non-numeric characters
+          let phone = customer["phone_number"].replace(/\D/g, "");
+          
+          // Handle country code for Qatar numbers
+          if (!phone.startsWith("+974") && phone.length === 8) {
+            phone = `+974${phone}`;
+          }
+          
+          customer["phone_number"] = phone;
+        }
+        
+        // Insert customer into profiles table
+        const { data: insertedCustomer, error: insertError } = await supabase
+          .from("profiles")
+          .insert([customer])
+          .select();
+        
+        if (insertError) {
+          const error = {
+            row: i,
+            data: customer,
+            message: insertError.message
+          };
+          errors.push(error);
+          errorCount++;
+
+          await errorLogger.logError({
+            service: 'customer-imports',
+            function_name: 'process-customer-imports',
+            error: insertError,
+            severity: 'medium',
+            context: { importId, rowNumber: i, customer },
+            request_id: requestId
+          });
+        } else {
+          processedCustomers.push(insertedCustomer[0]);
+          processedCount++;
+        }
+      } catch (err) {
+        const error = {
+          row: i,
+          message: err.message
+        };
+        errors.push(error);
+        errorCount++;
+
+        await errorLogger.logError({
+          service: 'customer-imports',
+          function_name: 'process-customer-imports',
+          error: err,
+          severity: 'medium',
+          context: { importId, rowNumber: i },
+          request_id: requestId
+        });
+      }
+    }
+    
+    // Update import record with results
+    const { error: updateError } = await supabase
+      .from("customer_import_logs")
+      .update({
+        status: errorCount > 0 ? (processedCount > 0 ? "completed_with_errors" : "failed") : "completed",
+        processed_count: processedCount,
+        error_count: errorCount,
+        errors: errors.length > 0 ? JSON.stringify(errors) : null,
+        row_count: rows.length - 1,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", importId);
+    
+    if (updateError) {
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: updateError,
+        severity: 'high',
+        context: { importId, processedCount, errorCount },
+        request_id: requestId
+      });
+    }
+    
+    return new Response(
+      JSON.stringify(createSuccessResponse({
+        processed: processedCount,
+        errors: errorCount,
+        importId,
+        details: {
+          processedCustomers,
+          errors: errors.length > 0 ? errors : undefined
+        }
+      }, `Successfully processed ${processedCount} customers with ${errorCount} errors`)),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (err) {
+    await errorLogger.logError({
+      service: 'customer-imports',
+      function_name: 'process-customer-imports',
+      error: err,
+      severity: 'critical',
+      context: { requestBody: await req.json() },
+      request_id: requestId
+    });
+
+    return new Response(
+      JSON.stringify(createErrorResponse(err.message, "INTERNAL_ERROR", err)),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+});
+
+// Helper function to properly parse CSV lines with quoted values
+function parseCSVLine(line) {
+  const values = [];
+  let inQuotes = false;
+  let currentValue = "";
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"' && (i === 0 || line[i-1] !== '\\')) {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      values.push(currentValue.trim());
+      currentValue = "";
+    } else {
+      currentValue += char;
+    }
+  }
+  
+  // Add the last value
+  values.push(currentValue.trim());
+  
+  // Clean up values - remove surrounding quotes
+  return values.map(val => val.replace(/^"|"$/g, ''));
+}
