@@ -59,6 +59,18 @@ export interface ContractOcrResult {
       finalCorrections: string[];
       confidenceLevel: number;
     };
+    diagnostics?: {
+      issue: string;
+      severity: 'low' | 'medium' | 'high';
+      suggestion: string;
+      technicalDetails: string;
+    };
+    ocrDiagnostics?: {
+      issue: string;
+      severity: 'low' | 'medium' | 'high';
+      suggestion: string;
+      technicalDetails: string;
+    };
     warningMessage?: string;
   };
 }
@@ -83,6 +95,7 @@ class CarRentalContractOcrService {
       console.log('🚀 بدء استخراج البيانات من العقد...');
       
       let extractedText: string;
+      let diagnostics: any = null;
       
       // التحقق إذا كان النص مباشر أم صورة
       if (imageBase64.length > 500 && !imageBase64.includes('data:image') && !imageBase64.match(/^[A-Za-z0-9+/]*={0,2}$/)) {
@@ -94,15 +107,36 @@ class CarRentalContractOcrService {
         console.log('🖼️ استخراج النص من الصورة...');
         const visionResult = await this.extractTextWithGoogleVision(imageBase64);
         
-        if (!visionResult) {
+        if (!visionResult.text) {
+          // إذا فشل OCR، إرجاع نموذج فارغ مع تشخيص المشكلة
+          console.warn('⚠️ فشل في استخراج النص - إنشاء نموذج فارغ للملء اليدوي');
+          
           return {
             success: false,
-            error: 'لم يتم العثور على نص في الصورة',
-            confidence: 0
+            data: this.createEmptyFormData(),
+            error: `فشل في قراءة العقد: ${visionResult.diagnostics?.suggestion || 'يرجى إدخال البيانات يدوياً'}`,
+            confidence: 0,
+            rawText: '',
+            debugInfo: {
+              extractionMethod: 'manual_entry_required',
+              processedText: '',
+              foundPatterns: [],
+              validationResults: {},
+              advancedAnalysis: {
+                textProcessingSteps: ['فشل في استخراج النص من الصورة'],
+                patternMatching: [],
+                contextualInference: [],
+                finalCorrections: [],
+                confidenceLevel: 0
+              },
+              diagnostics: visionResult.diagnostics,
+              warningMessage: `${visionResult.diagnostics?.issue || 'فشل في قراءة العقد'} - ${visionResult.diagnostics?.suggestion || 'يرجى إدخال البيانات يدوياً'}`
+            }
           };
         }
         
-        extractedText = visionResult;
+        extractedText = visionResult.text;
+        diagnostics = visionResult.diagnostics;
       }
 
       console.log('✅ تم الحصول على النص بنجاح');
@@ -110,24 +144,57 @@ class CarRentalContractOcrService {
       // الخطوة 2: تحليل النص باستخدام ChatGPT أو التحليل المحسن
       const result = await this.analyzeTextWithChatGPT(extractedText);
       
+      // إضافة معلومات التشخيص إذا كانت متوفرة
+      if (diagnostics && result.debugInfo) {
+        result.debugInfo.ocrDiagnostics = diagnostics;
+      }
+      
       return result;
 
     } catch (error) {
       console.error('❌ فشل في الاستخراج:', error);
+      
+      // في حالة الخطأ، إرجاع نموذج فارغ مع تشخيص الخطأ
+      const diagnostics = await this.diagnoseOcrFailure(imageBase64, error);
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'خطأ غير معروف',
-        confidence: 0
+        data: this.createEmptyFormData(),
+        error: `خطأ في معالجة العقد: ${diagnostics.suggestion}`,
+        confidence: 0,
+        rawText: '',
+        debugInfo: {
+          extractionMethod: 'manual_entry_required',
+          processedText: '',
+          foundPatterns: [],
+          validationResults: {},
+          advancedAnalysis: {
+            textProcessingSteps: ['فشل في معالجة العقد'],
+            patternMatching: [],
+            contextualInference: [],
+            finalCorrections: [],
+            confidenceLevel: 0
+          },
+          diagnostics,
+          warningMessage: `${diagnostics.issue} - ${diagnostics.suggestion}`
+        }
       };
     }
   }
 
   /**
-   * استخراج النص من الصورة باستخدام Google Vision OCR
+   * استخراج النص من الصورة باستخدام Google Vision OCR مع تشخيص محسن
    */
-  private async extractTextWithGoogleVision(imageBase64: string): Promise<string | null> {
+  private async extractTextWithGoogleVision(imageBase64: string): Promise<{ text: string | null; diagnostics?: any }> {
     try {
       console.log('📄 استخدام Google Vision API لاستخراج النص...');
+      
+      // فحص أولي للملف
+      if (!this.googleVisionApiKey) {
+        console.warn('⚠️ Google Vision API Key غير متوفر');
+        const diagnostics = await this.diagnoseOcrFailure(imageBase64);
+        return { text: null, diagnostics };
+      }
       
       const requestPayload = {
         requests: [
@@ -157,57 +224,155 @@ class CarRentalContractOcrService {
       });
 
       if (!response.ok) {
-        console.warn('⚠️ Google Vision API error, using fallback system');
-        return this.getFallbackContractText();
+        console.warn('⚠️ Google Vision API error:', response.status, response.statusText);
+        const diagnostics = await this.diagnoseOcrFailure(imageBase64, { message: `API Error: ${response.status}` });
+        return { text: null, diagnostics };
       }
 
       const result = await response.json();
       const responseData = result.responses?.[0];
       
       if (!responseData?.textAnnotations || responseData.textAnnotations.length === 0) {
-        console.warn('⚠️ No text detected, using fallback system');
-        return this.getFallbackContractText();
+        console.warn('⚠️ No text detected in image');
+        const diagnostics = await this.diagnoseOcrFailure(imageBase64);
+        return { text: null, diagnostics };
       }
 
       const fullText = responseData.textAnnotations[0]?.description || '';
       console.log('📄 تم استخراج النص بنجاح، الطول:', fullText.length);
       
-      return fullText;
+      // فحص جودة النص المستخرج
+      if (fullText.length < 50) {
+        console.warn('⚠️ النص المستخرج قصير جداً');
+        const diagnostics = await this.diagnoseOcrFailure(imageBase64);
+        return { text: fullText, diagnostics };
+      }
+      
+      return { text: fullText };
     } catch (error) {
-      console.warn('⚠️ فشل في استخراج النص، استخدام النظام البديل:', error);
-      return this.getFallbackContractText();
+      console.error('❌ فشل في استخراج النص:', error);
+      const diagnostics = await this.diagnoseOcrFailure(imageBase64, error);
+      return { text: null, diagnostics };
     }
   }
 
   /**
-   * نظام بديل لإنشاء نص العقد النموذجي
+   * نظام تشخيص محسن لتحديد سبب فشل OCR
    */
-  private getFallbackContractText(): string {
-    const sampleContractText = `
-      اتفاقية إيجار مركبة
-      
-      الطرف الأول: شركة العراف لتأجير السيارات
-      الطرف الثاني: أحمد محمد الكعبي
-      رقم الهوية القطرية: 28278801203
-      رقم الهاتف: 33567890
-      الجنسية: قطري
-      
-      بيانات المركبة:
-      الماركة: تويوتا
-      رقم اللوحة: 123456
-      رقم الشاسيه: JT2BF18K0X0123456
-      سنة الصنع: 2023
-      اللون: أبيض
-      
-      تفاصيل العقد:
-      تاريخ البداية: ${new Date().toISOString().split('T')[0]}
-      الإيجار الشهري: 2500 ريال قطري
-      مدة العقد: 12 شهر
-      مبلغ الضمان: 5000 ريال قطري
-    `;
-    
-    console.log('📄 تم إنشاء نص العقد النموذجي بنجاح');
-    return sampleContractText;
+  private async diagnoseOcrFailure(imageBase64: string, error?: any): Promise<{
+    issue: string;
+    severity: 'low' | 'medium' | 'high';
+    suggestion: string;
+    technicalDetails: string;
+  }> {
+    try {
+      // فحص نوع الملف وجودته
+      if (!imageBase64 || imageBase64.length < 100) {
+        return {
+          issue: 'الملف فارغ أو تالف',
+          severity: 'high',
+          suggestion: 'يرجى إعادة رفع ملف صحيح أو التقاط صورة جديدة',
+          technicalDetails: 'File is empty or corrupted'
+        };
+      }
+
+      // فحص نوع البيانات
+      if (!imageBase64.startsWith('data:image/') && !imageBase64.match(/^[A-Za-z0-9+/]*={0,2}$/)) {
+        return {
+          issue: 'نوع الملف غير مدعوم',
+          severity: 'high',
+          suggestion: 'يرجى استخدام ملفات الصور (PNG, JPG) أو PDF فقط',
+          technicalDetails: 'Unsupported file format'
+        };
+      }
+
+      // فحص حجم الملف
+      const sizeInBytes = Math.ceil(imageBase64.length * 0.75);
+      if (sizeInBytes > 10 * 1024 * 1024) { // 10MB
+        return {
+          issue: 'حجم الملف كبير جداً',
+          severity: 'medium',
+          suggestion: 'يرجى تقليل حجم الصورة أو جودتها',
+          technicalDetails: `File size: ${Math.round(sizeInBytes / 1024 / 1024)}MB`
+        };
+      }
+
+      // فحص الاتصال بالإنترنت
+      if (error && error.message && error.message.includes('network')) {
+        return {
+          issue: 'مشكلة في الاتصال بالإنترنت',
+          severity: 'high',
+          suggestion: 'يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى',
+          technicalDetails: 'Network connectivity issue'
+        };
+      }
+
+      // فحص API keys
+      if (!this.googleVisionApiKey) {
+        return {
+          issue: 'خدمة التعرف على النصوص غير متوفرة',
+          severity: 'high',
+          suggestion: 'يرجى إدخال البيانات يدوياً',
+          technicalDetails: 'Google Vision API key not configured'
+        };
+      }
+
+      // فحص عام للأخطاء
+      if (error) {
+        return {
+          issue: 'خطأ في معالجة الصورة',
+          severity: 'medium',
+          suggestion: 'يرجى المحاولة مرة أخرى أو إدخال البيانات يدوياً',
+          technicalDetails: error.message || 'Unknown processing error'
+        };
+      }
+
+      return {
+        issue: 'لم يتم العثور على نص واضح في الصورة',
+        severity: 'medium',
+        suggestion: 'يرجى التأكد من وضوح النص في الصورة أو إدخال البيانات يدوياً',
+        technicalDetails: 'No clear text detected in image'
+      };
+    } catch (diagError) {
+      return {
+        issue: 'خطأ في التشخيص',
+        severity: 'low',
+        suggestion: 'يرجى المحاولة مرة أخرى',
+        technicalDetails: `Diagnostic error: ${diagError}`
+      };
+    }
+  }
+
+  /**
+   * إنشاء نموذج فارغ للملء اليدوي - بدون بيانات وهمية
+   */
+  private createEmptyFormData(): CarRentalContractData {
+    return {
+      customer: {
+        fullName: '',
+        nationality: '',
+        qidNumber: '',
+        licenseNumber: '',
+        address: 'الدوحة',
+        phoneNumber: ''
+      },
+      vehicle: {
+        brand: '',
+        registrationNumber: '',
+        chassisNumber: '',
+        manufacturingYear: '',
+        model: '',
+        color: ''
+      },
+      contract: {
+        startDate: '',
+        monthlyRent: 0,
+        contractDuration: 12,
+        contractNumber: '',
+        depositAmount: 0
+      },
+      rawText: ''
+    };
   }
 
   /**

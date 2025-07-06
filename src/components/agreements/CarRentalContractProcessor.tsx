@@ -112,13 +112,48 @@ const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
         setEditableData(result.data);
         setCurrentStep(3);
         
-        toast.success("تم معالجة العقد بنجاح! 🎉", {
-          description: `تم استخراج البيانات بثقة ${result.confidence}%`,
-        });
+        const confidenceLevel = result.confidence || 0;
+        
+        // عرض رسالة مناسبة حسب مستوى الثقة والنتيجة
+        if (confidenceLevel > 70) {
+          toast.success("تم معالجة العقد بنجاح! 🎉", {
+            description: `تم استخراج البيانات بثقة ${confidenceLevel}%`,
+          });
+        } else if (confidenceLevel > 40) {
+          toast.warning("تم معالجة العقد جزئياً ⚠️", {
+            description: `تم استخراج بعض البيانات (${confidenceLevel}%) - يرجى مراجعة وتصحيح البيانات`,
+          });
+        } else {
+          toast.info("تم إنشاء نموذج فارغ للملء اليدوي 📝", {
+            description: "لم يتم استخراج البيانات تلقائياً - يرجى ملء البيانات يدوياً",
+          });
+        }
       } else {
-        toast.error("فشل في معالجة العقد", {
-          description: result.error || "حدث خطأ غير معروف",
-        });
+        // في حالة الفشل، إظهار رسالة تشخيص مفيدة
+        const errorMessage = result.debugInfo?.warningMessage || result.error || "فشل في معالجة العقد";
+        const diagnostics = result.debugInfo?.diagnostics;
+        
+        if (diagnostics) {
+          // إظهار رسالة تشخيص مفصلة
+          toast.error(`خطأ في قراءة العقد: ${diagnostics.issue}`, {
+            description: diagnostics.suggestion,
+            duration: 6000,
+          });
+          
+          // إذا كانت البيانات متوفرة حتى لو فشل OCR، اعرضها
+          if (result.data) {
+            setEditableData(result.data);
+            setCurrentStep(3);
+            
+            toast.info("تم إنشاء نموذج فارغ للملء اليدوي 📝", {
+              description: "يرجى ملء البيانات يدوياً لإنشاء الاتفاقية",
+            });
+          }
+        } else {
+          toast.error("فشل في معالجة العقد", {
+            description: errorMessage,
+          });
+        }
       }
       
     } catch (error) {
