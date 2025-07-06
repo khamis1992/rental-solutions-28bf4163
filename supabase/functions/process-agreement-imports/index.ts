@@ -1,16 +1,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://deno.land/x/zod@v3.16.1/mod.ts';
-import { corsHeaders } from '../../lib/cors.ts';
-import { getSupabaseClient } from '../../lib/supabaseClient.ts';
-import { 
-  createErrorResponse, 
-  createSuccessResponse,
-  createValidationError,
-  createNotFoundError,
-  createDatabaseError,
-  createApiError,
-  type ApiResponse
-} from '../../lib/error.types.ts';
+import { corsHeaders } from '../_shared/cors.ts';
+
+// Create Supabase client
+const getSupabaseClient = () => {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  return createClient(supabaseUrl, supabaseKey);
+};
 
 
 const agreementImportSchema = z.object({
@@ -119,7 +117,7 @@ serve(async (req) => {
     } catch (parseError) {
       console.error("Error parsing request JSON:", parseError);
       return new Response(
-        JSON.stringify(createErrorResponse(createValidationError("Invalid JSON in request body"))),
+        JSON.stringify(createErrorResponse("Invalid JSON in request body")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -136,7 +134,7 @@ serve(async (req) => {
     
     if (!importId) {
       return new Response(
-        JSON.stringify(createErrorResponse(createValidationError("Import ID is required"))),
+        JSON.stringify(createErrorResponse("Import ID is required")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -154,17 +152,14 @@ serve(async (req) => {
     if (importError) {
       console.error("Failed to get import record:", importError);
       return new Response(
-        JSON.stringify(createErrorResponse(createDatabaseError(
-          "Failed to get import record",
-          { error: importError }
-        ))),
+        JSON.stringify(createErrorResponse("Failed to get import record")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
 
     if (!importData) {
       return new Response(
-        JSON.stringify(createErrorResponse(createNotFoundError("Import record", importId))),
+        JSON.stringify(createErrorResponse("Import record not found")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
       );
     }
@@ -189,10 +184,7 @@ serve(async (req) => {
       });
       
       return new Response(
-        JSON.stringify(createErrorResponse(createApiError(
-          "Failed to download file",
-          { error: fileError }
-        ))),
+        JSON.stringify(createErrorResponse("Failed to download file")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
@@ -206,7 +198,7 @@ serve(async (req) => {
       });
       
       return new Response(
-        JSON.stringify(createErrorResponse(createValidationError("File data is empty or invalid"))),
+        JSON.stringify(createErrorResponse("File data is empty or invalid")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
@@ -233,20 +225,14 @@ serve(async (req) => {
       });
 
       return new Response(
-        JSON.stringify(createErrorResponse(createApiError(
-          "Import failed",
-          { details: result.details }
-        ))),
+        JSON.stringify(createErrorResponse("Import failed")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
   } catch (err) {
     console.error("Error processing agreement imports:", err);
     return new Response(
-      JSON.stringify(createErrorResponse(createApiError(
-        "Unexpected error during import processing",
-        { error: err }
-      ))),
+      JSON.stringify(createErrorResponse("Unexpected error during import processing")),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
