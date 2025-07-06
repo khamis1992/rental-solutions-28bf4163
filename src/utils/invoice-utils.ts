@@ -1,5 +1,6 @@
 import { supabase } from '../integrations/supabase/client';
 import { InvoiceData, PaymentProcessingData, InvoiceValidationResult, InvoiceError } from '../types/invoice-types';
+import { safeTrim, hasContent, safeToString } from '../lib/utils/null-safety';
 
 /**
  * أدوات معالجة وحساب الفواتير
@@ -42,8 +43,8 @@ export function validateInvoiceData(invoiceData: InvoiceData): InvoiceValidation
 
   // التحقق من وجود معلومات العميل أو السيارة
   const hasValidCustomerOrVehicle = !!(
-    (invoiceData.customerName && invoiceData.customerName.trim().length > 2) ||
-    (invoiceData.vehiclePlate && invoiceData.vehiclePlate.trim().length > 2)
+    hasContent(invoiceData.customerName, 3) ||
+    hasContent(invoiceData.vehiclePlate, 3)
   );
   
   if (!hasValidCustomerOrVehicle) {
@@ -407,7 +408,7 @@ export function formatAmount(amount: number | null | undefined): string {
  * تنسيق التاريخ بالعربية
  */
 export function formatArabicDate(dateString: string | null | undefined): string {
-  if (!dateString || dateString.trim() === '') {
+  if (!dateString || safeTrim(dateString) === '') {
     return 'غير محدد';
   }
   

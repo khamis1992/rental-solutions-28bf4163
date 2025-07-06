@@ -110,4 +110,28 @@ export function safeToDate(value: unknown): Date | undefined {
   }
   const date = new Date(String(value));
   return isNaN(date.getTime()) ? undefined : date;
-} 
+}
+
+/**
+ * Safely trim a string value with null/undefined handling
+ */
+export function safeTrim(value: string | null | undefined): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value !== 'string') {
+    return String(value).trim();
+  }
+  return value.trim();
+}
+
+/**
+ * Check if a string has meaningful content after trimming
+ */
+export function hasContent(value: string | null | undefined, minLength: number = 1): boolean {
+  if (value === null || value === undefined) {
+    return false;
+  }
+  const trimmed = safeTrim(value);
+  return trimmed.length >= minLength;
+}
