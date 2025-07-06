@@ -342,10 +342,10 @@ const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
           {/* Progress Steps */}
           <div className="flex items-center justify-between mb-6">
             {[
-              { step: 1, title: "رفع الملف", icon: Upload },
-              { step: 2, title: "معالجة بـ AI", icon: Brain },
-              { step: 3, title: "مراجعة البيانات", icon: Save },
-              { step: 4, title: "تأكيد وإنشاء", icon: CheckCircle }
+              { step: 1, title: "رفع الملف", icon: <Upload className="w-5 h-5" /> },
+              { step: 2, title: "معالجة بـ AI", icon: <Brain className="w-5 h-5" /> },
+              { step: 3, title: "مراجعة البيانات", icon: <Save className="w-5 h-5" /> },
+              { step: 4, title: "تأكيد وإنشاء", icon: <CheckCircle className="w-5 h-5" /> }
             ].map((item, index) => (
               <div key={item.step} className="flex items-center">
                 <div className={`
@@ -355,7 +355,7 @@ const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
                     : 'bg-gray-200 text-gray-400'
                   }
                 `}>
-                  <item.icon className="w-5 h-5" />
+                  {item.icon}
                 </div>
                 <span className={`mr-2 ${currentStep >= item.step ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
                   {item.title}

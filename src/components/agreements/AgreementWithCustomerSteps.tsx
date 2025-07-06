@@ -43,8 +43,8 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   const { createCustomer } = useCustomers();
 
   const steps = [
-    { id: 'customer-choice' as const, title: 'اختيار العميل', icon: Users },
-    { id: 'agreement-creation' as const, title: 'تفاصيل الاتفاقية', icon: FileText }
+    { id: 'customer-choice' as const, title: 'اختيار العميل', icon: <Users className="w-5 h-5" /> },
+    { id: 'agreement-creation' as const, title: 'تفاصيل الاتفاقية', icon: <FileText className="w-5 h-5" /> }
   ];
 
   // معالجة البيانات المُعبأة مسبقاً من معالج العقود
@@ -217,8 +217,6 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
               isCompleted = false;
             }
             
-            const StepIcon = step.icon;
-            
             return (
               <div key={step.id} className="flex items-center">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
@@ -226,7 +224,7 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
                   isActive ? 'bg-blue-500 border-blue-500 text-white' :
                   'bg-gray-100 border-gray-300 text-gray-500'
                 }`}>
-                  {isCompleted ? <CheckCircle className="w-5 h-5" /> : <StepIcon className="w-5 h-5" />}
+                  {isCompleted ? <CheckCircle className="w-5 h-5" /> : step.icon}
                 </div>
                 <span className={`mr-2 text-sm font-medium ${
                   isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'
@@ -345,8 +343,6 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
               isCompleted = false;
             }
             
-            const StepIcon = step.icon;
-            
             return (
               <div key={step.id} className="flex items-center">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
@@ -354,7 +350,7 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
                   isActive ? 'bg-blue-500 border-blue-500 text-white' :
                   'bg-gray-100 border-gray-300 text-gray-500'
                 }`}>
-                  {isCompleted ? <CheckCircle className="w-5 h-5" /> : <StepIcon className="w-5 h-5" />}
+                  {isCompleted ? <CheckCircle className="w-5 h-5" /> : step.icon}
                 </div>
                 <span className={`mr-2 text-sm font-medium ${
                   isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'
@@ -431,8 +427,6 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
               isCompleted = false;
             }
             
-            const StepIcon = step.icon;
-            
             return (
               <div key={step.id} className="flex items-center">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
@@ -440,7 +434,7 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
                   isActive ? 'bg-blue-500 border-blue-500 text-white' :
                   'bg-gray-100 border-gray-300 text-gray-500'
                 }`}>
-                  {isCompleted ? <CheckCircle className="w-5 h-5" /> : <StepIcon className="w-5 h-5" />}
+                  {isCompleted ? <CheckCircle className="w-5 h-5" /> : step.icon}
                 </div>
                 <span className={`mr-2 text-sm font-medium ${
                   isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'
