@@ -1,17 +1,1 @@
-
 project_id = "vqdlsidkucrownbfuouq"
-
-[functions.validate-traffic-fine]
-verify_jwt = true
-
-[functions.process-customer-imports]
-verify_jwt = true
-
-[functions.process-agreement-imports]
-verify_jwt = true
-
-[functions.process-invoice-ocr]
-verify_jwt = true
-
-[functions.enhance-invoice-chatgpt]
-verify_jwt = true
