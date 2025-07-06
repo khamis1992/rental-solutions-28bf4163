@@ -1,15 +1,18 @@
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import VehicleGrid from '@/components/vehicles/VehicleGrid';
-import { Car, Plus, RefreshCw } from 'lucide-react';
+import { Car, Plus, RefreshCw, GridIcon, List } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { OptimizedVehicleGrid } from '@/components/vehicles/OptimizedVehicleGrid';
+import { VehicleStats } from '@/components/vehicles/VehicleStats';
+import { Button } from '@/components/ui/button';
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -23,14 +26,20 @@ const VALID_STATUSES: VehicleStatus[] = [
   'retired'
 ];
 
-const Vehicles = () => {
+type ViewMode = 'grid' | 'list';
+
+const VehiclesPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<VehicleFilterParams>({});
-  const { useRealtimeUpdates } = useVehicles();
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const { useList, useRealtimeUpdates } = useVehicles();
   
   // Setup real-time updates
   useRealtimeUpdates();
+
+  // Fetch vehicles with current filters
+  const { data: vehicles = [], isLoading, error, refetch } = useList(filters);
 
   // Get status from URL search params
   useEffect(() => {
@@ -90,10 +99,26 @@ const Vehicles = () => {
     
     setFilters(convertedFilters);
   };
+
+  // Memoize filter values to prevent unnecessary re-renders
+  const filterValues = useMemo(() => ({
+    status: filters.status || 'all',
+    make: filters.make || 'all',
+    location: filters.location || 'all',
+    year: filters.year?.toString() || 'all',
+    category: filters.vehicle_type_id || 'all',
+    search: filters.search || ''
+  }), [filters]);
+
+  const handleRefresh = () => {
+    refetch();
+    toast.success('Data refreshed');
+  };
   
   return (
     <PageContainer>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <SectionHeader
             title="Vehicle Management"
@@ -102,6 +127,15 @@ const Vehicles = () => {
             className="md:mb-0"
           />
           <div className="flex flex-wrap gap-2">
+            <CustomButton 
+              size="sm"
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </CustomButton>
             <CustomButton 
               size="sm"
               variant="outline"
@@ -117,29 +151,67 @@ const Vehicles = () => {
           </div>
         </div>
         
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
+        {/* Filters and View Controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="flex-1">
             <VehicleFilters 
               onFilterChange={handleFilterChange} 
-              initialValues={{
-                status: filters.status || 'all',
-                make: filters.make || 'all',
-                location: filters.location || 'all',
-                year: filters.year?.toString() || 'all',
-                category: filters.vehicle_type_id || 'all',
-                search: filters.search || ''
-              }}
+              initialValues={filterValues}
             />
           </div>
+          
+          {/* View Mode Toggle */}
+          <div className="flex gap-1 border rounded-lg p-1">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              <GridIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        
-        <VehicleGrid 
-          onSelectVehicle={handleSelectVehicle} 
-          filter={filters}
-        />
+
+        {/* Error State */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              Failed to load vehicles. Please try refreshing the page.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <LoadingSpinner />
+            <span className="ml-2 text-muted-foreground">Loading vehicles...</span>
+          </div>
+        )}
+
+        {/* Stats */}
+        {!isLoading && !error && vehicles.length > 0 && (
+          <VehicleStats vehicles={vehicles} />
+        )}
+
+        {/* Content */}
+        {!isLoading && !error && (
+          <OptimizedVehicleGrid
+            vehicles={vehicles}
+            onSelectVehicle={handleSelectVehicle}
+            viewMode={viewMode}
+          />
+        )}
       </div>
     </PageContainer>
   );
 };
 
-export default Vehicles;
+export default VehiclesPage;

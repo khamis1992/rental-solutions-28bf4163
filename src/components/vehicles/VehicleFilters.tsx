@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ interface VehicleFiltersProps {
   className?: string;
 }
 
-const VehicleFilters: React.FC<VehicleFiltersProps> = ({
+const VehicleFilters = ({
   onFilterChange,
   initialValues = {
     status: 'all',
