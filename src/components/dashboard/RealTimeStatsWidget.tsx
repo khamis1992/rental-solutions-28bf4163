@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -148,7 +147,7 @@ export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ classNam
         </div>
         <div className="text-right">
           <h3 className="text-lg font-semibold text-right">الإحصائيات</h3>
-          {stats && <p className="text-sm text-muted-foreground text-right mt-1">آخر تحديث: {stats.lastUpdated.toLocaleTimeString('ar-QA')}</p>}
+          {stats && <p className="text-sm text-muted-foreground text-right mt-1">آخر تحديث: {stats.lastUpdated ? new Date(stats.lastUpdated).toLocaleTimeString('ar-QA') : 'غير محدد'}</p>}
         </div>
       </div>
 
@@ -157,7 +156,7 @@ export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ classNam
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" dir="rtl">
           <MetricCard
             title="إيرادات اليوم"
-            value={`${stats.todayRevenue.toLocaleString()} ر.ق`}
+            value={`${(stats.todayRevenue || 0).toLocaleString()} ر.ق`}
             icon={DollarSign}
             iconColor="text-green-500"
             bgColor="bg-green-100"
@@ -165,7 +164,7 @@ export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ classNam
           
           <MetricCard
             title="العقود النشطة"
-            value={stats.activeContracts.toString()}
+            value={(stats.activeContracts || 0).toString()}
             icon={Activity}
             iconColor="text-blue-500"
             bgColor="bg-blue-100"
@@ -173,7 +172,7 @@ export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ classNam
           
           <MetricCard
             title="المركبات المتاحة"
-            value={stats.availableVehicles.toString()}
+            value={(stats.availableVehicles || 0).toString()}
             icon={Car}
             iconColor="text-purple-500"
             bgColor="bg-purple-100"
@@ -181,7 +180,7 @@ export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ classNam
           
           <MetricCard
             title="دفعات اليوم"
-            value={stats.todayPayments.toString()}
+            value={(stats.todayPayments || 0).toString()}
             icon={DollarSign}
             iconColor="text-orange-500"
             bgColor="bg-orange-100"
@@ -189,7 +188,7 @@ export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ classNam
           
           <MetricCard
             title="صيانة معلقة"
-            value={stats.pendingMaintenance.toString()}
+            value={(stats.pendingMaintenance || 0).toString()}
             icon={AlertTriangle}
             iconColor="text-yellow-500"
             bgColor="bg-yellow-100"
@@ -198,7 +197,7 @@ export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ classNam
           
           <MetricCard
             title="دفعات متأخرة"
-            value={stats.overduePayments.toString()}
+            value={(stats.overduePayments || 0).toString()}
             icon={AlertTriangle}
             iconColor="text-red-500"
             bgColor="bg-red-100"
@@ -207,7 +206,7 @@ export const RealTimeStatsWidget: React.FC<{ className?: string }> = ({ classNam
           
           <MetricCard
             title="عملاء جدد اليوم"
-            value={stats.newCustomersToday.toString()}
+            value={(stats.newCustomersToday || 0).toString()}
             icon={Users}
             iconColor="text-indigo-500"
             bgColor="bg-indigo-100"

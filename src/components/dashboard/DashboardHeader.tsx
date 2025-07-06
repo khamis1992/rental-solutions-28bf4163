@@ -42,7 +42,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               className="text-muted-foreground mt-1"
               style={{ textAlign: 'right', direction: 'rtl' }}
             >
-              نظرة شاملة على عمليات التأجير • {currentDate}
+              نظرة شاملة على عمليات التأجير • {currentDate ? String(currentDate) : 'التاريخ غير متوفر'}
             </p>
           </div>
         </div>

@@ -22,7 +22,8 @@ import {
   Activity,
   MessageCircle,
   Brain,
-  Settings
+  Settings,
+  Scan
 } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -228,6 +229,13 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               icon={<DollarSign className="h-4 w-4 flex-shrink-0" />}
               label="الماليات"
               isActive={isActive('/financials')}
+              onClick={handleNavClick}
+            />
+            <NavLink
+              to="/invoice-management"
+              icon={<Scan className="h-4 w-4 flex-shrink-0" />}
+              label="مسح الفواتير"
+              isActive={isActive('/invoice-management')}
               onClick={handleNavClick}
             />
             <NavLink

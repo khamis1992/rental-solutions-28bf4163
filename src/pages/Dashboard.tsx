@@ -64,12 +64,21 @@ const Dashboard = () => {
   }, []);
   
   // Get current date in Arabic format (Gregorian only)
-  const currentDate = new Date().toLocaleDateString('ar-QA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const currentDate = (() => {
+    try {
+      const date = new Date().toLocaleDateString('ar-QA', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      // التأكد من أن النتيجة string صالح
+      return typeof date === 'string' ? date : new Date().toLocaleDateString('ar');
+    } catch (error) {
+      console.error('خطأ في تنسيق التاريخ:', error);
+      return new Date().toLocaleDateString('ar');
+    }
+  })();
 
   // Enhanced CSS for proper Arabic text alignment and RTL experience
   useEffect(() => {

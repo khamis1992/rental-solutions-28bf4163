@@ -1,0 +1,60 @@
+{
+  "name": "نظام إدارة تأجير السيارات",
+  "description": "نظام شامل لإدارة تأجير السيارات في قطر مع دعم كامل للغة العربية",
+  "version": "1.0.0",
+  "framework": "react",
+  "buildTool": "vite",
+  "packageManager": "npm",
+  "language": "typescript",
+  "styling": "tailwindcss",
+  "features": {
+    "rtl": true,
+    "arabic": true,
+    "pwa": true,
+    "mobile": true,
+    "database": "supabase",
+    "auth": true,
+    "payments": true,
+    "notifications": true,
+    "reports": true,
+    "analytics": true
+  },
+  "dependencies": {
+    "ui": "radix-ui",
+    "charts": "recharts",
+    "forms": "react-hook-form",
+    "validation": "zod",
+    "icons": "lucide-react",
+    "animations": "framer-motion",
+    "state": "tanstack-query"
+  },
+  "environment": {
+    "required": [
+      "VITE_SUPABASE_URL",
+      "VITE_SUPABASE_ANON_KEY"
+    ],
+    "optional": [
+      "VITE_GOOGLE_VISION_API_KEY",
+      "VITE_OPENAI_API_KEY",
+      "VITE_TWILIO_ACCOUNT_SID",
+      "VITE_TWILIO_AUTH_TOKEN",
+      "VITE_TWILIO_PHONE_NUMBER"
+    ]
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "deployment": {
+    "provider": "vercel",
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist"
+  },
+  "lovable": {
+    "enabled": true,
+    "componentTagger": true,
+    "hotReload": true,
+    "typeChecking": true
+  }
+} 

@@ -79,6 +79,7 @@ const LegalDocumentsPage = lazy(() => import("./pages/LegalDocumentsPage"));
 const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const TrafficFines = lazy(() => import("./pages/TrafficFines"));
 const Financials = lazy(() => import("./pages/Financials"));
+const InvoiceManagement = lazy(() => import("./pages/InvoiceManagement"));
 
 // Maintenance Management
 const Maintenance = lazy(() => import("./pages/Maintenance"));
@@ -185,6 +186,7 @@ const AppContent = () => {
                 <Route path="/activity" element={withErrorBoundary(ActivityPage)} />
                 <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
                 <Route path="/financials" element={withErrorBoundary(Financials)} />
+                <Route path="/invoice-management" element={withErrorBoundary(InvoiceManagement)} />
                 
                 {/* Maintenance Management */}
                 <Route path="/maintenance" element={withErrorBoundary(Maintenance)} />

@@ -1,0 +1,75 @@
+{
+  "name": "rental-solutions",
+  "displayName": "نظام إدارة تأجير السيارات",
+  "framework": "react",
+  "buildTool": "vite",
+  "packageManager": "npm",
+  "nodeVersion": "18.x",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "environment": {
+    "VITE_SUPABASE_URL": "@supabase-url",
+    "VITE_SUPABASE_ANON_KEY": "@supabase-anon-key",
+    "VITE_GOOGLE_VISION_API_KEY": "@google-vision-api-key",
+    "VITE_OPENAI_API_KEY": "@openai-api-key",
+    "VITE_TWILIO_ACCOUNT_SID": "@twilio-account-sid",
+    "VITE_TWILIO_AUTH_TOKEN": "@twilio-auth-token",
+    "VITE_TWILIO_PHONE_NUMBER": "@twilio-phone-number",
+    "VITE_ENV": "production"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' data:;"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "features": {
+    "analytics": true,
+    "compression": true,
+    "spa": true,
+    "pwa": true,
+    "prerender": false
+  },
+  "regions": [
+    "fra1",
+    "lhr1",
+    "sfo1"
+  ],
+  "functions": {
+    "directory": "supabase/functions",
+    "runtime": "deno"
+  },
+  "database": {
+    "type": "supabase",
+    "migrations": "supabase/migrations"
+  }
+} 

@@ -3,7 +3,6 @@ import { cn } from '@/lib/utils';
 import { Header } from './Header';
 import Sidebar from './Sidebar';
 import { WifiOff } from 'lucide-react';
-import { formatDate } from '@/lib/date-utils';
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNetworkStatus } from '@/hooks/use-network-status';
