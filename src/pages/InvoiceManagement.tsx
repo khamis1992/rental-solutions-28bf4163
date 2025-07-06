@@ -46,7 +46,7 @@ export default function InvoiceManagement() {
       <PageHeader
         title="إدارة الفواتير التلقائية"
         description="مسح الفواتير تلقائياً وربطها بالعقود المناسبة"
-        icon={Scan}
+        icon={<Scan className="h-6 w-6" />}
       />
 
       {/* بطاقات الإحصائيات السريعة */}
