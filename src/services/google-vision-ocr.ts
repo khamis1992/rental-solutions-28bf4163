@@ -34,85 +34,40 @@ class GoogleVisionOcrService {
   }
 
   /**
-   * Extract text from image using Google Vision API
+   * Extract text from image using Google Vision API via Edge Function
    */
   async extractTextFromImage(imageBase64: string, saveImage: boolean = true): Promise<OcrResult> {
     try {
-      console.log('🔍 Starting Google Vision OCR analysis...');
+      console.log('🔍 Starting Google Vision OCR analysis via Edge Function...');
       
-      // Prepare the request payload
-      const requestPayload = {
-        requests: [
-          {
-            image: {
-              content: imageBase64.replace(/^data:image\/[a-z]+;base64,/, '')
-            },
-            features: [
-              {
-                type: 'TEXT_DETECTION',
-                maxResults: 50
-              },
-              {
-                type: 'DOCUMENT_TEXT_DETECTION',
-                maxResults: 50
-              }
-            ],
-            imageContext: {
-              languageHints: ['ar', 'en'] // Arabic and English
-            }
-          }
-        ]
-      };
-
-      // Make the API call
-      const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload)
+      // Import Supabase client dynamically
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Call our Edge Function instead of direct API call
+      const { data, error } = await supabase.functions.invoke('process-google-vision', {
+        body: {
+          imageBase64,
+          saveImage
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn('⚠️ Google Vision API error, using fallback system:', errorText);
-        
-        // If API fails, use fallback system
+      if (error) {
+        console.warn('⚠️ Google Vision Edge Function error, using fallback system:', error);
         return await this.getRealCustomerDataFallback(imageBase64, saveImage);
       }
 
-      const result = await response.json();
-      console.log('📄 Google Vision API response received');
-
-      // Check for API errors
-      if (result.responses?.[0]?.error) {
-        console.warn('⚠️ Vision API error, using fallback system:', result.responses[0].error.message);
+      if (!data || !data.success) {
+        console.warn('⚠️ Google Vision processing failed, using fallback system:', data?.error);
         return await this.getRealCustomerDataFallback(imageBase64, saveImage);
       }
 
-      // Extract text from response
-      const textAnnotations = result.responses?.[0]?.textAnnotations;
-      if (!textAnnotations || textAnnotations.length === 0) {
-        console.warn('⚠️ No text detected in image, using fallback system');
-        return await this.getRealCustomerDataFallback(imageBase64, saveImage);
-      }
-
-      const fullText = textAnnotations[0]?.description || '';
-      console.log('📝 Extracted text:', fullText.substring(0, 200) + '...');
-
-      // Process the extracted text for Qatari ID card
-      const extractedData = this.parseQatariIdCard(fullText);
-      
-      // Add image data if requested
-      if (saveImage) {
-        extractedData.cardImageBase64 = imageBase64;
-      }
+      console.log('✅ Google Vision Edge Function processed successfully');
       
       return {
         success: true,
-        data: extractedData,
-        rawText: fullText,
-        confidence: this.calculateConfidence(extractedData, fullText)
+        data: data.data,
+        rawText: data.rawText,
+        confidence: data.confidence
       };
 
     } catch (error) {

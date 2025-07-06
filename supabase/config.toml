@@ -1,1 +1,7 @@
 project_id = "vqdlsidkucrownbfuouq"
+
+[functions.process-google-vision]
+verify_jwt = false
+
+[functions.process-openai]
+verify_jwt = false
