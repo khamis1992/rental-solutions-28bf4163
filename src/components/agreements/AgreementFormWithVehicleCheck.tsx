@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Plus, Car, User, FileText, DollarSign } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { VehicleSelector } from '@/components/vehicles/VehicleSelector';
 import { CustomerSelector } from '@/components/customers/CustomerSelector';
-import type { Customer, Vehicle, PaymentRecord } from '@/types/database';
+import type { Database } from '@/types/database.types';
+
+// Remove unused types
+type PaymentRecord = {
+  id: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'overdue' | 'cancelled';
+  due_date: string;
+};
 
 interface AgreementFormData {
   customer_id: string;
@@ -25,7 +33,7 @@ interface AgreementFormData {
   payment_day_of_month: number;
 }
 
-const AgreementFormWithVehicleCheck: React.FC = () => {
+const AgreementFormWithVehicleCheck = () => {
   const [formData, setFormData] = useState<AgreementFormData>({
     customer_id: '',
     vehicle_id: '',
@@ -37,8 +45,8 @@ const AgreementFormWithVehicleCheck: React.FC = () => {
     terms: '',
     payment_day_of_month: new Date().getDate(),
   });
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
@@ -131,11 +139,11 @@ const AgreementFormWithVehicleCheck: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="customer_id">العميل</Label>
-            <CustomerSelector onCustomerSelect={setSelectedCustomer} />
+            <CustomerSelector onCustomerSelect={(customer) => setSelectedCustomer(customer)} selectedCustomer={selectedCustomer} />
           </div>
           <div>
             <Label htmlFor="vehicle_id">المركبة</Label>
-            <VehicleSelector onVehicleSelect={setSelectedVehicle} />
+            <VehicleSelector onVehicleSelect={(vehicle) => setSelectedVehicle(vehicle)} />
           </div>
           <div>
             <Label htmlFor="lease_start">تاريخ البداية</Label>

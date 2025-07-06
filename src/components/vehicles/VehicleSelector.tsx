@@ -305,3 +305,4 @@ const VehicleSelector = ({
 };
 
 export default VehicleSelector;
+export { VehicleSelector };

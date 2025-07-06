@@ -233,3 +233,4 @@ const CustomerSelector = ({
 };
 
 export default CustomerSelector;
+export { CustomerSelector };
