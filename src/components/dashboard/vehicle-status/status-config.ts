@@ -1,87 +1,69 @@
-import {
-  ShieldCheck,
-  Car,
-  Wrench,
-  Clock,
-  AlertTriangle,
-  ShieldAlert,
-  CircleOff,
-  ShieldX,
-  CircleDashed,
-} from 'lucide-react';
 import { StatusConfig } from './types';
+import { vehicleStatusConfig } from '@/lib/vehicle-status-config';
 
 export const statusConfig: StatusConfig[] = [
   { 
     key: 'available', 
-    name: 'متاحة', 
-    color: '#22c55e', 
-    icon: ShieldCheck,
-    description: 'مركبات جاهزة للتأجير',
+    name: vehicleStatusConfig.available.name, 
+    color: vehicleStatusConfig.available.color, 
+    icon: vehicleStatusConfig.available.icon,
+    description: vehicleStatusConfig.available.description,
     filterValue: 'available'
   },
   { 
     key: 'rented', 
-    name: 'مؤجرة', 
-    color: '#3b82f6', 
-    icon: Car,
-    description: 'مركبات حالياً مع العملاء',
+    name: vehicleStatusConfig.rented.name, 
+    color: vehicleStatusConfig.rented.color, 
+    icon: vehicleStatusConfig.rented.icon,
+    description: vehicleStatusConfig.rented.description,
     filterValue: 'rented'
   },
   { 
     key: 'maintenance', 
-    name: 'تحت الصيانة', 
-    color: '#f59e0b', 
-    icon: Wrench,
-    description: 'مركبات قيد الإصلاح أو الخدمة',
+    name: vehicleStatusConfig.maintenance.name, 
+    color: vehicleStatusConfig.maintenance.color, 
+    icon: vehicleStatusConfig.maintenance.icon,
+    description: vehicleStatusConfig.maintenance.description,
     filterValue: 'maintenance'
   },
   { 
     key: 'reserved', 
-    name: 'محجوزة', 
-    color: '#8b5cf6', 
-    icon: Clock,
-    description: 'مركبات محجوزة للعملاء',
+    name: vehicleStatusConfig.reserved.name, 
+    color: vehicleStatusConfig.reserved.color, 
+    icon: vehicleStatusConfig.reserved.icon,
+    description: vehicleStatusConfig.reserved.description,
     filterValue: 'reserved'
   },
   { 
-    key: 'attention', 
-    name: 'تحتاج انتباه', 
-    color: '#ec4899', 
-    icon: AlertTriangle,
-    description: 'مركبات تحتاج متابعة أو فحص',
-    filterValue: 'maintenance'
-  },
-  { 
     key: 'police_station', 
-    name: 'في المرور', 
-    color: '#64748b', 
-    icon: ShieldAlert,
-    description: 'مركبات محتجزة لدى الشرطة',
+    name: vehicleStatusConfig.police_station.name, 
+    color: vehicleStatusConfig.police_station.color, 
+    icon: vehicleStatusConfig.police_station.icon,
+    description: vehicleStatusConfig.police_station.description,
     filterValue: 'police_station'
   },
   { 
     key: 'accident', 
-    name: 'حادث', 
-    color: '#ef4444', 
-    icon: CircleOff,
-    description: 'مركبات تعرضت لحوادث',
+    name: vehicleStatusConfig.accident.name, 
+    color: vehicleStatusConfig.accident.color, 
+    icon: vehicleStatusConfig.accident.icon,
+    description: vehicleStatusConfig.accident.description,
     filterValue: 'accident'
   },
   { 
     key: 'stolen', 
-    name: 'مسروقة', 
-    color: '#dc2626', 
-    icon: ShieldX,
-    description: 'مركبات مبلغ عن سرقتها',
+    name: vehicleStatusConfig.stolen.name, 
+    color: vehicleStatusConfig.stolen.color, 
+    icon: vehicleStatusConfig.stolen.icon,
+    description: vehicleStatusConfig.stolen.description,
     filterValue: 'stolen'
   },
   { 
-    key: 'critical', 
-    name: 'حرجة', 
-    color: '#b91c1c', 
-    icon: CircleDashed,
-    description: 'مركبات في حالة حرجة تحتاج تدخل فوري',
-    filterValue: 'maintenance'
+    key: 'retired', 
+    name: vehicleStatusConfig.retired.name, 
+    color: vehicleStatusConfig.retired.color, 
+    icon: vehicleStatusConfig.retired.icon,
+    description: vehicleStatusConfig.retired.description,
+    filterValue: 'retired'
   }
 ];

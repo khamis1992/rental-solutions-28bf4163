@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Car, Edit, Eye } from 'lucide-react';
 import { VehicleStatus } from '@/types/vehicle';
+import { getVehicleStatusConfig } from '@/lib/vehicle-status-config';
 
 interface VehicleCardProps {
   id: string;
@@ -46,42 +47,16 @@ const VehicleCard = ({
   onView,
 }: VehicleCardProps) => {
   
-  const statusConfig = {
-    available: { 
-      label: 'متاحة', 
-      className: 'bg-green-100 text-green-800 border-green-200'
-    },
-    rented: { 
-      label: 'مؤجرة', 
-      className: 'bg-blue-100 text-blue-800 border-blue-200'
-    },
-    reserved: { 
-      label: 'محجوزة', 
-      className: 'bg-purple-100 text-purple-800 border-purple-200'
-    },
-    maintenance: { 
-      label: 'صيانة', 
-      className: 'bg-amber-100 text-amber-800 border-amber-200'
-    },
-    police_station: { 
-      label: 'في المرور', 
-      className: 'bg-slate-100 text-slate-800 border-slate-200'
-    },
-    accident: { 
-      label: 'حادث', 
-      className: 'bg-red-100 text-red-800 border-red-200'
-    },
-    stolen: { 
-      label: 'مسروقة', 
-      className: 'bg-red-100 text-red-800 border-red-200'
-    },
-    retired: { 
-      label: 'متقاعدة', 
-      className: 'bg-gray-100 text-gray-800 border-gray-200'
+  const statusConfig = getVehicleStatusConfig(status);
+  const currentStatus = {
+    label: statusConfig.name,
+    className: `border`,
+    style: {
+      backgroundColor: statusConfig.bgColor,
+      color: statusConfig.textColor,
+      borderColor: statusConfig.borderColor
     }
   };
-
-  const currentStatus = statusConfig[status] || statusConfig.available;
   
   return (
     <Card 
@@ -113,6 +88,7 @@ const VehicleCard = ({
               "px-3 py-1 text-xs font-medium rounded-full border",
               currentStatus.className
             )}
+            style={currentStatus.style}
           >
             {currentStatus.label}
           </Badge>
