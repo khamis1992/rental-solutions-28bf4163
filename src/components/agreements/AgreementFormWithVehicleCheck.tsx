@@ -99,7 +99,7 @@ const AgreementFormWithVehicleCheck = () => {
       // Generate payment schedule
       const startDate = new Date(formData.lease_start);
       const endDate = new Date(formData.lease_end);
-      const paymentSchedule = generatePaymentSchedule(
+      generatePaymentSchedule(
         startDate,
         endDate,
         formData.monthly_rent,
