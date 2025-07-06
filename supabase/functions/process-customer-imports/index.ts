@@ -1,7 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../../lib/cors.ts";
-import { getSupabaseClient } from "../../lib/supabaseClient.ts";
-import { ErrorLogger } from "../../lib/errorLogger.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders } from "../_shared/cors.ts";
+
+// Create Supabase client
+const getSupabaseClient = () => {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  return createClient(supabaseUrl, supabaseKey);
+};
 
 function createErrorResponse(message: string, code = 'UNKNOWN_ERROR', details?: any) {
   return {
@@ -19,7 +25,6 @@ function createSuccessResponse(data: any, message?: string) {
 }
 
 serve(async (req) => {
-  const errorLogger = ErrorLogger.getInstance();
   const requestId = crypto.randomUUID();
 
   // Handle CORS preflight requests
@@ -41,14 +46,7 @@ serve(async (req) => {
     const { importId } = body;
     
     if (!importId) {
-      await errorLogger.logError({
-        service: 'customer-imports',
-        function_name: 'process-customer-imports',
-        error: 'Import ID is required',
-        severity: 'medium',
-        context: { requestBody: body },
-        request_id: requestId
-      });
+      console.error('Import ID is required', { requestBody: body, request_id: requestId });
 
       return new Response(
         JSON.stringify(createErrorResponse("Import ID is required", "VALIDATION_ERROR")),
@@ -69,14 +67,7 @@ serve(async (req) => {
       .single();
 
     if (importError || !importRecord) {
-      await errorLogger.logError({
-        service: 'customer-imports',
-        function_name: 'process-customer-imports',
-        error: importError || new Error("Import record not found"),
-        severity: 'high',
-        context: { importId },
-        request_id: requestId
-      });
+      console.error('Import record not found', { importId, error: importError, request_id: requestId });
 
       return new Response(
         JSON.stringify(createErrorResponse(importError?.message || "Import record not found", "NOT_FOUND")),
@@ -101,14 +92,7 @@ serve(async (req) => {
       .download(importRecord.file_name);
 
     if (fileError || !fileData) {
-      await errorLogger.logError({
-        service: 'customer-imports',
-        function_name: 'process-customer-imports',
-        error: fileError || new Error("Failed to download file"),
-        severity: 'high',
-        context: { importId, fileName: importRecord.file_name },
-        request_id: requestId
-      });
+      console.error('Failed to download file', { importId, fileName: importRecord.file_name, error: fileError, request_id: requestId });
 
       // Update import record with error
       await supabase
@@ -132,14 +116,7 @@ serve(async (req) => {
     const rows = csvText.split("\n").map(line => line.trim()).filter(line => line.length > 0);
     
     if (rows.length <= 1) {
-      await errorLogger.logError({
-        service: 'customer-imports',
-        function_name: 'process-customer-imports',
-        error: 'CSV file has no data rows',
-        severity: 'medium',
-        context: { importId, fileName: importRecord.file_name },
-        request_id: requestId
-      });
+      console.error('CSV file has no data rows', { importId, fileName: importRecord.file_name, request_id: requestId });
 
       // Update import record with error
       await supabase
@@ -203,14 +180,7 @@ serve(async (req) => {
           errors.push(error);
           errorCount++;
 
-          await errorLogger.logError({
-            service: 'customer-imports',
-            function_name: 'process-customer-imports',
-            error: error.message,
-            severity: 'low',
-            context: { importId, rowNumber: i, values, headers },
-            request_id: requestId
-          });
+          console.error('Row validation error', { importId, rowNumber: i, values, headers, request_id: requestId });
 
           continue;
         }
@@ -255,14 +225,7 @@ serve(async (req) => {
           errors.push(error);
           errorCount++;
 
-          await errorLogger.logError({
-            service: 'customer-imports',
-            function_name: 'process-customer-imports',
-            error: insertError,
-            severity: 'medium',
-            context: { importId, rowNumber: i, customer },
-            request_id: requestId
-          });
+          console.error('Customer insert error', { importId, rowNumber: i, customer, error: insertError, request_id: requestId });
         } else {
           processedCustomers.push(insertedCustomer[0]);
           processedCount++;
@@ -275,14 +238,7 @@ serve(async (req) => {
         errors.push(error);
         errorCount++;
 
-        await errorLogger.logError({
-          service: 'customer-imports',
-          function_name: 'process-customer-imports',
-          error: err,
-          severity: 'medium',
-          context: { importId, rowNumber: i },
-          request_id: requestId
-        });
+        console.error('Row processing error', { importId, rowNumber: i, error: err, request_id: requestId });
       }
     }
     
@@ -300,14 +256,7 @@ serve(async (req) => {
       .eq("id", importId);
     
     if (updateError) {
-      await errorLogger.logError({
-        service: 'customer-imports',
-        function_name: 'process-customer-imports',
-        error: updateError,
-        severity: 'high',
-        context: { importId, processedCount, errorCount },
-        request_id: requestId
-      });
+      console.error('Failed to update import record', { importId, processedCount, errorCount, error: updateError, request_id: requestId });
     }
     
     return new Response(
@@ -323,14 +272,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    await errorLogger.logError({
-      service: 'customer-imports',
-      function_name: 'process-customer-imports',
-      error: err,
-      severity: 'critical',
-      context: { requestBody: await req.json() },
-      request_id: requestId
-    });
+    console.error('Critical error in function', { error: err, request_id: requestId });
 
     return new Response(
       JSON.stringify(createErrorResponse(err.message, "INTERNAL_ERROR", err)),
