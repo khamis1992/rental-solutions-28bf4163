@@ -20,7 +20,6 @@ import PageHeader from '@/components/ui/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { vehicleService } from '@/services/VehicleService';
 import { enhancedVehicleSearch } from '@/utils/searchUtils';
-import { ArabicVehicleCard } from '@/components/ui/arabic-vehicle-card';
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -298,28 +297,6 @@ const Vehicles = () => {
           dir="rtl"
         />
         <div className="space-y-6">
-          {/* Demo of new Arabic Vehicle Card Design */}
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4 text-right" dir="rtl">تصميم بطاقة المركبة الجديد</h3>
-            <div className="flex justify-center">
-              <ArabicVehicleCard
-                id="demo-1"
-                make="تويوتا"
-                model="كامري"
-                year={2024}
-                color="أبيض"
-                licensePlate="5892"
-                vehicleNumber="VEH0001" 
-                type="سيدان"
-                dailyRate={200}
-                mileage={5000}
-                status="available"
-                onEdit={(id) => toast.info(`تعديل المركبة: ${id}`)}
-                onView={(id) => toast.info(`عرض المركبة: ${id}`)}
-              />
-            </div>
-          </Card>
-          
           <VehicleStats />
           
           <Card className="overflow-hidden">
