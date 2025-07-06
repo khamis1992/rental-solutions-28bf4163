@@ -57,9 +57,24 @@ const VehicleFilters = ({
     const value = e.target.value;
     setFilters(prev => ({ ...prev, search: value }));
   };
+
+  const clearFilters = () => {
+    setFilters({
+      status: 'all',
+      make: 'all',
+      location: 'all',
+      year: 'all',
+      category: 'all',
+      search: ''
+    });
+  };
+
+  const hasActiveFilters = Object.values(filters).some(value => 
+    value && value !== 'all' && value !== ''
+  );
   
   return (
-    <div className={cn("rounded-lg", className)} dir="rtl">
+    <div className={cn("space-y-4", className)} dir="rtl">
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="relative md:col-span-2">
           <div className="absolute inset-y-0 flex items-center right-0 pr-3 pointer-events-none">
@@ -67,8 +82,8 @@ const VehicleFilters = ({
           </div>
           <Input
             type="search"
-            placeholder="البحث برقم الهيكل..."
-            className="pr-10 text-right"
+            placeholder="البحث برقم الهيكل أو رقم اللوحة..."
+            className="pr-10 text-right h-10"
             value={filters?.search || ''}
             onChange={handleSearchChange}
             dir="rtl"
@@ -81,7 +96,7 @@ const VehicleFilters = ({
             onValueChange={(value) => handleFilterChange('status', value)}
             dir="rtl"
           >
-            <SelectTrigger id="status-filter" className="text-right">
+            <SelectTrigger className="text-right h-10">
               <SelectValue placeholder="جميع الحالات" />
             </SelectTrigger>
             <SelectContent>
@@ -104,7 +119,7 @@ const VehicleFilters = ({
             onValueChange={(value) => handleFilterChange('make', value)}
             dir="rtl"
           >
-            <SelectTrigger id="make-filter" className="text-right">
+            <SelectTrigger className="text-right h-10">
               <SelectValue placeholder="جميع الماركات" />
             </SelectTrigger>
             <SelectContent>
@@ -130,7 +145,7 @@ const VehicleFilters = ({
             onValueChange={(value) => handleFilterChange('location', value)}
             dir="rtl"
           >
-            <SelectTrigger id="location-filter" className="text-right">
+            <SelectTrigger className="text-right h-10">
               <SelectValue placeholder="جميع المواقع" />
             </SelectTrigger>
             <SelectContent>
@@ -152,7 +167,7 @@ const VehicleFilters = ({
             onValueChange={(value) => handleFilterChange('year', value)}
             dir="rtl"
           >
-            <SelectTrigger id="year-filter" className="text-right">
+            <SelectTrigger className="text-right h-10">
               <SelectValue placeholder="جميع السنوات" />
             </SelectTrigger>
             <SelectContent>
@@ -171,6 +186,23 @@ const VehicleFilters = ({
           </Select>
         </div>
       </div>
+
+      {hasActiveFilters && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            تم تطبيق مرشحات البحث
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearFilters}
+            className="h-8 px-3"
+          >
+            <FilterX className="h-4 w-4 ml-1" />
+            إزالة المرشحات
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

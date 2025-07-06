@@ -112,7 +112,7 @@ const VehiclesPage = () => {
   
   return (
     <PageContainer>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <VehiclesPageHeader 
           isLoading={isLoading}
           onRefresh={handleRefresh}

@@ -18,30 +18,36 @@ export const VehiclesPageFilters = ({
   onViewModeChange 
 }: VehiclesPageFiltersProps) => {
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-      <div className="flex-1">
-        <VehicleFilters 
-          onFilterChange={onFilterChange} 
-          initialValues={filterValues}
-        />
-      </div>
-      
-      {/* View Mode Toggle */}
-      <div className="flex gap-1 border rounded-lg p-1">
-        <Button
-          variant={viewMode === 'grid' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => onViewModeChange('grid')}
-        >
-          <GridIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={viewMode === 'list' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => onViewModeChange('list')}
-        >
-          <List className="h-4 w-4" />
-        </Button>
+    <div className="bg-card rounded-xl p-6 border shadow-sm" dir="rtl">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+        <div className="flex-1">
+          <VehicleFilters 
+            onFilterChange={onFilterChange} 
+            initialValues={filterValues}
+          />
+        </div>
+        
+        {/* View Mode Toggle */}
+        <div className="flex gap-1 bg-muted rounded-lg p-1">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => onViewModeChange('grid')}
+            className="h-9 px-4"
+          >
+            <GridIcon className="h-4 w-4 ml-2" />
+            شبكة
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => onViewModeChange('list')}
+            className="h-9 px-4"
+          >
+            <List className="h-4 w-4 ml-2" />
+            قائمة
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -41,69 +41,70 @@ const VehicleCard = memo(({
   const status = statusConfig[vehicle.status] || statusConfig.available;
 
   return (
-    <Card className="group hover:shadow-md transition-all duration-200 hover:scale-[1.02]" dir="rtl">
+    <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30" dir="rtl">
       <CardContent className="p-6">
-        <div className="space-y-4">
+        <div className="space-y-5">
           {/* Header */}
           <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <h3 className="font-semibold text-lg">
+            <div className="space-y-2">
+              <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
                 {vehicle.make} {vehicle.model}
               </h3>
-              <p className="text-sm text-muted-foreground">
-                {vehicle.year}
+              <p className="text-sm text-muted-foreground font-medium">
+                موديل {vehicle.year}
               </p>
             </div>
             <Badge 
               variant="secondary" 
-              className={cn("text-white", status.color)}
+              className={cn("text-white text-xs px-3 py-1 font-medium", status.color)}
             >
               {status.label}
             </Badge>
           </div>
 
           {/* License Plate */}
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="font-mono text-lg font-bold">
+          <div className="bg-gradient-to-r from-muted/70 to-muted/50 rounded-xl p-4 text-center border">
+            <p className="font-mono text-xl font-bold text-foreground">
               {vehicle.license_plate || 'غير محدد'}
             </p>
+            <p className="text-xs text-muted-foreground mt-1">رقم اللوحة</p>
           </div>
 
           {/* Info Grid */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-sm">
             {vehicle.location && (
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="truncate">{vehicle.location}</span>
+              <div className="flex items-center gap-2 p-2 bg-card-foreground/5 rounded-lg">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span className="truncate font-medium">{vehicle.location}</span>
               </div>
             )}
             
             {vehicle.mileage && (
-              <div className="flex items-center gap-2">
-                <Gauge className="h-4 w-4 text-muted-foreground" />
-                <span>{vehicle.mileage?.toLocaleString()} كم</span>
+              <div className="flex items-center gap-2 p-2 bg-card-foreground/5 rounded-lg">
+                <Gauge className="h-4 w-4 text-primary" />
+                <span className="font-medium">{vehicle.mileage?.toLocaleString()} كم</span>
               </div>
             )}
 
-            <div className="flex items-center gap-2">
-              <Car className="h-4 w-4 text-muted-foreground" />
-              <span>{vehicle.vin || 'غير محدد'}</span>
+            <div className="flex items-center gap-2 p-2 bg-card-foreground/5 rounded-lg">
+              <Car className="h-4 w-4 text-primary" />
+              <span className="truncate text-xs font-mono">{vehicle.vin || 'غير محدد'}</span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{new Date(vehicle.created_at).getFullYear()}</span>
+            <div className="flex items-center gap-2 p-2 bg-card-foreground/5 rounded-lg">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="font-medium">{new Date(vehicle.created_at).getFullYear()}</span>
             </div>
           </div>
 
           {/* Actions */}
           <Button 
             onClick={() => onSelect(vehicle.id)}
-            className="w-full"
+            className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
             size="sm"
           >
-            <Eye className="h-4 w-4 mr-2" />
-            View Details
+            <Eye className="h-4 w-4 ml-2" />
+            عرض التفاصيل
           </Button>
         </div>
       </CardContent>
@@ -123,35 +124,45 @@ const VehicleListItem = memo(({
   const status = statusConfig[vehicle.status] || statusConfig.available;
 
   return (
-    <Card className="hover:shadow-sm transition-shadow" dir="rtl">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="space-y-1 flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold">
-                  {vehicle.make} {vehicle.model} ({vehicle.year})
+    <Card className="hover:shadow-lg transition-all duration-300 hover:border-primary/30 border-border/50" dir="rtl">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-6 flex-1">
+            <div className="space-y-2 flex-1">
+              <div className="flex items-center gap-3">
+                <h3 className="font-bold text-lg text-foreground">
+                  {vehicle.make} {vehicle.model} 
                 </h3>
+                <span className="text-sm text-muted-foreground font-medium">
+                  ({vehicle.year})
+                </span>
                 <Badge 
                   variant="secondary" 
-                  className={cn("text-white text-xs", status.color)}
+                  className={cn("text-white text-xs px-2 py-1 font-medium", status.color)}
                 >
                   {status.label}
                 </Badge>
               </div>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="font-mono">{vehicle.license_plate || 'غير محدد'}</span>
+              
+              <div className="flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-2 bg-muted/50 px-3 py-1 rounded-lg">
+                  <span className="font-mono font-bold text-foreground">
+                    {vehicle.license_plate || 'غير محدد'}
+                  </span>
+                </div>
+                
                 {vehicle.location && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {vehicle.location}
-                  </span>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span className="font-medium">{vehicle.location}</span>
+                  </div>
                 )}
+                
                 {vehicle.mileage && (
-                  <span className="flex items-center gap-1">
-                    <Gauge className="h-3 w-3" />
-                    {vehicle.mileage.toLocaleString()} كم
-                  </span>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Gauge className="h-4 w-4 text-primary" />
+                    <span className="font-medium">{vehicle.mileage.toLocaleString()} كم</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -160,10 +171,10 @@ const VehicleListItem = memo(({
           <Button 
             onClick={() => onSelect(vehicle.id)}
             size="sm"
-            variant="outline"
+            className="h-10 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
           >
-            <Eye className="h-4 w-4 mr-2" />
-            View
+            <Eye className="h-4 w-4 ml-2" />
+            عرض
           </Button>
         </div>
       </CardContent>
