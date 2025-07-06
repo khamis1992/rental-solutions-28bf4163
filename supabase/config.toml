@@ -9,3 +9,9 @@ verify_jwt = true
 
 [functions.process-agreement-imports]
 verify_jwt = true
+
+[functions.process-invoice-ocr]
+verify_jwt = true
+
+[functions.enhance-invoice-chatgpt]
+verify_jwt = true

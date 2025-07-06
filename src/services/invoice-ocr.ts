@@ -1,18 +1,11 @@
 import { InvoiceData, InvoiceOcrResult, InvoiceScanOptions } from '../types/invoice-types';
 import { EnhancedInvoiceResult, ChatGPTProcessingStats, ProcessingMetrics, QualityAssessment } from '../types/invoice-chatgpt-types';
-import { invoiceChatGPTEnhancer, ChatGPTEnhancedResult } from './invoice-chatgpt-enhancer';
+import { supabase } from '@/integrations/supabase/client';
 
 // خدمة مسح الفواتير المحسنة باستخدام Google Vision API + ChatGPT
 // تحسينات: دقة من 70-85% إلى 90-95% مع نظام fallback ذكي
 export class InvoiceOcrService {
-  private apiKey: string;
-  private baseUrl = 'https://vision.googleapis.com/v1/images:annotate';
-
   constructor() {
-    this.apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY || '';
-    if (!this.apiKey) {
-      console.warn('⚠️ Google Vision API Key غير متوفر - سيتم استخدام البيانات التجريبية');
-    }
     console.log('🚀 خدمة الفواتير المحسنة بـ ChatGPT جاهزة!');
   }
 
@@ -39,14 +32,14 @@ export class InvoiceOcrService {
       // تحويل الملف إلى base64
       const base64Image = await this.fileToBase64(file);
       
-      // مرحلة 1: استدعاء Google Vision API
+      // مرحلة 1: استدعاء Google Vision API عبر Edge Function
       const ocrStartTime = Date.now();
-      const ocrText = await this.callGoogleVisionApi(base64Image);
+      const ocrText = await this.callGoogleVisionViaEdgeFunction(base64Image);
       const ocrTime = Date.now() - ocrStartTime;
       
       console.log(`👁️ Google Vision OCR اكتمل في ${ocrTime}ms`);
       
-      // مرحلة 2: التحليل المحسن بـ ChatGPT
+      // مرحلة 2: التحليل المحسن بـ ChatGPT عبر Edge Function
       const analysisStartTime = Date.now();
       const enhancedResult = await this.enhancedAnalyzeInvoiceText(ocrText);
       const analysisTime = Date.now() - analysisStartTime;
@@ -96,8 +89,8 @@ export class InvoiceOcrService {
     try {
       console.log('🎯 جاري المحاولة مع ChatGPT المحسن...');
       
-      // المحاولة الأولى: ChatGPT المحسن
-      const chatGptResult = await invoiceChatGPTEnhancer.enhanceInvoiceAnalysis(ocrText);
+      // المحاولة الأولى: ChatGPT المحسن عبر Edge Function
+      const chatGptResult = await this.callChatGPTViaEdgeFunction(ocrText);
       
       if (chatGptResult.success && chatGptResult.data && chatGptResult.confidence >= 75) {
         console.log('✅ نجح تحليل ChatGPT المحسن بثقة عالية:', chatGptResult.confidence);
@@ -309,51 +302,64 @@ export class InvoiceOcrService {
   }
 
   /**
-   * استدعاء Google Vision API
+   * استدعاء Google Vision API عبر Edge Function
    */
-  private async callGoogleVisionApi(base64Image: string): Promise<string> {
-    if (!this.apiKey) {
-      // إرجاع نص تجريبي للاختبار
+  private async callGoogleVisionViaEdgeFunction(base64Image: string): Promise<string> {
+    try {
+      const { data, error } = await supabase.functions.invoke('process-invoice-ocr', {
+        body: {
+          imageBase64: base64Image,
+          options: {
+            languageHints: ['ar', 'en']
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(`OCR processing failed: ${error.message}`);
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'OCR processing failed');
+      }
+
+      return data.text;
+    } catch (error) {
+      console.error('Error calling OCR edge function:', error);
+      // Fallback to mock data
       return this.getMockOcrText();
     }
+  }
 
-    const requestBody = {
-      requests: [{
-        image: { content: base64Image },
-        features: [
-          { type: 'TEXT_DETECTION', maxResults: 1 },
-          { type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }
-        ],
-        imageContext: {
-          languageHints: ['ar', 'en'] // دعم العربية والإنجليزية
+  /**
+   * استدعاء ChatGPT عبر Edge Function
+   */
+  private async callChatGPTViaEdgeFunction(ocrText: string): Promise<any> {
+    try {
+      const { data, error } = await supabase.functions.invoke('enhance-invoice-chatgpt', {
+        body: {
+          ocrText: ocrText
         }
-      }]
-    };
+      });
 
-    const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
-    });
+      if (error) {
+        console.error('ChatGPT edge function error:', error);
+        throw new Error(`ChatGPT processing failed: ${error.message}`);
+      }
 
-    if (!response.ok) {
-      throw new Error(`Google Vision API Error: ${response.status} ${response.statusText}`);
+      return {
+        success: data.success,
+        data: data.data,
+        confidence: data.confidence,
+        aiAnalysis: data.aiAnalysis,
+        processingTime: data.processingTime,
+        usage: data.usage
+      };
+    } catch (error) {
+      console.error('Error calling ChatGPT edge function:', error);
+      throw error;
     }
-
-    const result = await response.json();
-    
-    if (result.responses?.[0]?.error) {
-      throw new Error(`Vision API Error: ${result.responses[0].error.message}`);
-    }
-
-    const textAnnotation = result.responses?.[0]?.fullTextAnnotation?.text || 
-                          result.responses?.[0]?.textAnnotations?.[0]?.description || '';
-    
-    if (!textAnnotation) {
-      throw new Error('لم يتم العثور على نص في الصورة');
-    }
-
-    return textAnnotation;
   }
 
   /**
