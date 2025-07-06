@@ -2,7 +2,7 @@
 import { toast } from 'sonner';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
-import { supabase } from '@/lib/supabase-singleton';
+import { supabase } from '@/integrations/supabase/client';
 
 // Re-export the supabase client for backward compatibility
 export { supabase };
