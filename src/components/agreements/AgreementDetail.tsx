@@ -150,11 +150,21 @@ const AgreementDetail = () => {
           vehicle_id: agreementData.vehicle_id,
           start_date: agreementData.start_date || '',
           end_date: agreementData.end_date || '',
-          rent_amount: agreementData.rent_amount,
-          deposit_amount: agreementData.deposit_amount,
+          rent_amount: agreementData.rent_amount || 0,
+          deposit_amount: agreementData.deposit_amount || 0,
           down_payment: 0,
-          total_amount: agreementData.total_amount || 0,
-          status: agreementData.status,
+          daily_late_fee: agreementData.daily_late_fee,
+          payment_frequency: agreementData.payment_frequency,
+          payment_day: agreementData.payment_day,
+          rent_due_day: agreementData.rent_due_day,
+          status: (agreementData.status === 'completed' || agreementData.status === 'terminated' || agreementData.status === 'archived') 
+            ? 'closed' as any
+            : (agreementData.status === 'pending_payment' || agreementData.status === 'pending_deposit')
+            ? 'pending' as any
+            : agreementData.status || 'draft',
+          agreement_type: agreementData.agreement_type,
+          notes: agreementData.notes,
+          confirmation_email_sent: agreementData.confirmation_email_sent,
           created_at: agreementData.created_at,
           updated_at: agreementData.updated_at
         });
@@ -199,13 +209,7 @@ const AgreementDetail = () => {
           toast.error('Vehicle not found');
           return;
         }
-        setVehicle({
-          ...vehicleData,
-          attention_needed_notes: vehicleData.attention_needed_notes || null,
-          engine_number: vehicleData.engine_number || null,
-          model_number: vehicleData.model_number || null,
-          notes: vehicleData.notes || null
-        });
+        setVehicle(vehicleData as any);
 
       } catch (error) {
         console.error('Error fetching agreement details:', error);

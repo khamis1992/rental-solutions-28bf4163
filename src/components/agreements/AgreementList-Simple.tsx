@@ -3,7 +3,6 @@ import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 import { SimplePagination } from '@/components/ui/simple-pagination';
-import { processAgreementData } from './table/agreement-data';
 
 interface AgreementListProps {
   agreements?: SimpleAgreement[];
@@ -54,8 +53,14 @@ export function AgreementList({
     return <div>Error: {error.message}</div>;
   }
 
-  // Transform SimpleAgreement to Agreement using processAgreementData helper
-  const typedAgreements = processAgreementData(agreements || []);
+  // Process agreements with proper type checking
+  const typedAgreements = Array.isArray(agreements) && agreements.length > 0 
+    ? (agreements as any[]).map(agreement => ({
+        ...agreement,
+        confirmation_email_sent: agreement.confirmation_email_sent ?? false,
+        down_payment: agreement.down_payment ?? 0
+      }))
+    : [];
 
   return (
     <div className="space-y-6">

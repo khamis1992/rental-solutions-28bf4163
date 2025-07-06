@@ -1,7 +1,6 @@
 
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { TableContent } from './table/TableContent';
-import { processAgreementData } from './table/agreement-data';
 
 const AgreementList = () => {
   const {
@@ -18,8 +17,14 @@ const AgreementList = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  // Process agreement data for display
-  const typedAgreements = processAgreementData(agreements || []);
+  // Process agreements with proper type checking
+  const typedAgreements = Array.isArray(agreements) && agreements.length > 0 
+    ? (agreements as any[]).map(agreement => ({
+        ...agreement,
+        confirmation_email_sent: agreement.confirmation_email_sent ?? false,
+        down_payment: agreement.down_payment ?? 0
+      }))
+    : [];
 
   return (
     <TableContent 

@@ -31,7 +31,7 @@ export function AgreementOnboardingWizard({
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [showAddCustomerDialog, setShowAddCustomerDialog] = useState(false);
-  const [vehicles, setVehicles] = useState([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
         agreement_number: '',
