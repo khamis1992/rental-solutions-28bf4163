@@ -14,7 +14,7 @@ export default defineConfig(async ({ mode }) => {
   return {
   server: {
     host: "localhost",
-    port: 8081,
+    port: 8080,
     strictPort: true,
     allowedHosts: [
       "3443e083-f60b-43c2-aa17-354a2369068f.lovableproject.com",
