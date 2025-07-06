@@ -274,10 +274,16 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <PageContainer>
+    <PageContainer className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background">
+      {/* Background decorations */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl"></div>
+      </div>
+      
       <div 
         dir={language === 'ar' ? 'rtl' : 'ltr'} 
-        className={`${language === 'ar' ? 'arabic-dashboard' : ''} min-h-screen`}
+        className={`${language === 'ar' ? 'arabic-dashboard' : ''} min-h-screen relative z-10`}
       >
         <DashboardHeader 
           currentDate={currentDate}

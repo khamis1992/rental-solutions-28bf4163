@@ -48,28 +48,58 @@ export const QuickActions = () => {
 
   return (
     <>
-      <Card className="mb-6 border border-border/60 shadow-sm" dir="rtl">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium text-right">
-            الإجراءات السريعة
-          </CardTitle>
-          <CardDescription className="text-right">
-            الوصول السريع للمهام الأساسية، مسح الفواتير، التقارير، والقضايا القانونية
-          </CardDescription>
+      <Card className="relative overflow-hidden bg-gradient-to-br from-background via-muted/20 to-background border-border/40 shadow-sm hover:shadow-md transition-all duration-300" dir="rtl">
+        {/* Background decoration */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.02] via-transparent to-secondary/[0.02]"></div>
+        <div className="absolute -top-10 -right-10 w-20 h-20 bg-primary/5 rounded-full blur-2xl"></div>
+        
+        <CardHeader className="relative pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <TrendingUp className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-semibold text-right text-foreground">
+                الإجراءات السريعة
+              </CardTitle>
+              <CardDescription className="text-right text-muted-foreground mt-1">
+                الوصول المباشر للمهام الرئيسية وأدوات الإدارة
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {quickActions.map((action) => (
+        
+        <CardContent className="relative">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {quickActions.map((action, index) => (
               <Button
                 key={action.id}
                 variant="outline"
-                className="h-auto py-4 justify-start flex flex-col items-center text-center hover:bg-accent/5"
+                className="group relative h-auto py-6 px-4 flex flex-col items-center text-center border-border/50 hover:border-primary/30 hover:bg-accent/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-md"
                 onClick={() => navigate(action.href)}
+                style={{
+                  animationDelay: `${index * 100}ms`
+                }}
               >
-                <div className={`rounded-full p-2 ${action.bgColor} bg-opacity-10 mb-2`}>
-                  {action.icon}
+                {/* Background gradient on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md"></div>
+                
+                <div className="relative flex flex-col items-center gap-3">
+                  <div className={`relative p-3 rounded-xl ${action.bgColor}/10 border border-current/20 group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`${action.bgColor.replace('bg-', 'text-')}`}>
+                      {action.icon}
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">
+                      {action.title}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {action.description}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-sm font-medium">{action.title}</span>
               </Button>
             ))}
           </div>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import DashboardStats from './DashboardStats';
 import VehicleStatusChart from './VehicleStatusChart';
@@ -48,93 +48,139 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   }
 
   return (
-    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="space-y-8" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* 1. المؤشرات الرئيسية */}
-      <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+      <section className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
+              <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-right text-foreground">المؤشرات الرئيسية</h2>
+              <p className="text-sm text-muted-foreground text-right">إحصائيات شاملة للأداء</p>
+            </div>
+          </div>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2"
+            className="h-9 px-3 hover:bg-accent/50"
             onClick={() => onToggleSection('kpis')}
           >
             {collapsedSections['kpis'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
-          <h2 className="text-lg font-semibold text-right">المؤشرات الرئيسية</h2>
         </div>
         {!collapsedSections['kpis'] && <DashboardStats stats={stats} loading={isLoading} />}
-      </div>
+      </section>
 
       {/* 2. الإجراءات السريعة */}
-      <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+      <section className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
+              <ChevronDown className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-right text-foreground">العمليات السريعة</h2>
+              <p className="text-sm text-muted-foreground text-right">أدوات الإدارة المباشرة</p>
+            </div>
+          </div>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2"
+            className="h-9 px-3 hover:bg-accent/50"
             onClick={() => onToggleSection('quickActions')}
           >
             {collapsedSections['quickActions'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
-          <h2 className="text-lg font-semibold text-right">الإجراءات السريعة</h2>
         </div>
         {!collapsedSections['quickActions'] && <QuickActions />}
-      </div>
+      </section>
 
       {/* 3. تحليلات النظام */}
-      <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+      <section className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800">
+              <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-right text-foreground">تحليلات متقدمة</h2>
+              <p className="text-sm text-muted-foreground text-right">رؤى تفصيلية للأداء</p>
+            </div>
+          </div>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2"
+            className="h-9 px-3 hover:bg-accent/50"
             onClick={() => onToggleSection('analytics')}
           >
             {collapsedSections['analytics'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
-          <h2 className="text-lg font-semibold text-right">تحليلات النظام</h2>
         </div>
         {!collapsedSections['analytics'] && <AdvancedAnalyticsPanel />}
-      </div>
+      </section>
       
       {/* 4. حالة الأسطول */}
-      <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <div className="flex items-center gap-2 space-x-reverse">
+      <section className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800">
+              <ChevronDown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-right text-foreground">حالة الأسطول</h2>
+              <p className="text-sm text-muted-foreground text-right">
+                {isLoading ? 'جاري التحميل...' : `${stats?.vehicleStats?.total || 0} مركبة`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-background/50 border-border/50">
+              {isLoading ? 'محاطة بالتحديث' : 'مُحدثة الآن'}
+            </Badge>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2"
+              className="h-9 px-3 hover:bg-accent/50"
               onClick={() => onToggleSection('fleet')}
             >
               {collapsedSections['fleet'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
             </Button>
-            <Badge variant="outline" className="bg-background">
-              {isLoading ? 'جاري التحميل...' : 'إجمالي المركبات'}
-            </Badge>
           </div>
-          <h2 className="text-lg font-semibold text-right">حالة الأسطول</h2>
         </div>
         {!collapsedSections['fleet'] && (
-          isLoading ? <Skeleton className="h-[300px] w-full rounded-lg" /> : <VehicleStatusChart data={stats?.vehicleStats} />
+          isLoading ? (
+            <Skeleton className="h-[300px] w-full rounded-xl bg-gradient-to-r from-muted/50 to-muted/30" />
+          ) : (
+            <VehicleStatusChart data={stats?.vehicleStats} />
+          )
         )}
-      </div>
+      </section>
 
-      {/* 5. الإحصائيات */}
-      <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+      {/* 5. الإحصائيات المباشرة */}
+      <section className="dashboard-section animate-fade-in">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
+              <TrendingUp className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-right text-foreground">الإحصائيات المباشرة</h2>
+              <p className="text-sm text-muted-foreground text-right">بيانات آنية ومؤشرات</p>
+            </div>
+          </div>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2"
+            className="h-9 px-3 hover:bg-accent/50"
             onClick={() => onToggleSection('realtime')}
           >
             {collapsedSections['realtime'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
-          <h2 className="text-lg font-semibold text-right">الإحصائيات</h2>
         </div>
         {!collapsedSections['realtime'] && <RealTimeStatsWidget />}
-      </div>
+      </section>
 
     </div>
   );

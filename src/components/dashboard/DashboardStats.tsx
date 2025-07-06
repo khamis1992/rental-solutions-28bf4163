@@ -34,16 +34,16 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false 
   if (!stats && !loading) return null;
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 section-transition" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 section-transition" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <StatCard
         title="إجمالي المركبات"
         value={loading ? '—' : stats?.vehicleStats.total.toString() || '0'}
         description={loading ? 'جاري التحميل...' : `متاحة: ${stats?.vehicleStats.available || 0}`}
         icon={Car}
-        iconColor="text-blue-500"
+        iconColor="text-blue-600"
         trend={loading ? 0 : stats?.vehicleStats.available && stats?.vehicleStats.total > 0 ? Math.round((stats.vehicleStats.available / stats.vehicleStats.total) * 100) : 0}
         trendLabel="معدل التوفر"
-        className="transition-shadow hover:shadow-md"
+        className="group relative overflow-hidden bg-gradient-to-br from-blue-50/50 to-background border-blue-200/30 hover:border-blue-300/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer"
         onClick={() => !loading && navigate('/vehicles')}
         sparkline={sparklineData.vehicles}
         showSparkline={!loading}
@@ -51,14 +51,14 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false 
       />
       
       <StatCard
-        title="الإيرادات"
+        title="الإيرادات الشهرية"
         value={loading ? '—' : formatCurrencyArabic(stats?.financialStats.currentMonthRevenue || 0)}
-        description={loading ? 'جاري التحميل...' : 'هذا الشهر'}
+        description={loading ? 'جاري التحميل...' : 'إجمالي هذا الشهر'}
         icon={DollarSign}
-        iconColor="text-green-500"
+        iconColor="text-green-600"
         trend={loading ? 0 : stats?.financialStats.revenueGrowth || 0}
         trendLabel="مقارنة بالشهر الماضي"
-        className="transition-shadow hover:shadow-md"
+        className="group relative overflow-hidden bg-gradient-to-br from-green-50/50 to-background border-green-200/30 hover:border-green-300/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 cursor-pointer"
         onClick={() => !loading && navigate('/financials')}
         sparkline={sparklineData.revenue}
         showSparkline={!loading}
@@ -68,12 +68,12 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false 
       <StatCard
         title="العملاء النشطون"
         value={loading ? '—' : stats?.customerStats.active.toString() || '0'}
-        description={loading ? 'جاري التحميل...' : `الإجمالي: ${stats?.customerStats.total || 0}`}
+        description={loading ? 'جاري التحميل...' : `من إجمالي ${stats?.customerStats.total || 0} عميل`}
         icon={Users}
-        iconColor="text-violet-500"
+        iconColor="text-purple-600"
         trend={loading ? 0 : stats?.customerStats.growth || 0}
-        trendLabel="مقارنة بالشهر الماضي"
-        className="transition-shadow hover:shadow-md"
+        trendLabel="نمو العملاء"
+        className="group relative overflow-hidden bg-gradient-to-br from-purple-50/50 to-background border-purple-200/30 hover:border-purple-300/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 cursor-pointer"
         onClick={() => !loading && navigate('/customers')}
         sparkline={sparklineData.customers}
         showSparkline={!loading}
@@ -81,14 +81,14 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false 
       />
       
       <StatCard
-        title="العقود"
+        title="العقود النشطة"
         value={loading ? '—' : stats?.agreementStats.active.toString() || '0'}
-        description={loading ? 'جاري التحميل...' : 'العقود النشطة'}
+        description={loading ? 'جاري التحميل...' : 'اتفاقيات سارية المفعول'}
         icon={FileText}
-        iconColor="text-amber-500"
+        iconColor="text-amber-600"
         trend={loading ? 0 : stats?.agreementStats.growth || 0}
-        trendLabel="مقارنة بالشهر الماضي"
-        className="transition-shadow hover:shadow-md"
+        trendLabel="العقود الجديدة"
+        className="group relative overflow-hidden bg-gradient-to-br from-amber-50/50 to-background border-amber-200/30 hover:border-amber-300/50 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300 cursor-pointer"
         onClick={() => !loading && navigate('/agreements')}
         sparkline={sparklineData.agreements}
         showSparkline={!loading}
