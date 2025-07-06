@@ -110,7 +110,6 @@ const VehicleInspectionPage = lazy(() => import("./pages/mobile/VehicleInspectio
 
 import initializeApp from "./utils/app-initializer";
 import { DocumentationModeProvider } from '@/context/DocumentationModeContext';
-import { DocumentationToggleButton } from '@/components/DocumentationToggleButton';
 
 // Main App Content Component
 const AppContent = () => {
@@ -251,7 +250,7 @@ function App() {
   }));
 
   // تحسينات الأداء للجوال
-  const { optimizationsEnabled } = useMobilePerformanceOptimization();
+  useMobilePerformanceOptimization();
 
   useEffect(() => {
     initializeApp();

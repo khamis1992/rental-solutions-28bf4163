@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
 import { Agreement } from '@/types/agreement';
@@ -79,32 +78,33 @@ export function AgreementList({
     
     // Required database fields with defaults
     agreement_type: 'short_term',
-    total_amount: agreement.rent_amount || 0,
     
     // Relationship data
     customers: agreement.customers ? {
       id: agreement.customers.id,
       full_name: agreement.customers.full_name,
-      email: agreement.customers.email || '',
-      phone_number: agreement.customers.phone_number || '',
-      address: agreement.customers.address || '',
-      city: agreement.customers.city || '',
-      state: agreement.customers.state || '',
-      zip_code: agreement.customers.zip_code || '',
-      role: agreement.customers.role || 'customer',
-      created_at: agreement.customers.created_at || '',
-      updated_at: agreement.customers.updated_at || '',
-      driver_license: null
+      email: agreement.customers.email || null,
+      phone_number: agreement.customers.phone_number || null,
+      address: agreement.customers.address || null,
+      city: agreement.customers.city || null,
+      state: agreement.customers.state || null,
+      zip_code: agreement.customers.zip_code || null,
+      role: agreement.customers.role || null,
+      created_at: agreement.customers.created_at || null,
+      updated_at: agreement.customers.updated_at || null,
+      driver_license: null,
+      id_card_image: null
     } : undefined,
     vehicles: agreement.vehicles ? {
       ...agreement.vehicles,
-      attention_needed_notes: '',
-      engine_number: '',
-      model_number: '',
-      notes: '',
-      created_at: '',
-      updated_at: '',
-      vin: agreement.vehicles.vin || ''
+      status: agreement.vehicles.status as 'maintenance' | 'available' | 'rented' | 'police_station' | 'accident' | 'stolen' | 'reserved' | 'retired' | 'out_of_service' | null,
+      attention_needed_notes: null,
+      engine_number: null,
+      model_number: null,
+      notes: null,
+      created_at: null,
+      updated_at: null,
+      vin: agreement.vehicles.vin || null
     } : undefined,
     
     // Computed fields for backward compatibility

@@ -1,4 +1,4 @@
-import React from 'react';
+// Simple App component
 
 // Simple test component to check if basic React rendering works
 const SimpleApp = () => {
