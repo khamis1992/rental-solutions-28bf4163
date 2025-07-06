@@ -47,6 +47,7 @@ export default function InvoiceManagement() {
         title="إدارة الفواتير التلقائية"
         description="مسح الفواتير تلقائياً وربطها بالعقود المناسبة"
         icon={<Scan className="h-6 w-6" />}
+        align="center"
       />
 
       {/* بطاقات الإحصائيات السريعة */}
