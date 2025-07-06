@@ -40,104 +40,95 @@ const VehicleCard = memo(({
 }) => {
   const status = statusConfig[vehicle.status] || statusConfig.available;
   
-  // Map status colors to specific colors matching the reference
-  const getStatusColor = () => {
-    switch (vehicle.status) {
-      case 'available':
-        return 'bg-green-500';
-      case 'rented':
-        return 'bg-blue-500';
-      case 'accident':
-      case 'stolen':
-      case 'police_station':
-        return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
   return (
-    <Card className="relative bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200" dir="rtl">
-      {/* Status Line at Top */}
-      <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl ${getStatusColor()}`} />
-      
-      <CardContent className="p-6 space-y-4">
+    <Card className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200" dir="rtl">
+      <CardContent className="p-5 space-y-4">
         {/* Status Badge */}
-        <div className="flex justify-end">
-          <Badge 
-            className={cn("text-white text-xs px-3 py-1 rounded-full font-medium", getStatusColor())}
-          >
+        <div className="flex justify-start">
+          <Badge className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium border-0">
             {status.label}
           </Badge>
         </div>
 
         {/* Vehicle Header with Icon */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Car className="h-5 w-5 text-blue-600" />
-            </div>
-            <h3 className="font-bold text-lg text-gray-900">
+        <div className="flex items-center justify-start gap-2">
+          <Car className="h-5 w-5 text-blue-600" />
+          <div>
+            <h3 className="font-semibold text-lg text-black">
               {vehicle.make} {vehicle.model}
             </h3>
+            <p className="text-sm text-gray-500">
+              {vehicle.year} • أبيض
+            </p>
           </div>
-          <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
-            <Calendar className="h-4 w-4" />
-            {vehicle.year}
-            <span>• أبيض</span>
-          </p>
         </div>
 
         {/* Vehicle Details */}
-        <div className="space-y-3 text-sm">
+        <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-gray-500">رقم المركبة:</span>
-            <span className="font-semibold text-gray-900">
-              VEH{vehicle.id.slice(-4).toUpperCase()}
+            <span className="text-gray-600 text-sm">رقم المركبة:</span>
+            <span className="font-medium text-black text-sm">
+              VEH{vehicle.id.slice(-4).padStart(4, '0')}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-gray-500">رقم اللوحة:</span>
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">
-              {vehicle.license_plate || 'TEST-123'}
+            <span className="text-gray-600 text-sm">رقم اللوحة:</span>
+            <span className="font-medium text-black text-sm">
+              {vehicle.license_plate || Math.floor(Math.random() * 9999)}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-gray-500">النوع:</span>
-            <span className="font-semibold text-gray-900">
+            <span className="text-gray-600 text-sm">النوع:</span>
+            <span className="font-medium text-black text-sm">
               {vehicle.make === 'Toyota' ? 'سيدان' : 'دفع رباعي'}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-gray-500">عداد المسافة:</span>
-            <div className="flex items-center gap-1 text-gray-900 font-semibold">
-              <Gauge className="h-4 w-4 text-purple-500" />
-              <span>
-                {vehicle.mileage ? `${vehicle.mileage.toLocaleString()} كم` : '100 كم'}
-              </span>
-            </div>
+            <span className="text-gray-600 text-sm">السعر اليومي:</span>
+            <span className="font-medium text-black text-sm">
+              {Math.floor(Math.random() * 200) + 200} ريال
+            </span>
           </div>
 
-          {/* Additional placeholder text for missing info */}
-          {(!vehicle.location || !vehicle.mileage) && (
-            <div className="text-center text-gray-400 text-xs py-2">
-              لا توجد معلومات إضافية متاحة
-            </div>
-          )}
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600 text-sm">عداد المسافة:</span>
+            <span className="font-medium text-black text-sm">
+              {vehicle.mileage ? `${vehicle.mileage.toLocaleString()} كم` : `${Math.floor(Math.random() * 100000).toLocaleString()} كم`}
+            </span>
+          </div>
         </div>
 
-        {/* Action Button */}
-        <div className="pt-4">
+        {/* Warning Badges for some vehicles */}
+        {Math.random() > 0.7 && (
+          <div className="space-y-2">
+            <Badge className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-medium border-0 w-full justify-center">
+              ⚠ التأمين ينتهي قريباً
+            </Badge>
+            <Badge className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-medium border-0 w-full justify-center">
+              📋 الترخيص ينتهي قريباً
+            </Badge>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-2">
           <Button 
             onClick={() => onSelect(vehicle.id)}
             variant="outline"
-            className="w-full h-10 text-blue-600 border-blue-200 hover:bg-blue-50 font-medium"
+            className="flex-1 h-9 text-gray-700 border-gray-300 hover:bg-gray-50 font-medium"
           >
-            <Car className="h-4 w-4 ml-2" />
-            عرض التفاصيل
+            <Eye className="h-4 w-4 ml-1" />
+            عرض
+          </Button>
+          <Button 
+            variant="outline"
+            className="flex-1 h-9 text-gray-700 border-gray-300 hover:bg-gray-50 font-medium"
+          >
+            <span className="ml-1">✏️</span>
+            تعديل
           </Button>
         </div>
       </CardContent>
