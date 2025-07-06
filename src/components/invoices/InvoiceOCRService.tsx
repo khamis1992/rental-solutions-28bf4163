@@ -33,12 +33,22 @@ export function InvoiceOCRService() {
     setIsProcessing(true);
     try {
       // Convert file to base64
-      const base64 = await new Promise<string>((resolve) => {
+      const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]); // Remove data:image/...;base64, prefix
+          const result = reader.result;
+          if (!result || typeof result !== 'string') {
+            reject(new Error('Failed to read file'));
+            return;
+          }
+          const base64Data = result.split(',')[1];
+          if (!base64Data) {
+            reject(new Error('Invalid file format'));
+            return;
+          }
+          resolve(base64Data);
         };
+        reader.onerror = () => reject(new Error('Failed to read file'));
         reader.readAsDataURL(file);
       });
 
