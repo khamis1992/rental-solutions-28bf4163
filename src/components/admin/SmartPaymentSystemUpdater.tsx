@@ -120,7 +120,7 @@ export default function SmartPaymentSystemUpdater() {
         const progressPercent = Math.round(((i + 1) / agreements.length) * 100);
         
         setProgress(progressPercent);
-        setCurrentAgreement(`${agreement.agreement_number} - ${agreement.profiles?.[0]?.full_name || 'عميل غير محدد'}`);
+        setCurrentAgreement(`${agreement.agreement_number} - ${agreement.profiles?.full_name || 'عميل غير محدد'}`);
 
         console.log(`\n📋 معالجة العقد ${i + 1}/${agreements.length}: ${agreement.agreement_number}`);
 
@@ -131,8 +131,8 @@ export default function SmartPaymentSystemUpdater() {
           if (payments.length === 0) {
             updateResults.push({
               agreementId: agreement.id,
-              agreementNumber: agreement.agreement_number,
-              customerName: agreement.profiles?.[0]?.full_name || 'غير محدد',
+              agreementNumber: agreement.agreement_number || '',
+              customerName: agreement.profiles?.full_name || 'غير محدد',
               totalPayments: 0,
               updatedPayments: 0,
               conflictsFound: 0,
@@ -144,10 +144,10 @@ export default function SmartPaymentSystemUpdater() {
 
           // تحويل البيانات للنوع المطلوب
           const smartPayments: PaymentData[] = payments.map(p => ({
-            id: p.id,
-            amount: p.amount,
-            due_date: p.due_date,
-            status: p.status,
+            id: p.id || '',
+            amount: p.amount || 0,
+            due_date: p.payment_date || p.created_at || '',
+            status: (p.status as 'paid' | 'pending' | 'overdue') || 'pending',
             description: p.description || '',
             created_at: p.created_at || ''
           }));
@@ -164,8 +164,8 @@ export default function SmartPaymentSystemUpdater() {
 
           updateResults.push({
             agreementId: agreement.id,
-            agreementNumber: agreement.agreement_number,
-            customerName: agreement.profiles?.[0]?.full_name || 'غير محدد',
+            agreementNumber: agreement.agreement_number || '',
+            customerName: agreement.profiles?.full_name || 'غير محدد',
             totalPayments: payments.length,
             updatedPayments: updateResult.updated,
             conflictsFound: smartStats.counts.conflicts,
@@ -181,8 +181,8 @@ export default function SmartPaymentSystemUpdater() {
           
           updateResults.push({
             agreementId: agreement.id,
-            agreementNumber: agreement.agreement_number,
-            customerName: agreement.profiles?.[0]?.full_name || 'غير محدد',
+            agreementNumber: agreement.agreement_number || '',
+            customerName: agreement.profiles?.full_name || 'غير محدد',
             totalPayments: agreement.payments?.length || 0,
             updatedPayments: 0,
             conflictsFound: 0,

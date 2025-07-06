@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { Loader2, Plus } from 'lucide-react';
 import { VehicleSelector } from '@/components/vehicles/VehicleSelector';
 import { CustomerSelector } from '@/components/customers/CustomerSelector';
-import type { Database } from '@/types/database.types';
+
 
 // Remove unused types
 type PaymentRecord = {
@@ -28,7 +28,7 @@ interface AgreementFormData {
   lease_end: string;
   monthly_rent: number;
   deposit: number;
-  status: 'draft' | 'active' | 'expired' | 'terminated';
+  status: 'active' | 'terminated' | 'pending_payment' | 'pending_deposit' | 'closed' | 'archived';
   terms: string;
   payment_day_of_month: number;
 }
@@ -41,7 +41,7 @@ const AgreementFormWithVehicleCheck = () => {
     lease_end: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
     monthly_rent: 0,
     deposit: 0,
-    status: 'draft',
+    status: 'active',
     terms: '',
     payment_day_of_month: new Date().getDate(),
   });
@@ -110,10 +110,18 @@ const AgreementFormWithVehicleCheck = () => {
       const { data: agreement, error: agreementError } = await supabase
         .from('leases')
         .insert([{
-          ...formData,
           customer_id: selectedCustomer.id,
           vehicle_id: selectedVehicle.id,
-          payment_schedule: paymentSchedule
+          start_date: formData.lease_start,
+          end_date: formData.lease_end,
+          rent_amount: formData.monthly_rent,
+          deposit_amount: formData.deposit,
+          status: 'active' as const,
+          notes: formData.terms,
+          rent_due_day: formData.payment_day_of_month,
+          total_amount: formData.monthly_rent,
+          agreement_duration: 12,
+          agreement_type: 'short_term' as const
         }])
         .select()
         .single();

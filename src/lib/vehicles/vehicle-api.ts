@@ -1,5 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/database';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   ExtendedVehicle, 
   VehicleInsert, 
@@ -10,17 +9,6 @@ import {
 } from '@/types/vehicle';
 import { isValidVehicleStatus } from '@/lib/validation/vehicle-status';
 import { enhancedVehicleSearch, enhancedLicensePlateMatch } from '@/utils/searchUtils';
-
-// Default fallback values (these will be used if environment variables are not found)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vqdlsidkucrownbfuouq.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y';
-
-// Check that we have the values we need, but use fallbacks instead of throwing an error
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('Supabase environment variables not found in vehicle-api, using default values');
-}
-
-const supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Helper function to safely convert status strings to VehicleStatus
 const safeMapToVehicleStatus = (status: string): VehicleStatus => {
@@ -40,7 +28,7 @@ const handleApiError = (operation: string, error: any): never => {
 // Fetch vehicles with optional filtering
 export async function fetchVehicles(filters?: VehicleFilterParams): Promise<ExtendedVehicle[] | undefined> {
   try {
-    let query = supabaseClient.from('vehicles')
+    let query = supabase.from('vehicles')
       .select('*, vehicle_types(*), agreements:leases(*)');
     
     if (filters) {
@@ -95,7 +83,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Exte
 // Fetch a single vehicle by ID
 export async function fetchVehicleById(id: string): Promise<ExtendedVehicle | undefined> {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('vehicles')
       .select('*, vehicle_types(*), agreements:leases(*)')
       .eq('id', id)
@@ -119,7 +107,7 @@ export async function fetchVehicleById(id: string): Promise<ExtendedVehicle | un
 // Fetch all vehicle types
 export async function fetchVehicleTypes(): Promise<VehicleType[] | undefined> {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('vehicle_types')
       .select('*')
       .eq('is_active', true)
@@ -142,7 +130,7 @@ export async function fetchVehicleTypes(): Promise<VehicleType[] | undefined> {
 // Create a new vehicle
 export async function createVehicle(vehicle: VehicleInsert): Promise<ExtendedVehicle | undefined> {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('vehicles')
       .insert(vehicle)
       .select('*, vehicle_types(*), agreements:leases(*)')
@@ -166,7 +154,7 @@ export async function createVehicle(vehicle: VehicleInsert): Promise<ExtendedVeh
 // Update a vehicle
 export async function updateVehicle(id: string, vehicle: VehicleUpdate): Promise<ExtendedVehicle | undefined> {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('vehicles')
       .update(vehicle)
       .eq('id', id)
@@ -191,7 +179,7 @@ export async function updateVehicle(id: string, vehicle: VehicleUpdate): Promise
 // Delete a vehicle
 export async function deleteVehicle(id: string): Promise<void> {
   try {
-    const { error } = await supabaseClient
+    const { error } = await supabase
       .from('vehicles')
       .delete()
       .eq('id', id);
@@ -207,7 +195,7 @@ export async function deleteVehicle(id: string): Promise<void> {
 // Get available vehicles
 export async function getAvailableVehicles(): Promise<ExtendedVehicle[] | undefined> {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('vehicles')
       .select('*, vehicle_types(*), agreements:leases(*)')
       .eq('status', 'available');
@@ -227,7 +215,7 @@ export async function getAvailableVehicles(): Promise<ExtendedVehicle[] | undefi
 export async function getVehiclesByStatus(status: VehicleStatus): Promise<ExtendedVehicle[] | undefined> {
   try {
     const dbStatus = status === 'reserved' ? 'reserve' : status;
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('vehicles')
       .select('*, vehicle_types(*), agreements:leases(*)')
       .eq('status', dbStatus);
@@ -254,7 +242,7 @@ export async function enhancedSearchVehicles(
 ): Promise<(ExtendedVehicle & { matchScore?: number; matchDetails?: string[] })[] | undefined> {
   try {
     // First, get all vehicles from the database
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('vehicles')
       .select('*, vehicle_types(*), agreements:leases(*)');
 
@@ -301,7 +289,7 @@ export async function searchVehiclesByLicensePlate(
   }
 ): Promise<(ExtendedVehicle & { matchScore?: number; matchType?: string })[] | undefined> {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('vehicles')
       .select('*, vehicle_types(*), agreements:leases(*)');
 
@@ -347,7 +335,7 @@ export async function searchVehiclesByLicensePlate(
 export async function searchVehicles(searchTerm: string): Promise<ExtendedVehicle[] | undefined> {
   try {
     // For backward compatibility, first try the database search
-    const { data: dbResults, error } = await supabaseClient
+    const { data: dbResults, error } = await supabase
       .from('vehicles')
       .select('*, vehicle_types(*), agreements:leases(*)')
       .or(`make.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,license_plate.ilike.%${searchTerm}%`);

@@ -143,7 +143,21 @@ const AgreementDetail = () => {
           return;
         }
 
-        setAgreement(agreementData);
+        setAgreement({
+          id: agreementData.id,
+          agreement_number: agreementData.agreement_number,
+          customer_id: agreementData.customer_id,
+          vehicle_id: agreementData.vehicle_id,
+          start_date: agreementData.start_date || '',
+          end_date: agreementData.end_date || '',
+          rent_amount: agreementData.rent_amount,
+          deposit_amount: agreementData.deposit_amount,
+          down_payment: 0,
+          total_amount: agreementData.total_amount || 0,
+          status: agreementData.status,
+          created_at: agreementData.created_at,
+          updated_at: agreementData.updated_at
+        });
 
         // Fetch related customer
         const { data: customerData, error: customerError } = await supabase
@@ -157,7 +171,21 @@ const AgreementDetail = () => {
           toast.error('Customer not found');
           return;
         }
-        setCustomer(customerData);
+        setCustomer({
+          id: customerData.id,
+          full_name: customerData.full_name || '',
+          email: customerData.email,
+          phone_number: customerData.phone_number,
+          address: customerData.address,
+          city: null,
+          state: null,
+          zip_code: null,
+          role: customerData.role,
+          created_at: customerData.created_at,
+          updated_at: customerData.updated_at,
+          driver_license: customerData.driver_license,
+          id_card_image: customerData.id_card_image
+        });
 
         // Fetch related vehicle
         const { data: vehicleData, error: vehicleError } = await supabase
@@ -171,7 +199,13 @@ const AgreementDetail = () => {
           toast.error('Vehicle not found');
           return;
         }
-        setVehicle(vehicleData);
+        setVehicle({
+          ...vehicleData,
+          attention_needed_notes: vehicleData.attention_needed_notes || null,
+          engine_number: vehicleData.engine_number || null,
+          model_number: vehicleData.model_number || null,
+          notes: vehicleData.notes || null
+        });
 
       } catch (error) {
         console.error('Error fetching agreement details:', error);
