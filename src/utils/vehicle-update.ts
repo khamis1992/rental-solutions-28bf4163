@@ -1,11 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/database.types';
+import { supabase } from '@/integrations/supabase/client';
 import { ExtendedVehicle, VehicleStatus, VehicleUpdate } from '@/types/vehicle';
-
-const supabase = createClient<Database>(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
-);
 
 interface UpdateResult {
   success: boolean;
