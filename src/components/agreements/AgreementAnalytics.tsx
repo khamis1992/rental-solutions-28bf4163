@@ -1,16 +1,14 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart4, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { useNavigate } from 'react-router-dom';
 
 interface AgreementAnalyticsProps {
   onFilterApply?: (filters: Record<string, any>) => void;
 }
 
 export function AgreementAnalytics({ onFilterApply }: AgreementAnalyticsProps) {
-  const navigate = useNavigate();
   const { agreements, isLoading } = useAgreementService();
 
   // حساب التحليلات من البيانات الحقيقية

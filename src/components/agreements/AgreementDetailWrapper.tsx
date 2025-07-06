@@ -1,4 +1,3 @@
-import React from 'react';
 import { RedesignedAgreementDetail } from './redesigned';
 
 // You can add logic here to switch between classic and redesigned if needed

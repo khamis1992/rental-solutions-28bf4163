@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -441,7 +441,7 @@ export default function SmartPaymentSystemUpdater() {
           <CardContent>
             <ScrollArea className="h-96">
               <div className="space-y-3">
-                {results.map((result, index) => (
+                {results.map((result) => (
                   <div key={result.agreementId} className="border rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
