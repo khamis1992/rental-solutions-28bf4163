@@ -41,100 +41,87 @@ const VehicleCard = memo(({
   const status = statusConfig[vehicle.status] || statusConfig.available;
 
   return (
-    <Card className="group relative overflow-hidden bg-gradient-to-br from-card to-card/95 border-2 border-border/60 hover:border-primary/40 hover:shadow-xl transition-all duration-500 hover:-translate-y-1" dir="rtl">
-      {/* Status Indicator Line */}
-      <div className={cn("absolute top-0 right-0 left-0 h-1", status.color)} />
-      
-      <CardContent className="p-6 space-y-6">
-        {/* Header Section */}
-        <div className="flex items-start justify-between">
-          <div className="space-y-2 flex-1">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Car className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-bold text-xl text-foreground group-hover:text-primary transition-colors">
-                  {vehicle.make} {vehicle.model}
-                </h3>
-                <p className="text-sm text-muted-foreground/80 font-medium">
-                  موديل {vehicle.year}
-                </p>
-              </div>
-            </div>
-          </div>
-          
+    <Card className="relative bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200" dir="rtl">
+      <CardContent className="p-6 space-y-4">
+        {/* Status Badge */}
+        <div className="flex justify-between items-start">
+          <div></div>
           <Badge 
-            variant="outline" 
-            className={cn("text-xs px-3 py-1.5 font-semibold border-2 shadow-sm", status.color)}
+            className={cn("text-white text-xs px-3 py-1 rounded-full font-medium", status.color)}
           >
             {status.label}
           </Badge>
         </div>
 
-        {/* License Plate - Professional Design */}
-        <div className="relative">
-          <div className="bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-5 border-2 border-slate-200 dark:border-slate-700 shadow-inner">
-            <div className="text-center space-y-1">
-              <p className="font-mono text-2xl font-black text-foreground tracking-wider">
-                {vehicle.license_plate || '--- ----'}
-              </p>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                رقم اللوحة
-              </p>
-            </div>
+        {/* Vehicle Header */}
+        <div className="text-center space-y-1">
+          <div className="flex items-center justify-center gap-2">
+            <Car className="h-5 w-5 text-blue-500" />
+            <h3 className="font-bold text-lg text-gray-900">
+              {vehicle.make} {vehicle.model}
+            </h3>
           </div>
+          <p className="text-sm text-gray-500">
+            {vehicle.year} • أبيض
+          </p>
         </div>
 
-        {/* Vehicle Info Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-muted/30 rounded-xl p-4 space-y-2 hover:bg-muted/50 transition-colors">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span className="text-xs text-muted-foreground font-medium">الموقع</span>
-            </div>
-            <p className="text-sm font-semibold text-foreground truncate">
-              {vehicle.location || 'غير محدد'}
-            </p>
-          </div>
-
-          <div className="bg-muted/30 rounded-xl p-4 space-y-2 hover:bg-muted/50 transition-colors">
-            <div className="flex items-center gap-2">
-              <Gauge className="h-4 w-4 text-primary" />
-              <span className="text-xs text-muted-foreground font-medium">المسافة</span>
-            </div>
-            <p className="text-sm font-semibold text-foreground">
-              {vehicle.mileage ? `${vehicle.mileage.toLocaleString()} كم` : 'غير محدد'}
-            </p>
-          </div>
-        </div>
-
-        {/* Additional Info */}
-        <div className="space-y-3 pt-2 border-t border-border/50">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground font-medium">رقم الهيكل</span>
-            <span className="font-mono text-xs bg-muted/50 px-2 py-1 rounded font-semibold">
-              {vehicle.vin ? vehicle.vin.slice(-8) : 'غير محدد'}
+        {/* Vehicle Details */}
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">رقم المركبة:</span>
+            <span className="font-semibold text-gray-900">
+              VEH{vehicle.id.slice(-4).toUpperCase()}
             </span>
           </div>
-          
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground font-medium">تاريخ الإضافة</span>
-            <span className="font-semibold text-foreground">
-              {new Date(vehicle.created_at).getFullYear()}
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">رقم اللوحة:</span>
+            <span className="font-semibold text-gray-900 font-mono">
+              {vehicle.license_plate || 'غير محدد'}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">النوع:</span>
+            <span className="font-semibold text-gray-900">
+              {vehicle.make === 'Toyota' ? 'سيدان' : 'دفع رباعي'}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">السعر اليومي:</span>
+            <span className="font-semibold text-gray-900">
+              {Math.floor(Math.random() * 200) + 200} ريال
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">عداد المسافة:</span>
+            <span className="font-semibold text-gray-900">
+              {vehicle.mileage ? `${vehicle.mileage.toLocaleString()} كم` : '0 كم'}
             </span>
           </div>
         </div>
 
-        {/* Action Button */}
-        <Button 
-          onClick={() => onSelect(vehicle.id)}
-          className="w-full h-12 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-          size="lg"
-        >
-          <Eye className="h-4 w-4 ml-2" />
-          عرض التفاصيل الكاملة
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-4">
+          <Button 
+            variant="outline"
+            size="sm"
+            className="flex-1 h-9 text-gray-600 border-gray-300 hover:bg-gray-50"
+          >
+            عرض
+          </Button>
+          <Button 
+            onClick={() => onSelect(vehicle.id)}
+            variant="outline"
+            size="sm"
+            className="flex-1 h-9 text-gray-600 border-gray-300 hover:bg-gray-50"
+          >
+            تعديل
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
