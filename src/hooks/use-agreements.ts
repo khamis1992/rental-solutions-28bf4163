@@ -4,6 +4,7 @@ import { useAgreementService } from './services/useAgreementService';
 import type { AgreementFilters } from '@/services/AgreementService';
 import type { LeaseStatus } from '@/types/lease-types';
 import { SortingState } from '@tanstack/react-table';
+import { Database } from '@/types/database.types';
 
 // Updated SimpleAgreement interface to match database schema more closely
 export interface SimpleAgreement {

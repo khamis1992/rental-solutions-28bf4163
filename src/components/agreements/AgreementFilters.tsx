@@ -19,7 +19,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 
 interface AgreementFiltersProps {
   onFilterChange: (filters: Record<string, any>) => void;

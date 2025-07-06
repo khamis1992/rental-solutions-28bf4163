@@ -3,8 +3,6 @@ import App from './App.tsx';
 // import App from './SimpleApp.tsx';
 import './index.css';
 
-// Import environment variables diagnostic test
-import './env-test.ts';
 
 // Initialize monitoring services
 import { initializeMonitoring } from './services/monitoring';
