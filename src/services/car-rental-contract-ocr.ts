@@ -70,20 +70,9 @@ class CarRentalContractOcrService {
   private readonly googleVisionUrl = 'https://vision.googleapis.com/v1/images:annotate';
 
   constructor() {
-    this.openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
-    this.googleVisionApiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY || '';
-    
-    if (!this.openaiApiKey) {
-      console.warn('⚠️ OpenAI API key not found in environment variables');
-    }
-    
-    if (!this.googleVisionApiKey) {
-      console.warn('⚠️ Google Vision API key not found in environment variables');
-    }
-    
-    if (this.openaiApiKey.startsWith('sk-')) {
-      console.log('✅ OpenAI API key configured successfully');
-    }
+    // API keys are handled securely through Supabase Edge Functions
+    this.openaiApiKey = '';
+    this.googleVisionApiKey = '';
   }
 
   /**

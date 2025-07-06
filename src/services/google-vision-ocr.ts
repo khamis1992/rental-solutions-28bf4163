@@ -29,12 +29,8 @@ class GoogleVisionOcrService {
   private readonly apiUrl = 'https://vision.googleapis.com/v1/images:annotate';
 
   constructor() {
-    // Use environment variable for API key
-    this.apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY || '';
-    
-    if (!this.apiKey) {
-      console.warn('⚠️ Google Vision API key not found in environment variables');
-    }
+    // API key is handled securely through Supabase Edge Functions
+    this.apiKey = '';
   }
 
   /**
