@@ -26,6 +26,21 @@ import { useAnalyticsEngine } from '../core/AnalyticsEngine';
 import { formatCurrency } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// Safe component to handle analytics engine context issues
+const SafeAnalyticsWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  try {
+    return <>{children}</>;
+  } catch (error) {
+    console.warn('Analytics component error:', error);
+    return (
+      <Card className="p-6 text-center">
+        <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+        <p className="text-muted-foreground">تحليلات غير متاحة حالياً</p>
+      </Card>
+    );
+  }
+};
+
 interface SmartMetricCardProps {
   metric: any;
   onClick?: () => void;
@@ -300,24 +315,47 @@ const SmartInsightCard: React.FC<SmartInsightCardProps> = ({ insight, onMarkAsRe
 };
 
 export const SmartAnalyticsDashboard: React.FC = () => {
+  return (
+    <SafeAnalyticsWrapper>
+      <SmartAnalyticsDashboardContent />
+    </SafeAnalyticsWrapper>
+  );
+};
+
+const SmartAnalyticsDashboardContent: React.FC = () => {
   const { language } = useLanguage();
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   
+  const analytics = useAnalyticsEngine();
+  
+  // Handle the case where analytics engine is not available
+  if (analytics.error) {
+    return (
+      <Card className="p-6 text-center" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+        <p className="text-muted-foreground mb-2">نظام التحليلات غير متاح حالياً</p>
+        <Button onClick={analytics.refreshData} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          إعادة المحاولة
+        </Button>
+      </Card>
+    );
+  }
+
   const {
     metrics,
     alerts,
     insights,
     isLoading,
     lastUpdate,
-    error,
     refreshData,
     getMetricsByCategory,
     getActiveAlerts,
     getInsightsByImpact,
     dismissAlert,
     markInsightAsRead
-  } = useAnalyticsEngine();
+  } = analytics;
 
   const financialMetrics = useMemo(() => getMetricsByCategory('financial'), [getMetricsByCategory]);
   const fleetMetrics = useMemo(() => getMetricsByCategory('fleet'), [getMetricsByCategory]);
@@ -342,19 +380,6 @@ export const SmartAnalyticsDashboard: React.FC = () => {
           ))}
         </div>
       </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="p-6 text-center" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-        <p className="text-red-600 mb-2">{error}</p>
-        <Button onClick={refreshData} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          إعادة المحاولة
-        </Button>
-      </Card>
     );
   }
 

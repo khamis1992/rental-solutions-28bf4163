@@ -89,3 +89,17 @@ export const truncateText = (text: string, maxLength: number): string => {
     ? `${text.substring(0, maxLength)}...`
     : text;
 };
+
+// Safe type conversion utilities
+export function safeString(value: any): string {
+  return value ? String(value) : '';
+}
+
+export function safeNumber(value: any): number {
+  const num = Number(value);
+  return isNaN(num) ? 0 : num;
+}
+
+export function safeBoolean(value: any): boolean {
+  return Boolean(value);
+}

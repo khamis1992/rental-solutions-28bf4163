@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -22,10 +21,10 @@ interface FormProviderProps {
 
 const FormContext = createContext<FormContextType | undefined>(undefined);
 
-export const useForm = () => {
+export const useFormContext = () => {
   const context = useContext(FormContext);
   if (!context) {
-    throw new Error('useForm must be used within a FormProvider');
+    throw new Error('useFormContext must be used within a FormProvider');
   }
   return context;
 };
@@ -61,28 +60,23 @@ export const FormProvider: React.FC<FormProviderProps> = ({
   }, []);
 
   const submitForm = useCallback(async (onSubmitCallback: (data: Record<string, any>) => Promise<void>) => {
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
+    clearErrors();
+
     try {
-      if (form && onSubmit) {
-        await form.handleSubmit(onSubmit)();
-      } else {
-        await onSubmitCallback(formData);
-      }
-      toast.success('Form submitted successfully', {
-        action: {
-          label: 'Dismiss',
-          onClick: () => {}
-        }
-      });
+      await onSubmitCallback(formData);
+      toast.success('تم حفظ البيانات بنجاح');
     } catch (error) {
       console.error('Form submission error:', error);
-      toast.error('Failed to submit form');
+      toast.error('حدث خطأ أثناء حفظ البيانات');
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, form, onSubmit]);
+  }, [formData, isSubmitting, clearErrors]);
 
-  const value: FormContextType = {
+  const contextValue: FormContextType = {
     formData,
     errors,
     isSubmitting,
@@ -92,19 +86,13 @@ export const FormProvider: React.FC<FormProviderProps> = ({
     submitForm
   };
 
-  const formElement = (
-    <FormContext.Provider value={value}>
-      {children}
+  const containerClass = className ? ` ${className}` : '';
+
+  return (
+    <FormContext.Provider value={contextValue}>
+      <div className={`form-provider${containerClass}`}>
+        {children}
+      </div>
     </FormContext.Provider>
   );
-
-  if (form && onSubmit) {
-    return (
-      <form onSubmit={form.handleSubmit(onSubmit)} className={className}>
-        {formElement}
-      </form>
-    );
-  }
-
-  return <div className={className}>{formElement}</div>;
 };

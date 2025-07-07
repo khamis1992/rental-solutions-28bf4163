@@ -71,9 +71,31 @@ const AnalyticsEngineContext = createContext<AnalyticsEngineContextType | null>(
 
 export const useAnalyticsEngine = () => {
   const context = useContext(AnalyticsEngineContext);
+  
+  // Enhanced error handling with debugging information
   if (!context) {
-    throw new Error('useAnalyticsEngine must be used within AnalyticsEngineProvider');
+    console.error('useAnalyticsEngine called outside of AnalyticsEngineProvider');
+    console.error('Component stack:', new Error().stack);
+    
+    // Return a safe fallback instead of throwing
+    return {
+      metrics: [],
+      alerts: [],
+      insights: [],
+      isLoading: false,
+      lastUpdate: null,
+      error: 'Analytics engine not available - provider not found',
+      refreshData: async () => {
+        console.warn('Analytics engine refresh called but provider not available');
+      },
+      getMetricsByCategory: () => [],
+      getActiveAlerts: () => [],
+      getInsightsByImpact: () => [],
+      dismissAlert: () => {},
+      markInsightAsRead: () => {}
+    };
   }
+  
   return context;
 };
 
