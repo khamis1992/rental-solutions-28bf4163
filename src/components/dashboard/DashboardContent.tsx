@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import DashboardStats from './DashboardStats';
-import VehicleStatusChart from './VehicleStatusChart';
+import { EnhancedVehicleStatusChart } from './vehicle-status/EnhancedVehicleStatusChart';
 import { RealTimeStatsWidget } from './RealTimeStatsWidget';
 import { AdvancedAnalyticsPanel } from './AdvancedAnalyticsPanel';
 import { QuickActions } from './QuickActions';
@@ -149,13 +149,12 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             </Button>
           </div>
         </div>
-        {!collapsedSections['fleet'] && (
-          isLoading ? (
-            <Skeleton className="h-[300px] w-full rounded-xl bg-gradient-to-r from-muted/50 to-muted/30" />
-          ) : (
-            <VehicleStatusChart data={stats?.vehicleStats} />
-          )
-        )}
+          {!collapsedSections['fleet'] && (
+            <EnhancedVehicleStatusChart 
+              data={stats?.vehicleStats} 
+              loading={isLoading}
+            />
+          )}
       </section>
 
       {/* 5. الإحصائيات المباشرة */}
