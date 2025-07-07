@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { ProgressBar } from './vehicle-status/shared/ProgressBar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
@@ -199,7 +199,7 @@ export const ProductionLaunchDashboard: React.FC<ProductionLaunchDashboardProps>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{overallProgress.toFixed(1)}%</div>
-              <Progress value={overallProgress} className="mt-2" />
+              <ProgressBar value={overallProgress} className="mt-2" />
             </CardContent>
           </Card>
 
@@ -422,7 +422,7 @@ export const ProductionLaunchDashboard: React.FC<ProductionLaunchDashboardProps>
                       <span>Progress:</span>
                       <span>{executionStatus.progress.toFixed(1)}%</span>
                     </div>
-                    <Progress value={executionStatus.progress} />
+                    <ProgressBar value={executionStatus.progress} />
                     {executionStatus.currentStep && (
                       <div className="flex justify-between">
                         <span>Current Step:</span>
@@ -639,7 +639,7 @@ export const ProductionLaunchDashboard: React.FC<ProductionLaunchDashboardProps>
                         <div className="text-2xl font-bold">
                           {checklist.completionPercentage.toFixed(0)}%
                         </div>
-                        <Progress value={checklist.completionPercentage} className="w-20" />
+                        <ProgressBar value={checklist.completionPercentage} className="w-20" />
                       </div>
                     </div>
                     <div className="space-y-2">
