@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { ProgressBar } from './shared/ProgressBar';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -152,7 +152,7 @@ export const StatusMetrics: React.FC<StatusMetricsProps> = ({
                       </div>
                     </div>
                   </div>
-                  <Progress 
+                  <ProgressBar 
                     value={Math.min(progressPercentage, 100)} 
                     className="h-2"
                   />
@@ -247,7 +247,7 @@ export const StatusMetrics: React.FC<StatusMetricsProps> = ({
                         {percentage}%
                       </Badge>
                     </div>
-                    <Progress 
+                    <ProgressBar 
                       value={percentage} 
                       className="h-1 w-16"
                       style={{ 

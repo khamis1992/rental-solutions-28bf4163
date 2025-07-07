@@ -11,7 +11,7 @@ import {
   Area 
 } from 'recharts';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { ProgressBar } from './shared/ProgressBar';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -162,7 +162,7 @@ export const StatusTrends: React.FC<StatusTrendsProps> = ({
                 </span>
               </div>
               
-              <Progress 
+              <ProgressBar 
                 value={metric.value} 
                 className="mt-2 h-2"
               />
@@ -303,7 +303,7 @@ export const StatusTrends: React.FC<StatusTrendsProps> = ({
                     <span>الكفاءة: {efficiency}%</span>
                   </div>
                   
-                  <Progress 
+                  <ProgressBar 
                     value={efficiency} 
                     className="h-2"
                   />
