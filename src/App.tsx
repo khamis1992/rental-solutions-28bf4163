@@ -80,6 +80,7 @@ const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const TrafficFines = lazy(() => import("./pages/TrafficFines"));
 const Financials = lazy(() => import("./pages/Financials"));
 const InvoiceManagement = lazy(() => import("./pages/InvoiceManagement"));
+const AgreementServiceDiagnostic = lazy(() => import("./pages/AgreementServiceDiagnostic"));
 
 // Maintenance Management
 const Maintenance = lazy(() => import("./pages/Maintenance"));
@@ -176,6 +177,7 @@ const AppContent = () => {
                 } />
                 <Route path="/agreements/edit/:id" element={withErrorBoundary(EditAgreement)} />
                 <Route path="/agreements/:id" element={withErrorBoundary(AgreementDetailPage)} />
+                <Route path="/agreements/diagnostic" element={withErrorBoundary(AgreementServiceDiagnostic)} />
                 
                 {/* Legal Management */}
                 <Route path="/legal" element={withErrorBoundary(Legal)} />
