@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import DashboardStats from './DashboardStats';
 import { EnhancedVehicleStatusChart } from './vehicle-status/EnhancedVehicleStatusChart';
 import { RealTimeStatsWidget } from './RealTimeStatsWidget';
-import { AdvancedAnalyticsPanel } from './AdvancedAnalyticsPanel';
+import { SmartAnalyticsDashboard } from '../analytics/smart/SmartAnalyticsDashboard';
 import { QuickActions } from './QuickActions';
 
 import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
@@ -118,7 +118,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             {collapsedSections['analytics'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
         </div>
-        {!collapsedSections['analytics'] && <AdvancedAnalyticsPanel />}
+        {!collapsedSections['analytics'] && <SmartAnalyticsDashboard />}
       </section>
       
       {/* 4. حالة الأسطول */}

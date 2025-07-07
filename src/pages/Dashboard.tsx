@@ -4,6 +4,7 @@ import { useDashboardData } from '@/hooks/use-dashboard';
 import { toast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
+import { AnalyticsEngineProvider } from '@/components/analytics/core/AnalyticsEngine';
 import { CacheManager } from '@/lib/cache-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -274,35 +275,37 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <PageContainer className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background">
-      {/* Background decorations */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl"></div>
-      </div>
-      
-      <div 
-        dir={language === 'ar' ? 'rtl' : 'ltr'} 
-        className={`${language === 'ar' ? 'arabic-dashboard' : ''} min-h-screen relative z-10`}
-      >
-        <DashboardHeader 
-          currentDate={currentDate}
-          isRefreshing={isRefreshing}
-          onRefresh={handleRefresh}
-        />
+    <AnalyticsEngineProvider>
+      <PageContainer className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background">
+        {/* Background decorations */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl"></div>
+        </div>
         
-        <DashboardContent 
-          isLoading={isLoading}
-          isError={isError}
-          error={error}
-          stats={stats}
-          revenue={revenue}
-          activity={activity}
-          collapsedSections={collapsedSections}
-          onToggleSection={toggleSection}
-        />
-      </div>
-    </PageContainer>
+        <div 
+          dir={language === 'ar' ? 'rtl' : 'ltr'} 
+          className={`${language === 'ar' ? 'arabic-dashboard' : ''} min-h-screen relative z-10`}
+        >
+          <DashboardHeader 
+            currentDate={currentDate}
+            isRefreshing={isRefreshing}
+            onRefresh={handleRefresh}
+          />
+          
+          <DashboardContent 
+            isLoading={isLoading}
+            isError={isError}
+            error={error}
+            stats={stats}
+            revenue={revenue}
+            activity={activity}
+            collapsedSections={collapsedSections}
+            onToggleSection={toggleSection}
+          />
+        </div>
+      </PageContainer>
+    </AnalyticsEngineProvider>
   );
 };
 
