@@ -37,6 +37,7 @@ export const EnhancedVehicleStatusChart: React.FC<EnhancedVehicleStatusChartProp
   data, 
   loading = false 
 }) => {
+  // ✅ ALL HOOKS MUST BE CALLED FIRST - BEFORE ANY CONDITIONAL LOGIC
   const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
@@ -53,6 +54,70 @@ export const EnhancedVehicleStatusChart: React.FC<EnhancedVehicleStatusChartProp
     revenueImpact: 15.2
   }), []);
 
+  // Memoized handlers to prevent unnecessary re-renders
+  const handleFilterChange = useCallback((value: string) => {
+    setSelectedFilter(value);
+  }, []);
+
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+  }, []);
+
+  // Memoized computed values
+  const processedData = useMemo(() => {
+    if (!data) return null;
+    
+    const normalizedData = { ...data };
+    
+    statusConfig.forEach(status => {
+      const statusKey = status.key as keyof typeof normalizedData;
+      if (normalizedData && normalizedData[statusKey] === undefined) {
+        (normalizedData as any)[statusKey] = 0;
+      }
+    });
+    
+    const chartData = statusConfig
+      .filter(status => {
+        const statusKey = status.key as keyof typeof normalizedData;
+        return normalizedData && normalizedData[statusKey] !== undefined && normalizedData[statusKey] > 0;
+      })
+      .filter(status => selectedFilter === 'all' || 
+               (selectedFilter === 'issues' && 
+                ['maintenance', 'accident', 'stolen', 'police_station'].includes(status.key)) ||
+               (selectedFilter === 'available' && 
+                ['available', 'reserved'].includes(status.key)) ||
+               (selectedFilter === 'rented' && 
+                status.key === 'rented'))
+      .map(status => ({
+        name: status.name,
+        value: normalizedData[status.key as keyof typeof normalizedData] || 0,
+        color: status.color,
+        key: status.key,
+        filterValue: status.filterValue,
+        percentage: Math.round(((normalizedData[status.key as keyof typeof normalizedData] || 0) / (data?.total || 1)) * 100)
+      }));
+    
+    const criticalVehicles = (normalizedData?.stolen || 0) + 
+                            (normalizedData?.accident || 0) + 
+                            (normalizedData?.police_station || 0);
+    
+    const utilizationRate = data?.total ? Math.round(((data.rented / data.total) * 100)) : 0;
+    const availabilityRate = data?.total ? Math.round(((data.available / data.total) * 100)) : 0;
+    
+    return {
+      normalizedData,
+      chartData,
+      criticalVehicles,
+      utilizationRate,
+      availabilityRate
+    };
+  }, [data, selectedFilter]);
+
+  const handleStatusClick = useCallback((statusData: any) => {
+    navigate(`/vehicles?status=${statusData.filterValue}`);
+  }, [navigate]);
+
+  // ✅ NOW HANDLE CONDITIONAL RENDERING AFTER ALL HOOKS ARE ESTABLISHED
   if (loading) {
     return (
       <Card className="col-span-full lg:col-span-4 overflow-hidden bg-gradient-to-br from-background via-muted/20 to-background border-border/40 shadow-sm">
@@ -80,56 +145,11 @@ export const EnhancedVehicleStatusChart: React.FC<EnhancedVehicleStatusChartProp
     );
   }
   
-  if (!data) return null;
+  // Return null if no data or processed data
+  if (!data || !processedData) return null;
 
-  const normalizedData = { ...data };
-  
-  statusConfig.forEach(status => {
-    const statusKey = status.key as keyof typeof normalizedData;
-    if (normalizedData && normalizedData[statusKey] === undefined) {
-      (normalizedData as any)[statusKey] = 0;
-    }
-  });
-  
-  const chartData = statusConfig
-    .filter(status => {
-      const statusKey = status.key as keyof typeof normalizedData;
-      return normalizedData && normalizedData[statusKey] !== undefined && normalizedData[statusKey] > 0;
-    })
-    .filter(status => selectedFilter === 'all' || 
-           (selectedFilter === 'issues' && 
-            ['maintenance', 'accident', 'stolen', 'police_station'].includes(status.key)) ||
-           (selectedFilter === 'available' && 
-            ['available', 'reserved'].includes(status.key)) ||
-           (selectedFilter === 'rented' && 
-            status.key === 'rented'))
-    .map(status => ({
-      name: status.name,
-      value: normalizedData[status.key as keyof typeof normalizedData] || 0,
-      color: status.color,
-      key: status.key,
-      filterValue: status.filterValue,
-      percentage: Math.round(((normalizedData[status.key as keyof typeof normalizedData] || 0) / (data?.total || 1)) * 100)
-    }));
-  
-  const criticalVehicles = (normalizedData?.stolen || 0) + 
-                          (normalizedData?.accident || 0) + 
-                          (normalizedData?.police_station || 0);
-  
-  const utilizationRate = data?.total ? Math.round(((data.rented / data.total) * 100)) : 0;
-  const availabilityRate = data?.total ? Math.round(((data.available / data.total) * 100)) : 0;
-  
-  const handleStatusClick = (statusData: any) => {
-    navigate(`/vehicles?status=${statusData.filterValue}`);
-  };
-
-  const handleFilterChange = useCallback((value: string) => {
-    setSelectedFilter(value);
-  }, []);
-
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
-    setViewMode(mode);
-  }, []);
+  // Destructure the memoized processed data
+  const { normalizedData, chartData, criticalVehicles, utilizationRate, availabilityRate } = processedData;
 
   return (
     <Card 
