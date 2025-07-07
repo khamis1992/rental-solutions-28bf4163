@@ -50,8 +50,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <SectionHeader
           title="لوحة التحكم الرئيسية"
           description="نظرة شاملة على أداء النشاط التجاري"
-          icon={<LayoutDashboard className="w-6 h-6 text-blue-500" />}
-          align="right"
+          icon={LayoutDashboard}
         />
         <p className="text-sm text-muted-foreground mt-1">
           {String(safeCurrentDate)}
