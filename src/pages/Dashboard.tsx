@@ -62,6 +62,7 @@ const Dashboard: React.FC = () => {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showTester, setShowTester] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({});
 
   const {
     data,
@@ -69,6 +70,14 @@ const Dashboard: React.FC = () => {
     error,
     refetch
   } = useDashboardData();
+
+  // Handle section toggle
+  const handleToggleSection = useCallback((section: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  }, []);
 
   // دالة تحديث البيانات
   const handleRefresh = useCallback(async () => {
@@ -135,9 +144,14 @@ const Dashboard: React.FC = () => {
         )}
 
         <DashboardContent
-          data={data}
           isLoading={isLoading}
+          isError={!!error}
           error={error}
+          stats={data?.stats}
+          revenue={data?.revenue || []}
+          activity={data?.activity || []}
+          collapsedSections={collapsedSections}
+          onToggleSection={handleToggleSection}
         />
       </div>
     </PageContainer>
