@@ -49,75 +49,76 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        <Card className="border border-gray-200 shadow-sm bg-white">
-          <CardHeader className="text-center pb-6">
-            <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
-              العراف لتأجير السيارات
-            </CardTitle>
-            <p className="text-gray-600 text-base">
-              تسجيل الدخول إلى حسابك
-            </p>
-          </CardHeader>
-          <CardContent className="px-8 pb-8">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-medium text-right block">
-                        البريد الإلكتروني
-                      </FormLabel>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+      <Card className="w-full max-w-md bg-white border border-gray-200 rounded-xl shadow-sm">
+        <CardHeader className="text-center pt-8 pb-6">
+          <CardTitle className="text-xl font-semibold text-gray-800 mb-2">
+            العراف لتأجير السيارات
+          </CardTitle>
+          <p className="text-gray-500 text-sm">
+            تسجيل الدخول إلى حسابك
+          </p>
+        </CardHeader>
+        
+        <CardContent className="px-8 pb-8">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-700 text-sm font-medium text-right block mb-2">
+                      البريد الإلكتروني
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="admin@admin.com" 
+                        {...field} 
+                        className="h-11 border-gray-300 rounded-md text-left focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        dir="ltr"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-right text-xs" />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-700 text-sm font-medium text-right block mb-2">
+                      كلمة المرور
+                    </FormLabel>
+                    <div className="relative">
                       <FormControl>
                         <Input 
-                          placeholder="admin@admin.com" 
+                          type={showPassword ? "text" : "password"} 
+                          placeholder="ادخل كلمة المرور" 
                           {...field} 
-                          className="text-right h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                          dir="ltr"
+                          className="h-11 border-gray-300 rounded-md text-right focus:border-blue-500 focus:ring-1 focus:ring-blue-500 pl-10"
+                          dir="rtl"
                         />
                       </FormControl>
-                      <FormMessage className="text-right" />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-medium text-right block">
-                        كلمة المرور
-                      </FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input 
-                            type={showPassword ? "text" : "password"} 
-                            placeholder="ادخل كلمة المرور" 
-                            {...field} 
-                            className="text-right h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
-                            dir="rtl"
-                          />
-                        </FormControl>
-                        <button 
-                          type="button"
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      <FormMessage className="text-right" />
-                    </FormItem>
-                  )}
-                />
-                
+                      <button 
+                        type="button"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <FormMessage className="text-right text-xs" />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="pt-2">
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium text-base"
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -129,26 +130,26 @@ const Login = () => {
                     "تسجيل الدخول"
                   )}
                 </Button>
-              </form>
-            </Form>
-            
-            <div className="mt-6 text-center">
-              <Link to="/auth/forgot-password" className="text-sm text-blue-600 hover:underline">
-                نسيت كلمة المرور؟
+              </div>
+            </form>
+          </Form>
+          
+          <div className="mt-4 text-center">
+            <Link to="/auth/forgot-password" className="text-sm text-blue-600 hover:underline">
+              نسيت كلمة المرور؟
+            </Link>
+          </div>
+          
+          <div className="mt-4 text-center">
+            <span className="text-sm text-gray-600">
+              ليس لديك حساب؟{" "}
+              <Link to="/auth/register" className="text-blue-600 hover:underline">
+                إنشاء حساب جديد
               </Link>
-            </div>
-            
-            <div className="mt-6 text-center">
-              <span className="text-sm text-gray-600">
-                ليس لديك حساب؟{" "}
-                <Link to="/auth/register" className="text-blue-600 hover:underline">
-                  إنشاء حساب جديد
-                </Link>
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
