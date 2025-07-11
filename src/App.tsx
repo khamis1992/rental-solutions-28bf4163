@@ -33,7 +33,6 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
 // Pages
-import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 
 import Settings from "./pages/Settings";
@@ -116,9 +115,7 @@ const AppContent = () => {
   const isMobile = useIsMobile();
 
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      
+    <Routes>      
       {/* Auth Routes */}
       <Route path="auth" element={<AuthLayout />}>
         <Route path="login" element={<Login />} />
