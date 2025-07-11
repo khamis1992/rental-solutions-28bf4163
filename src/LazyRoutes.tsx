@@ -32,6 +32,9 @@ const LazyRoutes = () => {
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <Routes>
+        {/* Login as homepage */}
+        <Route path="/" element={<Login />} />
+        
         {/* Auth routes */}
         <Route path="/auth" element={<AuthLayout />}>
           <Route path="login" element={<Login />} />  
@@ -39,7 +42,6 @@ const LazyRoutes = () => {
         </Route>
 
         {/* Protected routes */}
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         
         {/* Agreement routes */}
