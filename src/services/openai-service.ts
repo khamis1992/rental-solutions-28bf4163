@@ -1,14 +1,6 @@
-// OpenAI Service - Enhanced with Edge Function Integration
+// OpenAI Service for contract analysis using Supabase Edge Functions
 
-export interface OpenAIRequest {
-  prompt: string;
-  systemPrompt?: string;
-  model?: string;
-  maxTokens?: number;
-  temperature?: number;
-}
-
-export interface OpenAIResponse {
+export interface OpenAIAnalysisResult {
   success: boolean;
   data?: {
     text: string;
@@ -16,41 +8,57 @@ export interface OpenAIResponse {
     model?: string;
   };
   error?: string;
-  details?: string;
 }
 
 class OpenAIService {
-  private isConfigured = false;
-
-  constructor() {
-    // Service uses Edge Functions, no direct API key needed
-    this.isConfigured = true;
-  }
-
   /**
-   * Process text with OpenAI via Edge Function
+   * Analyze contract text using OpenAI through Supabase Edge Function
    */
-  async processText({
-    prompt,
-    systemPrompt = 'You are a helpful AI assistant.',
-    model = 'gpt-4o-mini',
-    maxTokens = 1000,
-    temperature = 0.7
-  }: OpenAIRequest): Promise<OpenAIResponse> {
+  async analyzeContract(contractText: string): Promise<OpenAIAnalysisResult> {
     try {
-      console.log('🤖 Starting OpenAI processing via Edge Function...');
+      console.log('🤖 Analyzing contract with OpenAI Edge Function...');
       
       // Import Supabase client dynamically
       const { supabase } = await import('@/integrations/supabase/client');
       
-      // Call our Edge Function instead of direct API call
+      const systemPrompt = `أنت خبير في تحليل عقود إيجار السيارات. استخرج البيانات من النص التالي وأرجعها في تنسيق JSON بهذا الشكل:
+
+{
+  "customer": {
+    "fullName": "الاسم الكامل",
+    "nationality": "الجنسية",
+    "qidNumber": "رقم الهوية (11 رقم)",
+    "licenseNumber": "رقم الرخصة",
+    "address": "العنوان",
+    "phoneNumber": "رقم الهاتف (8 أرقام)"
+  },
+  "vehicle": {
+    "brand": "الماركة",
+    "model": "الطراز",
+    "registrationNumber": "رقم اللوحة",
+    "chassisNumber": "رقم الشاصي",
+    "manufacturingYear": "سنة الصنع",
+    "color": "اللون"
+  },
+  "contract": {
+    "startDate": "تاريخ البداية (YYYY-MM-DD)",
+    "monthlyRent": المبلغ الشهري (رقم),
+    "contractDuration": مدة العقد بالأشهر (رقم),
+    "contractNumber": "رقم العقد",
+    "depositAmount": مبلغ الضمان (رقم)
+  }
+}
+
+إذا لم تجد معلومة معينة، اتركها فارغة. تأكد من أن الاستجابة JSON صحيحة.`;
+
+      // Call OpenAI Edge Function
       const { data, error } = await supabase.functions.invoke('process-openai', {
         body: {
-          prompt,
+          prompt: contractText,
           systemPrompt,
-          model,
-          maxTokens,
-          temperature
+          model: 'gpt-4o-mini',
+          maxTokens: 1500,
+          temperature: 0.1
         }
       });
 
@@ -58,93 +66,84 @@ class OpenAIService {
         console.error('❌ OpenAI Edge Function error:', error);
         return {
           success: false,
-          error: 'OpenAI service is not available',
-          details: error.message
+          error: `OpenAI processing failed: ${error.message}`
         };
       }
 
       if (!data || !data.success) {
-        console.error('❌ OpenAI processing failed:', data?.error);
+        console.warn('⚠️ OpenAI processing failed:', data?.error);
         return {
           success: false,
-          error: data?.error || 'OpenAI processing failed',
-          details: data?.details
+          error: data?.error || 'OpenAI analysis failed'
         };
       }
 
-      console.log('✅ OpenAI Edge Function processed successfully');
-      
+      console.log('✅ OpenAI analysis completed successfully');
       return {
         success: true,
-        data: data.data
+        data: {
+          text: data.data?.text || '',
+          usage: data.data?.usage,
+          model: data.data?.model
+        }
       };
 
     } catch (error) {
       console.error('❌ OpenAI service error:', error);
       return {
         success: false,
-        error: 'Internal service error',
-        details: error instanceof Error ? error.message : String(error)
+        error: `OpenAI service error: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }
 
   /**
-   * Generate contract analysis
+   * Simple text generation using OpenAI
    */
-  async analyzeContract(contractText: string): Promise<OpenAIResponse> {
-    return this.processText({
-      prompt: contractText,
-      systemPrompt: `You are an expert legal document analyzer. Extract key information from this rental agreement contract in Arabic or English. 
-      Return the extracted data in JSON format with these fields:
-      - customerName (string)
-      - idNumber (string) 
-      - vehicleInfo (string)
-      - rentAmount (number)
-      - depositAmount (number)
-      - startDate (string)
-      - endDate (string)
-      - terms (string)
+  async generateText(prompt: string, systemPrompt?: string): Promise<OpenAIAnalysisResult> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
       
-      If any field cannot be found, return empty string or 0 for numbers.`,
-      model: 'gpt-4o-mini',
-      maxTokens: 1500,
-      temperature: 0.3
-    });
-  }
+      const { data, error } = await supabase.functions.invoke('process-openai', {
+        body: {
+          prompt,
+          systemPrompt: systemPrompt || 'You are a helpful assistant.',
+          model: 'gpt-4o-mini',
+          maxTokens: 1000,
+          temperature: 0.7
+        }
+      });
 
-  /**
-   * Generate customer communication
-   */
-  async generateCustomerMessage(template: string, customerData: any): Promise<OpenAIResponse> {
-    return this.processText({
-      prompt: `Generate a professional customer communication message in Arabic based on this template: "${template}" and customer data: ${JSON.stringify(customerData)}`,
-      systemPrompt: 'You are a professional customer service representative. Generate polite and clear messages in Arabic.',
-      model: 'gpt-4o-mini',
-      maxTokens: 500,
-      temperature: 0.7
-    });
-  }
+      if (error) {
+        return {
+          success: false,
+          error: `OpenAI processing failed: ${error.message}`
+        };
+      }
 
-  /**
-   * Check if the service is properly configured
-   */
-  isServiceAvailable(): boolean {
-    return this.isConfigured;
-  }
+      if (!data || !data.success) {
+        return {
+          success: false,
+          error: data?.error || 'OpenAI generation failed'
+        };
+      }
 
-  /**
-   * Get service status for diagnostics
-   */
-  getServiceStatus(): { configured: boolean; available: boolean; lastError?: string } {
-    return {
-      configured: this.isConfigured,
-      available: this.isConfigured,
-      lastError: this.isConfigured ? undefined : 'OpenAI service not configured'
-    };
+      return {
+        success: true,
+        data: {
+          text: data.data?.text || '',
+          usage: data.data?.usage,
+          model: data.data?.model
+        }
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `OpenAI service error: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
   }
 }
 
-// Export singleton instance
 export const openAIService = new OpenAIService();
-export default openAIService;

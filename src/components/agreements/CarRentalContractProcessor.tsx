@@ -13,13 +13,13 @@ import {
   Brain, 
   CheckCircle, 
   AlertCircle, 
-  User, 
-  Car, 
-  Calendar,
   Save,
   Camera,
   Loader2,
-  FileText
+  FileText,
+  User,
+  Car,
+  Calendar
 } from 'lucide-react';
 import { carRentalContractOcrService } from '@/services/car-rental-contract-ocr';
 import type { CarRentalContractData, ContractOcrResult } from '@/services/car-rental-contract-ocr';

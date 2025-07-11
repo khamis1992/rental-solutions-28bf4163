@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
@@ -18,7 +17,7 @@ const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({ childre
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
-      status: 'draft',
+      status: 'active',
     },
     mode: "onChange"
   });
@@ -26,7 +25,7 @@ const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({ childre
   const methods = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
-      status: 'draft',
+      status: 'active',
     },
     mode: "onChange"
   });

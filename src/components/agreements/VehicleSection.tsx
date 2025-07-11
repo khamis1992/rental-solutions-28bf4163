@@ -4,11 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Car, Calendar, FileText } from 'lucide-react';
-import { Vehicle } from '@/types/vehicle';
+import { VehicleRow } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 
 interface VehicleSectionProps {
-  vehicle?: Vehicle;
+  vehicle?: VehicleRow;
   vehicleId?: string; 
   leaseId?: string;
   onViewDetails?: () => void;
@@ -19,7 +19,7 @@ const VehicleSection = ({
   vehicleId,
   onViewDetails 
 }: VehicleSectionProps) => {
-  const [vehicle, setVehicle] = useState(initialVehicle || null as Vehicle | null);
+  const [vehicle, setVehicle] = useState(initialVehicle || null as VehicleRow | null);
   const [loading, setLoading] = useState(!initialVehicle && !!vehicleId as boolean);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ const VehicleSection = ({
           if (error) throw error;
           
           if (data) {
-            setVehicle(data as Vehicle);
+            setVehicle(data as VehicleRow);
           }
         } catch (error) {
           console.error('Error fetching vehicle:', error);
