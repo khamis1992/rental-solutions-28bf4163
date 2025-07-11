@@ -18,7 +18,8 @@ import {
   Calendar,
   Save,
   Camera,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { carRentalContractOcrService } from '@/services/car-rental-contract-ocr';
 import type { CarRentalContractData, ContractOcrResult } from '@/services/car-rental-contract-ocr';
@@ -43,6 +44,7 @@ interface CustomerInfo {
 
 const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
   open = false,
+  onDataExtracted,
   onClose
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
