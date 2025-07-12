@@ -102,7 +102,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         // Transform the data to match our state structure
         const transformedData: PendingPayment[] = data.map(item => ({
           id: item.id,
-          date: item.payment_date,
+          date: item.payment_date || new Date().toISOString(),
           amount: item.amount
         }));
         

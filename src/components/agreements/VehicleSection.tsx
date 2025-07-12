@@ -36,7 +36,16 @@ const VehicleSection = ({
           if (error) throw error;
           
           if (data) {
-            setVehicle(data as VehicleRow);
+            setVehicle({
+              ...data,
+              insurance_company: data.insurance_company || null,
+              insurance_expiry: data.insurance_expiry || null,
+              mileage: data.mileage || null,
+              attention_needed_notes: null,
+              engine_number: null,
+              model_number: null,
+              notes: null
+            } as VehicleRow);
           }
         } catch (error) {
           console.error('Error fetching vehicle:', error);
@@ -128,22 +137,22 @@ const VehicleSection = ({
           <div className="space-y-4">
             <h3 className="font-semibold text-sm text-muted-foreground">Additional Details</h3>
             <div className="space-y-3">
-              {vehicle.insurance_company && (
+              {(vehicle as any).insurance_company && (
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span>Insurance: {vehicle.insurance_company}</span>
+                  <span>Insurance: {(vehicle as any).insurance_company}</span>
                 </div>
               )}
-              {vehicle.insurance_expiry && (
+              {(vehicle as any).insurance_expiry && (
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>Expires: {new Date(vehicle.insurance_expiry).toLocaleDateString()}</span>
+                  <span>Expires: {new Date((vehicle as any).insurance_expiry).toLocaleDateString()}</span>
                 </div>
               )}
-              {vehicle.mileage !== undefined && (
+              {(vehicle as any).mileage !== undefined && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Mileage:</span>
-                  <span>{vehicle.mileage.toLocaleString()} km</span>
+                  <span>{(vehicle as any).mileage.toLocaleString()} km</span>
                 </div>
               )}
             </div>
