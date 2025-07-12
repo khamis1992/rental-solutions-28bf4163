@@ -23,7 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { agreementPaymentService } from '@/services/AgreementPaymentService';
 import { supabase } from '@/lib/supabase';
-import { Agreement } from '@/types/agreement';
+
 
 interface ContractDataConfirmationProps {
   customerData: CustomerInfo;
@@ -44,13 +44,6 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
   // استيراد خدمات إنشاء الاتفاقية
   const { createAgreement } = useAgreementService();
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ar-QA', {
-      style: 'currency',
-      currency: 'QAR',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
 
   // دالة لتحويل الأرقام إلى العربية
   const toArabicNumbers = (str: string | number) => {
@@ -210,7 +203,7 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
       });
 
       // 3. تحضير بيانات الاتفاقية
-      const agreementData: Agreement = {
+      const agreementData = {
         customer_id: createdCustomer.id,
         vehicle_id: vehicleId,
         start_date: contractData.contract.startDate,
@@ -224,9 +217,11 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
         agreement_type: 'lease_to_own' as const,
         status: 'active' as const,
         notes: `تم إنشاؤها من معالج العقود - دقة الاستخراج: ${contractData.confidence}%`,
-        agreement_number: '', // سيتم توليده تلقائياً
-        total_amount: (contractData.contract.monthlyRent || 0) * (contractData.contract.contractDuration || 12) + (contractData.contract.depositAmount || 0)
-      } as Agreement;
+        total_amount: (contractData.contract.monthlyRent || 0) * (contractData.contract.contractDuration || 12) + (contractData.contract.depositAmount || 0),
+        down_payment: 0,
+        rent_due_day: 1,
+        confirmation_email_sent: false
+      };
 
       console.log('📋 بيانات الاتفاقية المحضرة:', agreementData);
 
@@ -249,7 +244,7 @@ export const ContractDataConfirmation: React.FC<ContractDataConfirmationProps> =
       try {
         console.log('💰 إنشاء جدولة الدفعات للاتفاقية:', createdAgreement.id);
         
-        const paymentResult = await agreementPaymentService.createPaymentScheduleForAgreement(createdAgreement);
+        const paymentResult = await agreementPaymentService.createPaymentScheduleForAgreement(createdAgreement as any);
 
         if (paymentResult.success) {
           toast.success('تم إنشاء الاتفاقية وجدولة الدفعات بنجاح! 🎉', {

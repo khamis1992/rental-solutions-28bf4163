@@ -32,14 +32,15 @@ export function ServiceDiagnostics() {
     try {
       // Check OpenAI Service with enhanced error handling
       console.log('🔍 Checking OpenAI service status...');
+      
       let openAIActive = false;
       let openAIError = '';
       
       try {
-        const testResponse = await openAIService.processText({
-          prompt: 'Hello, this is a test message. Please respond with "Service is working".',
-          maxTokens: 50
-        });
+        const testResponse = await openAIService.generateText(
+          'Hello, this is a test message. Please respond with "Service is working".',
+          'You are a helpful assistant.'
+        );
         
         openAIActive = testResponse.success;
         if (!testResponse.success) {

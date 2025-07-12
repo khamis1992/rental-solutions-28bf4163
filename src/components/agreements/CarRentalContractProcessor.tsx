@@ -7,23 +7,19 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import { 
   Upload, 
-  FileText, 
   Brain, 
   CheckCircle, 
   AlertCircle, 
-  User, 
-  Car, 
-  Calendar,
   Save,
   Camera,
   Loader2,
-  CreditCard,
-  AlertTriangle,
-  ArrowLeft,
-  ArrowRight
+  FileText,
+  User,
+  Car,
+  Calendar
 } from 'lucide-react';
 import { carRentalContractOcrService } from '@/services/car-rental-contract-ocr';
 import type { CarRentalContractData, ContractOcrResult } from '@/services/car-rental-contract-ocr';
@@ -48,7 +44,6 @@ interface CustomerInfo {
 
 const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
   open = false,
-  onDataExtracted,
   onClose
 }) => {
   const [currentStep, setCurrentStep] = useState(1);

@@ -20,7 +20,7 @@ interface AgreementWithCustomerStepsProps {
   prefilledData?: any; // البيانات المُعبأة مسبقاً من معالج العقود
 }
 
-type Step = 'customer-choice' | 'customer-selection' | 'agreement-creation' | 'pdf-processing';
+type Step = 'customer-choice' | 'customer-selection' | 'agreement-creation' | 'success';
 
 const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   onSubmit,
@@ -37,7 +37,7 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   const [currentStep, setCurrentStep] = useState<Step>('customer-choice');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [customerWizardOpen, setCustomerWizardOpen] = useState(false);
-  const [creatingCustomer, setCreatingCustomer] = useState(false);
+  
   const [pdfProcessorOpen, setPdfProcessorOpen] = useState(false);
   const [contractData, setContractData] = useState<any>(null);
   const { createCustomer } = useCustomers();
@@ -108,7 +108,6 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   };
 
   const handleCustomerCreation = async (customerData: Customer) => {
-    setCreatingCustomer(true);
     try {
       const newCustomer = await createCustomer.mutateAsync(customerData);
       
@@ -133,7 +132,7 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
         description: error instanceof Error ? error.message : 'حدث خطأ غير معروف'
       });
     } finally {
-      setCreatingCustomer(false);
+      // Customer creation completed
     }
   };
 
@@ -191,9 +190,6 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
     toast.success(`تم استخراج البيانات بنجاح من العقد! (دقة: ${formattedContractData.confidence}%)`);
   };
 
-  const getCurrentStepIndex = () => {
-    return steps.findIndex(step => step.id === currentStep);
-  };
 
   if (currentStep === 'customer-choice') {
     return (
@@ -201,19 +197,17 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
         {/* Step Indicator */}
         <div className="flex items-center justify-center space-x-4 space-x-reverse mb-8">
           {steps.map((step, index) => {
-            // Determine step status based on current step
-            const isFirstStep = index === 0;
-            const isLastStep = index === steps.length - 1;
             
             let isActive = false;
             let isCompleted = false;
             
-            if (step.id === 'customer-choice') {
+            const stepId = step.id;
+            if (stepId === 'customer-choice') {
               isActive = currentStep === 'customer-choice' || currentStep === 'customer-selection';
-              isCompleted = currentStep === 'agreement-creation';
+              isCompleted = ['agreement-creation', 'success'].includes(currentStep);
             } else {
-              // step.id === 'agreement-creation'
-              isActive = currentStep === 'agreement-creation';
+              // Must be 'agreement-creation'
+              isActive = ['agreement-creation', 'success'].includes(currentStep);
               isCompleted = false;
             }
             

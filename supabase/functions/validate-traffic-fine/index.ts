@@ -1,13 +1,32 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-// We'll use an alternative approach without deno_dom to avoid the installation issues
-import { corsHeaders } from '../../lib/cors.ts';
-import { 
-  createErrorResponse, 
-  createSuccessResponse,
-  createValidationError,
-  createApiError,
-  type ApiResponse
-} from '../../lib/error.types.ts';
+import { corsHeaders } from '../_shared/cors.ts';
+
+// Define response types locally since error.types.ts doesn't exist
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  code?: string;
+  details?: any;
+  message?: string;
+}
+
+function createSuccessResponse<T>(data: T, message?: string): ApiResponse<T> {
+  return {
+    success: true,
+    data,
+    message
+  };
+}
+
+function createErrorResponse(error: string, code?: string, details?: any): ApiResponse {
+  return {
+    success: false,
+    error,
+    code,
+    details
+  };
+}
 
 function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));

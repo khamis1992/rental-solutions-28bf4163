@@ -139,7 +139,7 @@ const CustomerSection = ({
               {customer.address && <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span className="flex-grow">{customer.address}</span>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(customer.address, 'Address')}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(customer.address || '', 'Address')}>
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>}

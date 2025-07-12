@@ -1,6 +1,5 @@
-// Central database exports
+// Central database exports - using unified database types
 export * from './types';
-export * from './type-utils';
 
 // Re-export commonly used types
 export type {
@@ -11,7 +10,8 @@ export type {
   PaymentScheduleRow,
   LeaseId,
   VehicleId,
-  PaymentId
+  PaymentId,
+  LeaseStatus,
+  VehicleStatus,
+  PaymentStatus
 } from './types';
-
-export * as typeGuards from './validation/typeGuards';

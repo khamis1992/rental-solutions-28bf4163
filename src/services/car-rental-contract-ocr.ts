@@ -93,9 +93,9 @@ class CarRentalContractOcrService {
         console.log('🖼️ استخراج النص من الصورة باستخدام Edge Function...');
         const visionResult = await this.extractTextWithGoogleVision(imageBase64);
         
-        if (!visionResult.text) {
-          // إذا فشل OCR، إرجاع نموذج فارغ مع تشخيص المشكلة
-          console.warn('⚠️ فشل في استخراج النص - إنشاء نموذج فارغ للملء اليدوي');
+        if (!visionResult.success || !visionResult.text) {
+          // إذا فشل OCR، إرجاع خطأ واضح
+          console.error('❌ فشل في استخراج النص من الصورة');
           
           return {
             success: false,
@@ -171,17 +171,23 @@ class CarRentalContractOcrService {
   /**
    * استخراج النص من الصورة باستخدام Google Vision Edge Function
    */
-  private async extractTextWithGoogleVision(imageBase64: string): Promise<{ text: string | null; diagnostics?: any }> {
+  private async extractTextWithGoogleVision(imageBase64: string): Promise<{ success: boolean; text: string | null; diagnostics?: any }> {
     try {
       console.log('📄 استخدام Google Vision Edge Function لاستخراج النص...');
       
       // Import Supabase client dynamically
       const { supabase } = await import('@/integrations/supabase/client');
       
-      // Call our Edge Function instead of direct API call
+      // Ensure image is properly formatted
+      let cleanImageData = imageBase64;
+      if (!imageBase64.startsWith('data:image/')) {
+        cleanImageData = `data:image/jpeg;base64,${imageBase64}`;
+      }
+      
+      // Call our Edge Function with improved error handling
       const { data, error } = await supabase.functions.invoke('process-google-vision', {
         body: {
-          imageBase64: imageBase64,
+          imageBase64: cleanImageData,
           maxResults: 1,
           languageHints: ['ar', 'en']
         }
@@ -190,30 +196,35 @@ class CarRentalContractOcrService {
       if (error) {
         console.error('❌ Google Vision Edge Function error:', error);
         const diagnostics = await this.diagnoseOcrFailure(imageBase64, error);
-        return { text: null, diagnostics };
+        return { success: false, text: null, diagnostics };
       }
 
       if (!data || !data.success) {
         console.warn('⚠️ Google Vision processing failed:', data?.error);
-        const diagnostics = await this.diagnoseOcrFailure(imageBase64);
-        return { text: null, diagnostics };
+        const diagnostics = await this.diagnoseOcrFailure(imageBase64, data?.error);
+        return { success: false, text: null, diagnostics };
       }
 
       const extractedText = data.data?.text || '';
       console.log('📄 تم استخراج النص بنجاح، الطول:', extractedText.length);
       
-      // فحص جودة النص المستخرج
-      if (extractedText.length < 50) {
-        console.warn('⚠️ النص المستخرج قصير جداً');
-        const diagnostics = await this.diagnoseOcrFailure(imageBase64);
-        return { text: extractedText, diagnostics };
+      // Improved text quality check
+      if (extractedText.length < 20) {
+        console.warn('⚠️ النص المستخرج قصير جداً أو فارغ');
+        const diagnostics = {
+          issue: 'لم يتم العثور على نص كافِ في الصورة',
+          severity: 'medium' as const,
+          suggestion: 'يرجى التأكد من وضوح النص في الصورة والإضاءة الجيدة',
+          technicalDetails: `Extracted text length: ${extractedText.length} characters`
+        };
+        return { success: false, text: extractedText, diagnostics };
       }
       
-      return { text: extractedText };
+      return { success: true, text: extractedText };
     } catch (error) {
       console.error('❌ فشل في استخراج النص:', error);
       const diagnostics = await this.diagnoseOcrFailure(imageBase64, error);
-      return { text: null, diagnostics };
+      return { success: false, text: null, diagnostics };
     }
   }
 
@@ -239,7 +250,33 @@ class CarRentalContractOcrService {
       console.log('✅ تم التحليل بنجاح بواسطة OpenAI');
       
       try {
-        const extractedData = JSON.parse(result.data?.text || '{}');
+        // Improved JSON parsing with better error handling
+        let extractedData;
+        const responseText = result.data?.text || '{}';
+        
+        // Clean up common JSON formatting issues
+        const cleanedResponse = responseText
+          .replace(/```json\s*/g, '')
+          .replace(/```\s*/g, '')
+          .replace(/^\s*[\r\n]+/gm, '')
+          .trim();
+        
+        console.log('🧹 Cleaned OpenAI response:', cleanedResponse.substring(0, 200));
+        
+        try {
+          extractedData = JSON.parse(cleanedResponse);
+        } catch (firstParseError) {
+          console.warn('⚠️ First JSON parse failed, trying to extract JSON from text...');
+          
+          // Try to extract JSON from the response text
+          const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            extractedData = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('No valid JSON found in response');
+          }
+        }
+        
         const confidence = this.calculateAIConfidence(extractedData);
 
         const debugInfo = {
@@ -271,6 +308,7 @@ class CarRentalContractOcrService {
         };
       } catch (parseError) {
         console.warn('⚠️ فشل في تحليل استجابة OpenAI:', parseError);
+        console.warn('📝 Raw response:', result.data?.text?.substring(0, 300));
         return this.performTraditionalAnalysis(contractText);
       }
 
@@ -397,7 +435,7 @@ class CarRentalContractOcrService {
     console.log('🔧 استخدام التحليل التقليدي المحسن...');
     
     try {
-      const extractedData = this.extractWithPatterns(contractText);
+      const extractedData = this.extractWithPatternsEnhanced(contractText);
       const confidence = this.calculateTraditionalConfidence(extractedData, contractText);
       
       return {
@@ -406,21 +444,21 @@ class CarRentalContractOcrService {
         confidence,
         rawText: contractText,
         debugInfo: {
-          extractionMethod: 'traditional_pattern_matching',
+          extractionMethod: 'enhanced_traditional_pattern_matching',
           processedText: contractText.substring(0, 500),
           foundPatterns: this.getFoundPatterns(contractText),
           validationResults: this.validateExtractedData(extractedData),
           advancedAnalysis: {
             textProcessingSteps: [
               'تنظيف النص وإزالة الرموز الخاصة',
-              'البحث عن الأنماط المعروفة',
-              'استخراج البيانات باستخدام التعبيرات النمطية',
+              'البحث عن الأنماط المحسنة',
+              'استخراج البيانات متعدد المراحل',
               'التحقق من صحة البيانات',
-              'تصحيح الأخطاء الشائعة'
+              'تصحيح الأخطاء والتنسيق'
             ],
             patternMatching: this.getFoundPatterns(contractText),
-            contextualInference: ['استنتاج تقليدي بناءً على الموقع'],
-            finalCorrections: ['تصحيح تلقائي للأرقام والهويات'],
+            contextualInference: ['استنتاج محسن بناءً على السياق', 'تحليل موضعي للبيانات'],
+            finalCorrections: ['تصحيح تلقائي للأرقام والهويات', 'تنسيق التواريخ'],
             confidenceLevel: confidence
           }
         }
@@ -437,32 +475,148 @@ class CarRentalContractOcrService {
     }
   }
 
-  // Helper methods for traditional analysis
-  private extractWithPatterns(text: string): CarRentalContractData {
+  // Enhanced helper methods for traditional analysis
+  private extractWithPatternsEnhanced(text: string): CarRentalContractData {
     const data = this.createEmptyFormData();
+    const cleanText = this.cleanTextForExtraction(text);
     
-    // Extract customer name
-    const nameMatch = text.match(/الاسم[:\s]*([^\n]+)/i) || text.match(/Name[:\s]*([^\n]+)/i);
-    if (nameMatch) data.customer.fullName = nameMatch[1].trim();
+    // Enhanced customer name extraction
+    const namePatterns = [
+      /(?:الاسم|Name|Customer|العميل)[:\s]*([^\n\r]+)/gi,
+      /([أ-ي\s]{10,50})/g, // Arabic names
+      /([A-Za-z]{2,}\s+[A-Za-z]{2,}(?:\s+[A-Za-z]{2,})*)/g // English names
+    ];
     
-    // Extract QID
-    const qidMatch = text.match(/(\d{11})/);
-    if (qidMatch) data.customer.qidNumber = qidMatch[1];
+    for (const pattern of namePatterns) {
+      const matches = cleanText.match(pattern);
+      if (matches && matches[0] && !data.customer.fullName) {
+        const name = matches[0].replace(/(?:الاسم|Name|Customer|العميل)[:\s]*/gi, '').trim();
+        if (name.length > 3 && name.length < 50) {
+          data.customer.fullName = name;
+          break;
+        }
+      }
+    }
     
-    // Extract phone
-    const phoneMatch = text.match(/(\d{8})/);
-    if (phoneMatch) data.customer.phoneNumber = phoneMatch[1];
+    // Enhanced QID extraction (11 digits)
+    const qidPatterns = [
+      /\b(\d{11})\b/g,
+      /(?:القطرية|QID|الهوية)[:\s]*(\d{11})/gi
+    ];
     
-    // Extract vehicle registration
-    const regMatch = text.match(/(\d{5,6})/);
-    if (regMatch) data.vehicle.registrationNumber = regMatch[1];
+    for (const pattern of qidPatterns) {
+      const match = cleanText.match(pattern);
+      if (match && match[1] && match[1].length === 11) {
+        data.customer.qidNumber = match[1];
+        break;
+      }
+    }
     
-    // Extract monthly rent
-    const rentMatch = text.match(/(\d+)\s*ريال/i) || text.match(/(\d+)\s*QAR/i);
-    if (rentMatch) data.contract.monthlyRent = parseInt(rentMatch[1]);
+    // Enhanced phone extraction (8 digits starting with 3,5,6,7,9)
+    const phonePatterns = [
+      /\b([35679]\d{7})\b/g,
+      /(?:هاتف|Phone|Mobile|جوال)[:\s]*([35679]\d{7})/gi
+    ];
+    
+    for (const pattern of phonePatterns) {
+      const match = cleanText.match(pattern);
+      if (match && match[1]) {
+        data.customer.phoneNumber = match[1];
+        break;
+      }
+    }
+    
+    // Enhanced vehicle registration extraction
+    const regPatterns = [
+      /\b(\d{5,6})\b/g,
+      /(?:اللوحة|رقم|Registration|Plate)[:\s]*(\d{5,6})/gi
+    ];
+    
+    for (const pattern of regPatterns) {
+      const match = cleanText.match(pattern);
+      if (match && match[1] && match[1].length >= 5 && match[1].length <= 6) {
+        data.vehicle.registrationNumber = match[1];
+        break;
+      }
+    }
+    
+    // Enhanced rent extraction
+    const rentPatterns = [
+      /(\d{1,5})\s*(?:ريال|QAR|Riyal)/gi,
+      /(?:إيجار|Rent|شهري)[:\s]*(\d{1,5})/gi
+    ];
+    
+    for (const pattern of rentPatterns) {
+      const match = cleanText.match(pattern);
+      if (match && match[1]) {
+        const amount = parseInt(match[1]);
+        if (amount >= 500 && amount <= 50000) { // Reasonable rent range
+          data.contract.monthlyRent = amount;
+          break;
+        }
+      }
+    }
+    
+    // Extract vehicle brand/make
+    const brandPatterns = [
+      /(?:تويوتا|Toyota|نيسان|Nissan|مرسيدس|Mercedes|BMW|هوندا|Honda|هيونداي|Hyundai|كيا|KIA|فورد|Ford)/gi
+    ];
+    
+    for (const pattern of brandPatterns) {
+      const match = cleanText.match(pattern);
+      if (match && match[0] && !data.vehicle.brand) {
+        data.vehicle.brand = match[0].trim();
+        break;
+      }
+    }
+    
+    // Extract dates
+    const datePatterns = [
+      /(\d{1,2}[-/]\d{1,2}[-/]\d{4})/g,
+      /(\d{4}[-/]\d{1,2}[-/]\d{1,2})/g
+    ];
+    
+    for (const pattern of datePatterns) {
+      const match = cleanText.match(pattern);
+      if (match && match[0] && !data.contract.startDate) {
+        data.contract.startDate = this.formatDate(match[0]);
+        break;
+      }
+    }
     
     data.rawText = text;
     return data;
+  }
+  
+  private cleanTextForExtraction(text: string): string {
+    return text
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFFa-zA-Z0-9\s\-\/]/g, ' ')
+      .trim();
+  }
+  
+  private formatDate(dateStr: string): string {
+    try {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    } catch (e) {
+      // Try different date formats
+      const parts = dateStr.split(/[-\/]/);
+      if (parts.length === 3) {
+        // Try YYYY-MM-DD format
+        if (parts[0].length === 4) {
+          return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        }
+        // Try DD/MM/YYYY format
+        if (parts[2].length === 4) {
+          return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      }
+    }
+    return dateStr;
   }
 
   private calculateTraditionalConfidence(data: CarRentalContractData, text: string): number {
