@@ -1,5 +1,4 @@
-import { Database } from '@/types/database.types';
-import { VehicleStatus } from '@/types/database.types';
+import { Database } from '@/integrations/supabase/types';
 
 // Re-export the main database type
 export type { Database };
