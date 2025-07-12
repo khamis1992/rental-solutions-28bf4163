@@ -16,8 +16,8 @@ if (import.meta.env.DEV) {
 
 // Setup console error handling before app starts
 if (import.meta.env.PROD) {
-import '@/utils/emergency-reset';
-import '@/utils/loop-detector';
+  import('@/utils/emergency-reset');
+  import('@/utils/loop-detector');
   // Production: Minimize console output
   const originalError = console.error;
   const originalWarn = console.warn;
