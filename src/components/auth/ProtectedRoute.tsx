@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useSafeAuth } from "@/contexts/AuthContext";
+import { useSafeAuth } from "@/contexts/SafeAuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { LoadingFallback } from "@/components/ui/loading-fallback";
 

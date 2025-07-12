@@ -79,6 +79,7 @@ const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const TrafficFines = lazy(() => import("./pages/TrafficFines"));
 const Financials = lazy(() => import("./pages/Financials"));
 const InvoiceManagement = lazy(() => import("./pages/InvoiceManagement"));
+const EmergencyPage = lazy(() => import("./pages/EmergencyPage"));
 
 // Maintenance Management
 const Maintenance = lazy(() => import("./pages/Maintenance"));
@@ -116,6 +117,9 @@ const AppContent = () => {
 
   return (
     <Routes>      
+      {/* Emergency Route - Accessible without auth for emergencies */}
+      <Route path="/emergency" element={withErrorBoundary(EmergencyPage)} />
+      
       {/* Auth Routes */}
       <Route path="auth" element={<AuthLayout />}>
         <Route path="login" element={<Login />} />
@@ -144,6 +148,9 @@ const AppContent = () => {
               showBottomNav={isMobile}
             >
               <Routes>
+                {/* Emergency Route inside protected area too */}
+                <Route path="/emergency" element={withErrorBoundary(EmergencyPage)} />
+                
                 {/* Mobile Field Operations - Direct routes without sidebar */}
                 <Route path="/field-ops" element={withErrorBoundary(FieldOperations)} />
                 <Route path="/field-ops/scan" element={withErrorBoundary(QRScanPage)} />

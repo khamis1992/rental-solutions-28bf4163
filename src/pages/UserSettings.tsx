@@ -5,7 +5,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { UserCog } from "lucide-react";
 import UserProfile from "@/components/auth/UserProfile";
-import { useSafeAuth } from "@/contexts/AuthContext";
+import { useSafeAuth } from "@/contexts/SafeAuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

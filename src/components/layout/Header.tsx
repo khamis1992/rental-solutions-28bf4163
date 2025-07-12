@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InstallButton } from '@/components/pwa/InstallButton';
 import { SmartAlertsDropdown } from '@/components/layout/SmartAlertsDropdown';
-import { useSafeAuth } from '@/contexts/AuthContext';
+import { useSafeAuth } from '@/contexts/SafeAuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 

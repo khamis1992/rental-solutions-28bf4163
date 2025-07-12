@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
-import { useSafeAuth } from '@/contexts/AuthContext';
+import { useSafeAuth } from '@/contexts/SafeAuthContext';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {

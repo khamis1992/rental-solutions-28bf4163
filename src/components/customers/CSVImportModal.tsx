@@ -10,7 +10,7 @@ import {
   checkEdgeFunctionAvailability,
   previewAgreementCSV
 } from '@/utils/agreement-import-utils';
-import { useSafeAuth } from '@/contexts/AuthContext';
+import { useSafeAuth } from '@/contexts/SafeAuthContext';
 import { Loader2, FileUp, Download, CheckCircle, AlertCircle, Info, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';

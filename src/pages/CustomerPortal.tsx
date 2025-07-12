@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useSafeAuth } from '@/contexts/AuthContext';
+import { useSafeAuth } from '@/contexts/SafeAuthContext';
 import { useAgreements } from '@/hooks/use-agreements';
 import { usePaymentService } from '@/hooks/services/usePaymentService';
 import { useMaintenance } from '@/hooks/use-maintenance';
