@@ -34,9 +34,9 @@ import ResetPassword from "./pages/auth/ResetPassword";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
-
 import Settings from "./pages/Settings";
 import AddAgreement from "./pages/AddAgreement";
+
 const FixPaymentStatus = lazy(() => import("./pages/FixPaymentStatus"));
 const CheckAgreementDetails = lazy(() => import("./pages/CheckAgreementDetails"));
 const FinancialSummaryDemo = lazy(() => import("./pages/FinancialSummaryDemo"));
@@ -158,7 +158,6 @@ const AppContent = () => {
 
                 {/* Main App Routes */}
                 <Route path="/dashboard" element={<Dashboard />} />
-  
                 
                 {/* Vehicle Management */}
                 <Route path="/vehicles" element={withErrorBoundary(Vehicles)} />
@@ -218,10 +217,10 @@ const AppContent = () => {
                 
                 {/* ChatGPT Info */}
                 <Route path="/chatgpt-info" element={withErrorBoundary(ChatGPTInfo)} />
-          <Route path="/fix-payments" element={withErrorBoundary(FixPaymentStatus)} />
-          <Route path="/check-agreement" element={withErrorBoundary(CheckAgreementDetails)} />
-          <Route path="/financial-demo" element={withErrorBoundary(FinancialSummaryDemo)} />
-          <Route path="/settings" element={<Settings />} />
+                <Route path="/fix-payments" element={withErrorBoundary(FixPaymentStatus)} />
+                <Route path="/check-agreement" element={withErrorBoundary(CheckAgreementDetails)} />
+                <Route path="/financial-demo" element={withErrorBoundary(FinancialSummaryDemo)} />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/system" element={<Navigate to="/settings" replace />} />
                 <Route path="/users" element={withErrorBoundary(UserManagement)} />
                 <Route path="/user-settings" element={withErrorBoundary(UserSettings)} />
