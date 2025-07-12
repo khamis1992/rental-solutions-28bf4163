@@ -1,7 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ParticleBackground } from "@/components/ui/particle-background";
+import ParticleBackground from "@/components/ui/particle-background";
 
 const AuthLayout = () => {
   return (

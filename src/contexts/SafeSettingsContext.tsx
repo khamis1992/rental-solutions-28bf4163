@@ -45,7 +45,7 @@ class SimpleLoopDetector {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-export const SafeSafeSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const SafeSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
