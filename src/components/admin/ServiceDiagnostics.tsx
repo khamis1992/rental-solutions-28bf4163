@@ -41,16 +41,15 @@ export function ServiceDiagnostics() {
     try {
       // Check OpenAI Service
       console.log('🔍 Checking OpenAI service status...');
-      const openAIStatus = openAIService.getServiceStatus();
       
       let openAIActive = false;
       let openAIError = '';
       
       try {
-        const testResponse = await openAIService.processText({
-          prompt: 'Hello, this is a test message. Please respond with "Service is working".',
-          maxTokens: 50
-        });
+        const testResponse = await openAIService.generateText(
+          'Hello, this is a test message. Please respond with "Service is working".',
+          'You are a helpful assistant.'
+        );
         
         openAIActive = testResponse.success;
         if (!testResponse.success) {
@@ -64,8 +63,7 @@ export function ServiceDiagnostics() {
         name: 'OpenAI Service',
         status: openAIActive ? 'active' : 'error',
         lastChecked: new Date(),
-        error: openAIActive ? undefined : openAIError,
-        details: openAIStatus
+        error: openAIActive ? undefined : openAIError
       });
 
       // Check Google Vision OCR Service
