@@ -17,10 +17,10 @@ import { PWAController } from "./components/pwa/PWAController";
 // Mobile Performance Components
 import { MobilePerformanceMonitor, useMobilePerformanceOptimization } from "./components/ui/mobile-performance-monitor";
 
-// Context Providers
-import { AuthProvider } from "./contexts/AuthContext";
+// Context Providers - Fixed imports
+import { SafeAuthProvider } from "./contexts/SafeAuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
-import { SettingsProvider } from "./contexts/SettingsContext";
+import { SafeSettingsProvider } from "./contexts/SafeSettingsContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 
@@ -258,9 +258,9 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <LanguageProvider>
-            <AuthProvider>
+            <SafeAuthProvider>
               <ProfileProvider>
-                <SettingsProvider>
+                <SafeSettingsProvider>
                   <NotificationProvider>
                     <TooltipProvider>
                       {/* Enhanced PWA Components */}
@@ -284,9 +284,9 @@ function App() {
                       </ErrorBoundary>
                     </TooltipProvider>
                   </NotificationProvider>
-                </SettingsProvider>
+                </SafeSettingsProvider>
               </ProfileProvider>
-            </AuthProvider>
+            </SafeAuthProvider>
           </LanguageProvider>
         </BrowserRouter>
       </QueryClientProvider>
