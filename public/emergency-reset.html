@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>إعادة تعيين طارئة</title>
+    <meta charset="utf-8">
+</head>
+<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; direction: rtl;">
+    <h1>🚨 إعادة تعيين طارئة</h1>
+    <p>في حالة تجمد النظام، استخدم الأزرار التالية:</p>
+    
+    <button onclick="clearStorage()" style="padding: 15px 30px; margin: 10px; font-size: 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        مسح التخزين المحلي
+    </button>
+    
+    <button onclick="clearCache()" style="padding: 15px 30px; margin: 10px; font-size: 16px; background: #fd7e14; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        مسح الذاكرة المؤقتة
+    </button>
+    
+    <button onclick="fullReset()" style="padding: 15px 30px; margin: 10px; font-size: 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        إعادة تعيين كاملة
+    </button>
+    
+    <div id="status" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 5px;"></div>
+    
+    <script>
+        function log(message) {
+            document.getElementById('status').innerHTML += '<div>' + message + '</div>';
+        }
+        
+        function clearStorage() {
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                log('✅ تم مسح التخزين المحلي');
+            } catch (e) {
+                log('❌ فشل في مسح التخزين: ' + e.message);
+            }
+        }
+        
+        async function clearCache() {
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    log('✅ تم مسح الذاكرة المؤقتة');
+                }
+                
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map(reg => reg.unregister()));
+                    log('✅ تم إيقاف Service Workers');
+                }
+            } catch (e) {
+                log('❌ فشل في مسح الذاكرة المؤقتة: ' + e.message);
+            }
+        }
+        
+        async function fullReset() {
+            clearStorage();
+            await clearCache();
+            log('🔄 إعادة توجيه إلى الصفحة الرئيسية...');
+            setTimeout(() => {
+                window.location.href = '/auth/login';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

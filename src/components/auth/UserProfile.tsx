@@ -4,7 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSafeAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -19,7 +19,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const UserProfile = () => {
   const { profile, updateProfile, isLoading } = useProfile();
-  const { user } = useAuth();
+  const { user } = useSafeAuth();
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   const form = useForm<ProfileFormValues>({

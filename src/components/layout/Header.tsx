@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InstallButton } from '@/components/pwa/InstallButton';
 import { SmartAlertsDropdown } from '@/components/layout/SmartAlertsDropdown';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSafeAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
   onMenuClick,
   showMenuButton = false
 }) => {
-  const { user } = useAuth();
+  const { user } = useSafeAuth();
 
   const { data: alertsCount = 0 } = useQuery({
     queryKey: ['alertsCount'],

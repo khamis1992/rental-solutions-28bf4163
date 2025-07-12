@@ -8,6 +8,9 @@ import { AnalyticsEngineProvider } from '@/components/analytics/core/AnalyticsEn
 import { CacheManager } from '@/lib/cache-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { SafeServiceDiagnostics } from '@/components/admin/SafeServiceDiagnostics';
+import { ErrorBoundary } from '@/components/error/ErrorBoundary';
+import { Card, CardContent } from '@/components/ui/card';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -274,6 +277,21 @@ const Dashboard = () => {
     };
   }, []);
 
+  // Create a safe wrapper component for ServiceDiagnostics
+  const SafeServiceDiagnostics = () => {
+    return (
+      <ErrorBoundary
+        fallback={
+          <div className="p-4 border rounded-lg bg-muted/50 text-center text-sm text-muted-foreground">
+            ⚠️ تعذر تحميل تشخيص الخدمات - النظام يعمل بشكل طبيعي
+          </div>
+        }
+      >
+        <SafeServiceDiagnostics />
+      </ErrorBoundary>
+    );
+  };
+
   return (
     <AnalyticsEngineProvider>
       <PageContainer className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background">
@@ -303,6 +321,8 @@ const Dashboard = () => {
             collapsedSections={collapsedSections}
             onToggleSection={toggleSection}
           />
+          
+          <SafeServiceDiagnostics />
         </div>
       </PageContainer>
     </AnalyticsEngineProvider>

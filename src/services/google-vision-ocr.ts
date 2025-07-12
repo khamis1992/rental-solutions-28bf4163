@@ -1,5 +1,8 @@
 // Google Vision OCR Service - Complete Implementation
 
+import { supabase } from '@/lib/supabase';
+import { safeEdgeFunctionCall } from '@/utils/edge-function-error-handler';
+
 export interface QatariIdCardData {
   fullName: string;
   nationality: string;
@@ -40,24 +43,22 @@ class GoogleVisionOcrService {
     try {
       console.log('🔍 Starting Google Vision OCR analysis via Edge Function...');
       
-      // Import Supabase client dynamically
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      // Call our Edge Function instead of direct API call
-      const { data, error } = await supabase.functions.invoke('process-google-vision', {
-        body: {
-          imageBase64,
-          saveImage
-        }
+      // Use safe edge function call
+      const result = await safeEdgeFunctionCall('process-google-vision', {
+        imageBase64,
+        saveImage
+      }, {
+        timeout: 15000, // Longer timeout for image processing
+        suppressErrors: false
       });
 
-      if (error) {
-        console.warn('⚠️ Google Vision Edge Function error, using fallback system:', error);
+      if (!result.success) {
+        console.warn('⚠️ Google Vision Edge Function unavailable, using fallback system');
         return await this.getRealCustomerDataFallback(imageBase64, saveImage);
       }
 
-      if (!data || !data.success) {
-        console.warn('⚠️ Google Vision processing failed, using fallback system:', data?.error);
+      if (!result.data || !result.data.success) {
+        console.warn('⚠️ Google Vision processing failed, using fallback system:', result.data?.error);
         return await this.getRealCustomerDataFallback(imageBase64, saveImage);
       }
 
@@ -65,9 +66,9 @@ class GoogleVisionOcrService {
       
       return {
         success: true,
-        data: data.data,
-        rawText: data.rawText,
-        confidence: data.confidence
+        data: result.data.data,
+        rawText: result.data.rawText,
+        confidence: result.data.confidence
       };
 
     } catch (error) {
@@ -400,9 +401,6 @@ class GoogleVisionOcrService {
    */
   private async getRealCustomerDataFallback(imageBase64: string, saveImage: boolean): Promise<OcrResult> {
     try {
-      // Import supabase client dynamically to avoid issues
-      const { supabase } = await import('@/lib/supabase');
-      
       // Get a random active customer from database
       const { data: customers, error } = await supabase
         .from('profiles')
@@ -452,25 +450,21 @@ class GoogleVisionOcrService {
    */
   private async createSampleCustomerFallback(imageBase64: string, saveImage: boolean): Promise<OcrResult> {
     try {
-      const { supabase } = await import('@/lib/supabase');
-      
-      const sampleCustomer = {
-        id: crypto.randomUUID(),
-        full_name: 'أحمد محمد الكعبي',
-        email: 'ahmed.kaabi@email.com',
-        phone_number: '+97433567890',
-        driver_license: this.generateRandomIdNumber(),
-        nationality: 'قطري',
-        address: 'الدوحة - قطر',
-        notes: 'عميل تم إنشاؤه تلقائياً من مسح البطاقة',
-        status: 'active',
-        role: 'customer',
-        created_at: new Date().toISOString()
-      };
-
       const { data, error } = await supabase
         .from('profiles')
-        .insert([sampleCustomer])
+        .insert([{
+          id: crypto.randomUUID(),
+          full_name: 'أحمد محمد الكعبي',
+          email: 'ahmed.kaabi@email.com',
+          phone_number: '+97433567890',
+          driver_license: this.generateRandomIdNumber(),
+          nationality: 'قطري',
+          address: 'الدوحة - قطر',
+          notes: 'عميل تم إنشاؤه تلقائياً من مسح البطاقة',
+          status: 'active',
+          role: 'customer',
+          created_at: new Date().toISOString()
+        }])
         .select()
         .single();
 

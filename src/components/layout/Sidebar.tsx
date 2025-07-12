@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSafeAuth } from '@/contexts/AuthContext';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -111,7 +111,7 @@ interface SidebarProps {
 
 const Sidebar = ({ onClose }: SidebarProps) => {
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useSafeAuth();
   const { profile } = useProfile();
   const isMobile = useIsMobile();
 

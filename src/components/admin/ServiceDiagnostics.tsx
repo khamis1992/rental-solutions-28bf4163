@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { CheckCircle, AlertCircle, Clock, RefreshCw } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { openAIService } from '@/services/openai-service';
 import { googleVisionOcrService } from '@/services/google-vision-ocr';
-import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ServiceStatus {
   name: string;
@@ -19,18 +19,9 @@ interface ServiceStatus {
 
 export function ServiceDiagnostics() {
   const [services, setServices] = useState<ServiceStatus[]>([
-    {
-      name: 'OpenAI Service',
-      status: 'checking'
-    },
-    {
-      name: 'Google Vision OCR',
-      status: 'checking'
-    },
-    {
-      name: 'Supabase Functions',
-      status: 'checking'
-    }
+    { name: 'OpenAI Service', status: 'checking' },
+    { name: 'Google Vision OCR', status: 'checking' },
+    { name: 'Supabase Functions', status: 'checking' }
   ]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -39,10 +30,8 @@ export function ServiceDiagnostics() {
     const updatedServices: ServiceStatus[] = [];
 
     try {
-      // Check OpenAI Service
+      // Check OpenAI Service with enhanced error handling
       console.log('🔍 Checking OpenAI service status...');
-      const openAIStatus = openAIService.getServiceStatus();
-      
       let openAIActive = false;
       let openAIError = '';
       
@@ -54,95 +43,145 @@ export function ServiceDiagnostics() {
         
         openAIActive = testResponse.success;
         if (!testResponse.success) {
-          openAIError = testResponse.error || 'Unknown error';
+          openAIError = testResponse.error || 'خدمة غير متاحة';
         }
       } catch (error) {
-        openAIError = error instanceof Error ? error.message : 'Connection failed';
+        console.warn('OpenAI service check failed:', error);
+        openAIError = error instanceof Error ? error.message : 'فشل في الاتصال';
       }
 
       updatedServices.push({
         name: 'OpenAI Service',
-        status: openAIActive ? 'active' : 'error',
+        status: openAIActive ? 'active' : 'inactive',
         lastChecked: new Date(),
-        error: openAIActive ? undefined : openAIError,
-        details: openAIStatus
+        error: openAIActive ? undefined : openAIError
       });
 
-      // Check Google Vision OCR Service
+      // Check Google Vision OCR Service with safe error handling
       console.log('🔍 Checking Google Vision OCR service status...');
       let visionActive = false;
       let visionError = '';
       
       try {
-        // Test with a simple base64 image (1x1 white pixel)
+        // Use a more defensive approach - test with a minimal valid base64 image
         const testImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
-        const visionResult = await googleVisionOcrService.extractTextFromImage(testImage, false);
         
-        visionActive = true; // If no error thrown, service is accessible
+        // Set a timeout for the Vision API call
+        const visionPromise = googleVisionOcrService.extractTextFromImage(testImage, false);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('طلب انتهت مهلته')), 10000)
+        );
+        
+        const visionResult = await Promise.race([visionPromise, timeoutPromise]) as any;
+        
+        // Consider the service working if it doesn't throw an error
+        visionActive = true;
+        
+        // Check if the service is configured properly
         if (!visionResult.success && visionResult.error?.includes('not configured')) {
-          visionError = visionResult.error;
+          visionError = 'الخدمة غير مكونة - يرجى إضافة مفتاح Google Vision API';
           visionActive = false;
         }
       } catch (error) {
-        visionError = error instanceof Error ? error.message : 'Connection failed';
+        console.warn('Google Vision service check failed:', error);
+        visionError = error instanceof Error ? error.message : 'خدمة غير متاحة';
+        // Don't mark as error if it's just a configuration issue
+        if (visionError.includes('not configured') || visionError.includes('API')) {
+          visionActive = false;
+        }
       }
 
       updatedServices.push({
         name: 'Google Vision OCR',
-        status: visionActive ? 'active' : 'error',
+        status: visionActive ? 'active' : 'inactive',
         lastChecked: new Date(),
         error: visionActive ? undefined : visionError
       });
 
-      // Check Supabase Functions
+      // Check Supabase Functions with enhanced error handling
       console.log('🔍 Checking Supabase functions...');
       let functionsActive = false;
       let functionsError = '';
       
       try {
-        // Test both functions
-        const [openAITest, visionTest] = await Promise.allSettled([
-          supabase.functions.invoke('process-openai', {
-            body: { prompt: 'test' }
-          }),
-          supabase.functions.invoke('process-google-vision', {
-            body: { imageBase64: 'test' }
-          })
+        // Test functions with safer approach and timeout
+        const functionTests = await Promise.allSettled([
+          Promise.race([
+            supabase.functions.invoke('process-openai', {
+              body: { test: true, prompt: 'test' }
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت المهلة')), 8000))
+          ]),
+          Promise.race([
+            supabase.functions.invoke('process-google-vision', {
+              body: { test: true, imageBase64: 'test' }
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت المهلة')), 8000))
+          ])
         ]);
 
-        const openAIWorking = openAITest.status === 'fulfilled' && !openAITest.value.error;
-        const visionWorking = visionTest.status === 'fulfilled' && !visionTest.value.error;
+        // Check if at least one function is working
+        let workingFunctions = 0;
+        const functionErrors: string[] = [];
+
+        functionTests.forEach((result, index) => {
+          const functionName = index === 0 ? 'OpenAI' : 'Vision';
+          
+          if (result.status === 'fulfilled' && !result.value.error) {
+            workingFunctions++;
+          } else {
+            const errorMsg = result.status === 'rejected' 
+              ? result.reason?.message || result.reason 
+              : result.value.error?.message || 'خطأ غير معروف';
+            functionErrors.push(`${functionName}: ${errorMsg}`);
+          }
+        });
         
-        functionsActive = openAIWorking || visionWorking;
+        functionsActive = workingFunctions > 0;
         
-        if (!functionsActive) {
-          const errors = [];
-          if (openAITest.status === 'rejected') errors.push(`OpenAI: ${openAITest.reason}`);
-          if (visionTest.status === 'rejected') errors.push(`Vision: ${visionTest.reason}`);
-          functionsError = errors.join(', ') || 'Functions not responding';
+        if (!functionsActive && functionErrors.length > 0) {
+          functionsError = functionErrors.join(', ');
         }
       } catch (error) {
-        functionsError = error instanceof Error ? error.message : 'Connection failed';
+        console.warn('Supabase functions check failed:', error);
+        functionsError = error instanceof Error ? error.message : 'فشل في الاتصال';
       }
 
       updatedServices.push({
         name: 'Supabase Functions',
-        status: functionsActive ? 'active' : 'error',
+        status: functionsActive ? 'active' : 'inactive',
         lastChecked: new Date(),
         error: functionsActive ? undefined : functionsError
       });
 
     } catch (error) {
-      console.error('Error checking services:', error);
-      toast.error('فشل في فحص الخدمات');
+      console.error('Error in service status check:', error);
+      // Don't show error toast for diagnostic failures
+      console.warn('فشل في فحص بعض الخدمات - استكمال بدون خدمات خارجية');
     }
 
     setServices(updatedServices);
     setIsRefreshing(false);
   };
 
+  // Safe initialization - don't fail on mount
   useEffect(() => {
-    checkServiceStatus();
+    // Add a delay to prevent rushing the checks on page load
+    const timeoutId = setTimeout(() => {
+      checkServiceStatus().catch(error => {
+        console.warn('Initial service check failed:', error);
+        // Set all services to inactive on initial failure
+        setServices(prev => prev.map(service => ({
+          ...service,
+          status: 'inactive' as const,
+          error: 'فشل في الفحص الأولي',
+          lastChecked: new Date()
+        })));
+        setIsRefreshing(false);
+      });
+    }, 2000); // Wait 2 seconds after component mount
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const getStatusIcon = (status: ServiceStatus['status']) => {
@@ -151,8 +190,10 @@ export function ServiceDiagnostics() {
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'error':
         return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'inactive':
+        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
       case 'checking':
-        return <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />;
+        return <Clock className="h-5 w-5 text-blue-500 animate-pulse" />;
       default:
         return <AlertCircle className="h-5 w-5 text-gray-400" />;
     }
@@ -164,8 +205,10 @@ export function ServiceDiagnostics() {
         return <Badge variant="default" className="bg-green-500">نشط</Badge>;
       case 'error':
         return <Badge variant="destructive">خطأ</Badge>;
+      case 'inactive':
+        return <Badge variant="secondary">غير نشط</Badge>;
       case 'checking':
-        return <Badge variant="secondary">جاري الفحص...</Badge>;
+        return <Badge variant="outline">جاري الفحص...</Badge>;
       default:
         return <Badge variant="outline">غير معروف</Badge>;
     }
@@ -180,7 +223,7 @@ export function ServiceDiagnostics() {
             تشخيص الخدمات
           </CardTitle>
           <Button
-            onClick={checkServiceStatus}
+            onClick={() => checkServiceStatus().catch(console.warn)}
             disabled={isRefreshing}
             variant="outline"
             size="sm"
@@ -204,7 +247,7 @@ export function ServiceDiagnostics() {
                     </p>
                   )}
                   {service.error && (
-                    <p className="text-sm text-red-600 mt-1">
+                    <p className="text-sm text-yellow-600 mt-1">
                       {service.error}
                     </p>
                   )}
@@ -219,12 +262,13 @@ export function ServiceDiagnostics() {
         ))}
         
         <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h4 className="font-medium mb-2">معلومات إضافية:</h4>
+          <h4 className="font-medium mb-2">معلومات مهمة:</h4>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• يجب إدخال مفاتيح API في إعدادات Edge Functions بـ Supabase</li>
-            <li>• OPENAI_API_KEY: مطلوب لخدمة الذكاء الاصطناعي</li>
-            <li>• GOOGLE_VISION_API_KEY: مطلوب لقراءة النصوص من الصور</li>
-            <li>• يمكن الحصول على المفاتيح من لوحات تحكم الخدمات المعنية</li>
+            <li>• الخدمات الخارجية اختيارية - النظام يعمل بدونها</li>
+            <li>• في حالة عدم توفر المفاتيح، يتم استخدام بيانات تجريبية</li>
+            <li>• OPENAI_API_KEY: لخدمة الذكاء الاصطناعي المحسنة</li>
+            <li>• GOOGLE_VISION_API_KEY: لقراءة النصوص من الصور</li>
+            <li>• يمكن إضافة المفاتيح في إعدادات Supabase Edge Functions</li>
           </ul>
         </div>
       </CardContent>

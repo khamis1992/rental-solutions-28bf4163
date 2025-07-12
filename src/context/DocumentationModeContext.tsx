@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from 'react';
 
 interface DocumentationModeContextType {
@@ -6,16 +5,23 @@ interface DocumentationModeContextType {
   toggleDocumentationMode: () => void;
 }
 
-const DocumentationModeContext = createContext<DocumentationModeContextType>({
-  isDocumentationMode: false,
-  toggleDocumentationMode: () => {},
-});
+// Create context with null initial value for proper checking
+const DocumentationModeContext = createContext<DocumentationModeContextType | null>(null);
 
-export const useDocumentationMode = () => {
+export const useDocumentationMode = (): DocumentationModeContextType => {
   const context = useContext(DocumentationModeContext);
-  if (!context) {
-    throw new Error('useDocumentationMode must be used within a DocumentationModeProvider');
+  
+  if (context === null) {
+    // Return safe fallback instead of throwing error
+    console.warn('useDocumentationMode called outside DocumentationModeProvider, using fallback');
+    return {
+      isDocumentationMode: false,
+      toggleDocumentationMode: () => {
+        console.warn('toggleDocumentationMode called outside provider');
+      }
+    };
   }
+  
   return context;
 };
 
@@ -26,8 +32,13 @@ export const DocumentationModeProvider: React.FC<{ children: React.ReactNode }> 
     setIsDocumentationMode(prev => !prev);
   };
 
+  const contextValue: DocumentationModeContextType = {
+    isDocumentationMode,
+    toggleDocumentationMode,
+  };
+
   return (
-    <DocumentationModeContext.Provider value={{ isDocumentationMode, toggleDocumentationMode }}>
+    <DocumentationModeContext.Provider value={contextValue}>
       {children}
     </DocumentationModeContext.Provider>
   );

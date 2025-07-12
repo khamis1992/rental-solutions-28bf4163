@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSafeAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Car, Users, FileText, Shield, Smartphone, Download } from 'lucide-react';
@@ -8,7 +8,7 @@ import { InstallButton } from '@/components/pwa/InstallButton';
 import { PWAStatus } from '@/components/pwa/PWAStatus';
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user } = useSafeAuth();
   const navigate = useNavigate();
 
   useEffect(() => {

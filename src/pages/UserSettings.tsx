@@ -5,7 +5,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { UserCog } from "lucide-react";
 import UserProfile from "@/components/auth/UserProfile";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSafeAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,7 +23,7 @@ import { Loader2 } from "lucide-react";
 
 const UserSettings = () => {
   const { language } = useLanguage();
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useSafeAuth();
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

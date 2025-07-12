@@ -74,6 +74,30 @@ const MaintenanceSchedule = () => {
     notes: ''
   });
 
+  // Status configuration outside the component to avoid JSX in objects
+  const statusConfig: Record<StatusType, { label: string; variant: 'secondary' | 'default' | 'destructive'; icon: React.ComponentType<any> }> = {
+    scheduled: { 
+      label: language === 'ar' ? 'مجدول' : 'Scheduled', 
+      variant: 'secondary',
+      icon: Clock
+    },
+    in_progress: { 
+      label: language === 'ar' ? 'قيد التنفيذ' : 'In Progress', 
+      variant: 'default',
+      icon: AlertCircle
+    },
+    completed: { 
+      label: language === 'ar' ? 'مكتمل' : 'Completed', 
+      variant: 'default',
+      icon: CheckCircle
+    },
+    cancelled: { 
+      label: language === 'ar' ? 'ملغي' : 'Cancelled', 
+      variant: 'destructive',
+      icon: XCircle
+    }
+  };
+
   // Fetch data on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -223,39 +247,17 @@ const MaintenanceSchedule = () => {
   };
 
   const getStatusBadge = (status: StatusType) => {
-    const statusConfig: Record<StatusType, { label: string; variant: 'secondary' | 'default' | 'destructive'; icon: React.ReactNode }> = {
-      scheduled: { 
-        label: language === 'ar' ? 'مجدول' : 'Scheduled', 
-        variant: 'secondary',
-        icon: <Clock className="w-2 h-2" />
-      },
-      in_progress: { 
-        label: language === 'ar' ? 'قيد التنفيذ' : 'In Progress', 
-        variant: 'default',
-        icon: <AlertCircle className="w-2 h-2" />
-      },
-      completed: { 
-        label: language === 'ar' ? 'مكتمل' : 'Completed', 
-        variant: 'default',
-        icon: <CheckCircle className="w-2 h-2" />
-      },
-      cancelled: { 
-        label: language === 'ar' ? 'ملغي' : 'Cancelled', 
-        variant: 'destructive',
-        icon: <XCircle className="w-2 h-2" />
-      }
-    };
-    
     const config = statusConfig[status];
+    const IconComponent = config.icon;
     
     return (
       <Badge variant={config.variant} className={cn(
         "flex items-center gap-1 text-xs px-2 py-1",
         language === 'ar' ? 'flex-row-reverse' : 'flex-row'
       )}>
-        {language === 'ar' && config.icon}
+        {language === 'ar' && <IconComponent className="w-2 h-2" />}
         {config.label}
-        {language !== 'ar' && config.icon}
+        {language !== 'ar' && <IconComponent className="w-2 h-2" />}
       </Badge>
     );
   };

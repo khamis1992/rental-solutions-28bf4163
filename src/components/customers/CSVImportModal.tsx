@@ -10,7 +10,7 @@ import {
   checkEdgeFunctionAvailability,
   previewAgreementCSV
 } from '@/utils/agreement-import-utils';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSafeAuth } from '@/contexts/AuthContext';
 import { Loader2, FileUp, Download, CheckCircle, AlertCircle, Info, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -32,7 +32,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
   const [previewData, setPreviewData] = useState<{headers: string[], rows: string[][]} | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const { user } = useAuth();
+  const { user } = useSafeAuth();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {

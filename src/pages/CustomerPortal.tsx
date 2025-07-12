@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSafeAuth } from '@/contexts/AuthContext';
 import { useAgreements } from '@/hooks/use-agreements';
 import { usePaymentService } from '@/hooks/services/usePaymentService';
 import { useMaintenance } from '@/hooks/use-maintenance';
@@ -12,7 +12,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { MaintenanceRecord } from '@/types/maintenance.types';
 
 const CustomerPortal: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useSafeAuth();
   const { agreements, isLoading } = useAgreements({ customer_id: user?.id });
   const [selectedAgreement, setSelectedAgreement] = useState<any | null>(null);
 
