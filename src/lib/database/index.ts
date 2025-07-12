@@ -1,5 +1,5 @@
 // Central database exports - using unified database types
-export * from './database-types';
+export * from './types';
 
 // Re-export commonly used types
 export type {
@@ -14,4 +14,4 @@ export type {
   LeaseStatus,
   VehicleStatus,
   PaymentStatus
-} from './database-types';
+} from './types';

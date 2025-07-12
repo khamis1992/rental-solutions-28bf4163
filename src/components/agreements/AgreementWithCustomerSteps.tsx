@@ -20,7 +20,7 @@ interface AgreementWithCustomerStepsProps {
   prefilledData?: any; // البيانات المُعبأة مسبقاً من معالج العقود
 }
 
-type Step = 'customer-choice' | 'customer-selection' | 'agreement-creation';
+type Step = 'customer-choice' | 'customer-selection' | 'agreement-creation' | 'success';
 
 const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
   onSubmit,
@@ -204,10 +204,10 @@ const AgreementWithCustomerSteps: React.FC<AgreementWithCustomerStepsProps> = ({
             const stepId = step.id;
             if (stepId === 'customer-choice') {
               isActive = currentStep === 'customer-choice' || currentStep === 'customer-selection';
-              isCompleted = currentStep === 'agreement-creation';
+              isCompleted = ['agreement-creation', 'success'].includes(currentStep);
             } else {
               // Must be 'agreement-creation'
-              isActive = currentStep === 'agreement-creation';
+              isActive = ['agreement-creation', 'success'].includes(currentStep);
               isCompleted = false;
             }
             

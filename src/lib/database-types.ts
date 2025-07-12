@@ -24,42 +24,16 @@ export type PaymentScheduleRow = Database['public']['Tables']['payment_schedules
 export type PaymentScheduleInsert = Database['public']['Tables']['payment_schedules']['Insert'];
 export type PaymentScheduleUpdate = Database['public']['Tables']['payment_schedules']['Update'];
 
-// Add traffic fines and other missing table types - using generic approach since they're not in schema
-export type TrafficFineRow = {
-  id: string;
-  lease_id: string;
-  fine_amount: number;
-  fine_date: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type MaintenanceRow = {
-  id: string;
-  vehicle_id: string;
-  maintenance_type: string;
-  cost: number;
-  maintenance_date: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-};
-
 // ID type helpers for better type safety
 export type LeaseId = string;
 export type ProfileId = string;
 export type VehicleId = string;
 export type PaymentId = string;
-export type TrafficFineId = string;
-export type MaintenanceId = string;
 
 // Status enums from database
 export type LeaseStatus = 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired';
 export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled';
-
-// Re-export VehicleStatus from database types
-export type { VehicleStatus };
+export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'sold' | 'retired';
 
 // Helper function to cast strings to proper ID types
 export function asLeaseId(id: string): LeaseId {
@@ -76,14 +50,6 @@ export function asVehicleId(id: string): VehicleId {
 
 export function asPaymentId(id: string): PaymentId {
   return id as PaymentId;
-}
-
-export function asTrafficFineId(id: string): TrafficFineId {
-  return id as TrafficFineId;
-}
-
-export function asMaintenanceId(id: string): MaintenanceId {
-  return id as MaintenanceId;
 }
 
 // Helper functions to cast strings to proper status types
