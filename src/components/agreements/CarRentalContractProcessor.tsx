@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import { 
   Upload, 
   Brain, 
@@ -44,7 +44,6 @@ interface CustomerInfo {
 
 const CarRentalContractProcessor: React.FC<CarRentalContractProcessorProps> = ({
   open = false,
-  onDataExtracted,
   onClose
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
