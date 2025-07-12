@@ -93,9 +93,9 @@ class CarRentalContractOcrService {
         console.log('🖼️ استخراج النص من الصورة باستخدام Edge Function...');
         const visionResult = await this.extractTextWithGoogleVision(imageBase64);
         
-        if (!visionResult.text) {
-          // إذا فشل OCR، إرجاع نموذج فارغ مع تشخيص المشكلة
-          console.warn('⚠️ فشل في استخراج النص - إنشاء نموذج فارغ للملء اليدوي');
+        if (!visionResult.success || !visionResult.text) {
+          // إذا فشل OCR، إرجاع خطأ واضح
+          console.error('❌ فشل في استخراج النص من الصورة');
           
           return {
             success: false,
@@ -171,7 +171,7 @@ class CarRentalContractOcrService {
   /**
    * استخراج النص من الصورة باستخدام Google Vision Edge Function
    */
-  private async extractTextWithGoogleVision(imageBase64: string): Promise<{ text: string | null; diagnostics?: any }> {
+  private async extractTextWithGoogleVision(imageBase64: string): Promise<{ success: boolean; text: string | null; diagnostics?: any }> {
     try {
       console.log('📄 استخدام Google Vision Edge Function لاستخراج النص...');
       
@@ -190,13 +190,13 @@ class CarRentalContractOcrService {
       if (error) {
         console.error('❌ Google Vision Edge Function error:', error);
         const diagnostics = await this.diagnoseOcrFailure(imageBase64, error);
-        return { text: null, diagnostics };
+        return { success: false, text: null, diagnostics };
       }
 
       if (!data || !data.success) {
         console.warn('⚠️ Google Vision processing failed:', data?.error);
         const diagnostics = await this.diagnoseOcrFailure(imageBase64);
-        return { text: null, diagnostics };
+        return { success: false, text: null, diagnostics };
       }
 
       const extractedText = data.data?.text || '';
@@ -206,14 +206,14 @@ class CarRentalContractOcrService {
       if (extractedText.length < 50) {
         console.warn('⚠️ النص المستخرج قصير جداً');
         const diagnostics = await this.diagnoseOcrFailure(imageBase64);
-        return { text: extractedText, diagnostics };
+        return { success: false, text: extractedText, diagnostics };
       }
       
-      return { text: extractedText };
+      return { success: true, text: extractedText };
     } catch (error) {
       console.error('❌ فشل في استخراج النص:', error);
       const diagnostics = await this.diagnoseOcrFailure(imageBase64, error);
-      return { text: null, diagnostics };
+      return { success: false, text: null, diagnostics };
     }
   }
 

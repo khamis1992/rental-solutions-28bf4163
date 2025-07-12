@@ -117,8 +117,17 @@ serve(async (req) => {
       )
     }
 
-    const generatedText = data.choices[0].message.content
-    console.log('✅ OpenAI response generated successfully')
+    let generatedText = data.choices[0].message.content
+    console.log('✅ Raw OpenAI response:', generatedText)
+
+    // Fix markdown parsing - remove code blocks if present
+    if (generatedText && typeof generatedText === 'string') {
+      // Remove markdown code blocks (```json...``` or ```...```)
+      generatedText = generatedText.replace(/```(?:json)?\s*([\s\S]*?)\s*```/g, '$1')
+      // Clean up any extra whitespace
+      generatedText = generatedText.trim()
+      console.log('✅ Cleaned OpenAI response:', generatedText)
+    }
 
     return new Response(
       JSON.stringify({ 

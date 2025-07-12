@@ -47,17 +47,17 @@ serve(async (req) => {
     const googleVisionApiKey = Deno.env.get('GOOGLE_VISION_API_KEY');
     
     if (!googleVisionApiKey) {
-      console.warn('⚠️ Google Vision API Key not found, using mock data');
-      return new Response(JSON.stringify({
-        success: true,
-        data: {
-          text: getMockOcrText(),
-          confidence: 0.1
-        },
-        processingTime: 1000
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error('❌ Google Vision API Key not configured');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Google Vision API not configured' 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     const startTime = Date.now();
@@ -126,16 +126,16 @@ serve(async (req) => {
     const extractedText = result.responses?.[0]?.fullTextAnnotation?.text || 
                           result.responses?.[0]?.textAnnotations?.[0]?.description || '';
     
-    if (!extractedText || typeof extractedText !== 'string') {
-      console.warn('No valid text extracted from image');
+    if (!extractedText || typeof extractedText !== 'string' || extractedText.trim().length === 0) {
+      console.warn('❌ No valid text extracted from image');
       return new Response(JSON.stringify({
-        success: true,
+        success: false,
+        error: 'No text detected in image',
         data: {
-          text: getMockOcrText(),
-          confidence: 0.1
+          text: '',
+          confidence: 0
         },
-        processingTime,
-        message: 'No text detected, returning empty template'
+        processingTime
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -143,6 +143,8 @@ serve(async (req) => {
 
     const cleanedText = extractedText.trim();
     console.log(`✅ Google Vision OCR completed in ${processingTime}ms`);
+    console.log(`✅ Extracted text length: ${cleanedText.length} characters`);
+    console.log(`✅ First 200 chars: ${cleanedText.substring(0, 200)}...`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -160,37 +162,11 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: 'Internal server error',
-      details: error.message,
-      data: {
-        text: getMockOcrText(),
-        confidence: 0.1
-      }
+      error: 'Google Vision processing failed',
+      details: error.message
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
-
-// Mock OCR text for testing when API key is not available
-function getMockOcrText(): string {
-  return `
-فاتورة إيجار السيارة
-شركة الأرف لتأجير السيارات
-
-تاريخ: 15/01/2024
-رقم الفاتورة: INV-2024-001
-
-العميل: أحمد محمد الكعبي
-رقم الهوية: 12345678901
-رقم الهاتف: 55123456
-رقم السيارة: 123456
-نوع السيارة: تويوتا كامري 2023
-
-المبلغ الإجمالي: 1200 ريال قطري
-طريقة الدفع: نقداً
-
-شكراً لتعاملكم معنا
-  `.trim();
-}
