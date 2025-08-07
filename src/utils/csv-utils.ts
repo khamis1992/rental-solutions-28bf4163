@@ -226,6 +226,127 @@ export function generateCSV(data: Record<string, any>[], headers?: string[]): st
 }
 
 /**
+ * Beautify a CSV file by formatting it with consistent spacing and clean structure
+ * @param file The CSV file to beautify
+ * @returns Promise resolving to beautified CSV content
+ */
+export function beautifyCSVFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      try {
+        const csvText = event.target?.result as string;
+        const lines = csvText.split('\n').filter(line => line.trim() !== '');
+        
+        if (lines.length === 0) {
+          reject(new Error('CSV file is empty'));
+          return;
+        }
+        
+        // Parse headers
+        const headers = lines[0].split(',').map(header => header.trim().replace(/^"|"$/g, ''));
+        
+        // Parse all rows
+        const rows: string[][] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          const values: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let j = 0; j < line.length; j++) {
+            const char = line[j];
+            
+            if (char === '"' && (j === 0 || line[j-1] !== '\\')) {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              values.push(current.trim().replace(/^"|"$/g, ''));
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          
+          values.push(current.trim().replace(/^"|"$/g, ''));
+          rows.push(values);
+        }
+        
+        // Calculate column widths for alignment
+        const columnWidths = headers.map((header, index) => {
+          const headerLength = header.length;
+          const maxRowLength = Math.max(...rows.map(row => (row[index] || '').length));
+          return Math.max(headerLength, maxRowLength);
+        });
+        
+        // Format headers with padding
+        const formattedHeaders = headers.map((header, index) => {
+          const paddedHeader = header.padEnd(columnWidths[index], ' ');
+          return header.includes(',') || header.includes('"') || header.includes('\n') 
+            ? `"${paddedHeader}"` 
+            : paddedHeader;
+        });
+        
+        // Format rows with padding
+        const formattedRows = rows.map(row => 
+          row.map((cell, index) => {
+            const paddedCell = (cell || '').padEnd(columnWidths[index], ' ');
+            return cell.includes(',') || cell.includes('"') || cell.includes('\n')
+              ? `"${paddedCell}"`
+              : paddedCell;
+          })
+        );
+        
+        // Combine headers and rows
+        const beautifiedCSV = [
+          formattedHeaders.join(', '),
+          ...formattedRows.map(row => row.join(', '))
+        ].join('\n');
+        
+        resolve(beautifiedCSV);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = (error) => {
+      reject(error);
+    };
+    
+    reader.readAsText(file);
+  });
+}
+
+/**
+ * Download a beautified version of a CSV file
+ * @param file The CSV file to beautify and download
+ * @param filename Name for the beautified file
+ */
+export function downloadBeautifiedCSV(file: File, filename?: string): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const beautifiedContent = await beautifyCSVFile(file);
+      const blob = new Blob([beautifiedContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename || `beautified_${file.name}`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
  * Download data as a CSV file
  * @param data Array of objects to convert to CSV
  * @param filename Name of the file to download
