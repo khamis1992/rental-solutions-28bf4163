@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,7 +66,7 @@ export const AgreementDetails = ({
         </label>
         <DatePicker 
           date={startDate ? (startDate instanceof Date ? startDate : new Date(startDate)) : undefined}
-          setDate={setStartDate} 
+          setDate={(date) => date && setStartDate(date)} 
         />
       </div>
       
@@ -95,7 +95,7 @@ export const AgreementDetails = ({
         </label>
         <DatePicker 
           date={endDate ? (endDate instanceof Date ? endDate : new Date(endDate)) : undefined}
-          setDate={setEndDate}
+          setDate={(date) => date && setEndDate(date)}
         />
       </div>
       

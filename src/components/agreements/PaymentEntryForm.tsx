@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -77,7 +77,6 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
   }, [defaultAmount, form, selectedPendingPayment]);
 
   const paymentDate = form.watch("paymentDate");
-  const includeLatePaymentFee = form.watch("includeLatePaymentFee");
   const isPartialPayment = form.watch("isPartialPayment");
   const amount = form.watch("amount");
 
@@ -132,8 +131,6 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
   }, [paymentDate]);
 
   const calculateLateFee = async (date: Date) => {
-    // Get the current month's first day
-    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
     
     // If payment date is after the 1st, calculate late fee
     if (date.getDate() > 1) {
@@ -193,7 +190,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         if (updateError) throw updateError;
       } else {
         // Record a new payment if not updating a pending one
-        const { data: paymentData, error: paymentError } = await supabase.from("unified_payments").insert({
+        const { error: paymentError } = await supabase.from("unified_payments").insert({
           lease_id: agreementId,
           amount: originalAmount,
           amount_paid: data.amount,

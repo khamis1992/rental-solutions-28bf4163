@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { Loader2, AlertTriangle, FileText, Clock, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { hasData } from '@/utils/supabase-type-helpers';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -17,7 +17,6 @@ export interface LegalCaseCardProps {
 export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [legalCase, setLegalCase] = useState(null as any);
-  const [customerInfo, setCustomerInfo] = useState(null as any);
   const [isResolutionDialogOpen, setIsResolutionDialogOpen] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,16 +46,7 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
         return;
       }
       
-      // Get customer info
-      const { data: customerData, error: customerError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, phone_number')
-        .eq('id', agreementData.customer_id)
-        .single();
-        
-      if (!customerError && customerData) {
-        setCustomerInfo(customerData);
-      }
+      // Customer info retrieval removed for now
       
       // Get legal case for this customer
       const { data: caseData, error: caseError } = await supabase

@@ -33,10 +33,8 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
   onImportComplete
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [previewData, setPreviewData] = useState<any[]>([]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -58,7 +56,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
       const text = await file.text();
       const lines = text.split('\n').slice(0, 6); // Preview first 5 rows + header
       const rows = lines.map(line => line.split(','));
-      setPreviewData(rows);
+      console.log('CSV preview:', rows);
     } catch (error) {
       console.error('Error previewing CSV:', error);
       toast.error('خطأ في قراءة الملف');
@@ -71,8 +69,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(0);
+    
     setImportResult(null);
 
     try {
@@ -119,8 +116,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
           });
         }
 
-        const progress = ((i + 1) / data.length) * 100;
-        setUploadProgress(progress);
+        // Progress tracking removed for simplicity
       }
 
       setImportResult({
@@ -142,7 +138,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
         errors: [{ row: 0, field: 'N/A', message: error.message || 'Import failed' }],
       });
     } finally {
-      setIsUploading(false);
+      // Import completed
     }
   };
 
@@ -201,14 +197,13 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
                       variant="outline"
                       onClick={() => {
                         setSelectedFile(null);
-                        setPreviewData([]);
                       }}
                     >
                       <X className="h-4 w-4 mr-2" />
                       إزالة الملف
                     </Button>
-                    <Button onClick={() => {}}>
-                      معاينة البيانات
+                    <Button onClick={handleImport}>
+                      بدء الاستيراد
                     </Button>
                   </div>
                 )}

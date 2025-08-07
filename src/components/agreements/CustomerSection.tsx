@@ -1,8 +1,8 @@
 
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+
 import { Button } from '@/components/ui/button';
 import { User, Mail, Phone, MapPin, FileText, Copy } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,10 +20,10 @@ const CustomerSection = ({
   customerId,
   onEdit
 }: CustomerSectionProps) => {
-  const [customer, setCustomer] = React.useState(initialCustomer || null as CustomerInfo | null);
-  const [loading, setLoading] = React.useState(!initialCustomer && !!customerId as boolean);
+  const [customer, setCustomer] = useState(initialCustomer || null as CustomerInfo | null);
+  const [loading, setLoading] = useState(!initialCustomer && !!customerId as boolean);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (customerId && !initialCustomer) {
       // Fetch customer data if we only have the ID
       const fetchCustomer = async () => {

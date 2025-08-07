@@ -5,7 +5,7 @@
  * between agreements while maintaining business rules and data integrity.
  */
 
-import React from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -75,7 +75,7 @@ const ReassignmentWizard = ({
                   <SelectValue placeholder="Select a vehicle" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableVehicles.map((vehicle) => (
+                  {availableVehicles.map((vehicle: any) => (
                     <SelectItem key={vehicle.id} value={vehicle.id}>
                       {vehicle.make} {vehicle.model} ({vehicle.license_plate})
                     </SelectItem>

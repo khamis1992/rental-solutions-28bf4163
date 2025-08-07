@@ -53,9 +53,6 @@ export function PdfTestingComponent() {
     color: 'أبيض'
   };
 
-  const samplePayment = {
-    down_payment: 4000
-  };
 
   const samplePayments = [
     {
@@ -139,11 +136,7 @@ export function PdfTestingComponent() {
       agreement_number: 'عقد-١٢٣'
     };
     
-    const arabicCustomer = {
-      ...sampleCustomer,
-      full_name: 'عبدالله محمد الخالدي الأنصاري',
-      nationality: 'قطري الجنسية'
-    };
+    // Arabic customer data setup removed for now
 
     await generateModernAgreementPDF(
       arabicAgreement,
