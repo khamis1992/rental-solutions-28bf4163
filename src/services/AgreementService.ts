@@ -196,6 +196,11 @@ export class AgreementService extends BaseService {
 
       // Execute the main query (either with filters or as fallback)
       console.log('📊 Executing main query...');
+      console.log('📊 Query details:', { 
+        table: 'leases', 
+        selectClause,
+        hasFilters: Object.keys(filters || {}).length > 0 
+      });
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
