@@ -51,7 +51,7 @@ export class AgreementService extends BaseService {
       const selectClause = `
         *,
         customers:profiles(*),
-        vehicles${filters?.license_plate ? '!inner' : ''}(*)
+        vehicles(*)
       `;
       let query = supabase.from('leases').select(selectClause);
       
