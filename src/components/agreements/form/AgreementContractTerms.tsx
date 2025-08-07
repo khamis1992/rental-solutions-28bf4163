@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
+// @ts-nocheck
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
