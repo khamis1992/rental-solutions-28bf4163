@@ -2,19 +2,23 @@ import { Database } from './database.types';
 
 // Base Agreement type that matches the database schema exactly
 export type Agreement = Database['public']['Tables']['leases']['Row'] & {
-  // Relationship data
-  customers?: Database['public']['Tables']['profiles']['Row'];
-  profiles?: Database['public']['Tables']['profiles']['Row'];
-  vehicles?: Database['public']['Tables']['vehicles']['Row'];
+  // Relationship data - unified naming
+  customers?: Database['public']['Tables']['profiles']['Row'] | null;
+  profiles?: Database['public']['Tables']['profiles']['Row'] | null;
+  vehicles?: Database['public']['Tables']['vehicles']['Row'] | null;
   
-  // Computed/derived fields
+  // Computed/derived fields for backward compatibility
   customer_name?: string;
   vehicle_info?: string;
   license_plate?: string;
   vehicle_make?: string;
   vehicle_model?: string;
   next_payment_date?: string;
-  duration_months?: number; // مدة العقد بالأشهر
+  duration_months?: number;
+  
+  // Additional computed fields
+  total_amount?: number;
+  agreement_duration?: string;
 };
 
 // Database operation types

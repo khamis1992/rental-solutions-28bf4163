@@ -75,7 +75,7 @@ function transformLeaseData(lease: LeaseWithRelations): SimpleAgreement {
     payment_frequency: lease.payment_frequency,
     payment_day: lease.payment_day,
     rent_due_day: lease.rent_due_day,
-    confirmation_email_sent: lease.confirmation_email_sent,
+    confirmation_email_sent: lease.confirmation_email_sent ?? false,
     daily_late_fee: lease.daily_late_fee,
     deposit_amount: lease.deposit_amount,
     down_payment: lease.down_payment,

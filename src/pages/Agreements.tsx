@@ -25,6 +25,7 @@ import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPan
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
+import { AgreementDebugPanel } from '@/components/debug/AgreementDebugPanel';
 
 const Agreements = () => {
   const navigate = useNavigate();
@@ -40,12 +41,20 @@ const Agreements = () => {
   const {
     agreements,
     isLoading,
+    error,
     searchParams,
     setSearchParams,
     refetch,
     deleteAgreement,
     useRealtimeUpdates
   } = useAgreementService();
+  
+  console.log('📊 Agreements page state:', { 
+    agreementsCount: agreements?.length || 0, 
+    isLoading, 
+    error: error?.message,
+    searchParams 
+  });
   
   useRealtimeUpdates();
   
@@ -109,7 +118,12 @@ const Agreements = () => {
 
   // Function to filter agreements based on tab and current filters
   const getFilteredAgreements = (tabValue: string) => {
-    if (!agreements) return [];
+    console.log('🔍 getFilteredAgreements called for tab:', tabValue, 'with agreements:', agreements?.length || 0);
+    
+    if (!agreements || !Array.isArray(agreements)) {
+      console.warn('⚠️ No agreements data available for filtering');
+      return [];
+    }
     
     let filteredAgreements = [...agreements];
     
@@ -152,7 +166,7 @@ const Agreements = () => {
       }
     }
     
-    console.log(`Filtered agreements for tab ${tabValue}:`, filteredAgreements.length, 'out of', agreements.length);
+    console.log(`✅ Filtered agreements for tab ${tabValue}:`, filteredAgreements.length, 'out of', agreements.length);
     return filteredAgreements;
   };
 
@@ -213,6 +227,14 @@ const Agreements = () => {
       />
       
       <div className="flex flex-col gap-6" dir="rtl">
+        {/* Debug Panel - Development Only */}
+        <AgreementDebugPanel 
+          agreements={agreements || []}
+          isLoading={isLoading}
+          error={error}
+          searchParams={searchParams}
+        />
+        
         {/* Analytics Section */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Stats Overview */}
@@ -311,9 +333,9 @@ const Agreements = () => {
                 loadingText=""
               />
               <AgreementTabPanel
-                value="completed"
+                value="closed"
                 viewMode={viewMode}
-                agreements={getFilteredAgreements('completed')}
+                agreements={getFilteredAgreements('closed')}
                 isLoading={isLoading}
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""

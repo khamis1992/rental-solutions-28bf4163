@@ -46,6 +46,8 @@ export class AgreementService extends BaseService {
 
   async fetchAgreements(filters?: AgreementFilters): Promise<Result<Agreement[]>> {
     return this.safeExecute(async () => {
+      console.log('📊 AgreementService.fetchAgreements called with filters:', filters);
+      
       const selectClause = `
         *,
         customers:profiles(*),
@@ -53,16 +55,19 @@ export class AgreementService extends BaseService {
       `;
       let query = supabase.from('leases').select(selectClause);
       
-      // Apply filters
+      // Apply basic filters first
       if (filters?.statuses && filters.statuses.length > 0) {
+        console.log('🔍 Applying status filter:', filters.statuses);
         query = query.in('status', filters.statuses);
       }
       
       if (filters?.customerId) {
+        console.log('🔍 Applying customer filter:', filters.customerId);
         query = query.eq('customer_id', filters.customerId);
       }
       
       if (filters?.vehicleId) {
+        console.log('🔍 Applying vehicle filter:', filters.vehicleId);
         query = query.eq('vehicle_id', filters.vehicleId);
       }
       
@@ -106,108 +111,103 @@ export class AgreementService extends BaseService {
         query = query.eq('vehicles.license_plate', filters.license_plate);
       }
 
-      // Enhanced search functionality: search by customer name, vehicle license plate, or agreement number
+      // Handle search functionality - only if searchTerm exists
       if (filters?.searchTerm && filters.searchTerm.trim() !== '') {
+        console.log('🔍 Applying search term:', filters.searchTerm);
         const searchTerm = filters.searchTerm.trim();
         
-        // First, search for agreement number directly
-        const { data: agreementsByNumber, error: agreementNumberError } = await supabase
-          .from('leases')
-          .select(`
-            *,
-            customers:profiles(*),
-            vehicles(*)
-          `)
-          .ilike('agreement_number', `%${searchTerm}%`);
-        
-        if (agreementNumberError) {
-          console.warn('Error searching by agreement number:', agreementNumberError);
-        }
-        
-        // Second, search for vehicle license plates
-        const { data: vehiclesByPlate, error: vehicleError } = await supabase
-          .from('vehicles')
-          .select('id')
-          .ilike('license_plate', `%${searchTerm}%`);
-        
-        if (vehicleError) {
-          console.warn('Error searching vehicles by license plate:', vehicleError);
-        }
-        
-        const vehicleIds = (vehiclesByPlate || []).map((v: any) => v.id);
-        let agreementsByVehicle: any[] = [];
-        
-        if (vehicleIds.length > 0) {
-          const { data: vehicleAgreements, error: vehicleAgreementError } = await supabase
-            .from('leases')
-            .select(`
-              *,
-              customers:profiles(*),
-              vehicles(*)
-            `)
-            .in('vehicle_id', vehicleIds);
-          
-          if (vehicleAgreementError) {
-            console.warn('Error searching agreements by vehicle:', vehicleAgreementError);
-          } else {
-            agreementsByVehicle = vehicleAgreements || [];
+        try {
+          // Enhanced search: combine multiple search strategies
+          const [agreementsByNumber, vehiclesByPlate, customers] = await Promise.allSettled([
+            // Search for agreement number directly
+            supabase
+              .from('leases')
+              .select(`*, customers:profiles(*), vehicles(*)`)
+              .ilike('agreement_number', `%${searchTerm}%`),
+            
+            // Search for vehicle license plates
+            supabase
+              .from('vehicles')
+              .select('id')
+              .ilike('license_plate', `%${searchTerm}%`),
+            
+            // Search for customer names
+            supabase
+              .from('profiles')
+              .select('id')
+              .ilike('full_name', `%${searchTerm}%`)
+          ]);
+
+          const allResults: any[] = [];
+
+          // Process agreement number results
+          if (agreementsByNumber.status === 'fulfilled' && agreementsByNumber.value.data) {
+            allResults.push(...agreementsByNumber.value.data);
+          } else if (agreementsByNumber.status === 'rejected') {
+            console.warn('Error searching by agreement number:', agreementsByNumber.reason);
           }
-        }
-        
-        // Third, search for customer names
-        const { data: customers, error: customerError } = await supabase
-          .from('profiles')
-          .select('id')
-          .ilike('full_name', `%${searchTerm}%`);
-        
-        if (customerError) {
-          console.warn('Error searching customers by name:', customerError);
-        }
-        
-        const customerIds = (customers || []).map((c: any) => c.id);
-        let agreementsByCustomer: any[] = [];
-        
-        if (customerIds.length > 0) {
-          const { data: customerAgreements, error: customerAgreementError } = await supabase
-            .from('leases')
-            .select(`
-              *,
-              customers:profiles(*),
-              vehicles(*)
-            `)
-            .in('customer_id', customerIds);
-          
-          if (customerAgreementError) {
-            console.warn('Error searching agreements by customer:', customerAgreementError);
-          } else {
-            agreementsByCustomer = customerAgreements || [];
+
+          // Process vehicle results
+          if (vehiclesByPlate.status === 'fulfilled' && vehiclesByPlate.value.data) {
+            const vehicleIds = vehiclesByPlate.value.data.map((v: any) => v.id);
+            if (vehicleIds.length > 0) {
+              const vehicleAgreementsResult = await supabase
+                .from('leases')
+                .select(`*, customers:profiles(*), vehicles(*)`)
+                .in('vehicle_id', vehicleIds);
+              
+              if (vehicleAgreementsResult.data) {
+                allResults.push(...vehicleAgreementsResult.data);
+              }
+            }
+          } else if (vehiclesByPlate.status === 'rejected') {
+            console.warn('Error searching vehicles by license plate:', vehiclesByPlate.reason);
           }
+
+          // Process customer results
+          if (customers.status === 'fulfilled' && customers.value.data) {
+            const customerIds = customers.value.data.map((c: any) => c.id);
+            if (customerIds.length > 0) {
+              const customerAgreementsResult = await supabase
+                .from('leases')
+                .select(`*, customers:profiles(*), vehicles(*)`)
+                .in('customer_id', customerIds);
+              
+              if (customerAgreementsResult.data) {
+                allResults.push(...customerAgreementsResult.data);
+              }
+            }
+          } else if (customers.status === 'rejected') {
+            console.warn('Error searching customers by name:', customers.reason);
+          }
+
+          // Remove duplicates based on agreement ID
+          const uniqueResults = allResults.filter((agreement, index, self) => 
+            index === self.findIndex((a) => a.id === agreement.id)
+          );
+
+          console.log(`🔍 Search found ${uniqueResults.length} unique results`);
+          return uniqueResults as unknown as Agreement[];
+        } catch (searchError) {
+          console.error('Error in search functionality:', searchError);
+          // Fallback to regular query if search fails
         }
-        
-        // Combine all results and remove duplicates
-        const allResults = [
-          ...(agreementsByNumber || []),
-          ...agreementsByVehicle,
-          ...agreementsByCustomer
-        ];
-        
-        // Remove duplicates based on agreement ID
-        const uniqueResults = allResults.filter((agreement, index, self) => 
-          index === self.findIndex((a) => a.id === agreement.id)
-        );
-        
-        return uniqueResults as unknown as Agreement[];
       }
 
-      const { data, error } = await query;
+      // Execute the main query (either with filters or as fallback)
+      console.log('📊 Executing main query...');
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
+        console.error('❌ Database error in fetchAgreements:', error);
         throw this.createServiceError(
-          'Failed to fetch agreements',
+          `Failed to fetch agreements: ${error.message}`,
           'fetchAgreements'
         );
       }
 
+      console.log(`✅ Successfully fetched ${data?.length || 0} agreements`);
+      
       if (!data || !Array.isArray(data)) {
         return [] as Agreement[];
       }

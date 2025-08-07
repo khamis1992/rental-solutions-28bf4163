@@ -23,15 +23,31 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: async () => {
-      console.log('Fetching agreements with filters:', searchParams);
-      const result = await agreementService.fetchAgreements(searchParams);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to fetch agreements');
+      console.log('🔄 useAgreementService.queryFn called with searchParams:', searchParams);
+      try {
+        const result = await agreementService.fetchAgreements(searchParams);
+        console.log('📊 AgreementService.fetchAgreements result:', { 
+          success: result.success, 
+          dataLength: result.success ? result.data?.length : 0,
+          error: result.success ? null : result.error 
+        });
+        
+        if (!result.success) {
+          console.error('❌ AgreementService.fetchAgreements failed:', result.error);
+          throw new Error(result.error?.toString() || 'Failed to fetch agreements');
+        }
+        
+        console.log('✅ Successfully returned agreements data:', result.data?.length || 0);
+        return result.data || [];
+      } catch (error) {
+        console.error('❌ Error in useAgreementService queryFn:', error);
+        throw error;
       }
-      return result.data;
     },
-    staleTime: 600000, // 10 minutes
-    gcTime: 900000, // 15 minutes
+    staleTime: 30000, // 30 seconds
+    gcTime: 300000, // 5 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Function for getting agreement details

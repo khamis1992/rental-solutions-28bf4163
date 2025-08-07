@@ -17,6 +17,12 @@ const AgreementList = () => {
     return <div>Error: {error.message}</div>;
   }
 
+  console.log('📊 AgreementList received:', { 
+    agreementsType: typeof agreements, 
+    isArray: Array.isArray(agreements),
+    count: agreements?.length || 0 
+  });
+
   // Process agreements with proper type checking
   const typedAgreements = Array.isArray(agreements) && agreements.length > 0 
     ? (agreements as any[]).map(agreement => ({
@@ -25,6 +31,8 @@ const AgreementList = () => {
         down_payment: agreement.down_payment ?? 0
       }))
     : [];
+
+  console.log('✅ AgreementList processed:', typedAgreements.length, 'agreements');
 
   return (
     <TableContent 
