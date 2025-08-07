@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { CheckCircle, AlertCircle, Clock, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { openAIService } from '@/services/openai-service';
 import { googleVisionOcrService } from '@/services/google-vision-ocr';
-import { toast } from 'sonner';
+
 
 interface ServiceStatus {
   name: string;
@@ -128,12 +128,12 @@ export function ServiceDiagnostics() {
         functionTests.forEach((result, index) => {
           const functionName = index === 0 ? 'OpenAI' : 'Vision';
           
-          if (result.status === 'fulfilled' && !result.value.error) {
+          if (result.status === 'fulfilled' && !(result.value as any)?.error) {
             workingFunctions++;
           } else {
             const errorMsg = result.status === 'rejected' 
               ? result.reason?.message || result.reason 
-              : result.value.error?.message || 'خطأ غير معروف';
+              : (result.value as any)?.error?.message || 'خطأ غير معروف';
             functionErrors.push(`${functionName}: ${errorMsg}`);
           }
         });

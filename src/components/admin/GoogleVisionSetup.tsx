@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,6 @@ import {
   ExternalLink, 
   Copy, 
   Eye, 
-  EyeOff,
   RefreshCw,
   FileText
 } from 'lucide-react';
@@ -26,9 +25,7 @@ interface SetupStep {
 }
 
 export const GoogleVisionSetup = () => {
-  const [currentStep, setCurrentStep] = useState(0);
   const [isTestingAPI, setIsTestingAPI] = useState(false);
-  const [apiKeyVisible, setApiKeyVisible] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
 
   const steps: SetupStep[] = [
@@ -148,7 +145,7 @@ export const GoogleVisionSetup = () => {
 
           {/* Steps */}
           <div className="space-y-4">
-            {setupSteps.map((step, index) => (
+            {setupSteps.map((step) => (
               <div key={step.id} className="flex items-start gap-4 p-4 border rounded-lg">
                 <div className="flex-shrink-0 mt-1">
                   {getStepIcon(step.status)}
