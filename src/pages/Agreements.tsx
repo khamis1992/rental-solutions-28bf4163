@@ -24,6 +24,7 @@ import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
 import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPanel';
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { AgreementDebugPanel } from '@/components/debug/AgreementDebugPanel';
 import { exportAllAgreementsToCSV } from '@/services/AgreementExportService';
 
