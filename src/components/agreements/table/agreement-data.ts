@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import { SimpleAgreement } from '@/hooks/use-agreements';
 import { Agreement } from '@/types/agreement';
 

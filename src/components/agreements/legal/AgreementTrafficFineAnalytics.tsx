@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';

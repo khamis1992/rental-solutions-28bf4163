@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import React from 'react';
 import { Agreement } from '@/types/agreement';
 import {

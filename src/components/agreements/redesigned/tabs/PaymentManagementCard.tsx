@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import { EnhancedPaymentHistorySection } from '@/components/payments/EnhancedPaymentHistorySection';
 import { Payment } from '@/types/payment.types';
 

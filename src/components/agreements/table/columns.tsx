@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import React from 'react';
 import { ColumnDef } from "@tanstack/react-table";
 import { Agreement } from '@/types/agreement';

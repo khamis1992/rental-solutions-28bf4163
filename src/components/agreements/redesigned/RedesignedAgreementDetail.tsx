@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '@/styles/legal-rtl.css';

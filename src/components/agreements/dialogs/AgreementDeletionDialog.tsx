@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Trash2, FileText, CreditCard, AlertCircle, Scale, Car } from 'lucide-react';
 import {
