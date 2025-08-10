@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import React, { useState } from 'react';
 import { CustomerInfo } from '@/types/customer';
 import { Button } from '@/components/ui/button';

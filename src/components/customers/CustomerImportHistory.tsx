@@ -18,12 +18,12 @@ import { formatDistanceToNow } from 'date-fns';
 interface ImportRecord {
   id: string;
   file_name: string;
-  original_file_name: string;
-  status: string;
-  row_count: number;
-  processed_count: number;
-  error_count: number;
-  created_at: string;
+  original_file_name: string | null;
+  status: string | null;
+  row_count: number | null;
+  processed_count: number | null;
+  error_count: number | null;
+  created_at: string | null;
 }
 
 export const CustomerImportHistory: React.FC = () => {
@@ -167,7 +167,7 @@ export const CustomerImportHistory: React.FC = () => {
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{importRecord.original_file_name || importRecord.file_name}</span>
-                      {importRecord.error_count > 0 && (
+                      {(importRecord.error_count ?? 0) > 0 && (
                         <div className="flex items-center text-xs text-red-600 mt-1">
                           <AlertCircle className="h-3 w-3 ml-1" />
                           {importRecord.error_count} أخطاء
@@ -178,19 +178,19 @@ export const CustomerImportHistory: React.FC = () => {
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <CalendarDays className="h-3 w-3 text-muted-foreground" />
-                      <span>{formatDistanceToNow(new Date(importRecord.created_at), { addSuffix: true, locale: undefined })}</span>
+                      <span>{formatDistanceToNow(new Date(importRecord.created_at || Date.now()), { addSuffix: true, locale: undefined })}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span>{importRecord.processed_count}/{importRecord.row_count}</span>
+                      <span>{(importRecord.processed_count ?? 0)}/{importRecord.row_count ?? 0}</span>
                       <span className="text-xs text-muted-foreground">
-                        {Math.round((importRecord.processed_count / Math.max(1, importRecord.row_count)) * 100)}% مكتمل
+                        {Math.round(((importRecord.processed_count ?? 0) / Math.max(1, importRecord.row_count ?? 0)) * 100)}% مكتمل
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    {getStatusBadge(importRecord.status)}
+                    {getStatusBadge(importRecord.status || 'pending')}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon">
