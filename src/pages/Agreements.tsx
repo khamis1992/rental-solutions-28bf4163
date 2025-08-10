@@ -8,7 +8,7 @@ import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { BarChart4, Calendar, Database, Filter, Plus, RefreshCw, FileText } from 'lucide-react';
+import { BarChart4, Calendar, Database, Filter, Plus, RefreshCw, FileText, Download } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { Card, CardContent } from '@/components/ui/card';
 import { CustomerInfo } from '@/types/customer';
@@ -24,8 +24,8 @@ import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
 import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPanel';
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { AgreementDebugPanel } from '@/components/debug/AgreementDebugPanel';
+import { exportAllAgreementsToCSV } from '@/services/AgreementExportService';
 
 const Agreements = () => {
   const navigate = useNavigate();
@@ -36,6 +36,7 @@ const Agreements = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('agreements');
   const [viewMode, setViewMode] = useState('card' as 'card' | 'table' | 'compact');
+  const [isExporting, setIsExporting] = useState(false);
   
   // Use the agreement service hook
   const {
@@ -213,6 +214,22 @@ const Agreements = () => {
     navigate('/agreements/add');
   };
 
+  // Export all agreements to CSV
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      const toastId = toast.loading('جاري تجهيز ملف CSV للعقود...');
+      await exportAllAgreementsToCSV();
+      toast.success('تم تنزيل ملف CSV بنجاح');
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error(err);
+      toast.error('حدث خطأ أثناء تصدير العقود');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <PageContainer 
       className="max-w-full"
@@ -275,6 +292,17 @@ const Agreements = () => {
                 >
                   <Filter className="h-4 w-4 ml-2" />
                   {showFilters ? "إخفاء المرشحات" : "مرشحات متقدمة"}
+                </Button>
+                
+                <Button 
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleExportCSV}
+                  disabled={isExporting}
+                  className="flex-row-reverse"
+                >
+                  <Download className="h-4 w-4 ml-2" />
+                  {isExporting ? 'جاري التصدير...' : 'تصدير CSV'}
                 </Button>
                 
                 <Button 
