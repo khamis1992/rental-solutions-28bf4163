@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -206,7 +206,7 @@ export type Database = {
           created_at: string | null
           customer_name: string | null
           description: string | null
-          id: string | null
+          id: string
           license_plate: string | null
           payment_method: string | null
           receipt_url: string | null
@@ -224,7 +224,7 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           description?: string | null
-          id?: string | null
+          id?: string
           license_plate?: string | null
           payment_method?: string | null
           receipt_url?: string | null
@@ -242,7 +242,7 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           description?: string | null
-          id?: string | null
+          id?: string
           license_plate?: string | null
           payment_method?: string | null
           receipt_url?: string | null
@@ -3312,6 +3312,54 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          context: Json | null
+          created_at: string
+          environment: string
+          error_code: string
+          error_message: string
+          function_name: string
+          id: string
+          request_id: string | null
+          service: string
+          severity: string
+          stack_trace: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          environment: string
+          error_code: string
+          error_message: string
+          function_name: string
+          id?: string
+          request_id?: string | null
+          service: string
+          severity: string
+          stack_trace?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          environment?: string
+          error_code?: string
+          error_message?: string
+          function_name?: string
+          id?: string
+          request_id?: string | null
+          service?: string
+          severity?: string
+          stack_trace?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       expense_analysis: {
         Row: {
           amount: number
@@ -3895,6 +3943,53 @@ export type Database = {
         }
         Relationships: []
       }
+      incident_reports: {
+        Row: {
+          created_at: string
+          description: string
+          error_log_id: string | null
+          id: string
+          resolution: string | null
+          resolved_at: string | null
+          service: string
+          severity: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          error_log_id?: string | null
+          id?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          service: string
+          severity: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          error_log_id?: string | null
+          id?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          service?: string
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_reports_error_log_id_fkey"
+            columns: ["error_log_id"]
+            isOneToOne: false
+            referencedRelation: "error_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       installment_analytics: {
         Row: {
           analysis_type: string
@@ -4141,6 +4236,7 @@ export type Database = {
           start_date: string | null
           status: Database["public"]["Enums"]["lease_status"] | null
           template_id: string | null
+          template_url: string | null
           total_amount: number
           trade_in_value: number | null
           updated_at: string
@@ -4183,6 +4279,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["lease_status"] | null
           template_id?: string | null
+          template_url?: string | null
           total_amount: number
           trade_in_value?: number | null
           updated_at?: string
@@ -4225,6 +4322,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["lease_status"] | null
           template_id?: string | null
+          template_url?: string | null
           total_amount?: number
           trade_in_value?: number | null
           updated_at?: string
@@ -5910,7 +6008,7 @@ export type Database = {
           amount_due: number | null
           amount_paid: number | null
           created_at: string | null
-          id: string | null
+          id: string
           late_fee_applied: number | null
           lease_id: string | null
           original_due_date: string | null
@@ -5923,7 +6021,7 @@ export type Database = {
           amount_due?: number | null
           amount_paid?: number | null
           created_at?: string | null
-          id?: string | null
+          id?: string
           late_fee_applied?: number | null
           lease_id?: string | null
           original_due_date?: string | null
@@ -5936,7 +6034,7 @@ export type Database = {
           amount_due?: number | null
           amount_paid?: number | null
           created_at?: string | null
-          id?: string | null
+          id?: string
           late_fee_applied?: number | null
           lease_id?: string | null
           original_due_date?: string | null
@@ -6987,6 +7085,33 @@ export type Database = {
           min_rental_duration?: number | null
           start_date?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          keys: Json
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          keys: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          keys?: Json
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -8747,6 +8872,7 @@ export type Database = {
       }
       unified_payments: {
         Row: {
+          agreement_number: string | null
           amount: number
           amount_paid: number | null
           balance: number | null
@@ -8777,6 +8903,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          agreement_number?: string | null
           amount: number
           amount_paid?: number | null
           balance?: number | null
@@ -8807,6 +8934,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          agreement_number?: string | null
           amount?: number
           amount_paid?: number | null
           balance?: number | null
@@ -10546,13 +10674,13 @@ export type Database = {
       analyze_overdue_customers: {
         Args: Record<PropertyKey, never>
         Returns: {
+          active_agreements: number
+          average_days_overdue: number
           customer_name: string
           customer_phone: string
-          total_overdue_payments: number
-          total_overdue_amount: number
           oldest_overdue_date: string
-          average_days_overdue: number
-          active_agreements: number
+          total_overdue_amount: number
+          total_overdue_payments: number
         }[]
       }
       analyze_vehicle_maintenance: {
@@ -10565,32 +10693,32 @@ export type Database = {
       }
       calculate_credit_score: {
         Args: {
-          p_monthly_income: number
-          p_employment_status: string
           p_debt_to_income_ratio: number
+          p_employment_status: string
+          p_monthly_income: number
         }
         Returns: number
       }
       calculate_detailed_credit_score: {
         Args: {
-          p_monthly_income: number
-          p_employment_status: string
-          p_debt_to_income_ratio: number
-          p_payment_history_score: number
-          p_credit_utilization: number
           p_credit_history_length: number
+          p_credit_utilization: number
+          p_debt_to_income_ratio: number
+          p_employment_status: string
+          p_monthly_income: number
+          p_payment_history_score: number
         }
         Returns: Json
       }
       calculate_distance: {
-        Args: { lat1: number; lon1: number; lat2: number; lon2: number }
+        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
       }
       calculate_late_fine: {
         Args: {
-          p_payment_date: string
-          p_due_date: string
           p_daily_rate?: number
+          p_due_date: string
+          p_payment_date: string
         }
         Returns: number
       }
@@ -10633,10 +10761,10 @@ export type Database = {
       check_payment_migration_status: {
         Args: Record<PropertyKey, never>
         Returns: {
-          table_name: string
-          unmigrated_records: number
-          total_records: number
           migration_status: string
+          table_name: string
+          total_records: number
+          unmigrated_records: number
         }[]
       }
       check_pending_imports: {
@@ -10658,18 +10786,18 @@ export type Database = {
       }
       create_api_key: {
         Args: {
-          p_name: string
           p_description: string
-          p_permissions: string[]
           p_expires_at?: string
+          p_name: string
+          p_permissions: string[]
         }
         Returns: Json
       }
       create_default_agreement_if_not_exists: {
         Args: {
           p_agreement_number: string
-          p_customer_name: string
           p_amount: number
+          p_customer_name: string
         }
         Returns: string
       }
@@ -10708,8 +10836,8 @@ export type Database = {
       fuzzy_name_match: {
         Args: { search_name: string }
         Returns: {
-          id: string
           full_name: string
+          id: string
           similarity: number
         }[]
       }
@@ -10741,8 +10869,8 @@ export type Database = {
       get_customers_with_obligations: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
           full_name: string
+          id: string
         }[]
       }
       get_dashboard_stats: {
@@ -10756,29 +10884,29 @@ export type Database = {
       get_overdue_payments: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
+          agreement_number: string
           amount: number
-          due_date: string
-          days_overdue: number
           customer_name: string
           customer_phone: string
-          agreement_number: string
+          days_overdue: number
+          due_date: string
+          id: string
           license_plate: string
         }[]
       }
       get_payment_statistics: {
         Args: { p_date_from?: string; p_date_to?: string }
         Returns: {
-          total_payments: number
-          completed_payments: number
-          pending_payments: number
-          overdue_payments: number
-          total_amount: number
-          completed_amount: number
-          pending_amount: number
-          overdue_amount: number
           average_days_overdue: number
           collection_rate: number
+          completed_amount: number
+          completed_payments: number
+          overdue_amount: number
+          overdue_payments: number
+          pending_amount: number
+          pending_payments: number
+          total_amount: number
+          total_payments: number
         }[]
       }
       get_pending_payments_report: {
@@ -10787,20 +10915,20 @@ export type Database = {
           agreement_number: string
           customer_name: string
           id_number: string
-          phone_number: string
-          pending_rent_amount: number
           late_fine_amount: number
-          traffic_fine_amount: number
-          total_amount: number
           license_plate: string
+          pending_rent_amount: number
+          phone_number: string
+          total_amount: number
+          traffic_fine_amount: number
         }[]
       }
       get_system_summary: {
         Args: Record<PropertyKey, never>
         Returns: {
+          metric_description: string
           metric_name: string
           metric_value: string
-          metric_description: string
         }[]
       }
       handle_portal_login: {
@@ -10821,20 +10949,20 @@ export type Database = {
       }
       log_traffic_fine_validation: {
         Args: {
+          p_batch_id?: string
+          p_fine_id?: string
           p_license_plate: string
           p_result: Json
           p_status?: string
-          p_fine_id?: string
-          p_batch_id?: string
         }
         Returns: string
       }
       merge_customer_records: {
-        Args: { primary_id: string; duplicate_ids: string[] }
+        Args: { duplicate_ids: string[]; primary_id: string }
         Returns: undefined
       }
       merge_duplicate_profiles: {
-        Args: { target_profile_id: string; source_profile_id: string }
+        Args: { source_profile_id: string; target_profile_id: string }
         Returns: undefined
       }
       migrate_to_unified_import_tracking: {
@@ -10845,8 +10973,8 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: {
           agreement_id: string
-          success: boolean
           error_message: string
+          success: boolean
         }[]
       }
       process_historical_payments: {
@@ -10868,8 +10996,8 @@ export type Database = {
       process_single_agreement_template: {
         Args: { agreement_id: string }
         Returns: {
-          success: boolean
           error_message: string
+          success: boolean
         }[]
       }
       process_tracked_import: {
@@ -10882,17 +11010,17 @@ export type Database = {
       }
       record_payment_with_late_fee: {
         Args: {
-          p_lease_id: string
           p_amount: number
           p_amount_paid: number
           p_balance: number
-          p_payment_method: string
-          p_description: string
-          p_payment_date: string
-          p_late_fine_amount: number
           p_days_overdue: number
-          p_original_due_date: string
+          p_description: string
           p_existing_late_fee_id: string
+          p_late_fine_amount: number
+          p_lease_id: string
+          p_original_due_date: string
+          p_payment_date: string
+          p_payment_method: string
         }
         Returns: Json
       }
@@ -10903,22 +11031,22 @@ export type Database = {
       search_payments_simple: {
         Args: {
           p_lease_id?: string
-          p_status?: string
           p_limit?: number
           p_offset?: number
+          p_status?: string
         }
         Returns: {
-          id: string
+          agreement_number: string
           amount: number
           amount_paid: number
           balance: number
-          status: string
-          payment_date: string
-          due_date: string
           customer_name: string
-          agreement_number: string
-          license_plate: string
           days_overdue: number
+          due_date: string
+          id: string
+          license_plate: string
+          payment_date: string
+          status: string
         }[]
       }
       send_payment_reminders: {
@@ -10958,7 +11086,7 @@ export type Database = {
         Returns: undefined
       }
       update_payment_schedule: {
-        Args: { p_lease_id: string; p_delay_days?: number }
+        Args: { p_delay_days?: number; p_lease_id: string }
         Returns: undefined
       }
       update_risk_assessment: {

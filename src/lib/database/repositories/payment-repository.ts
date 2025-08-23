@@ -27,6 +27,29 @@ export function createPaymentRepository(supabase: SupabaseClient<Database>) {
       }
     },
 
+    async findByAgreementNumber(agreementNumber: string) {
+      try {
+        const { data, error } = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('agreement_number', agreementNumber)
+          .order('payment_date', { ascending: false });
+
+        return { data, error };
+      } catch (error) {
+        console.error('Error in findByAgreementNumber:', error);
+        return { 
+          data: null, 
+          error: {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            details: null,
+            hint: null,
+            code: 'UNKNOWN_ERROR'
+          }
+        };
+      }
+    },
+
     async recordPayment(payment: any) {
       try {
         const { data, error } = await supabase
