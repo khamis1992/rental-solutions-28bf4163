@@ -100,4 +100,5 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, onClose }) =>
   );
 };
 
+export { DocumentViewer };
 export default DocumentViewer;
