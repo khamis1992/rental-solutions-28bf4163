@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileText, Upload, Download, Edit, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VehicleData } from '@/types/vehicle.types';
-import DocumentList from '@/components/documents/DocumentList';
+import { DocumentList } from '@/components/documents/DocumentList';
 import DocumentUpload from '@/components/documents/DocumentUpload';
 import { StorageTestButton } from '@/components/documents/StorageTestButton';
 import { DocumentEntityType } from '@/types/document.types';
