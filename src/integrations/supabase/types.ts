@@ -10348,14 +10348,20 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           end_date: string | null
+          first_payment_date: string | null
           id: string | null
+          last_payment_date: string | null
           license_plate: string | null
           make: string | null
           model: string | null
+          payment_count: number | null
+          payment_details: Json | null
           rent_amount: number | null
           start_date: string | null
           status: Database["public"]["Enums"]["lease_status"] | null
           total_amount: number | null
+          total_late_fees_paid: number | null
+          total_paid_amount: number | null
           updated_at: string | null
           vehicle_status: Database["public"]["Enums"]["vehicle_status"] | null
           year: number | null
