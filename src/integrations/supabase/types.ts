@@ -10349,7 +10349,7 @@ export type Database = {
           customer_phone: string | null
           end_date: string | null
           fines_count: number | null
-          fines_details: Json | null
+          fines_details: string | null
           first_payment_date: string | null
           id: string | null
           last_payment_date: string | null
@@ -10359,7 +10359,7 @@ export type Database = {
           paid_fines_amount: number | null
           paid_fines_count: number | null
           payment_count: number | null
-          payment_details: Json | null
+          payment_details: string | null
           pending_fines_amount: number | null
           pending_fines_count: number | null
           rent_amount: number | null
