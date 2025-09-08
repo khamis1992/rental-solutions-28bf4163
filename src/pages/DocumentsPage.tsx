@@ -3,7 +3,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/ui/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { FileText, Filter } from 'lucide-react';
-import DocumentList from '@/components/documents/DocumentList';
+import { DocumentList } from '@/components/documents/DocumentList';
 import { 
   Select, 
   SelectContent, 
