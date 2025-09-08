@@ -10348,18 +10348,25 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           end_date: string | null
+          fines_count: number | null
+          fines_details: Json | null
           first_payment_date: string | null
           id: string | null
           last_payment_date: string | null
           license_plate: string | null
           make: string | null
           model: string | null
+          paid_fines_amount: number | null
+          paid_fines_count: number | null
           payment_count: number | null
           payment_details: Json | null
+          pending_fines_amount: number | null
+          pending_fines_count: number | null
           rent_amount: number | null
           start_date: string | null
           status: Database["public"]["Enums"]["lease_status"] | null
           total_amount: number | null
+          total_fines_amount: number | null
           total_late_fees_paid: number | null
           total_paid_amount: number | null
           updated_at: string | null

@@ -6,16 +6,16 @@ import { useDocumentsEnhanced } from '@/hooks/use-documents-enhanced';
 
 export interface DocumentViewerProps {
   document: DocumentType;
-  onClose?: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, onClose }) => {
+const DocumentViewer: React.FC<DocumentViewerProps> = ({ document }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { downloadDocumentFile } = useDocumentsEnhanced();
   
-  const isImage = document.file_type.startsWith('image/');
+  const isImage = document.file_type?.startsWith('image/');
   const isPdf = document.file_type === 'application/pdf';
-  const isText = document.file_type.startsWith('text/');
   const isOffice = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
