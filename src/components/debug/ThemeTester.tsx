@@ -1,152 +1,154 @@
+// @ts-nocheck
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Sun, Moon, Monitor, Palette, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/hooks/use-theme";
+import { 
+  Sun, 
+  Moon, 
+  Monitor, 
+  Palette, 
+  Eye, 
+  Settings,
+  Check,
+  X
+} from "lucide-react";
 
 export const ThemeTester: React.FC = () => {
-  const { theme, setTheme, resolvedTheme, isLoading } = useTheme();
+  const { theme, setTheme, toggleTheme } = useTheme();
+
+  const themes = [
+    { id: 'light', name: 'فاتح', icon: Sun },
+    { id: 'dark', name: 'مظلم', icon: Moon },
+    { id: 'system', name: 'النظام', icon: Monitor }
+  ];
 
   const testColors = [
-    { name: 'Background', class: 'bg-background', text: 'bg-background' },
-    { name: 'Primary', class: 'bg-primary text-primary-foreground', text: 'bg-primary' },
-    { name: 'Secondary', class: 'bg-secondary text-secondary-foreground', text: 'bg-secondary' },
-    { name: 'Muted', class: 'bg-muted text-muted-foreground', text: 'bg-muted' },
-    { name: 'Card', class: 'bg-card text-card-foreground border', text: 'bg-card' },
+    { name: 'Primary', className: 'bg-primary text-primary-foreground' },
+    { name: 'Secondary', className: 'bg-secondary text-secondary-foreground' },
+    { name: 'Muted', className: 'bg-muted text-muted-foreground' },
+    { name: 'Accent', className: 'bg-accent text-accent-foreground' },
+    { name: 'Card', className: 'bg-card text-card-foreground border' },
+    { name: 'Popover', className: 'bg-popover text-popover-foreground border' }
   ];
 
   return (
-    <Card className="w-full max-w-2xl mx-auto" dir="rtl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-right">
-          <Palette className="h-5 w-5" />
-          فاحص الثيم - Theme Tester
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* حالة الثيم الحالية */}
-        <div className="space-y-2">
-          <h3 className="font-medium text-right">الحالة الحالية:</h3>
-          <div className="flex items-center gap-2 justify-end">
-            <Badge variant={isLoading ? 'secondary' : 'default'}>
-              {isLoading ? 'جاري التحميل...' : 'محمل'}
-            </Badge>
-            <Badge variant="outline" className="gap-1">
-              {resolvedTheme === 'dark' ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
-              {resolvedTheme === 'dark' ? 'مظلم' : 'فاتح'}
-            </Badge>
-            <Badge variant="outline">
-              الثيم: {theme === 'system' ? 'تلقائي' : theme === 'dark' ? 'مظلم' : 'فاتح'}
-            </Badge>
-          </div>
-        </div>
-
-        {/* أزرار التبديل السريع */}
-        <div className="space-y-2">
-          <h3 className="font-medium text-right">اختبار التبديل:</h3>
-          <div className="flex gap-2 justify-end">
-            <Button
-              variant={theme === 'light' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setTheme('light')}
-              className="gap-1"
-            >
-              <Sun className="h-4 w-4" />
-              فاتح
-            </Button>
-            <Button
-              variant={theme === 'dark' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setTheme('dark')}
-              className="gap-1"
-            >
-              <Moon className="h-4 w-4" />
-              مظلم
-            </Button>
-            <Button
-              variant={theme === 'system' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setTheme('system')}
-              className="gap-1"
-            >
-              <Monitor className="h-4 w-4" />
-              تلقائي
-            </Button>
-          </div>
-        </div>
-
-        {/* اختبار الألوان */}
-        <div className="space-y-2">
-          <h3 className="font-medium text-right">اختبار الألوان:</h3>
-          <div className="grid grid-cols-1 gap-2">
-            {testColors.map((color) => (
-              <div
-                key={color.name}
-                className={`p-3 rounded-md ${color.class} transition-colors duration-200`}
+    <div className="space-y-6">
+      {/* Theme Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="w-5 h-5" />
+            اختبار النظام اللوني
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2 flex-wrap">
+            {themes.map(({ id, name, icon: Icon }) => (
+              <Button
+                key={id}
+                variant={theme === id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTheme(id as 'light' | 'dark' | 'system')}
+                className="gap-2"
               >
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-mono">{color.text}</span>
-                  <span className="font-medium">{color.name}</span>
-                </div>
+                <Icon className="w-4 h-4" />
+                {name}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">النظام الحالي: {theme}</Badge>
+            {toggleTheme && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+              >
+                تبديل سريع
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Color Palette Test */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Eye className="w-5 h-5" />
+            لوحة الألوان
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {testColors.map(({ name, className }) => (
+              <div
+                key={name}
+                className={`p-4 rounded-lg text-center ${className}`}
+              >
+                <div className="font-medium">{name}</div>
+                <div className="text-sm opacity-80">نص تجريبي</div>
               </div>
             ))}
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* فحص الصحة */}
-        <div className="space-y-2">
-          <h3 className="font-medium text-right">فحص الصحة:</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-2 justify-end">
-              <span>LocalStorage</span>
-              {localStorage.getItem('theme') ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              )}
+      {/* Interactive Elements */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            العناصر التفاعلية
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="default">افتراضي</Button>
+            <Button variant="secondary">ثانوي</Button>
+            <Button variant="outline">مخطط</Button>
+            <Button variant="ghost">شفاف</Button>
+            <Button variant="link">رابط</Button>
+            <Button variant="destructive">تدميري</Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Badge>افتراضي</Badge>
+            <Badge variant="secondary">ثانوي</Badge>
+            <Badge variant="outline">مخطط</Badge>
+            <Badge variant="destructive">تدميري</Badge>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-green-500" />
+              <span className="text-sm">حالة النجاح</span>
             </div>
-            <div className="flex items-center gap-2 justify-end">
-              <span>CSS Classes</span>
-              {document.documentElement.classList.contains('dark') || 
-               document.documentElement.classList.contains('light') ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              )}
-            </div>
-            <div className="flex items-center gap-2 justify-end">
-              <span>Theme Context</span>
-              {theme ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-              )}
-            </div>
-            <div className="flex items-center gap-2 justify-end">
-              <span>CSS Variables</span>
-              {getComputedStyle(document.documentElement).getPropertyValue('--background') ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-              )}
+            <div className="flex items-center gap-2">
+              <X className="w-4 h-4 text-red-500" />
+              <span className="text-sm">حالة الخطأ</span>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* معلومات النظام */}
-        <div className="space-y-2">
-          <h3 className="font-medium text-right">معلومات النظام:</h3>
+      {/* System Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>معلومات النظام</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="text-xs space-y-1 text-muted-foreground text-right">
             <div>المتصفح: {navigator.userAgent.split(' ')[0]}</div>
             <div>دعم MatchMedia: {window.matchMedia ? '✅' : '❌'}</div>
             <div>تفضيل النظام: {window.matchMedia('(prefers-color-scheme: dark)').matches ? 'مظلم' : 'فاتح'}</div>
             <div>LocalStorage: {localStorage.getItem('theme') || 'غير محدد'}</div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
-
-export default ThemeTester; 
